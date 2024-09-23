@@ -33,7 +33,7 @@ import EditTask from "./Reports/editTask";
 import TaskReport from "./Reports/taskReport";
 
 function App() {
-    axios.defaults.baseURL = "https://misbackend-pt1k.onrender.com/";
+    axios.defaults.baseURL = "http://localhost:8000/";
     return (
         <Router>
             <div>

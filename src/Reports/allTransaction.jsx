@@ -5,35 +5,40 @@ import Footer from "../Pages/footer";
 
 const AllTransaction = () => {
     const [transactions, setTransactions] = useState([]);
+    const [filteredTransactions, setFilteredTransactions] = useState([]);
     const [customers, setCustomers] = useState({});
-    const [customerNames, setCustomerNames] = useState([]); 
+    const [customerNames, setCustomerNames] = useState([]);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
-    const [filteredTransaction, setFilteredTransaction] = useState(null);
 
     useEffect(() => {
-        const fetchTransactions = axios.get("/transaction/GetTransactionList");
-        const fetchCustomers = axios.get("/customer/GetCustomersList");
-
-        Promise.all([fetchTransactions, fetchCustomers])
-            .then(([transactionsRes, customersRes]) => {
-                if (transactionsRes.data.success) {
-                    setTransactions(transactionsRes.data.result);
-                }
-
-                if (customersRes.data.success) {
-                    const customerMap = customersRes.data.result.reduce((acc, customer) => {
-                        acc[customer.Customer_uuid] = customer.Customer_name;
-                        return acc;
-                    }, {});
-                    setCustomers(customerMap);
-
-                    const customerNameList = customersRes.data.result.map(customer => customer.Customer_name);
-                    setCustomerNames(customerNameList);
+        axios.get("/transaction/GetFilteredTransactions")
+            .then(res => {
+                if (res.data.success) {
+                    setTransactions(res.data.result);
+                } else {
+                    console.error('Failed to fetch transactions:', res.data.message);
                 }
             })
-            .catch(err => console.log('Error fetching data:', err));
+            .catch(err => console.log('Error fetching transactions:', err));
+
+        axios.get("/customer/GetCustomersList")
+            .then(res => {
+                if (res.data.success) {
+                    const customerMap = res.data.result.reduce((acc, customer) => {
+                        acc[customer.Customer_uuid.trim()] = customer.Customer_name;
+                        return acc;
+                    }, {});
+                    
+                    setCustomers(customerMap);
+                    const customerNameList = res.data.result.map(customer => customer.Customer_name);
+                    setCustomerNames(customerNameList);
+                } else {
+                    console.error('Failed to fetch customers:', res.data.message);
+                }
+            })
+            .catch(err => console.log('Error fetching customers:', err));
     }, []);
 
     const handleSearch = () => {
@@ -41,37 +46,49 @@ const AllTransaction = () => {
             const transactionDate = new Date(transaction.Transaction_date);
             const isWithinDateRange = (!startDate || transactionDate >= new Date(startDate)) &&
                                       (!endDate || transactionDate <= new Date(endDate));
-    
-            const customerNamesInTransaction = transaction.Journal_entry.map(entry => {
-                return customers[entry.Account_id] || "Unknown";
-            }).join(", ");
-    
-            const matchesSearchTerm = customerNamesInTransaction.toLowerCase().includes(searchTerm.toLowerCase());
-    
-            return isWithinDateRange && matchesSearchTerm;
-        });
-    
-        if (filtered.length > 0) {
-            const firstMatch = filtered[0]; 
 
-            const journalEntry = firstMatch.Journal_entry[0];
-    
-            const paymentName = firstMatch.Payment_mode || "Unknown";  
-    
-            const totalDebit = journalEntry.Type === 'Debit' ? journalEntry.Amount : 0;
-            const totalCredit = journalEntry.Type === 'Credit' ? journalEntry.Amount : 0;
-    
-            setFilteredTransaction({
-                Transaction_date: firstMatch.Transaction_date,
-                totalDebit,
-                totalCredit,
-                paymentName, 
-            });
-        } else {
-            setFilteredTransaction(null); 
-        }
+            return isWithinDateRange; 
+        });
+
+        setFilteredTransactions(filtered.length > 0 ? filtered : []);
     };
-    
+
+    const calculateTotals = () => {
+        let totalDebit = 0;
+        let totalCredit = 0;
+
+        uniqueEntries.forEach(entry => {
+            totalDebit += entry.debit || 0;
+            totalCredit += entry.credit || 0;
+        });
+
+        return totalDebit - totalCredit; 
+    };
+
+    const uniqueEntries = [];
+    filteredTransactions.forEach(transaction => {
+        transaction.Journal_entry.forEach(entry => {
+            const normalizedAccountId = entry.Account_id ? entry.Account_id.trim() : "";
+            const paymentName = customers[normalizedAccountId] || transaction.Payment_mode;
+
+            if (paymentName !== "Unknown" && !customerNames.includes(paymentName)) {
+                const debit = entry.Type === 'Debit' ? entry.Amount : 0;
+                const credit = entry.Type === 'Credit' ? entry.Amount : 0;
+
+                const existingEntry = uniqueEntries.find(item => item.name === paymentName);
+                if (!existingEntry) {
+                    uniqueEntries.push({
+                        date: new Date(transaction.Transaction_date).toLocaleDateString(),
+                        debit,
+                        credit,
+                        name: paymentName,
+                    });
+                }
+            }
+        });
+    });
+
+    const total = calculateTotals(); 
 
     return (
         <>
@@ -86,8 +103,8 @@ const AllTransaction = () => {
                             onChange={(e) => setStartDate(e.target.value)}
                         />
                     </label>
-                    </div>
-                    <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
+                </div>
+                <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
                     <label>
                         End Date:
                         <input
@@ -119,36 +136,44 @@ const AllTransaction = () => {
                 </div>
 
                 <main className="flex flex-1 p-1 overflow-y-auto">
-    <div className="w-100 max-w-md mx-auto">
-        {filteredTransaction ? (
-            <table className="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Debit</th>
-                        <th>Credit</th>
-                        <th>Name</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>{new Date(filteredTransaction.Transaction_date).toLocaleDateString()}</td>
-                        <td>{filteredTransaction.totalDebit}</td>
-                        <td>{filteredTransaction.totalCredit}</td>
-                        <td>{filteredTransaction.paymentName}</td> 
-                    </tr>
-                </tbody>
-            </table>
-        ) : (
-            <p>No data available for the selected filters.</p>
-        )}
-    </div>
-</main>
-
+                    <div className="w-100 max-w-md mx-auto">
+                        {uniqueEntries.length > 0 ? (
+                            <table className="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Debit</th>
+                                        <th>Credit</th>
+                                        <th>Name</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {uniqueEntries.map((row, index) => (
+                                        <tr key={index}>
+                                            <td>{row.date}</td>
+                                            <td>{row.debit}</td>
+                                            <td>{row.credit}</td>
+                                            <td>{row.name}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td><strong>Total</strong></td>
+                                        <td colSpan={2}><strong>{total}</strong></td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        ) : (
+                            <p>No data available for the selected filters.</p>
+                        )}
+                    </div>
+                </main>
             </div>
             <Footer />
         </>
     );
-};
+}
 
 export default AllTransaction;

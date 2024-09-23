@@ -21,140 +21,65 @@ const TopNavbar = () => {
     navigate("/");
   };
 
-  const handleNavigation = (path) => {
-    navigate(path);
-    toggleSidebar();
-  };
-
   return (
     <div>
       {/* Top Navbar */}
       <nav className="fixed top-0 left-0 w-full bg-white text-green-600 pr-14 pl-2 pt-2 pb-2 flex z-50 items-center shadow-md">
-        {/* Left: Side Navigation Button */}
         <button onClick={toggleSidebar} className="uppercase">
           <h1 className="text-xl font-bold">s k digital</h1>
         </button>
-        {/* Center: Title */}
-        {/* Right: Example of an additional icon (e.g., settings) */}
-       
       </nav>
 
       {/* Sidebar / Drawer */}
-      {userGroup === "Admin User" && (
-      <div className={`fixed bottom-20 rounded-lg w-50 h-5/6 bg-white shadow-lg transform ${isOpen ? "translate-x-0" : "-translate-x-full"} transition-transform duration-300 ease-in-out z-40`}>
+      {isOpen && (
+        <div className={`fixed bottom-20 rounded-lg w-50 h-5/6 bg-white shadow-lg transform ${isOpen ? "translate-x-0" : "-translate-x-full"} transition-transform duration-300 ease-in-out z-40`}>
           <div className="p-1 bg-white text-black">
-      <button className="focus:outline-none" onClick={handleLogout}>Logout</button>
-      </div>
-        <div onClick={() => handleNavigation("/addCustomer")} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
+            <button className="focus:outline-none" onClick={handleLogout}>Logout</button>
+          </div>
 
-          Add Customer
+          {userGroup === "Admin User" && (
+            <>
+              {[
+                 { label: "Ledger", path: "/customerReport" },
+                 { label: "Add Payment", path: "/addTransaction1" },
+                 { label: "Add Receipt", path: "/addTransaction" },
+                 { label: "Task Report", path: "/taskReport" },
+                { label: "Add Customer", path: "/addCustomer" },
+                { label: "Add Priority", path: "/addPriority" },
+                { label: "Add Task", path: "/addTask" },
+                { label: "Add Item", path: "/addItem" },
+                { label: "Add Item Group", path: "/addItemgroup" },
+                { label: "Add User Group", path: "/addUsergroup" },
+                { label: "Add Task Group", path: "/addTaskgroup" },
+                { label: "Add Payment", path: "/addPayment" },
+                { label: "Add Enquiry", path: "/addEnquiry" },
+                { label: "Add User", path: "/addUser" },
+                { label: "Add Order", path: "/addOrder" },
+                { label: "Add Customer Group", path: "/addCustgroup" },
+              ].map((item) => (
+                <div key={item.label} onClick={() => navigate(item.path)} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
+                  {item.label}
+                </div>
+              ))}
+            </>
+          )}
+
+          {(userGroup === "Office User" || userGroup === "Vendor") && (
+            <>
+              {[
+                { label: "Ledger", path: "/customerReport" },
+                { label: "Add Payment", path: "/addTransaction1" },
+                { label: "Add Receipt", path: "/addTransaction" },
+                { label: "Task Report", path: "/taskReport" },
+              ].map((item) => (
+                <div key={item.label} onClick={() => navigate(item.path)} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
+                  {item.label}
+                </div>
+              ))}
+            </>
+          )}
         </div>
-
-        <div onClick={() => handleNavigation("/addPriority")} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
-
-          Add Priority
-        </div>
-        <div onClick={() => handleNavigation("/addTask")} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
-
-          Add Task
-        </div>
-        <div onClick={() => handleNavigation("/addItem")} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
-
-          Add Item
-        </div>
-        <div onClick={() => handleNavigation("/addItemgroup")} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
-
-          Add Item Group
-        </div>
-        <div onClick={() => handleNavigation("/addUsergroup")} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
-
-          Add User Group
-        </div>
-        <div onClick={() => handleNavigation("/addTaskgroup")} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
-
-          Add Task Group
-        </div>
-
-        <div onClick={() => handleNavigation("/addPayment")} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
-
-          Add Payment
-        </div>
-        <div onClick={() => handleNavigation("/addEnquiry")} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
-
-          Add Enquiry
-        </div>
-        <div onClick={() => handleNavigation("/addUser")} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
-
-          Add User
-        </div>
-        <div onClick={() => handleNavigation("/addOrder")} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
-
-          Add Order
-        </div>
-        <div onClick={() => handleNavigation("/addCustgroup")} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
-
-          Add Customer Group
-        </div>
-      </div>
       )}
-
-      <div
-        className={`fixed bottom-20 rounded-lg w-50 h-5/6 bg-white shadow-lg transform ${isOpen ? "translate-x-0" : "-translate-x-full"} transition-transform duration-300 ease-in-out z-40`}
-      >
-         <div className="p-1 bg-white text-black">
-      <button className="focus:outline-none" onClick={handleLogout}>Logout</button>
-      </div>
-        <div className="p-1 bg-white text-black">
-          <div onClick={() => handleNavigation("/customerReport")} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
-
-            Ledger
-          </div>
-        </div>
-
-
-        <div className="p-1 bg-white text-black">
-          <div onClick={() => handleNavigation("/addTransaction1")} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
-
-            Add Payment
-          </div>
-        </div>
-        <div className="p-1 bg-white text-black">
-          <div onClick={() => handleNavigation("/addTransaction")} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
-
-            Add Receipt
-          </div>
-        </div>
-        <div className="p-1 bg-white text-black">
-        <div onClick={() => handleNavigation("/taskReport")} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
-
-            Task Report
-          </div>
-        </div>
-        <div className="p-1 bg-white text-black">
-
-        </div>
-        <div className="p-1 bg-white text-black">
-
-        </div>
-        <div className="p-1 bg-white text-black">
-
-        </div>
-        <div className="p-1 bg-white text-black">
-
-        </div>
-        <div className="p-1 bg-white text-black">
-
-        </div>
-        <div className="p-1 bg-white text-black">
-
-        </div>
-        <div className="p-1 bg-white text-black">
-
-        </div>
-        <div className="p-1 bg-white text-black">
-
-        </div>
-      </div>
 
       {/* Backdrop to close sidebar on mobile */}
       {isOpen && (
