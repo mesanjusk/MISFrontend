@@ -67,7 +67,7 @@ export default function AllDelivery() {
     });
 
     const handleEditClick = (order) => {
-        navigate(`/orderUpdate/${order._id}`);
+        navigate(`/updateDelivery/${order._id}`);
     };
 
     return (

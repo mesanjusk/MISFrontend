@@ -11,6 +11,24 @@ export default function AddOrder1() {
     const [customerOptions, setCustomerOptions] = useState([]);
     const [filteredOptions, setFilteredOptions] = useState([]);
     const [showOptions, setShowOptions] = useState(false);
+    const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
+    const [Amount, setAmount] = useState('');
+    const [salePaymentModeUuid, setSalePaymentModeUuid] = useState(null); 
+    const [loggedInUser, setLoggedInUser] = useState('');
+
+    useEffect(() => {
+
+        const userNameFromState = location.state?.id;
+        const logInUser = userNameFromState || localStorage.getItem('User_name');
+    
+        if (logInUser) {
+            setLoggedInUser(logInUser);
+        } else {
+         
+            navigate("/login");
+        }
+    }, [location.state, navigate]);
+    
 
     useEffect(() => {
         axios.get("/customer/GetCustomersList")
@@ -22,6 +40,19 @@ export default function AddOrder1() {
             .catch(err => {
                 console.error("Error fetching customer options:", err);
             });
+
+        axios.get("/payment_mode/GetPaymentList")
+            .then(res => {
+                if (res.data.success) {
+                    const salePaymentMode = res.data.result.find(mode => mode.Payment_name === "Sale");
+                    if (salePaymentMode) {
+                        setSalePaymentModeUuid(salePaymentMode.Payment_mode_uuid);
+                    }
+                }
+            })
+            .catch(err => {
+                console.error("Error fetching payment modes:", err);
+            });
     }, []);
 
     function addCustomer() {
@@ -30,28 +61,57 @@ export default function AddOrder1() {
 
     async function submit(e) {
         e.preventDefault();
-
+    
         try {
-            if (!Customer_uuid) {
-                alert('Please select a valid Customer Name.');
+            const customer = customerOptions.find(option => option.Customer_name === Customer_name);
+    
+            if (!customer) {
+                alert("Invalid Customer selection.");
                 return;
             }
-
-            const response = await axios.post("/order/addOrder", {
-                Customer_uuid,  
-                Remark,
+    
+            const journal = [
+                {
+                    Account_id: customer.Customer_uuid, 
+                    Type: 'Debit',
+                    Amount: Number(Amount), 
+                },
+                {
+                    Account_id: salePaymentModeUuid, 
+                    Type: 'Credit',
+                    Amount: 0, 
+                }
+            ];
+    
+            const response = await axios.post("/transaction/addTransaction", {
+                Description: Remark, 
+                Total_Credit: Number(Amount), 
+                Total_Debit: Number(Amount), 
+                Payment_mode: "Sale", 
+                Journal_entry: journal,
+                Created_by: loggedInUser 
             });
-
+    
             if (response.data.success) {
-                alert(response.data.message);
-                navigate("/allOrder");
+                const orderResponse = await axios.post("/order/addOrder", {
+                    Customer_uuid: customer.Customer_uuid, 
+                    Remark: Remark, 
+                });
+    
+                if (orderResponse.data.success) {
+                    alert("Order added successfully!");
+                    navigate("/allOrder");
+                } else {
+                    alert("Failed to add Order.");
+                }
             } else {
-                alert("Failed to add Order");
+                alert("Failed to add Transaction.");
             }
         } catch (e) {
-            console.log("Error adding Order:", e);
+            console.error("Error adding Order:", e);
         }
     }
+    
 
     const handleInputChange = (e) => {
         const value = e.target.value;
@@ -68,11 +128,15 @@ export default function AddOrder1() {
         }
     };
 
-    
     const handleOptionClick = (option) => {
         setCustomer_Name(option.Customer_name);  
         setCustomer_uuid(option.Customer_uuid); 
         setShowOptions(false);
+    };
+
+    const handleAdvanceCheckboxChange = () => {
+        setIsAdvanceChecked(prev => !prev); 
+        setAmount(''); 
     };
 
     return (
@@ -104,9 +168,16 @@ export default function AddOrder1() {
                             </ul>
                         )}
                     </div>
+
                     <button onClick={addCustomer} type="button" className="text-white p-2 rounded-full bg-green-500 mb-3">
-                    <svg class="h-8 w-8 text-white-500"  width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">  <path stroke="none" d="M0 0h24v24H0z"/>  <circle cx="12" cy="12" r="9" />  <line x1="9" y1="12" x2="15" y2="12" />  <line x1="12" y1="9" x2="12" y2="15" /></svg>
+                        <svg className="h-8 w-8 text-white-500" width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">  
+                            <path stroke="none" d="M0 0h24v24H0z"/>  
+                            <circle cx="12" cy="12" r="9" />  
+                            <line x1="9" y1="12" x2="15" y2="12" />  
+                            <line x1="12" y1="9" x2="12" y2="15" />
+                        </svg>
                     </button>
+
                     <div className="mb-3">
                         <label htmlFor="remark"><strong>Order </strong></label>
                         <input
@@ -118,6 +189,34 @@ export default function AddOrder1() {
                             className="form-control rounded-0"
                         />
                     </div>
+
+                    <div className="mb-3 form-check">
+                        <input
+                            type="checkbox"
+                            className="form-check-input"
+                            id="advanceCheckbox"
+                            checked={isAdvanceChecked}
+                            onChange={handleAdvanceCheckboxChange}
+                        />
+                        <label className="form-check-label" htmlFor="advanceCheckbox">
+                            Advance
+                        </label>
+                    </div>
+
+                    {isAdvanceChecked && (
+                        <div className="mb-3">
+                            <label htmlFor="amount"><strong>Amount</strong></label>
+                            <input
+                                type="number"
+                                id="amount"
+                                autoComplete="off"
+                                onChange={(e) => setAmount(e.target.value)}
+                                value={Amount}
+                                placeholder="Enter Amount"
+                                className="form-control rounded-0"
+                            />
+                        </div>
+                    )}
 
                     <button type="submit" className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center">
                         Submit

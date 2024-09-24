@@ -13,6 +13,7 @@ const AllTransaction = () => {
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
+        // Fetch transactions
         axios.get("/transaction/GetFilteredTransactions")
             .then(res => {
                 if (res.data.success) {
@@ -23,6 +24,7 @@ const AllTransaction = () => {
             })
             .catch(err => console.log('Error fetching transactions:', err));
 
+        // Fetch customers
         axios.get("/customer/GetCustomersList")
             .then(res => {
                 if (res.data.success) {
@@ -30,7 +32,7 @@ const AllTransaction = () => {
                         acc[customer.Customer_uuid.trim()] = customer.Customer_name;
                         return acc;
                     }, {});
-                    
+
                     setCustomers(customerMap);
                     const customerNameList = res.data.result.map(customer => customer.Customer_name);
                     setCustomerNames(customerNameList);
@@ -42,15 +44,71 @@ const AllTransaction = () => {
     }, []);
 
     const handleSearch = () => {
+        // Filter transactions based on the search criteria
         const filtered = transactions.filter(transaction => {
             const transactionDate = new Date(transaction.Transaction_date);
-            const isWithinDateRange = (!startDate || transactionDate >= new Date(startDate)) &&
-                                      (!endDate || transactionDate <= new Date(endDate));
+            const isWithinDateRange = 
+                (!startDate || transactionDate >= new Date(startDate)) &&
+                (!endDate || transactionDate <= new Date(endDate));
 
-            return isWithinDateRange; 
+            const hasMatchingCustomer = transaction.Journal_entry.some(entry => {
+                const customerName = customers[entry.Account_id?.trim()];
+                return searchTerm ? customerName?.toLowerCase().includes(searchTerm.toLowerCase()) : true;
+            });
+
+            return isWithinDateRange && hasMatchingCustomer;
         });
 
-        setFilteredTransactions(filtered.length > 0 ? filtered : []);
+        setFilteredTransactions(filtered); // Set the filtered transactions based on the search criteria
+    };
+
+    const uniqueEntries = [];
+    const allowedPaymentNames = ["Cash", "UPI OFFICE", "UPI SANJU SK", "BANK CHEQUE", "Sale"];
+
+    // Process filtered transactions to create unique entries for the table
+    const processFilteredTransactions = () => {
+        uniqueEntries.length = 0; // Clear existing entries before processing
+        filteredTransactions.forEach(transaction => {
+            transaction.Journal_entry.forEach(entry => {
+                const normalizedAccountId = entry.Account_id ? entry.Account_id.trim() : "";
+                const paymentName = customers[normalizedAccountId] || transaction.Payment_mode;
+
+                if (!allowedPaymentNames.includes(paymentName)) {
+                    return; 
+                }
+
+                const debit = entry.Type === 'Debit' ? entry.Amount : 0;
+                const credit = entry.Type === 'Credit' ? entry.Amount : 0;
+
+                // Always add Sale entries
+                if (paymentName === "Sale") {
+                    uniqueEntries.push({
+                        date: new Date(transaction.Transaction_date).toLocaleDateString(),
+                        debit: 0,
+                        credit: 0,
+                        name: paymentName,
+                    });
+                } else {
+                    if (debit > 0) {
+                        uniqueEntries.push({
+                            date: new Date(transaction.Transaction_date).toLocaleDateString(),
+                            debit,
+                            credit: 0,
+                            name: paymentName,
+                        });
+                    }
+
+                    if (credit > 0) {
+                        uniqueEntries.push({
+                            date: new Date(transaction.Transaction_date).toLocaleDateString(),
+                            debit: 0,
+                            credit,
+                            name: paymentName,
+                        });
+                    }
+                }
+            });
+        });
     };
 
     const calculateTotals = () => {
@@ -65,28 +123,8 @@ const AllTransaction = () => {
         return totalDebit - totalCredit; 
     };
 
-    const uniqueEntries = [];
-    filteredTransactions.forEach(transaction => {
-        transaction.Journal_entry.forEach(entry => {
-            const normalizedAccountId = entry.Account_id ? entry.Account_id.trim() : "";
-            const paymentName = customers[normalizedAccountId] || transaction.Payment_mode;
-
-            if (paymentName !== "Unknown" && !customerNames.includes(paymentName)) {
-                const debit = entry.Type === 'Debit' ? entry.Amount : 0;
-                const credit = entry.Type === 'Credit' ? entry.Amount : 0;
-
-                const existingEntry = uniqueEntries.find(item => item.name === paymentName);
-                if (!existingEntry) {
-                    uniqueEntries.push({
-                        date: new Date(transaction.Transaction_date).toLocaleDateString(),
-                        debit,
-                        credit,
-                        name: paymentName,
-                    });
-                }
-            }
-        });
-    });
+    // Call processFilteredTransactions to update uniqueEntries whenever filteredTransactions changes
+    processFilteredTransactions();
 
     const total = calculateTotals(); 
 
@@ -137,7 +175,7 @@ const AllTransaction = () => {
 
                 <main className="flex flex-1 p-1 overflow-y-auto">
                     <div className="w-100 max-w-md mx-auto">
-                        {uniqueEntries.length > 0 ? (
+                        {filteredTransactions.length > 0 ? (
                             <table className="table table-striped">
                                 <thead>
                                     <tr>
