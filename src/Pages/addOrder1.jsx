@@ -17,14 +17,12 @@ export default function AddOrder1() {
     const [loggedInUser, setLoggedInUser] = useState('');
 
     useEffect(() => {
-
         const userNameFromState = location.state?.id;
         const logInUser = userNameFromState || localStorage.getItem('User_name');
     
         if (logInUser) {
             setLoggedInUser(logInUser);
         } else {
-         
             navigate("/login");
         }
     }, [location.state, navigate]);
@@ -69,49 +67,54 @@ export default function AddOrder1() {
                 alert("Invalid Customer selection.");
                 return;
             }
-    
-            const journal = [
-                {
-                    Account_id: customer.Customer_uuid, 
-                    Type: 'Debit',
-                    Amount: Number(Amount), 
-                },
-                {
-                    Account_id: salePaymentModeUuid, 
-                    Type: 'Credit',
-                    Amount: 0, 
-                }
-            ];
-    
-            const response = await axios.post("/transaction/addTransaction", {
-                Description: Remark, 
-                Total_Credit: Number(Amount), 
-                Total_Debit: Number(Amount), 
-                Payment_mode: "Sale", 
-                Journal_entry: journal,
-                Created_by: loggedInUser 
+
+            // First, create the order
+            const orderResponse = await axios.post("/order/addOrder", {
+                Customer_uuid: customer.Customer_uuid, 
+                Remark: Remark, 
             });
+
+            if (orderResponse.data.success) {
+                if (isAdvanceChecked && Amount) {
+                    // If Advance is checked and Amount is provided, also create a transaction
+                    const journal = [
+                        {
+                            Account_id: customer.Customer_uuid, 
+                            Type: 'Debit',
+                            Amount: Number(Amount), 
+                        },
+                        {
+                            Account_id: salePaymentModeUuid, 
+                            Type: 'Credit',
+                            Amount: Number(Amount), 
+                        }
+                    ];
     
-            if (response.data.success) {
-                const orderResponse = await axios.post("/order/addOrder", {
-                    Customer_uuid: customer.Customer_uuid, 
-                    Remark: Remark, 
-                });
+                    const transactionResponse = await axios.post("/transaction/addTransaction", {
+                        Description: Remark, 
+                        Total_Credit: Number(Amount), 
+                        Total_Debit: Number(Amount), 
+                        Payment_mode: "Sale", 
+                        Journal_entry: journal,
+                        Created_by: loggedInUser 
+                    });
     
-                if (orderResponse.data.success) {
-                    alert("Order added successfully!");
-                    navigate("/allOrder");
-                } else {
-                    alert("Failed to add Order.");
+                    if (!transactionResponse.data.success) {
+                        alert("Failed to add Transaction.");
+                    }
                 }
+
+                alert("Order added successfully!");
+                navigate("/allOrder");
+
             } else {
-                alert("Failed to add Transaction.");
+                alert("Failed to add Order.");
             }
+
         } catch (e) {
-            console.error("Error adding Order:", e);
+            console.error("Error adding Order or Transaction:", e);
         }
     }
-    
 
     const handleInputChange = (e) => {
         const value = e.target.value;
