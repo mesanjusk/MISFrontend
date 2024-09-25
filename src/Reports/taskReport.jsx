@@ -15,6 +15,7 @@ const ItemReport = () => {
     const [selectedTask, setSelectedTask] = useState(null); 
     const [showAddModal, setShowAddModal] = useState(false); 
     const [userGroup, setUserGroup] = useState(''); 
+    const [deleteErrorMessage, setDeleteErrorMessage] = useState('');
 
     useEffect(() => {
         const fetchUserGroup = async () => {

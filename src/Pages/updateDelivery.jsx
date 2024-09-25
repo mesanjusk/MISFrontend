@@ -14,25 +14,36 @@ export default function UpdateDelivery() {
     const [Amount, setAmount] = useState(0);  
     const [customers, setCustomers] = useState([]); 
     const [itemOptions, setItemOptions] = useState([]);
+    const [salePaymentModeUuid, setSalePaymentModeUuid] = useState(null); 
+    const [loggedInUser, setLoggedInUser] = useState('');
 
-    // Fetch the order details
+    useEffect(() => {
+        const userNameFromState = location.state?.id;
+        const logInUser = userNameFromState || localStorage.getItem('User_name');
+    
+        if (logInUser) {
+            setLoggedInUser(logInUser);
+        } else {
+            navigate("/login");
+        }
+    }, [location.state, navigate]);
+
     useEffect(() => {
         axios.get(`/order/${id}`)
             .then(res => {
                 if (res.data.success) {
                     const order = res.data.result;
                     setCustomer_uuid(order.Customer_uuid);
-                    setItem(order.Item); // Set the current item
+                    setItem(order.Item); 
                     setQuantity(order.Quantity);
                     setRate(order.Rate);
                     setAmount(order.Amount);
-                    setCustomer_name(order.Customer_name || ''); // Set the customer name if available
+                    setCustomer_name(order.Customer_name || ''); 
                 }
             })
             .catch(err => console.log('Error fetching order data:', err));
     }, [id]);
     
-    // Fetch the customers list
     useEffect(() => {
         axios.get("/customer/GetCustomersList")
             .then(res => {
@@ -45,9 +56,23 @@ export default function UpdateDelivery() {
                 }
             })
             .catch(err => console.log('Error fetching customers list:', err));
-    }, [Customer_uuid]); // Trigger when Customer_uuid changes
+    }, [Customer_uuid]); 
+   
+    useEffect(() => {
+        axios.get("/payment_mode/GetPaymentList")
+        .then(res => {
+            if (res.data.success) {
+                const salePaymentMode = res.data.result.find(mode => mode.Payment_name === "Sale");
+                if (salePaymentMode) {
+                    setSalePaymentModeUuid(salePaymentMode.Payment_mode_uuid);
+                }
+            }
+        })
+        .catch(err => {
+            console.error("Error fetching payment modes:", err);
+        });
+    }, []); 
 
-    // Fetch the item options
     useEffect(() => {
         axios.get("/item/GetItemList")
             .then(res => {
@@ -61,14 +86,12 @@ export default function UpdateDelivery() {
             });
     }, []);
 
-    // Calculate Amount based on Quantity and Rate
     useEffect(() => {
         if (Quantity && Rate) {
             setAmount(Quantity * Rate); 
         }
     }, [Quantity, Rate]);
 
-    // Handle form submission
     async function submit(e) {
         e.preventDefault();
     
@@ -76,8 +99,6 @@ export default function UpdateDelivery() {
             alert('Please provide all required fields.');
             return;
         }
-    
-        console.log({ id, Customer_uuid, Item, Quantity, Rate, Amount }); 
     
         try {
             const response = await axios.put(`/order/updateDelivery/${id}`, {
@@ -89,13 +110,41 @@ export default function UpdateDelivery() {
             });
     
             if (response.data.success) {
-                alert(response.data.message);
+                    const journal = [
+                        {
+                            Account_id: Customer_uuid, 
+                            Type: 'Debit',
+                            Amount: Number(Amount), 
+                        },
+                        {
+                            Account_id: salePaymentModeUuid, 
+                            Type: 'Credit',
+                            Amount: Number(Amount), 
+                        }
+                    ];
+    
+                    const transactionResponse = await axios.post("/transaction/addTransaction", {
+                        Description: "Delivered", 
+                        Total_Credit: Number(Amount), 
+                        Total_Debit: Number(Amount), 
+                        Payment_mode: "Sale", 
+                        Journal_entry: journal,
+                        Created_by: loggedInUser 
+                    });
+    
+                    if (!transactionResponse.data.success) {
+                        alert("Failed to add Transaction.");
+                    }
+                
+
+                alert("Transaction added successfully!");
                 navigate("/allOrder");
+
             } else {
-                alert("Failed to update order");
+                alert("Failed to update transaction");
             }
         } catch (e) {
-            console.log("Error updating order:", e);
+            console.log("Error updating transaction:", e);
         }
     }
 
@@ -110,9 +159,9 @@ export default function UpdateDelivery() {
                         <input
                             type="text"
                             autoComplete="off"
-                            value={Customer_name} // Display Customer_name
+                            value={Customer_name} 
                             className="form-control rounded-0"
-                            readOnly // Read-only field
+                            readOnly 
                         />
                     </div>
 

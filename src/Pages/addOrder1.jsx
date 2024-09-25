@@ -13,7 +13,7 @@ export default function AddOrder1() {
     const [showOptions, setShowOptions] = useState(false);
     const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
     const [Amount, setAmount] = useState('');
-    const [salePaymentModeUuid, setSalePaymentModeUuid] = useState(null); 
+    const [cashPaymentModeUuid, setCashPaymentModeUuid] = useState(null); 
     const [loggedInUser, setLoggedInUser] = useState('');
 
     useEffect(() => {
@@ -42,9 +42,9 @@ export default function AddOrder1() {
         axios.get("/payment_mode/GetPaymentList")
             .then(res => {
                 if (res.data.success) {
-                    const salePaymentMode = res.data.result.find(mode => mode.Payment_name === "Sale");
-                    if (salePaymentMode) {
-                        setSalePaymentModeUuid(salePaymentMode.Payment_mode_uuid);
+                    const cashPaymentMode = res.data.result.find(mode => mode.Payment_name === "Cash");
+                    if (cashPaymentMode) {
+                        setCashPaymentModeUuid(cashPaymentMode.Payment_mode_uuid);
                     }
                 }
             })
@@ -77,12 +77,12 @@ export default function AddOrder1() {
                 if (isAdvanceChecked && Amount) {
                     const journal = [
                         {
-                            Account_id: customer.Customer_uuid, 
+                            Account_id: cashPaymentModeUuid, 
                             Type: 'Debit',
                             Amount: Number(Amount), 
                         },
                         {
-                            Account_id: salePaymentModeUuid, 
+                            Account_id: customer.Customer_uuid, 
                             Type: 'Credit',
                             Amount: Number(Amount), 
                         }
@@ -92,7 +92,7 @@ export default function AddOrder1() {
                         Description: Remark, 
                         Total_Credit: Number(Amount), 
                         Total_Debit: Number(Amount), 
-                        Payment_mode: "Sale", 
+                        Payment_mode: "Cash", 
                         Journal_entry: journal,
                         Created_by: loggedInUser 
                     });
