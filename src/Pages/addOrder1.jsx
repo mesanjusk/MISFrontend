@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-export default function AddOrder1() {
+export default function AddOrder1({ closeModal }) {
     const navigate = useNavigate();
 
     const [Customer_name, setCustomer_Name] = useState('');
@@ -114,6 +114,7 @@ export default function AddOrder1() {
                 }
 
                 alert("Order added successfully!");
+                closeModal();
                 navigate("/allOrder");
 
             } else {

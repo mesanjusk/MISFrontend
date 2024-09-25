@@ -171,11 +171,10 @@ export default function AllOrder() {
             {showOrderModal && (
                 <div className="modal-overlay">
                     <div className="modal-content">
-                        <AddOrder1 closeModal={closeModal} /> 
+                        <AddOrder1 closeModal={closeModal} />
                     </div>
                 </div>
             )}
-
             <Footer />
         </>
     );
