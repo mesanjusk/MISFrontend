@@ -48,7 +48,7 @@ const CustomerReport = () => {
             })
             .catch(err => console.log('Error fetching customers list:', err));
     }, []);
-
+    
     const handleEdit = (customerId) => {
         setSelectedCustomerId(customerId); 
         setShowEditModal(true); 

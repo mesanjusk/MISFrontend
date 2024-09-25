@@ -15,6 +15,8 @@ export default function AddOrder1() {
     const [Amount, setAmount] = useState('');
     const [cashPaymentModeUuid, setCashPaymentModeUuid] = useState(null); 
     const [loggedInUser, setLoggedInUser] = useState('');
+    const [accountCustomerOptions, setAccountCustomerOptions] = useState([]);
+    const [group, setGroup] = useState(''); 
 
     useEffect(() => {
         const userNameFromState = location.state?.id;
@@ -33,6 +35,9 @@ export default function AddOrder1() {
             .then(res => {
                 if (res.data.success) {
                     setCustomerOptions(res.data.result);
+
+                    const accountOptions = res.data.result.filter(item => item.Customer_group === "Account");
+                    setAccountCustomerOptions(accountOptions);
                 }
             })
             .catch(err => {
@@ -62,9 +67,15 @@ export default function AddOrder1() {
     
         try {
             const customer = customerOptions.find(option => option.Customer_name === Customer_name);
+            const Group = accountCustomerOptions.find(option => option.Customer_uuid === group);
     
             if (!customer) {
                 alert("Invalid Customer selection.");
+                return;
+            }
+
+            if (!Group) {
+                alert("Invalid Group selection.");
                 return;
             }
 
@@ -77,12 +88,12 @@ export default function AddOrder1() {
                 if (isAdvanceChecked && Amount) {
                     const journal = [
                         {
-                            Account_id: cashPaymentModeUuid, 
+                            Account_id: group,
                             Type: 'Debit',
                             Amount: Number(Amount), 
                         },
                         {
-                            Account_id: customer.Customer_uuid, 
+                            Account_id: customer.Customer_uuid,
                             Type: 'Credit',
                             Amount: Number(Amount), 
                         }
@@ -92,7 +103,7 @@ export default function AddOrder1() {
                         Description: Remark, 
                         Total_Credit: Number(Amount), 
                         Total_Debit: Number(Amount), 
-                        Payment_mode: "Cash", 
+                        Payment_mode: Group.Customer_name, 
                         Journal_entry: journal,
                         Created_by: loggedInUser 
                     });
@@ -216,7 +227,23 @@ export default function AddOrder1() {
                                 placeholder="Enter Amount"
                                 className="form-control rounded-0"
                             />
-                        </div>
+                     
+                          
+                           <label htmlFor="debit-customer"><strong>Mode</strong></label>
+                           <select
+                               className="form-control rounded-0"
+                               onChange={(e) => setGroup(e.target.value)}  
+                               value={group}
+                               required
+                           >
+                               <option value="">Select Payment</option>
+                               {accountCustomerOptions.map((customer, index) => (
+                                   <option key={index} value={customer.Customer_uuid}>
+                                       {customer.Customer_name}
+                                   </option>
+                               ))}
+                           </select>
+                       </div>
                     )}
 
                     <button type="submit" className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center">

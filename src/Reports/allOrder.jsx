@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import TopNavbar from "../Pages/topNavbar";
 import Footer from "../Pages/footer";
+import AddOrder1 from "../Pages/addOrder1"; 
 
 export default function AllOrder() {
     const navigate = useNavigate();
@@ -10,13 +11,10 @@ export default function AllOrder() {
     const [searchOrder, setSearchOrder] = useState("");
     const [filter, setFilter] = useState("");
     const [tasks, setTasks] = useState([]);
+    const [showOrderModal, setShowOrderModal] = useState(false); 
     const [customers, setCustomers] = useState({});
     const [loadingOrders, setLoadingOrders] = useState(true); 
     const [loadingTasks, setLoadingTasks] = useState(true);   
-
-    function addOrder1() {
-        navigate("/addOrder1");
-    }
 
     useEffect(() => {
         const fetchOrders = axios.get("/order/GetOrderList");
@@ -46,7 +44,6 @@ export default function AllOrder() {
             })
             .catch(err => console.log('Error fetching data:', err))
             .finally(() => setLoadingOrders(false)); 
-
     }, []);
 
     useEffect(() => {
@@ -88,6 +85,14 @@ export default function AllOrder() {
 
     const handleEditClick = (order) => {
         navigate(`/orderUpdate/${order._id}`);
+    };
+
+    const handleOrder = () => {
+        setShowOrderModal(true); 
+    };
+
+    const closeModal = () => {
+        setShowOrderModal(false); 
     };
 
     return (
@@ -152,7 +157,7 @@ export default function AllOrder() {
                     </div>
                 </main>
                 <div className="fixed bottom-20 right-8">
-                    <button onClick={addOrder1} className="w-14 h-14 bg-green-500 text-white rounded-full shadow-lg flex items-center justify-center">
+                    <button onClick={handleOrder} className="w-14 h-14 bg-green-500 text-white rounded-full shadow-lg flex items-center justify-center">
                         <svg className="h-8 w-8 text-white-500" width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" />
                             <circle cx="12" cy="12" r="9" />
@@ -162,6 +167,15 @@ export default function AllOrder() {
                     </button>
                 </div>
             </div>
+
+            {showOrderModal && (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <AddOrder1 closeModal={closeModal} /> 
+                    </div>
+                </div>
+            )}
+
             <Footer />
         </>
     );

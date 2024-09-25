@@ -5,60 +5,43 @@ import axios from "axios";
 export default function AddTransaction() {
     const navigate = useNavigate();
 
-    const [Customer_name, setCustomer_Name] = useState('');
     const [Description, setDescription] = useState('');
     const [Amount, setAmount] = useState('');
     const [Total_Debit, setTotal_Debit] = useState('');
     const [Total_Credit, setTotal_Credit] = useState('');
-    const [Payment_mode, setPayment_mode] = useState('');
-    const [customerOptions, setCustomerOptions] = useState([]);
-    const [filteredOptions, setFilteredOptions] = useState([]);
+    const [customers, setCustomers] = useState(''); 
+    const [group, setGroup] = useState(''); 
+    const [allCustomerOptions, setAllCustomerOptions] = useState([]); 
+    const [accountCustomerOptions, setAccountCustomerOptions] = useState([]); 
+    const [loggedInUser, setLoggedInUser] = useState('');
     const [showOptions, setShowOptions] = useState(false);
-    const [paymentOptions, setPaymentOptions] = useState([]);
-    const [loggedInUser, setLoggedInUser] = useState(''); 
+    const [filteredOptions, setFilteredOptions] = useState([]);
+    const [Customer_name, setCustomer_Name] = useState('');
 
     useEffect(() => {
+        const userNameFromState = location.state?.id;
+        const logInUser = userNameFromState || localStorage.getItem('User_name');
 
-    const userNameFromState = location.state?.id;
-    const logInUser = userNameFromState || localStorage.getItem('User_name');
-
-    if (logInUser) {
-        setLoggedInUser(logInUser);
-    } else {
-     
-        navigate("/login");
-    }
-}, [location.state, navigate]);
+        if (logInUser) {
+            setLoggedInUser(logInUser);
+        } else {
+            navigate("/login");
+        }
+    }, [location.state, navigate]);
 
     useEffect(() => {
-        axios.get("/payment_mode/GetPaymentList")
-            .then(res => {
-                if (res.data.success) {
-                    const options = res.data.result.map(item => ({
-                        Payment_name: item.Payment_name,
-                        Payment_mode_uuid: item.Payment_mode_uuid
-                    }));
-                    setPaymentOptions(options);
-                }
-            })
-            .catch(err => {
-                console.error("Error fetching payment options:", err);
-            });
-
         axios.get("/customer/GetCustomersList")
             .then(res => {
                 if (res.data.success) {
-                    const options = res.data.result.map(item => ({
-                        Customer_name: item.Customer_name,
-                        Customer_uuid: item.Customer_uuid 
-                    }));
-                    setCustomerOptions(options);
+                    setAllCustomerOptions(res.data.result);
+
+                    const accountOptions = res.data.result.filter(item => item.Customer_group === "Account");
+                    setAccountCustomerOptions(accountOptions);
                 }
             })
             .catch(err => {
                 console.error("Error fetching customer options:", err);
             });
-        
     }, []);
 
     function addCustomer() {
@@ -68,33 +51,52 @@ export default function AddTransaction() {
     async function submit(e) {
         e.preventDefault();
     
-        try {
-            const customer = customerOptions.find(option => option.Customer_name === Customer_name);
-            const paymentMode = paymentOptions.find(option => option.Payment_name === Payment_mode);
+        if (!Amount || isNaN(Amount) || Amount <= 0) {
+            alert("Please enter a valid amount.");
+            return;
+        }
     
-            if (!customer || !paymentMode) {
-                alert("Invalid Customer or Payment mode selection.");
+        if (!customers || !group) {
+            alert("Please select both a Credit and Debit customer.");
+            return;
+        }
+    
+        try {
+            const Customer = allCustomerOptions.find(option => option.Customer_uuid === customers);
+            const Group = accountCustomerOptions.find(option => option.Customer_uuid === group);
+    
+            if (!Customer || !Group) {
+                alert("Please select valid customers.");
                 return;
             }
     
             const journal = [
                 {
-                    Account_id: customer.Customer_uuid, 
+                    Account_id: customers, 
                     Type: 'Debit',
                     Amount: Number(Amount),
                 },
                 {
-                    Account_id: paymentMode.Payment_mode_uuid, 
+                    Account_id: group,  
                     Type: 'Credit',
                     Amount: Number(Amount),
                 }
             ];
     
+            console.log({
+                Description,
+                Total_Credit: Number(Amount),
+                Total_Debit: Number(Amount),
+                Payment_mode: Group.Customer_name,  
+                Journal_entry: journal,
+                Created_by: loggedInUser
+            });
+    
             const response = await axios.post("/transaction/addTransaction", {
                 Description,
                 Total_Credit: Number(Amount),
                 Total_Debit: Number(Amount),
-                Payment_mode: Payment_mode,
+                Payment_mode: Group.Customer_name,  
                 Journal_entry: journal,
                 Created_by: loggedInUser
             });
@@ -107,15 +109,29 @@ export default function AddTransaction() {
             }
         } catch (e) {
             console.error("Error adding Transaction:", e);
+            if (e.response) {
+                console.error("Response data:", e.response.data);
+                console.error("Response status:", e.response.status);
+                console.error("Response headers:", e.response.headers);
+            }
+            alert("Error occurred while submitting the form.");
         }
-    }    
+    }
+    
+
+    const handleAmountChange = (e) => {
+        const value = e.target.value;
+        setAmount(value);
+        setTotal_Debit(value);
+        setTotal_Credit(value);
+    };
 
     const handleInputChange = (e) => {
         const value = e.target.value;
         setCustomer_Name(value);
 
         if (value) {
-            const filtered = customerOptions.filter(option =>
+            const filtered = allCustomerOptions.filter(option =>
                 option.Customer_name.toLowerCase().includes(value.toLowerCase())
             );
             setFilteredOptions(filtered);
@@ -126,15 +142,9 @@ export default function AddTransaction() {
     };
 
     const handleOptionClick = (option) => {
-        setCustomer_Name(option);
+        setCustomer_Name(option.Customer_name);
+        setCustomers(option.Customer_uuid); 
         setShowOptions(false);
-    };
-
-    const handleAmountChange = (e) => {
-        const value = e.target.value;
-        setAmount(value);
-        setTotal_Debit(value);
-        setTotal_Credit(value);
     };
 
     return (
@@ -158,7 +168,7 @@ export default function AddTransaction() {
                                     <li 
                                         key={index} 
                                         className="list-group-item list-group-item-action"
-                                        onClick={() => handleOptionClick(option.Customer_name)}
+                                        onClick={() => handleOptionClick(option)}
                                     >
                                         {option.Customer_name}
                                     </li>
@@ -166,6 +176,7 @@ export default function AddTransaction() {
                             </ul>
                         )}
                     </div>
+
                     <button onClick={addCustomer} type="button" className="btn btn-primary mb-3">
                         Add Customer
                     </button>
@@ -194,17 +205,19 @@ export default function AddTransaction() {
                         />
                     </div>
 
-                    <div className="mb-3">
-                        <label htmlFor="mode"><strong>Mode</strong></label>
-                        <select 
-                            className="form-control rounded-0" 
-                            onChange={(e) => setPayment_mode(e.target.value)} 
-                            value={Payment_mode}
-                            required 
+                    <div className="mb-3 position-relative">
+                        <label htmlFor="debit-customer"><strong>Mode</strong></label>
+                        <select
+                            className="form-control rounded-0"
+                            onChange={(e) => setGroup(e.target.value)}  
+                            value={group}
+                            required
                         >
                             <option value="">Select Payment</option>
-                            {paymentOptions.map((option, index) => (
-                                <option key={index} value={option.Payment_name}>{option.Payment_name}</option>
+                            {accountCustomerOptions.map((customer, index) => (
+                                <option key={index} value={customer.Customer_uuid}>
+                                    {customer.Customer_name}
+                                </option>
                             ))}
                         </select>
                     </div>
