@@ -68,7 +68,6 @@ export default function AddOrder1() {
                 return;
             }
 
-            // First, create the order
             const orderResponse = await axios.post("/order/addOrder", {
                 Customer_uuid: customer.Customer_uuid, 
                 Remark: Remark, 
@@ -76,7 +75,6 @@ export default function AddOrder1() {
 
             if (orderResponse.data.success) {
                 if (isAdvanceChecked && Amount) {
-                    // If Advance is checked and Amount is provided, also create a transaction
                     const journal = [
                         {
                             Account_id: customer.Customer_uuid, 

@@ -13,7 +13,6 @@ const AllTransaction = () => {
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        // Fetch transactions
         axios.get("/transaction/GetFilteredTransactions")
             .then(res => {
                 if (res.data.success) {
@@ -24,7 +23,6 @@ const AllTransaction = () => {
             })
             .catch(err => console.log('Error fetching transactions:', err));
 
-        // Fetch customers
         axios.get("/customer/GetCustomersList")
             .then(res => {
                 if (res.data.success) {
@@ -44,7 +42,6 @@ const AllTransaction = () => {
     }, []);
 
     const handleSearch = () => {
-        // Filter transactions based on the search criteria
         const filtered = transactions.filter(transaction => {
             const transactionDate = new Date(transaction.Transaction_date);
             const isWithinDateRange = 
@@ -59,15 +56,14 @@ const AllTransaction = () => {
             return isWithinDateRange && hasMatchingCustomer;
         });
 
-        setFilteredTransactions(filtered); // Set the filtered transactions based on the search criteria
+        setFilteredTransactions(filtered); 
     };
 
     const uniqueEntries = [];
     const allowedPaymentNames = ["Cash", "UPI OFFICE", "UPI SANJU SK", "BANK CHEQUE", "Sale"];
 
-    // Process filtered transactions to create unique entries for the table
     const processFilteredTransactions = () => {
-        uniqueEntries.length = 0; // Clear existing entries before processing
+        uniqueEntries.length = 0; 
         filteredTransactions.forEach(transaction => {
             transaction.Journal_entry.forEach(entry => {
                 const normalizedAccountId = entry.Account_id ? entry.Account_id.trim() : "";
@@ -80,12 +76,11 @@ const AllTransaction = () => {
                 const debit = entry.Type === 'Debit' ? entry.Amount : 0;
                 const credit = entry.Type === 'Credit' ? entry.Amount : 0;
 
-                // Always add Sale entries
                 if (paymentName === "Sale") {
                     uniqueEntries.push({
                         date: new Date(transaction.Transaction_date).toLocaleDateString(),
-                        debit: 0,
-                        credit: 0,
+                        debit,
+                        credit,
                         name: paymentName,
                     });
                 } else {
@@ -123,7 +118,6 @@ const AllTransaction = () => {
         return totalDebit - totalCredit; 
     };
 
-    // Call processFilteredTransactions to update uniqueEntries whenever filteredTransactions changes
     processFilteredTransactions();
 
     const total = calculateTotals(); 
