@@ -74,14 +74,12 @@ export default function AddOrder1({ closeModal }) {
                 return;
             }
 
-            // Basic Order submission (without Advance)
             const orderResponse = await axios.post("/order/addOrder", {
                 Customer_uuid: customer.Customer_uuid, 
                 Remark: Remark, 
             });
 
             if (orderResponse.data.success) {
-                // If Advance checkbox is selected, submit transaction details
                 if (isAdvanceChecked && Amount && group) {
                     const journal = [
                         {
