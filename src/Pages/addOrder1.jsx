@@ -74,18 +74,15 @@ export default function AddOrder1({ closeModal }) {
                 return;
             }
 
-            if (!Group) {
-                alert("Invalid Group selection.");
-                return;
-            }
-
+            // Basic Order submission (without Advance)
             const orderResponse = await axios.post("/order/addOrder", {
                 Customer_uuid: customer.Customer_uuid, 
                 Remark: Remark, 
             });
 
             if (orderResponse.data.success) {
-                if (isAdvanceChecked && Amount) {
+                // If Advance checkbox is selected, submit transaction details
+                if (isAdvanceChecked && Amount && group) {
                     const journal = [
                         {
                             Account_id: group,
@@ -229,13 +226,11 @@ export default function AddOrder1({ closeModal }) {
                                 className="form-control rounded-0"
                             />
                      
-                          
                            <label htmlFor="debit-customer"><strong>Mode</strong></label>
                            <select
                                className="form-control rounded-0"
                                onChange={(e) => setGroup(e.target.value)}  
                                value={group}
-                               required
                            >
                                <option value="">Select Payment</option>
                                {accountCustomerOptions.map((customer, index) => (
