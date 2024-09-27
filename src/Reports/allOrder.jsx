@@ -109,8 +109,8 @@ export default function AllOrder() {
                     />
                 </div>
                 
-                <div className="overflow-x-scroll no-scrollbar w-90 flex p-2 space-x-2 py-2"> </div>
-                <div className="overflow-x-scroll flex space-x-4 py-4" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+                
+                <div className="overflow-x-scroll flex space-x-2 py-2" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
       <style>{`
         .overflow-x-scroll::-webkit-scrollbar {
           display: none;

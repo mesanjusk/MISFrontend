@@ -24,7 +24,7 @@ const TopNavbar = () => {
   return (
     <div>
       {/* Top Navbar */}
-      <nav className="fixed top-0 left-0 w-full bg-white text-green-600 pr-14 pl-2 pt-2 pb-2 flex z-50 items-center shadow-md">
+      <nav className="fixed top-0 left-0 w-full bg-white text-green-600 pr-14 pl-4 pt-2 pb-2 flex z-50 items-center shadow-md">
         <button onClick={toggleSidebar} className="uppercase">
           <h1 className="text-xl font-bold">s k digital</h1>
         </button>
