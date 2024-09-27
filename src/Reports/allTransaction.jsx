@@ -126,19 +126,18 @@ const AllTransaction = () => {
         <>
             <TopNavbar />
             <div className="pt-12 pb-20">
-                <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
+                <div className="d-flex flex-wrap bg-white w-100 p-2">
                     <label>
-                        Start Date:
+                        Start :
                         <input
                             type="date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
                         />
                     </label>
-                </div>
-                <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
+                
                     <label>
-                        End Date:
+                        End :
                         <input
                             type="date"
                             value={endDate}
@@ -162,7 +161,7 @@ const AllTransaction = () => {
                     </label>
                 </div>
                 <div className="d-flex justify-content-center">
-                    <button onClick={handleSearch} className="btn btn-primary">
+                    <button onClick={handleSearch} className="bg-green-500 text-white px-2 py-1 mr-2 rounded">
                         Search
                     </button>
                 </div>
