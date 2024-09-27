@@ -37,7 +37,7 @@ const TopNavbar = () => {
             <button className="focus:outline-none" onClick={handleLogout}>Logout</button>
           </div>
 
-          {userGroup === "Admin User" && (
+          {userGroup === "Office User" && (
             <>
               {[
                 
@@ -56,7 +56,7 @@ const TopNavbar = () => {
             </>
           )}
 
-          {(userGroup === "Office User" || userGroup === "Vendor") && (
+          {(userGroup === "Admin User" || userGroup === "Vendor") && (
             <>
               {[
                 { label: "Ledger", path: "/customerReport" },
