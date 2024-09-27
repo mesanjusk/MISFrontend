@@ -108,7 +108,17 @@ export default function AllOrder() {
                         onChange={(e) => setSearchOrder(e.target.value)}
                     />
                 </div>
-                <div className="overflow-x-scroll no-scrollbar w-full flex p-2 space-x-2 py-2">
+                
+                <div className="overflow-x-scroll no-scrollbar w-90 flex p-2 space-x-2 py-2"> </div>
+                <div className="overflow-x-scroll flex space-x-4 py-4" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+      <style>{`
+        .overflow-x-scroll::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+      
+      
+    
                     {loadingTasks ? (
                         <div>Loading...</div>
                     ) : taskOptions.length > 0 ? (
