@@ -110,7 +110,7 @@ export default function AllOrder() {
                 </div>
                 
                 
-                <div className="overflow-x-scroll flex space-x-2 py-2" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+                <div className="overflow-x-scroll mx-width-70 flex space-x-2 py-2" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
       <style>{`
         .overflow-x-scroll::-webkit-scrollbar {
           display: none;
@@ -126,7 +126,7 @@ export default function AllOrder() {
                             <button
                                 key={index}
                                 onClick={() => setFilter(taskGroup)}
-                                className={`sanju ${filter === taskGroup ? 'sanju bg-green-500' : 'bg-green-100'} rounded-full text-black bg-gray-100  p-2 text-s me-1 mb-1`}
+                                className={`sanju ${filter === taskGroup ? 'sanju bg-green-500' : 'bg-green-100'} uppercase rounded-full text-black bg-gray-100  p-2 text-xs me-2 mb-2`}
                             >
                                 {taskGroup}
                             </button>
