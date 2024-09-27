@@ -174,18 +174,22 @@ const AllTransaction = () => {
                                 <thead>
                                     <tr>
                                         <th>Date</th>
-                                        <th>Debit</th>
-                                        <th>Credit</th>
+                                        <th>No. </th>
                                         <th>Name</th>
+                                        <th>Credit</th>
+                                        <th>Debit</th>
+                                        
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {uniqueEntries.map((row, index) => (
                                         <tr key={index}>
                                             <td>{row.date}</td>
-                                            <td>{row.debit}</td>
-                                            <td>{row.credit}</td>
+                                            <td>{}</td>
                                             <td>{row.name}</td>
+                                            <td>{row.credit}</td>
+                                            <td>{row.debit}</td>
+                                           
                                         </tr>
                                     ))}
                                 </tbody>

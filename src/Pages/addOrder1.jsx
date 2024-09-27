@@ -193,12 +193,12 @@ export default function AddOrder1({ closeModal }) {
                             autoComplete="off"
                             onChange={(e) => setRemark(e.target.value)}
                             value={Remark}
-                            placeholder="Order Details"
+                            placeholder="Item Details"
                             className="form-control rounded-0"
                         />
                     </div>
 
-                    <div className="mb-3 form-check">
+                    <div className="mb-3 ">
                         <input
                             type="checkbox"
                             className="form-check-input"
@@ -207,7 +207,7 @@ export default function AddOrder1({ closeModal }) {
                             onChange={handleAdvanceCheckboxChange}
                         />
                         <label className="form-check-label" htmlFor="advanceCheckbox">
-                            Advance
+                            Advance 
                         </label>
                     </div>
 
@@ -243,6 +243,7 @@ export default function AddOrder1({ closeModal }) {
                     <button type="submit" className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center">
                         Submit
                     </button>
+                    <button type="button" className="btn btn-secondary" onClick={closeModal}>Close</button>
                 </form>
             </div>
         </div>

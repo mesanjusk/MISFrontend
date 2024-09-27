@@ -40,22 +40,14 @@ const TopNavbar = () => {
           {userGroup === "Admin User" && (
             <>
               {[
+                
+                 { label: "Add Reciept", path: "/addTransaction1" },
+                 { label: "Add Payment", path: "/addTransaction" },
                  { label: "Ledger", path: "/customerReport" },
-                 { label: "Add Payment", path: "/addTransaction1" },
-                 { label: "Add Receipt", path: "/addTransaction" },
-                 { label: "Task Report", path: "/taskReport" },
-                { label: "Add Customer", path: "/addCustomer" },
-                { label: "Add Priority", path: "/addPriority" },
-                { label: "Add Task", path: "/addTask" },
-                { label: "Add Item", path: "/addItem" },
-                { label: "Add Item Group", path: "/addItemgroup" },
-                { label: "Add User Group", path: "/addUsergroup" },
-                { label: "Add Task Group", path: "/addTaskgroup" },
-                { label: "Add Payment", path: "/addPayment" },
-                { label: "Add Enquiry", path: "/addEnquiry" },
-                { label: "Add User", path: "/addUser" },
-                { label: "Add Order", path: "/addOrder" },
-                { label: "Add Customer Group", path: "/addCustgroup" },
+                 { label: "Add Item", path: "/addItem" },
+                 { label: "Add Item Group", path: "/addItemgroup" },
+
+                
               ].map((item) => (
                 <div key={item.label} onClick={() => navigate(item.path)} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
                   {item.label}
@@ -71,6 +63,18 @@ const TopNavbar = () => {
                 { label: "Add Payment", path: "/addTransaction1" },
                 { label: "Add Receipt", path: "/addTransaction" },
                 { label: "Task Report", path: "/taskReport" },
+                { label: "Task Report", path: "/taskReport" },
+                { label: "Add Customer", path: "/addCustomer" },
+                { label: "Add Priority", path: "/addPriority" },
+                { label: "Add Task", path: "/addTask" },
+               
+                { label: "Add User Group", path: "/addUsergroup" },
+                { label: "Add Task Group", path: "/addTaskgroup" },
+                { label: "Add Payment", path: "/addPayment" },
+                { label: "Add Enquiry", path: "/addEnquiry" },
+                { label: "Add User", path: "/addUser" },
+                { label: "Add Order", path: "/addOrder" },
+                { label: "Add Customer Group", path: "/addCustgroup" },
               ].map((item) => (
                 <div key={item.label} onClick={() => navigate(item.path)} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
                   {item.label}

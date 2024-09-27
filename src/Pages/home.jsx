@@ -71,10 +71,10 @@ const handleOutClick = async () => {
   return (
     <>
       <TopNavbar />
-      <div className="container mx-auto mt-10">
-        <h1 className="text-2xl font-bold mb-6">Welcome, {userName}!</h1>
+      <div className="  relative mt-10">
+        <h1 className="absolute right-10 text-s font-bold mb-6">Welcome, {userName}!</h1>
 
-        <div className="mb-6">
+        <div className="absolute right-10 top-10 p-2">
           <button
             onClick={handleInClick}
             className={`btn ${showOutButton ? 'hidden' : 'visible'} bg-green-500 text-white px-2 py-2 mr-2 rounded`}
@@ -85,7 +85,7 @@ const handleOutClick = async () => {
           {showOutButton && (
             <button
               onClick={handleOutClick}
-              className="btn bg-red-500 text-white px-4 py-2 rounded"
+              className="btn bg-red-500 text-white px-2 py-2 rounded"
             >
               Out
             </button>
