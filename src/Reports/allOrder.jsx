@@ -108,7 +108,7 @@ export default function AllOrder() {
                         onChange={(e) => setSearchOrder(e.target.value)}
                     />
                 </div>
-                <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
+                <div className="overflow-x-scroll no-scrollbar w-full flex space-x-4 py-4">
                     {loadingTasks ? (
                         <div>Loading...</div>
                     ) : taskOptions.length > 0 ? (
