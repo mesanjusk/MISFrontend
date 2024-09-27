@@ -108,7 +108,7 @@ export default function AllOrder() {
                         onChange={(e) => setSearchOrder(e.target.value)}
                     />
                 </div>
-                <div className="d-flex flex-wrap bg-white w-100 max-w-md p-1 mx-auto">
+                <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
                     {loadingTasks ? (
                         <div>Loading...</div>
                     ) : taskOptions.length > 0 ? (
@@ -116,7 +116,7 @@ export default function AllOrder() {
                             <button
                                 key={index}
                                 onClick={() => setFilter(taskGroup)}
-                                className={`btn ${filter === taskGroup ? 'btn bg-green-500' : 'bg-green-100'} rounded-full text-black bg-gray-100  text-xs me-1 mb-1`}
+                                className={`sanju ${filter === taskGroup ? 'sanju bg-green-500' : 'bg-green-100'} rounded-full text-black bg-gray-100  p-2 text-xs me-2 mb-2`}
                             >
                                 {taskGroup}
                             </button>
