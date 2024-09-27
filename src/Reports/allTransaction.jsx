@@ -161,7 +161,7 @@ const AllTransaction = () => {
                     </label>
                 </div>
                 <div className="d-flex justify-content-center">
-                    <button onClick={handleSearch} className="bg-green-500 text-white px-2 py-1 mr-2 rounded">
+                    <button onClick={handleSearch} className="bg-green-600 text-white px-2 py-1 mr-2 rounded">
                         Search
                     </button>
                 </div>
