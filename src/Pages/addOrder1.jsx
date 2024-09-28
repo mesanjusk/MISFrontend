@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import AddCustomer from "./addCustomer"
 
 export default function AddOrder1({ closeModal }) {
     const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function AddOrder1({ closeModal }) {
     const [Amount, setAmount] = useState('');
     const [cashPaymentModeUuid, setCashPaymentModeUuid] = useState(null); 
     const [loggedInUser, setLoggedInUser] = useState('');
+    const [showCustomerModal, setShowCustomerModal] = useState(false);
     const [accountCustomerOptions, setAccountCustomerOptions] = useState([]);
     const [group, setGroup] = useState(''); 
 
@@ -57,10 +59,6 @@ export default function AddOrder1({ closeModal }) {
                 console.error("Error fetching payment modes:", err);
             });
     }, []);
-
-    function addCustomer() {
-        navigate("/addCustomer");
-    }
 
     async function submit(e) {
         e.preventDefault();
@@ -147,7 +145,16 @@ export default function AddOrder1({ closeModal }) {
         setAmount(''); 
     };
 
+    const handleCustomer = () => {
+        setShowCustomerModal(true);
+    };
+
+    const exitModal = () => {
+        setShowCustomerModal(false);
+    };
+
     return (
+        <>
         <div className="d-flex justify-content-center align-items-center bg-gray-200 vh-100">
             <div className="bg-white p-3 rounded w-90">
                 <h2>Add Order</h2>
@@ -177,7 +184,7 @@ export default function AddOrder1({ closeModal }) {
                         )}
                     </div>
 
-                    <button onClick={addCustomer} type="button" className="text-white p-2 rounded-full bg-green-500 mb-3">
+                    <button onClick={handleCustomer} type="button" className="text-white p-2 rounded-full bg-green-500 mb-3">
                         <svg className="h-8 w-8 text-white-500" width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">  
                             <path stroke="none" d="M0 0h24v24H0z"/>  
                             <circle cx="12" cy="12" r="9" />  
@@ -247,5 +254,13 @@ export default function AddOrder1({ closeModal }) {
                 </form>
             </div>
         </div>
+         {showCustomerModal && (
+            <div className="modal-overlay">
+                <div className="modal-content">
+                    <AddCustomer closeModal={exitModal} />
+                </div>
+            </div>
+        )}
+       </>
     );
 }

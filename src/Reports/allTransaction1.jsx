@@ -3,7 +3,7 @@ import axios from 'axios';
 import TopNavbar from "../Pages/topNavbar";
 import Footer from "../Pages/footer";
 
-const AllTransaction = () => {
+const AllTransaction1 = () => {
     const [transactions, setTransactions] = useState([]);
     const [filteredTransactions, setFilteredTransactions] = useState([]);
     const [customers, setCustomers] = useState({});

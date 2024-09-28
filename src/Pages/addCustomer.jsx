@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-export default function AddCustomer() {
+export default function AddCustomer({exitModal}) {
     const navigate = useNavigate();
 
     const [Customer_name, setCustomer_Name] = useState('');
@@ -38,6 +38,7 @@ export default function AddCustomer() {
                     alert("Customer already exists");
                 } else if (res.data === "notexist") {
                     alert("Customer added successfully");
+                   exitModal();
                     navigate("/allOrder"); 
                 }
             })

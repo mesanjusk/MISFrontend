@@ -3,18 +3,18 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import TopNavbar from "../Pages/topNavbar";
 import Footer from "../Pages/footer";
-import AddOrder1 from "../Pages/addOrder1"; 
+import AddOrder1 from "../Pages/addOrder1";
 
 export default function AllOrder() {
     const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [searchOrder, setSearchOrder] = useState("");
-    const [filter, setFilter] = useState("");
+    const [filter, setFilter] = useState("Design");  
     const [tasks, setTasks] = useState([]);
-    const [showOrderModal, setShowOrderModal] = useState(false); 
+    const [showOrderModal, setShowOrderModal] = useState(false);
     const [customers, setCustomers] = useState({});
-    const [loadingOrders, setLoadingOrders] = useState(true); 
-    const [loadingTasks, setLoadingTasks] = useState(true);   
+    const [loadingOrders, setLoadingOrders] = useState(true);
+    const [loadingTasks, setLoadingTasks] = useState(true);
 
     useEffect(() => {
         const fetchOrders = axios.get("/order/GetOrderList");
@@ -43,7 +43,7 @@ export default function AllOrder() {
                 }
             })
             .catch(err => console.log('Error fetching data:', err))
-            .finally(() => setLoadingOrders(false)); 
+            .finally(() => setLoadingOrders(false));
     }, []);
 
     useEffect(() => {
@@ -60,39 +60,50 @@ export default function AllOrder() {
                 }
             })
             .catch(err => console.log('Error fetching tasks:', err))
-            .finally(() => setLoadingTasks(false)); 
+            .finally(() => setLoadingTasks(false));
     }, []);
 
     const taskOptions = [...new Set(tasks.map(task => task.Task_group.trim()))];
 
-    const filteredOrders = orders.map(order => {
-        const highestStatusTask = order.Status.reduce((prev, current) =>
-            (prev.Status_number > current.Status_number) ? prev : current, {});
+    const filteredOrders = orders
+  .map((order) => {
+    const highestStatusTask = order.Status.reduce(
+      (prev, current) =>
+        prev.Status_number > current.Status_number ? prev : current,
+      {}
+    );
 
-        const customerName = customers[order.Customer_uuid] || "Unknown";
+    const customerName = customers[order.Customer_uuid] || "Unknown";
 
-        return {
-            ...order,
-            highestStatusTask,
-            Customer_name: customerName
-        };
-    }).filter(order => {
-        const matchesSearch = order.Customer_name.toLowerCase().includes(searchOrder.toLowerCase());
-        const matchesFilter = filter === "" || order.highestStatusTask.Task === filter;
+    return {
+      ...order,
+      highestStatusTask,
+      Customer_name: customerName,
+    };
+  })
+  .filter((order) => {
+    const matchesSearch =
+      searchOrder === "" ||
+      order.Customer_name.toLowerCase().includes(searchOrder.toLowerCase());
 
-        return matchesSearch && matchesFilter;
-    });
+    const matchesFilter =
+      searchOrder === "" &&
+      (filter === "" || order.highestStatusTask.Task === filter);
+
+    return matchesSearch && (searchOrder === "" ? matchesFilter : true);
+  });
+
 
     const handleEditClick = (order) => {
         navigate(`/orderUpdate/${order._id}`);
     };
 
     const handleOrder = () => {
-        setShowOrderModal(true); 
+        setShowOrderModal(true);
     };
 
     const closeModal = () => {
-        setShowOrderModal(false); 
+        setShowOrderModal(false);
     };
 
     return (
@@ -108,20 +119,20 @@ export default function AllOrder() {
                         onChange={(e) => setSearchOrder(e.target.value)}
                     />
                 </div>
-                
-                
+
                 <div className="overflow-x-scroll flex space-x-1 py-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
-      <style>{`.overflow-x-scroll::-webkit-scrollbar {display: none; } `}</style>
-      
-      
-    
+                    <style>{`.overflow-x-scroll::-webkit-scrollbar {display: none; } `}</style>
+
                     {loadingTasks ? (
                         <div>Loading...</div>
                     ) : taskOptions.length > 0 ? (
                         taskOptions.map((taskGroup, index) => (
                             <button
                                 key={index}
-                                onClick={() => setFilter(taskGroup)}
+                                onClick={() => {
+                                    setFilter(taskGroup);
+                                    setSearchOrder("");  // Clear search when a task is selected
+                                }}
                                 className={`sanju ${filter === taskGroup ? 'sanju bg-green-200' : 'bg-gray-100'} uppercase rounded-full text-black p-2 text-xs me-1`}
                             >
                                 {taskGroup}
@@ -142,7 +153,7 @@ export default function AllOrder() {
                                 <div key={index}>
                                     <div onClick={() => handleEditClick(order)} className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner">
                                         <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
-                                        <strong className="text-l text-gray-500">  {order.Order_Number}</strong> 
+                                            <strong className="text-l text-gray-500">  {order.Order_Number}</strong>
                                         </div>
                                         <div className="p-2 col-start-2 col-end-8">
                                             <strong className="text-l text-gray-900">{order.Customer_name}</strong>

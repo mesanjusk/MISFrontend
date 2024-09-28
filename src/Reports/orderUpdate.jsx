@@ -13,10 +13,11 @@ export default function OrderUpdate() {
   const [values, setValues] = useState({
     id: id,
     Customer_name: '',
+    Order_Number: '',
+    Remark: '',
     Delivery_Date: '',
     Assigned: '',
     Task: '',
-    Order_Number: '',
     CreatedAt: '',
     Status: []
   });
@@ -32,6 +33,7 @@ export default function OrderUpdate() {
           setValues({
             id: order._id,
             Customer_name: customerName,
+            Remark: '',
             Delivery_Date: '',
             Assigned: '',
             Task: '',
@@ -132,57 +134,66 @@ export default function OrderUpdate() {
   };
 
   return (
-    <div className="w-4/4 h-full flex flex-col bg-white">
-      <div className="p-3 bg-green-200 grid grid-cols-7 gap-1 items-center justify-between">
+    <div className="w-4/4 h-full flex flex-col">
+      <div className="p-3 bg-green-200 grid grid-cols-5 gap-1 items-center ">
         <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
-          <strong className="text-l text-gray-500"> 01 </strong>
+          <strong className="text-l text-gray-500">{values.Order_Number} </strong>
         </div>
         <div>
-          <div className="p-2 col-start-2 col-end-6">
+          <div className="p-2 col-start-2 col-end-4">
             <strong className="text-l text-gray-900">{values.Customer_name}</strong>
             <br />
 
           </div>
-          <h2 className="text-lg font-semibold"></h2>
-          <p className="text-sm text-gray-600">Status</p>
+
+          <p className="text-sm text-gray-600">{values.Remark}</p>
         </div>
       </div>
+      <div className="flex-1 overflow-y-scroll bg-gray-100 p-4">
+        {/* Example chat bubbles */}
+       
 
-      <div className="pt-12 max-w-md mx-auto">
-        <div className="flex flex-1 items-center p-1 overflow-y-auto mx-auto p-0">
-          <div className="items-center overflow-max-auto">
-            
-                {values.Status.length > 0 ? (
-                  values.Status.map((status, index) => (
-                    <div key={index}>
-                      
-                        {new Date(status.CreatedAt).toLocaleDateString()}
-                      
-                        {status.Task}
-                      
-                        {status.Assigned}
-                      
-                        {new Date(status.Delivery_Date).toLocaleDateString()}
-                      
+
+          <div >
+
+
+
+            {values.Status.length > 0 ? (
+              values.Status.map((status, index) => (
+                <div key={index}>
+                  <div className="bg-white p-3 mb-2 rounded-lg shadow-lg w-3/4">
+                    {new Date(status.CreatedAt).toLocaleDateString()}
+                    <br />
+                    {status.Task}
+                    <br />
+                    {status.Assigned}
+                    <br />
+                    {new Date(status.Delivery_Date).toLocaleDateString()}
                     </div>
-                  ))
-                ) : (
-                  <tr>
-                    
-                      No status data available
-                    
-                  </tr>
-                )}
-              
+
+                </div>
+              ))
+            ) : (
+              <div>
+
+                No status data available
+
+              </div>
+            )}
+
           </div>
-        </div>
+          <div className="bg-green-100 p-3 mb-2 text-right-xs rounded-lg shadow-lg w-3/4 ml-auto">
+
+            <p>Hello! How can I help you?</p>
+          </div>
+       
       </div>
       <form className="p-2 " onSubmit={handleSaveChanges}>
         <div>
           <div className=" p-2 w-100 mb-2 rounded-lg">
             <strong> Update Job Status </strong>
             <select
-              className="form-control p-1 rounded-0"
+              className=" p-1 rounded-0"
               value={values.Task}
               onChange={(e) => setValues({ ...values, Task: e.target.value })}
             >
@@ -215,11 +226,9 @@ export default function OrderUpdate() {
             />
           </div>
         </div>
-        <div className="self-start p-2 w-100">
 
-        </div>
 
-        <div className="p-4 fixed bottom-0  border-t border-gray-300">
+        <div className="pb-14 bottom-0  border-t border-gray-300">
           <div className="flex items-center">
             <input
               type="text"
