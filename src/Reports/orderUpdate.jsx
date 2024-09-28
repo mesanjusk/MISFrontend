@@ -17,7 +17,7 @@ export default function OrderUpdate() {
     Assigned: '',
     Task: '',
     Order_Number: '',
-    CreatedAt: '', 
+    CreatedAt: '',
     Status: []
   });
 
@@ -46,29 +46,29 @@ export default function OrderUpdate() {
 
   useEffect(() => {
     axios.get("/taskgroup/GetTaskgroupList")
-        .then(res => {
-            if (res.data.success) {
-                const options = res.data.result.map(item => item.Task_group);
-                setTaskOptions(options); 
-            }
-        })
-        .catch(err => {
-            console.error("Error fetching task options:", err);
-        });
-}, []);
-
-useEffect(() => {
-  axios.get("/user/GetUserList")
       .then(res => {
-          if (res.data.success) {
-              const options = res.data.result.map(item => item.User_name);
-              setUserOptions(options); 
-          }
+        if (res.data.success) {
+          const options = res.data.result.map(item => item.Task_group);
+          setTaskOptions(options);
+        }
       })
       .catch(err => {
-          console.error("Error fetching user options:", err);
+        console.error("Error fetching task options:", err);
       });
-}, []);
+  }, []);
+
+  useEffect(() => {
+    axios.get("/user/GetUserList")
+      .then(res => {
+        if (res.data.success) {
+          const options = res.data.result.map(item => item.User_name);
+          setUserOptions(options);
+        }
+      })
+      .catch(err => {
+        console.error("Error fetching user options:", err);
+      });
+  }, []);
 
 
   useEffect(() => {
@@ -101,7 +101,7 @@ useEffect(() => {
       .catch(err => console.log('Error fetching customers list:', err));
   }, []);
 
-  
+
 
   const handleSaveChanges = (e) => {
     e.preventDefault();
@@ -117,7 +117,7 @@ useEffect(() => {
         Task: values.Task,
         Assigned: values.Assigned,
         Delivery_Date: values.Delivery_Date,
-        CreatedAt: values.CreatedAt, 
+        CreatedAt: values.CreatedAt,
       },
     })
       .then(res => {
@@ -132,57 +132,54 @@ useEffect(() => {
   };
 
   return (
-    <div className="bg-gray-100">
-      <div className="fixed top-0 left-0 w-full bg-white text-green-600 pr-14 pl-2 pt-2 pb-2 flex z-50 items-center shadow-md">
-        <header className="flex overflow-y-auto text-green-500 p-1 shadow-none">
-          <h2 className="text-xl font-bold">{values.Customer_name}</h2>
-        </header>
+    <div className="w-4/4 h-full flex flex-col bg-white">
+      <div className="p-3 bg-green-200 grid grid-cols-7 gap-1 items-center justify-between">
+        <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
+          <strong className="text-l text-gray-500"> 01 </strong>
+        </div>
+        <div>
+          <div className="p-2 col-start-2 col-end-6">
+            <strong className="text-l text-gray-900">{values.Customer_name}</strong>
+            <br />
+
+          </div>
+          <h2 className="text-lg font-semibold"></h2>
+          <p className="text-sm text-gray-600">Status</p>
+        </div>
       </div>
-      <div className="pt-12 bg-gray-100 max-w-md mx-auto">
+
+      <div className="pt-12 max-w-md mx-auto">
         <div className="flex flex-1 items-center p-1 overflow-y-auto mx-auto p-0">
           <div className="items-center overflow-max-auto">
-            <table className="table text-sm items-center">
-              <thead className="uppercase text-sm">
-                <tr>
-                  <th>Order Date</th>
-                  <th>Job Task</th>
-                  <th>User Assigned</th>
-                  <th>Del. Date</th>
-                </tr>
-              </thead>
-              <tbody>
+            
                 {values.Status.length > 0 ? (
                   values.Status.map((status, index) => (
-                    <tr key={index}>
-                      <td>
-                        {new Date(status.CreatedAt).toLocaleDateString()} 
-                      </td>
-                      <td>
+                    <div key={index}>
+                      
+                        {new Date(status.CreatedAt).toLocaleDateString()}
+                      
                         {status.Task}
-                      </td>
-                      <td>
+                      
                         {status.Assigned}
-                      </td>
-                      <td>
+                      
                         {new Date(status.Delivery_Date).toLocaleDateString()}
-                      </td>
-                    </tr>
+                      
+                    </div>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="4" className="text-center">
+                    
                       No status data available
-                    </td>
+                    
                   </tr>
                 )}
-              </tbody>
-            </table>
+              
           </div>
         </div>
       </div>
-      <form className="p-2 bg-gray-100" onSubmit={handleSaveChanges}>
+      <form className="p-2 " onSubmit={handleSaveChanges}>
         <div>
-          <div className="self-start bg-white p-2 w-100 mb-2 rounded-lg">
+          <div className=" p-2 w-100 mb-2 rounded-lg">
             <strong> Update Job Status </strong>
             <select
               className="form-control p-1 rounded-0"
@@ -195,7 +192,7 @@ useEffect(() => {
               ))}
             </select>
           </div>
-          <div className="self-start bg-white p-2 w-100 mb-2">
+          <div className=" p-2 w-100 mb-2 rounded-lg">
             <strong> Update User </strong>
             <select
               className="form-control"
@@ -208,7 +205,7 @@ useEffect(() => {
               ))}
             </select>
           </div>
-          <div className="self-start bg-white shadow-inner p-2 mb-2 w-100">
+          <div className=" p-2 w-100 mb-2 rounded-lg">
             <strong> Update Delivery Date </strong><br />
             <input
               type="date"
@@ -219,8 +216,27 @@ useEffect(() => {
           </div>
         </div>
         <div className="self-start p-2 w-100">
-          <button type="submit" className="btn bg-green-500 w-100 p-2 text-white rounded-full">UPDATE</button>
+
         </div>
+
+        <div className="p-4 fixed bottom-0  border-t border-gray-300">
+          <div className="flex items-center">
+            <input
+              type="text"
+              placeholder="Type Remark"
+              className="flex-grow p-2 border border-gray-300 rounded-lg"
+
+            />
+            <button type="submit"
+              className="ml-2 bg-green-500 text-white p-2 rounded-lg"
+
+            >
+              UPDATE
+            </button>
+          </div>
+        </div>
+
+
       </form>
     </div>
   );
