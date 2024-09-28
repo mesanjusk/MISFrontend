@@ -24,22 +24,34 @@ const TopNavbar = () => {
   return (
     <div>
       {/* Top Navbar */}
-      <nav className="fixed top-0 left-0 w-full bg-white text-green-600 pr-14 pl-4 pt-2 pb-2 flex z-50 items-center shadow-md">
-        <button onClick={toggleSidebar} className="uppercase">
+      <nav className="fixed top-0  w-full bg-white text-green-600 pr-14 pl-4 pt-2 pb-2 flex z-50 items-center ">
+        <button className="uppercase">
           <h1 className="text-xl font-bold">s k digital</h1>
         </button>
+
+        <button className="text-2xl fixed right-5 focus:outline-none" onClick={toggleSidebar}
+      >
+        &#x22EE; {/* Three vertical dots */}
+      </button>
+      <button className=" fixed right-10 focus:outline-none" >
+       <svg class="h-8 w-8 text-gray-500"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round">  <circle cx="12" cy="12" r="10" />  <circle cx="12" cy="12" r="6" />  <circle cx="12" cy="12" r="2" /></svg>
+      </button>
+
       </nav>
 
       {/* Sidebar / Drawer */}
       {isOpen && (
-        <div className={`fixed bottom-20 rounded-lg w-50 h-5/6 bg-white shadow-lg transform ${isOpen ? "translate-x-0" : "-translate-x-full"} transition-transform duration-300 ease-in-out z-40`}>
-          <div className="p-1 bg-white text-black">
+        <div className={`shadow-md fixed top-10 right-0  w-50 h-4/6 bg-white transform ${isOpen ? "translate-x-0" : "-translate-x-full"} transition-transform duration-300 ease-in-out z-40`}>
+        <div className="p-4 flex justify-between items-center border-b"> 
+          
             <button className="focus:outline-none" onClick={handleLogout}>Logout</button>
-          </div>
+            </div>
 
           {userGroup === "Office User" && (
             <>
               {[
+                
+
                 
                  { label: "Add Reciept", path: "/addTransaction1" },
                  { label: "Add Payment", path: "/addTransaction" },
@@ -49,7 +61,7 @@ const TopNavbar = () => {
 
                 
               ].map((item) => (
-                <div key={item.label} onClick={() => navigate(item.path)} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
+                <div key={item.label} onClick={() => navigate(item.path)} className="px-4 hover:bg-gray-100 text-s p-2 rounded">
                   {item.label}
                 </div>
               ))}
@@ -76,7 +88,7 @@ const TopNavbar = () => {
                 { label: "Add Order", path: "/addOrder" },
                 { label: "Add Customer Group", path: "/addCustgroup" },
               ].map((item) => (
-                <div key={item.label} onClick={() => navigate(item.path)} className="flex items-center p-2 bg-white rounded-lg shadow-md cursor-pointer">
+                <div key={item.label} onClick={() => navigate(item.path)} className="px-4 hover:bg-gray-100 text-s p-2 rounded">
                   {item.label}
                 </div>
               ))}
@@ -89,7 +101,7 @@ const TopNavbar = () => {
       {isOpen && (
         <div
           onClick={toggleSidebar}
-          className="fixed top-0 right-0 inset-0 bg-black opacity-30 z-30"
+          className="fixed top-0 right-0 inset-0 bg-gray opacity-30 z-30"
         ></div>
       )}
     </div>

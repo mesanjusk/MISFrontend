@@ -122,7 +122,7 @@ export default function AllOrder() {
                             <button
                                 key={index}
                                 onClick={() => setFilter(taskGroup)}
-                                className={`sanju ${filter === taskGroup ? 'sanju bg-green-500' : 'bg-green-100'} uppercase rounded-full text-black p-2 text-xs me-1`}
+                                className={`sanju ${filter === taskGroup ? 'sanju bg-green-200' : 'bg-gray-100'} uppercase rounded-full text-black p-2 text-xs me-1`}
                             >
                                 {taskGroup}
                             </button>
@@ -141,11 +141,11 @@ export default function AllOrder() {
                             filteredOrders.map((order, index) => (
                                 <div key={index}>
                                     <div onClick={() => handleEditClick(order)} className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner">
-                                        <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 text-Black rounded-full flex items-center justify-center">
-                                            {order.Order_Number}
+                                        <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
+                                        <strong className="text-l text-gray-500">  {order.Order_Number}</strong> 
                                         </div>
                                         <div className="p-2 col-start-2 col-end-8">
-                                            <strong className="text-l text-Black-900">{order.Customer_name}</strong>
+                                            <strong className="text-l text-gray-900">{order.Customer_name}</strong>
                                             <br />
                                             <label className="text-xs">{new Date(order.highestStatusTask.CreatedAt).toLocaleDateString()} - {order.Remark}</label>
                                         </div>
@@ -163,7 +163,7 @@ export default function AllOrder() {
                     </div>
                 </main>
                 <div className="fixed bottom-20 right-8">
-                    <button onClick={handleOrder} className="w-14 h-14 bg-green-500 text-white rounded-full shadow-lg flex items-center justify-center">
+                    <button onClick={handleOrder} className="w-12 h-12 bg-green-500 text-white rounded-full shadow-lg flex items-center justify-center">
                         <svg className="h-8 w-8 text-white-500" width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">
                             <path stroke="none" d="M0 0h24v24H0z" />
                             <circle cx="12" cy="12" r="9" />
