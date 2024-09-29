@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-export default function AddCustomer({exitModal}) {
+export default function AddCustomer({ closeModal }) {
     const navigate = useNavigate();
 
     const [Customer_name, setCustomer_Name] = useState('');
@@ -23,11 +23,9 @@ export default function AddCustomer({exitModal}) {
             });
     }, []);
 
-   
     async function submit(e) {
         e.preventDefault(); 
         try {
-            
             await axios.post("/customer/addCustomer", {
                 Customer_name, 
                 Mobile_number, 
@@ -38,7 +36,7 @@ export default function AddCustomer({exitModal}) {
                     alert("Customer already exists");
                 } else if (res.data === "notexist") {
                     alert("Customer added successfully");
-                   exitModal();
+                    exitModal(); // Close modal after successful submission
                     navigate("/allOrder"); 
                 }
             })
@@ -50,6 +48,7 @@ export default function AddCustomer({exitModal}) {
             console.log(e);
         }
     }
+
 
     return (
         <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
@@ -97,6 +96,13 @@ export default function AddCustomer({exitModal}) {
                         className="btn bg-green-500 w-100 text-white rounded-0"
                     >
                         Submit
+                    </button>
+                    <button 
+                        type="button" 
+                        className="btn btn-secondary"
+                        onClick={closeModal}
+                    >
+                        Close
                     </button>
                 </form>
             </div>

@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 
-export default function OrderUpdate() {
-  const { id } = useParams();
+export default function OrderUpdate({ order, closeEditModel}) {
   const navigate = useNavigate();
 
   const [orders, setOrders] = useState([]);
@@ -11,40 +10,16 @@ export default function OrderUpdate() {
   const [taskOptions, setTaskOptions] = useState([]);
   const [userOptions, setUserOptions] = useState([]);
   const [values, setValues] = useState({
-    id: id,
-    Customer_name: '',
-    Order_Number: '',
-    Remark: '',
-    Delivery_Date: '',
-    Assigned: '',
-    Task: '',
-    CreatedAt: '',
-    Status: []
+    id: order?._id || '',
+    Customer_name: order?.Customer_name || '',
+    Order_Number: order?.Order_Number || '',
+    Remark: order?.Remark || '',
+    Delivery_Date: order?.highestStatusTask?.Delivery_Date || '',
+    Assigned: order?.highestStatusTask?.Assigned || '',
+    Task: order?.highestStatusTask?.Task || '',
+    CreatedAt: order?.highestStatusTask?.CreatedAt || new Date().toISOString().split("T")[0],
+    Status: order?.Status || []
   });
-
-  useEffect(() => {
-    axios.get(`/order/${id}`)
-      .then(res => {
-        if (res.data.success) {
-          const order = res.data.result;
-
-          const customerName = customers[order.Customer_uuid] || 'Unknown';
-
-          setValues({
-            id: order._id,
-            Customer_name: customerName,
-            Remark: '',
-            Delivery_Date: '',
-            Assigned: '',
-            Task: '',
-            Order_Number: order.Order_Number || '',
-            CreatedAt: new Date().toISOString().split("T")[0], // Set to current date
-            Status: order.Status || []
-          });
-        }
-      })
-      .catch(err => console.log('Error fetching order data:', err));
-  }, [id, customers]);
 
   useEffect(() => {
     axios.get("/taskgroup/GetTaskgroupList")

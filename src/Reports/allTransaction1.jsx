@@ -33,7 +33,7 @@ const AllTransaction1 = () => {
 
                     setCustomers(customerMap);
                     const customerNameList = res.data.result.map(customer => customer.Customer_name);
-                    setCustomerNames(customerNameList);
+                    setCustomerNames(customerNameList);  
                 } else {
                     console.error('Failed to fetch customers:', res.data.message);
                 }
@@ -60,71 +60,38 @@ const AllTransaction1 = () => {
     };
 
     const uniqueEntries = [];
-    const allowedPaymentNames = ["Cash", "UPI Office", "UPI SANJU SK", "BANK CHEQUE", "Sale"];
 
     const processFilteredTransactions = () => {
         uniqueEntries.length = 0; 
-        filteredTransactions.forEach(transaction => {
+        filteredTransactions.forEach((transaction, tranid) => {
             transaction.Journal_entry.forEach(entry => {
                 const normalizedAccountId = entry.Account_id ? entry.Account_id.trim() : "";
-                const paymentName = customers[normalizedAccountId] || transaction.Payment_mode;
-                const tranid = transaction.Transaction_id;
+                const customerName = customers[normalizedAccountId];  
 
-                if (!allowedPaymentNames.includes(paymentName)) {
-                    return; 
-                }
+                const amount = entry.Amount || 0; 
 
-                const debit = entry.Type === 'Debit' ? entry.Amount : 0;
-                const credit = entry.Type === 'Credit' ? entry.Amount : 0;
-
-                if (paymentName === "Sale") {
+                if (entry.Type === 'Debit') {
                     uniqueEntries.push({
                         date: new Date(transaction.Transaction_date).toLocaleDateString(),
-                        debit,
-                        credit,
-                        tranid,
-                        name: paymentName,
+                        tranid: transaction.Transaction_id,  
+                        name: customerName || "Unknown",  
+                        debit: amount,
+                        credit: 0
                     });
-                } else {
-                    if (debit > 0) {
-                        uniqueEntries.push({
-                            date: new Date(transaction.Transaction_date).toLocaleDateString(),
-                            debit,
-                            credit: 0,
-                            tranid,
-                            name: paymentName,
-                        });
-                    }
-
-                    if (credit > 0) {
-                        uniqueEntries.push({
-                            date: new Date(transaction.Transaction_date).toLocaleDateString(),
-                            debit: 0,
-                            credit,
-                            tranid,
-                            name: paymentName,
-                        });
-                    }
+                } else if (entry.Type === 'Credit') {
+                    uniqueEntries.push({
+                        date: new Date(transaction.Transaction_date).toLocaleDateString(),
+                        tranid: transaction.Transaction_id,  
+                        name: customerName || "Unknown",  
+                        debit: 0,
+                        credit: amount
+                    });
                 }
             });
         });
     };
 
-    const calculateTotals = () => {
-        let totalDebit = 0;
-        let totalCredit = 0;
-
-        uniqueEntries.forEach(entry => {
-            totalDebit += entry.debit || 0;
-            totalCredit += entry.credit || 0;
-        });
-
-        return totalDebit - totalCredit; 
-    };
-
     processFilteredTransactions();
-
-    const total = calculateTotals(); 
 
     return (
         <>
@@ -139,7 +106,6 @@ const AllTransaction1 = () => {
                             onChange={(e) => setStartDate(e.target.value)}
                         />
                     </label>
-                
                     <label>
                         End :
                         <input
@@ -150,19 +116,18 @@ const AllTransaction1 = () => {
                     </label>
                 </div>
                 <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
-                    <label>
+                   
                         <input
                             list="customerNames"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Search by customer name"
                         />
-                        <datalist id="customerNames">
+                     <datalist id="customerNames">
                             {customerNames.map((name, index) => (
                                 <option key={index} value={name} />
                             ))}
                         </datalist>
-                    </label>
                 </div>
                 <div className="d-flex justify-content-center">
                     <button onClick={handleSearch} className="bg-green-600 text-white px-2 py-1 mr-2 rounded">
@@ -177,11 +142,10 @@ const AllTransaction1 = () => {
                                 <thead>
                                     <tr>
                                         <th>Date</th>
-                                        <th>No. </th>
+                                        <th>No.</th>
                                         <th>Name</th>
                                         <th>Credit</th>
                                         <th>Debit</th>
-                                        
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -192,17 +156,9 @@ const AllTransaction1 = () => {
                                             <td>{row.name}</td>
                                             <td>{row.credit}</td>
                                             <td>{row.debit}</td>
-                                           
                                         </tr>
                                     ))}
                                 </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td><strong>Total</strong></td>
-                                        <td colSpan={2}><strong>{total}</strong></td>
-                                        <td></td>
-                                    </tr>
-                                </tfoot>
                             </table>
                         ) : (
                             <p>No data available for the selected filters.</p>
@@ -215,4 +171,4 @@ const AllTransaction1 = () => {
     );
 }
 
-export default AllTransaction;
+export default AllTransaction1;

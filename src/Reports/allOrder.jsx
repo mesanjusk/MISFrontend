@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import TopNavbar from "../Pages/topNavbar";
 import Footer from "../Pages/footer";
 import AddOrder1 from "../Pages/addOrder1";
+import OrderEdit from "../Reports/orderUpdate"; 
 
 export default function AllOrder() {
     const navigate = useNavigate();
@@ -12,6 +13,8 @@ export default function AllOrder() {
     const [filter, setFilter] = useState("Design");  
     const [tasks, setTasks] = useState([]);
     const [showOrderModal, setShowOrderModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false); 
+    const [selectedOrder, setSelectedOrder] = useState(null);  
     const [customers, setCustomers] = useState({});
     const [loadingOrders, setLoadingOrders] = useState(true);
     const [loadingTasks, setLoadingTasks] = useState(true);
@@ -66,36 +69,37 @@ export default function AllOrder() {
     const taskOptions = [...new Set(tasks.map(task => task.Task_group.trim()))];
 
     const filteredOrders = orders
-  .map((order) => {
-    const highestStatusTask = order.Status.reduce(
-      (prev, current) =>
-        prev.Status_number > current.Status_number ? prev : current,
-      {}
-    );
+        .map((order) => {
+            const highestStatusTask = order.Status.reduce(
+                (prev, current) =>
+                    prev.Status_number > current.Status_number ? prev : current,
+                {}
+            );
 
-    const customerName = customers[order.Customer_uuid] || "Unknown";
+            const customerName = customers[order.Customer_uuid] || "Unknown";
 
-    return {
-      ...order,
-      highestStatusTask,
-      Customer_name: customerName,
-    };
-  })
-  .filter((order) => {
-    const matchesSearch =
-      searchOrder === "" ||
-      order.Customer_name.toLowerCase().includes(searchOrder.toLowerCase());
+            return {
+                ...order,
+                highestStatusTask,
+                Customer_name: customerName,
+            };
+        })
+        .filter((order) => {
+            const matchesSearch =
+                searchOrder === "" ||
+                order.Customer_name.toLowerCase().includes(searchOrder.toLowerCase());
 
-    const matchesFilter =
-      searchOrder === "" &&
-      (filter === "" || order.highestStatusTask.Task === filter);
+            const matchesFilter =
+                searchOrder === "" &&
+                (filter === "" || order.highestStatusTask.Task === filter);
 
-    return matchesSearch && (searchOrder === "" ? matchesFilter : true);
-  });
-
+            return matchesSearch && (searchOrder === "" ? matchesFilter : true);
+        });
 
     const handleEditClick = (order) => {
-        navigate(`/orderUpdate/${order._id}`);
+        console.log("Selected order:", order); 
+        setSelectedOrder(order); 
+        setShowEditModal(true);  
     };
 
     const handleOrder = () => {
@@ -104,6 +108,11 @@ export default function AllOrder() {
 
     const closeModal = () => {
         setShowOrderModal(false);
+    };
+
+    const closeEditModal = () => {
+        setShowEditModal(false); 
+        setSelectedOrder(null);  
     };
 
     return (
@@ -131,7 +140,7 @@ export default function AllOrder() {
                                 key={index}
                                 onClick={() => {
                                     setFilter(taskGroup);
-                                    setSearchOrder("");  // Clear search when a task is selected
+                                    setSearchOrder("");  
                                 }}
                                 className={`sanju ${filter === taskGroup ? 'sanju bg-green-200' : 'bg-gray-100'} uppercase rounded-full text-black p-2 text-xs me-1`}
                             >
@@ -151,7 +160,7 @@ export default function AllOrder() {
                         ) : filteredOrders.length > 0 ? (
                             filteredOrders.map((order, index) => (
                                 <div key={index}>
-                                    <div onClick={() => handleEditClick(order)} className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner">
+                                    <div onClick={() => handleEditClick(order)} className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer">
                                         <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
                                             <strong className="text-l text-gray-500">  {order.Order_Number}</strong>
                                         </div>
@@ -192,6 +201,13 @@ export default function AllOrder() {
                     </div>
                 </div>
             )}
+
+            {showEditModal && (
+                <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center w-full h-full">
+                    <OrderEdit order={selectedOrder} closeEditModal={closeEditModal} />
+                </div>
+            )}
+
             <Footer />
         </>
     );

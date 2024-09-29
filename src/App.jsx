@@ -24,6 +24,7 @@ import axios from 'axios';
 import AddPayment from "./Pages/addPayment";
 import AddTransaction from "./Pages/addTransaction";
 import AllTransaction from "./Reports/allTransaction";
+import AllTransaction1 from "./Reports/allTransaction1";
 import CustomerReport from "./Reports/customerReport";
 import EditCustomer from "./Reports/editCustomer";
 import AdminHome from "./Pages/adminHome";
@@ -63,6 +64,7 @@ function App() {
                     <Route path="/taskReport" element={<TaskReport />} />
                     <Route path="/allDelivery" element={<AllDelivery />} />
                     <Route path="/allTransaction" element={<AllTransaction />} />
+                    <Route path="/allTransaction1" element={<AllTransaction1 />} />
                     <Route path="/orderUpdate/:id" element={<OrderUpdate />} />
                     <Route path="/updateDelivery/:id" element={<UpdateDelivery />} />
                     <Route path="/editCustomer/:id" element={<EditCustomer />} />

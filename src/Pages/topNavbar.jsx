@@ -78,6 +78,8 @@ const TopNavbar = () => {
                 { label: "Ledger", path: "/customerReport" },
                 { label: "Add Payment", path: "/addTransaction1" },
                 { label: "Add Receipt", path: "/addTransaction" },
+                { label: "Report1", path: "/allTransaction" },
+                { label: "Report2", path: "/allTransaction1" },
                 { label: "Task Report", path: "/taskReport" },
                 { label: "Task Report", path: "/taskReport" },
                 { label: "Add Customer", path: "/addCustomer" },
