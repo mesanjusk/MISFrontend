@@ -4,14 +4,12 @@ import TopNavbar from "../Pages/topNavbar";
 import Footer from './footer';
 import axios from 'axios';
 import { format } from 'date-fns';
-import OrderUpdate from '../Reports/orderUpdate'; 
 
 export default function AdminHome() {
   const navigate = useNavigate();
   const location = useLocation();
   const [userName, setUserName] = useState('');
   const [showOutButton, setShowOutButton] = useState(false);
-  const [orders, setOrders] = useState([]); 
   const [attendanceData, setAttendanceData] = useState([]); 
   const [userData, setUserData] = useState([]); 
   const [error, setError] = useState(null);
@@ -26,53 +24,11 @@ export default function AdminHome() {
       setUserName(loggedInUser);
       fetchUserData(); 
       fetchOrders(loggedInUser); 
-      fetchAttendance(); // Fetch all attendance records
+      fetchAttendance();
     } else {
       navigate("/login");
     }
   }, [location.state, navigate]);
-
-  const fetchOrders = async (userName) => {
-    try {
-      const ordersResponse = await axios.get(`/order/GetOrderList`);
-      const customerResponse = await axios.get('/customer/GetCustomersList');
-
-      const customerMap = {};
-      if (Array.isArray(customerResponse.data.result)) {
-        customerResponse.data.result.forEach(customer => {
-          customerMap[customer.Customer_uuid] = customer.Customer_name;
-        });
-      }
-
-      const enrichedOrders = ordersResponse.data.result.map(order => {
-        let highestAssigned = null;
-        let highestTask = null;
-
-        order.Status.forEach(status => {
-          if (status.Assigned === userName) {
-            if (!highestAssigned || status.Status_number > highestAssigned.Status_number) {
-              highestAssigned = status;
-            }
-            if (!highestTask || status.Task > highestTask.Task) {
-              highestTask = status;
-            }
-          }
-        });
-
-        return {
-          ...order,
-          Customer_name: customerMap[order.Customer_uuid] || 'Unknown',
-          Highest_Assigned: highestAssigned ? highestAssigned.Assigned : 'N/A',
-          Highest_Task: highestTask ? highestTask.Task : 'N/A'
-        };
-      });
-
-      setOrders(enrichedOrders);
-    } catch (error) {
-      console.error('Error fetching orders:', error.message);
-      setError("Failed to fetch orders.");
-    }
-  };
 
   const fetchUserNames = async () => {
     try {
@@ -95,7 +51,7 @@ export default function AdminHome() {
     }
   };
 
-  const fetchAttendance = async () => { // Remove logged-in user parameter
+  const fetchAttendance = async () => { 
     try {
       const userLookup = await fetchUserNames();
       
@@ -119,7 +75,6 @@ export default function AdminHome() {
         });
       });
 
-      // Set attendance data without filtering by logged-in user
       setAttendanceData(attendanceWithUserNames);
     } catch (error) {
       console.error("Error fetching attendance:", error);
@@ -145,11 +100,9 @@ export default function AdminHome() {
     const currentDate = new Date().toLocaleDateString();
 
     try {
-      // Check if attendance for the current date already exists
       const existingAttendance = attendanceData.find(record => record.Date === currentDate);
       
       if (existingAttendance) {
-        // If it exists, add the user to the existing entry
         const updateResponse = await axios.put(`/attendance/updateAttendance/${existingAttendance.Attendance_Record_ID}`, {
           User_name: userName,
           Time: currentTime,
@@ -162,7 +115,6 @@ export default function AdminHome() {
           console.error('Failed to update attendance:', updateResponse.data.message);
         }
       } else {
-        // If it does not exist, create a new entry
         const response = await axios.post('/attendance/addAttendance', {
           User_name: userName,
           Type: type,
@@ -178,7 +130,7 @@ export default function AdminHome() {
         }
       }
 
-      fetchAttendance(); // Re-fetch attendance to update the displayed data
+      fetchAttendance(); 
     } catch (error) {
       console.error('Error saving attendance:', error.response?.data?.message || error.message);
     }
@@ -260,7 +212,6 @@ export default function AdminHome() {
       </div>
 
       <Footer />
-      {showEditModal && <OrderUpdate orderId={selectedOrderId} closeModal={closeEditModal} />}
     </>
   );
 }
