@@ -62,7 +62,8 @@ const TopNavbar = () => {
                  { label: "Ledger", path: "/customerReport" },
                  { label: "Add Item", path: "/addItem" },
                  { label: "Add Item Group", path: "/addItemgroup" },
-
+                 { label: "Report1", path: "/allTransaction2" },
+                 { label: "Report2", path: "/allTransaction3" },
                 
               ].map((item) => (
                 <div key={item.label} onClick={() => navigate(item.path)} className="px-4 hover:bg-gray-100 text-s p-2 rounded">
@@ -78,8 +79,8 @@ const TopNavbar = () => {
                 { label: "Ledger", path: "/customerReport" },
                 { label: "Add Payment", path: "/addTransaction1" },
                 { label: "Add Receipt", path: "/addTransaction" },
-                { label: "Report1", path: "/allTransaction" },
-                { label: "Report2", path: "/allTransaction1" },
+                { label: "Report1", path: "/allTransaction2" },
+                { label: "Report2", path: "/allTransaction3" },
                 { label: "Task Report", path: "/taskReport" },
                 { label: "Task Report", path: "/taskReport" },
                 { label: "Add Customer", path: "/addCustomer" },

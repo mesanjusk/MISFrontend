@@ -26,7 +26,7 @@ export default function Home() {
       setUserName(loggedInUser);
       fetchUserData(); 
       fetchOrders(loggedInUser); 
-      fetchAttendance(loggedInUser); // Pass the logged-in user to fetch attendance
+      fetchAttendance(loggedInUser); 
     } else {
       navigate("/login");
     }
@@ -95,7 +95,7 @@ export default function Home() {
     }
   };
 
-  const fetchAttendance = async (loggedInUser) => { // Accept logged-in user as parameter
+  const fetchAttendance = async (loggedInUser) => { 
     try {
       const userLookup = await fetchUserNames();
       
@@ -119,7 +119,6 @@ export default function Home() {
         });
       });
 
-      // Filter attendance data to include only logged-in user's records
       const filteredAttendance = attendanceWithUserNames.filter(record => record.User_name === loggedInUser);
       setAttendanceData(filteredAttendance);
     } catch (error) {
@@ -146,11 +145,9 @@ export default function Home() {
     const currentDate = new Date().toLocaleDateString();
 
     try {
-      // Check if attendance for the current date already exists
       const existingAttendance = attendanceData.find(record => record.Date === currentDate);
       
       if (existingAttendance) {
-        // If it exists, add the user to the existing entry
         const updateResponse = await axios.put(`/attendance/updateAttendance/${existingAttendance.Attendance_Record_ID}`, {
           User_name: userName,
           Time: currentTime,
@@ -163,7 +160,6 @@ export default function Home() {
           console.error('Failed to update attendance:', updateResponse.data.message);
         }
       } else {
-        // If it does not exist, create a new entry
         const response = await axios.post('/attendance/addAttendance', {
           User_name: userName,
           Type: type,
@@ -179,7 +175,7 @@ export default function Home() {
         }
       }
 
-      fetchAttendance(userName); // Re-fetch attendance to update the displayed data
+      fetchAttendance(userName); 
     } catch (error) {
       console.error('Error saving attendance:', error.response?.data?.message || error.message);
     }
