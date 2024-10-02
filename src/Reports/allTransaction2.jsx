@@ -70,48 +70,46 @@ const AllTransaction2 = () => {
             setFilteredEntries([]);
             return;
         }
-
+    
         const customerUUID = selectedCustomer.Customer_uuid;
-
-        const transactionIds = transactions
-            .filter(transaction =>
-                transaction.Journal_entry.some(entry => entry.Account_id === customerUUID) &&
-                (!startDate || new Date(transaction.Transaction_date) >= new Date(startDate)) &&
-                (!endDate || new Date(transaction.Transaction_date) <= new Date(endDate))
-            )
-            .map(transaction => transaction.Transaction_id);
-
+    
         const filtered = transactions.flatMap(transaction => {
-            if (transactionIds.includes(transaction.Transaction_id)) {
-                return transaction.Journal_entry
-                    .filter(entry => entry.Account_id !== customerUUID)
-                    .map(entry => ({
-                        ...entry,
-                        Transaction_id: transaction.Transaction_id,
-                        Transaction_date: transaction.Transaction_date,
-                    }));
+            const isWithinDateRange = (!startDate || new Date(transaction.Transaction_date) >= new Date(startDate)) &&
+                                      (!endDate || new Date(transaction.Transaction_date) <= new Date(endDate));
+            if (isWithinDateRange) {
+                const customerEntries = transaction.Journal_entry.filter(entry => entry.Account_id === customerUUID);
+                if (customerEntries.length > 0) {
+                    return transaction.Journal_entry
+                        .filter(entry => entry.Account_id !== customerUUID)
+                        .map(entry => ({
+                            ...entry,
+                            Transaction_id: transaction.Transaction_id,
+                            Transaction_date: transaction.Transaction_date,
+                        }));
+                }
             }
             return [];
         });
-
+    
         let runningDebit = 0;
         let runningCredit = 0;
-
+    
         const updatedEntries = filtered.map(entry => {
             if (entry.Type === 'Debit') {
                 runningDebit += entry.Amount || 0;
             } else if (entry.Type === 'Credit') {
                 runningCredit += entry.Amount || 0;
             }
-
+    
             return {
                 ...entry,
-                Balance: runningDebit - runningCredit, 
+                Balance: runningDebit - runningCredit,
             };
         });
-
+    
         setFilteredEntries(updatedEntries);
     };
+    
 
     const calculateTotals = () => {
         const totals = filteredEntries.reduce(
