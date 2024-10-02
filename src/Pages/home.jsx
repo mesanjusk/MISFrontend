@@ -121,6 +121,15 @@ export default function Home() {
 
       const filteredAttendance = attendanceWithUserNames.filter(record => record.User_name === loggedInUser);
       setAttendanceData(filteredAttendance);
+
+      if (filteredAttendance.length > 0) {
+        const lastAttendance = filteredAttendance[filteredAttendance.length - 1]; 
+        if (lastAttendance.Type === 'In') {
+          setShowOutButton(true); 
+        } else {
+          setShowOutButton(false); 
+        }
+      }
     } catch (error) {
       console.error("Error fetching attendance:", error);
     }

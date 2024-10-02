@@ -12,10 +12,7 @@ export default function AdminHome() {
   const [showOutButton, setShowOutButton] = useState(false);
   const [attendanceData, setAttendanceData] = useState([]); 
   const [userData, setUserData] = useState([]); 
-  const [error, setError] = useState(null);
-  const [selectedOrderId, setSelectedOrderId] = useState(null); 
-  const [showEditModal, setShowEditModal] = useState(false); 
-
+  
   useEffect(() => {
     const userNameFromState = location.state?.id;
     const loggedInUser = userNameFromState || localStorage.getItem('User_name');
@@ -51,7 +48,7 @@ export default function AdminHome() {
     }
   };
 
-  const fetchAttendance = async () => { 
+  const fetchAttendance = async (loggedInUser) => { 
     try {
       const userLookup = await fetchUserNames();
       
@@ -75,7 +72,17 @@ export default function AdminHome() {
         });
       });
 
-      setAttendanceData(attendanceWithUserNames);
+      const filteredAttendance = attendanceWithUserNames.filter(record => record.User_name === loggedInUser);
+      setAttendanceData(filteredAttendance);
+
+      if (filteredAttendance.length > 0) {
+        const lastAttendance = filteredAttendance[filteredAttendance.length - 1]; 
+        if (lastAttendance.Type === 'In') {
+          setShowOutButton(true); 
+        } else {
+          setShowOutButton(false); 
+        }
+      }
     } catch (error) {
       console.error("Error fetching attendance:", error);
     }
@@ -144,16 +151,6 @@ export default function AdminHome() {
   const handleOutClick = () => {
     setShowOutButton(false);
     saveAttendance('Out');
-  };
-
-  const handleOrderClick = (order) => {
-    setSelectedOrderId(order); 
-    setShowEditModal(true); 
-  };
-
-  const closeEditModal = () => {
-    setShowEditModal(false); 
-    setSelectedOrderId(null);  
   };
 
   return (
