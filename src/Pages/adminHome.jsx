@@ -52,7 +52,8 @@ export default function AdminHome() {
     }
   };
 
-  const fetchAttendance = async (loggedInUser) => {
+
+  const fetchAttendance = async (loggedInUser) => { 
     try {
       const userLookup = await fetchUserNames();
 
@@ -198,12 +199,12 @@ export default function AdminHome() {
 
       <div className="tables-container flex">
         <div className="order-table flex-1 ml-10">
-          <h2 className="text-xl font-bold">Filtered Orders</h2>
+          <h2 className="text-xl font-bold">Orders</h2>
           <table className="min-w-full">
             <thead>
               <tr>
-                <th className="px-4 py-2">Order Number</th>
-                <th className="px-4 py-2">Customer Name</th>
+                <th className="px-4 py-2">No</th>
+                <th className="px-4 py-2">Name</th>
                 <th className="px-4 py-2">Assigned</th>
                 <th className="px-4 py-2">Task</th>
               </tr>

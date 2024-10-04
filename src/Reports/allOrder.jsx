@@ -202,7 +202,7 @@ export default function AllOrder() {
             )}
 
             {showEditModal && (
-                <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center w-full h-full">
+                <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center ">
                      <OrderUpdate order={selectedOrder} closeEditModal={closeEditModal} />
                 </div>
             )}
