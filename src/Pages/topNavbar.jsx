@@ -22,7 +22,15 @@ const TopNavbar = () => {
   };
 
   const home = () => {
-    navigate("/");
+    if(userGroup === "Admin User") {
+      navigate('/adminHome');
+    }
+    else if(userGroup === "Vendor") {
+      navigate('/vendorHome');
+    }
+    else {
+      navigate('/');
+    }
   };
 
   return (
@@ -82,7 +90,7 @@ const TopNavbar = () => {
                 { label: "Report1", path: "/allTransaction2" },
                 { label: "Report2", path: "/allTransaction3" },
                 { label: "Task Report", path: "/taskReport" },
-                { label: "Task Report", path: "/taskReport" },
+                { label: "Item Report", path: "/itemReport" },
                 { label: "Add Customer", path: "/addCustomer" },
                 { label: "Add Priority", path: "/addPriority" },
                 { label: "Add Task", path: "/addTask" },

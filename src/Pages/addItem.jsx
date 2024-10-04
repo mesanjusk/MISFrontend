@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react';
 import { useNavigate } from "react-router-dom";
 import axios from "axios"
 
-export default function AddItem() {
+export default function AddItem({ closeModal }) {
     const navigate = useNavigate();
 
     const [Item_name,setItem_Name]=useState('')
@@ -34,6 +34,7 @@ export default function AddItem() {
                 }
                 else if(res.data=="notexist"){
                     alert("Item added successfully")
+                    closeModal();
                     navigate("/home")
                 }
             })
@@ -72,7 +73,13 @@ export default function AddItem() {
                         </select>
                 </div>
                 <button type="submit" onClick={submit} className="btn btn-success w-100 rounded-0"> Submit </button>
-
+                <button 
+                        type="button" 
+                        className="btn btn-secondary"
+                        onClick={closeModal}
+                    >
+                        Close
+                    </button>
             </form>
             </div>
         </div>

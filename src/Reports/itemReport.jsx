@@ -2,17 +2,17 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import TopNavbar from "../Pages/topNavbar";
 import Footer from "../Pages/footer";
-import EditTask from './editTask';
-import AddTask from '../Pages/addTask';
+import EditItem from './editItem';
+import AddItem from '../Pages/addItem';
 
-const TaskReport = () => {
-    const [task, setTask] = useState({});
-    const [taskNames, setTaskNames] = useState([]);
+const ItemReport = () => {
+    const [item, setItem] = useState({});
+    const [itemNames, setItemNames] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [showEditModal, setShowEditModal] = useState(false); 
-    const [selectedTaskId, setSelectedTaskId] = useState(null); 
+    const [selectedItemId, setSelectedItemId] = useState(null); 
     const [showDeleteModal, setShowDeleteModal] = useState(false); 
-    const [selectedTask, setSelectedTask] = useState(null); 
+    const [selectedItem, setSelectedItem] = useState(null); 
     const [showAddModal, setShowAddModal] = useState(false); 
     const [userGroup, setUserGroup] = useState(''); 
     const [deleteErrorMessage, setDeleteErrorMessage] = useState('');
@@ -25,51 +25,51 @@ const TaskReport = () => {
 
         fetchUserGroup();
 
-        axios.get("task/GetTaskList")
+        axios.get("item/GetItemList")
             .then(res => {
                 if (res.data.success) {
-                    const taskMap = res.data.result.reduce((acc, task) => {
-                        if (task.Task_name) {
-                            acc[task._id] = {
-                                name: task.Task_name,
-                                group: task.Task_group 
+                    const itemMap = res.data.result.reduce((acc, item) => {
+                        if (item.Item_name) {
+                            acc[item._id] = {
+                                name: item.Item_name,
+                                group: item.Item_group 
                             };
                         }
                         return acc;
                     }, {});
-                    setTask(taskMap);
-                    setTaskNames(Object.values(taskMap).map(c => c.name));
+                    setItem(itemMap);
+                    setItemNames(Object.values(itemMap).map(c => c.name));
                 } else {
-                    setTask({});
+                    setItem({});
                 }
             })
-            .catch(err => console.log('Error fetching task list:', err));
+            .catch(err => console.log('Error fetching item list:', err));
     }, []);
 
-    const handleEdit = (taskId) => {
-        setSelectedTaskId(taskId); 
+    const handleEdit = (itemId) => {
+        setSelectedItemId(itemId); 
         setShowEditModal(true); 
     };
 
-    const handleDeleteClick = (taskId) => {
-        setSelectedTask({ ...task[taskId], _id: taskId }); 
+    const handleDeleteClick = (itemId) => {
+        setSelectedItem({ ...item[itemId], _id: itemId }); 
         setShowDeleteModal(true); 
     };
     
-    const handleDeleteConfirm = (taskId) => {
-        axios.delete(`/task/Delete/${taskId}`) 
+    const handleDeleteConfirm = (itemId) => {
+        axios.delete(`/item/Delete/${itemId}`) 
             .then(res => {
                 if (res.data.success) {
-                    setTask(prevTask => {
-                        const newTask = { ...prevTask };
-                        delete newTask[taskId]; 
-                        return newTask;
+                    setItem(prevItem => {
+                        const newItem = { ...prevItem };
+                        delete newItem[itemId]; 
+                        return newItem;
                     });
                 } else {
-                    console.log('Error deleting task:', res.data.message);
+                    console.log('Error deleting item:', res.data.message);
                 }
             })
-            .catch(err => console.log('Error deleting task:', err));
+            .catch(err => console.log('Error deleting item:', err));
         setShowDeleteModal(false); 
     };  
 
@@ -77,7 +77,7 @@ const TaskReport = () => {
         setShowDeleteModal(false); 
     };
 
-    const handleAddTask = () => {
+    const handleAddItem = () => {
         setShowAddModal(true); 
     };
 
@@ -87,9 +87,9 @@ const TaskReport = () => {
             <div className="pt-12 pb-20">
                 <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
                     <label>
-                        Search by Task Name or Group
+                        Search by Item Name or Group
                         <input
-                            list="taskNames"
+                            list="itemNames"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Search by task name or group"
@@ -97,7 +97,7 @@ const TaskReport = () => {
                     </label>
                 </div>
                 <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
-                    <button onClick={handleAddTask} type="button" className="p-3 rounded-full text-white bg-green-500 mb-3">
+                    <button onClick={handleAddItem} type="button" className="p-3 rounded-full text-white bg-green-500 mb-3">
                         <svg className="h-8 w-8 text-white-500" width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">  
                             <path stroke="none" d="M0 0h24v24H0z"/>  
                             <circle cx="12" cy="12" r="9" />  
@@ -108,7 +108,7 @@ const TaskReport = () => {
                 </div>
                 <main className="flex flex-1 p-1 overflow-y-auto">
                     <div className="w-100 max-w-md mx-auto">
-                        {Object.keys(task).length > 0 ? (
+                        {Object.keys(item).length > 0 ? (
                             <table className="table table-striped">
                                 <thead>
                                     <tr>
@@ -118,18 +118,18 @@ const TaskReport = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {Object.entries(task)
-                                        .filter(([id, task]) =>
-                                            task.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                            (task.group && task.group.toLowerCase().includes(searchTerm.toLowerCase()))
+                                    {Object.entries(item)
+                                        .filter(([id, item]) =>
+                                            item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            (item.group && item.group.toLowerCase().includes(searchTerm.toLowerCase()))
                                         )
-                                        .map(([id, task]) => (
+                                        .map(([id, item]) => (
                                             <tr key={id}>
                                                 <td onClick={() => handleEdit(id)} style={{ cursor: 'pointer' }}>
-                                                    {task.name}
+                                                    {item.name}
                                                 </td>
                                                 <td onClick={() => handleEdit(id)} style={{ cursor: 'pointer' }}>
-                                                    {task.group}
+                                                    {item.group}
                                                 </td>
                                                 {userGroup === "Admin User" && (
                                                     <td>
@@ -159,7 +159,7 @@ const TaskReport = () => {
             {showEditModal && (
                 <div className="modal-overlay">
                     <div className="modal-content">
-                        <EditTask taskId={selectedTaskId} closeModal={() => setShowEditModal(false)} />
+                        <EditItem itemId={selectedItemId} closeModal={() => setShowEditModal(false)} />
                     </div>
                 </div>
             )}
@@ -167,9 +167,9 @@ const TaskReport = () => {
             {showDeleteModal && (
                 <div className="modal-overlay">
                     <div className="modal-content">
-                        <h4>Are you sure you want to delete {selectedTask?.name}?</h4>
+                        <h4>Are you sure you want to delete {selectedItem?.name}?</h4>
                         <div className="modal-actions">
-                            <button onClick={() => handleDeleteConfirm(selectedTask?._id)} className="btn btn-danger">Yes</button>
+                            <button onClick={() => handleDeleteConfirm(selectedItem?._id)} className="btn btn-danger">Yes</button>
                             <button onClick={handleDeleteCancel} className="btn btn-secondary">Cancel</button>
                         </div>
                     </div>
@@ -179,7 +179,7 @@ const TaskReport = () => {
             {showAddModal && (
                 <div className="modal-overlay">
                     <div className="modal-content">
-                        <AddTask closeModal={() => setShowAddModal(false)} /> 
+                        <AddItem closeModal={() => setShowAddModal(false)} /> 
                     </div>
                 </div>
             )}
@@ -189,4 +189,4 @@ const TaskReport = () => {
     );
 };
 
-export default TaskReport;
+export default ItemReport;

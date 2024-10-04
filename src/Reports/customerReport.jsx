@@ -67,7 +67,6 @@ const CustomerReport = () => {
     
 
     const handleDeleteConfirm = () => {
-        console.log('Selected Customer for deletion:', selectedCustomer);
         if (!selectedCustomer || !selectedCustomer.customerUuid) {
             console.error('No valid customer selected for deletion');
             return;
