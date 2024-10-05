@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import axios from "axios";
 
-export default function UpdateDelivery() {
+export default function UpdateDelivery({ onClose, order }) {
     const navigate = useNavigate();
-    const { id } = useParams();
+    const { id } = useParams();  
+    const location = useLocation();  
 
     const [Customer_uuid, setCustomer_uuid] = useState(''); 
     const [Quantity, setQuantity] = useState('');
@@ -29,19 +30,29 @@ export default function UpdateDelivery() {
     }, [location.state, navigate]);
 
     useEffect(() => {
-        axios.get(`/order/${id}`)
-            .then(res => {
-                if (res.data.success) {
-                    const order = res.data.result;
-                    setCustomer_uuid(order.Customer_uuid);
-                    setItem(order.Item); 
-                    setQuantity(order.Quantity);
-                    setRate(order.Rate);
-                    setAmount(order.Amount);
-                    setCustomer_name(order.Customer_name || ''); 
-                }
-            })
-            .catch(err => console.log('Error fetching order data:', err));
+        setCustomer_uuid(order.Customer_uuid);
+        setItem(order.Item); 
+        setQuantity(order.Quantity);
+        setRate(order.Rate);
+        setAmount(order.Amount);
+    }, [order]);
+
+    useEffect(() => {
+        if (id) {
+            axios.get(`/order/${id}`)
+                .then(res => {
+                    if (res.data.success) {
+                        const order = res.data.result;
+                        setCustomer_uuid(order.Customer_uuid);
+                        setItem(order.Item); 
+                        setQuantity(order.Quantity);
+                        setRate(order.Rate);
+                        setAmount(order.Amount);
+                        setCustomer_name(order.Customer_name || ''); 
+                    }
+                })
+                .catch(err => console.log('Error fetching order data:', err));
+        }
     }, [id]);
     
     useEffect(() => {
@@ -110,32 +121,31 @@ export default function UpdateDelivery() {
             });
     
             if (response.data.success) {
-                    const journal = [
-                        {
-                            Account_id: Customer_uuid, 
-                            Type: 'Debit',
-                            Amount: Number(Amount), 
-                        },
-                        {
-                            Account_id: salePaymentModeUuid, 
-                            Type: 'Credit',
-                            Amount: Number(Amount), 
-                        }
-                    ];
-    
-                    const transactionResponse = await axios.post("/transaction/addTransaction", {
-                        Description: "Delivered", 
-                        Total_Credit: Number(Amount), 
-                        Total_Debit: Number(Amount), 
-                        Payment_mode: "Sale", 
-                        Journal_entry: journal,
-                        Created_by: loggedInUser 
-                    });
-    
-                    if (!transactionResponse.data.success) {
-                        alert("Failed to add Transaction.");
+                const journal = [
+                    {
+                        Account_id: Customer_uuid, 
+                        Type: 'Debit',
+                        Amount: Number(Amount), 
+                    },
+                    {
+                        Account_id: salePaymentModeUuid, 
+                        Type: 'Credit',
+                        Amount: Number(Amount), 
                     }
-                
+                ];
+    
+                const transactionResponse = await axios.post("/transaction/addTransaction", {
+                    Description: "Delivered", 
+                    Total_Credit: Number(Amount), 
+                    Total_Debit: Number(Amount), 
+                    Payment_mode: "Sale", 
+                    Journal_entry: journal,
+                    Created_by: loggedInUser 
+                });
+    
+                if (!transactionResponse.data.success) {
+                    alert("Failed to add Transaction.");
+                }
 
                 alert("Transaction added successfully!");
                 navigate("/allOrder");
@@ -151,8 +161,8 @@ export default function UpdateDelivery() {
     return (
         <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
             <div className="bg-white p-3 rounded w-90">
+                <button type="button" onClick={onClose}>X</button>
                 <h2>Update Order</h2>
-
                 <form onSubmit={submit}>
                     <div className="mb-3">
                         <label htmlFor="customer"><strong>Customer</strong></label>

@@ -16,10 +16,11 @@ export default function AllOrder() {
     const [showEditModal, setShowEditModal] = useState(false); 
     const [selectedOrder, setSelectedOrder] = useState(null);  
     const [customers, setCustomers] = useState({});
-    const [loadingOrders, setLoadingOrders] = useState(true);
-    const [loadingTasks, setLoadingTasks] = useState(true);
-
+   const [showImg, setShowImg] = useState(true);
+    
     useEffect(() => {
+        setTimeout(() => {
+            setShowImg(false);
         const fetchOrders = axios.get("/order/GetOrderList");
         const fetchCustomers = axios.get("/customer/GetCustomersList");
 
@@ -46,10 +47,13 @@ export default function AllOrder() {
                 }
             })
             .catch(err => console.log('Error fetching data:', err))
-            .finally(() => setLoadingOrders(false));
+        }, 1000)
     }, []);
 
     useEffect(() => {
+        setTimeout(() => {
+
+       setShowImg(false);
         axios.get("/taskgroup/GetTaskgroupList")
             .then(res => {
                 if (res.data.success) {
@@ -63,7 +67,7 @@ export default function AllOrder() {
                 }
             })
             .catch(err => console.log('Error fetching tasks:', err))
-            .finally(() => setLoadingTasks(false));
+        }, 1000)
     }, []);
 
     const taskOptions = [...new Set(tasks.map(task => task.Task_group.trim()))];
@@ -131,8 +135,8 @@ export default function AllOrder() {
                 <div className="overflow-x-scroll flex space-x-1 py-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
                     <style>{`.overflow-x-scroll::-webkit-scrollbar {display: none; } `}</style>
 
-                    {loadingTasks ? (
-                        <div>Loading...</div>
+                    {showImg ? (
+                        <img src="./loader.svg" />
                     ) : taskOptions.length > 0 ? (
                         taskOptions.map((taskGroup, index) => (
                             <button
@@ -154,8 +158,8 @@ export default function AllOrder() {
                 <div className="flex-1"></div>
                 <main className="flex flex-1 p-2 overflow-y-auto">
                     <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">
-                        {loadingOrders ? (
-                            <div>Loading...</div>
+                        {showImg ? (
+                            <img src="./loader.svg" />
                         ) : filteredOrders.length > 0 ? (
                             filteredOrders.map((order, index) => (
                                 <div key={index}>

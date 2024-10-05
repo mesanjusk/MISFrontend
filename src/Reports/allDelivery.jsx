@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import TopNavbar from "../Pages/topNavbar";
 import Footer from "../Pages/footer";
+import UpdateDelivery from "../Pages/updateDelivery";
 
 export default function AllDelivery() {
     const navigate = useNavigate();
@@ -10,6 +11,8 @@ export default function AllDelivery() {
     const [searchOrder, setSearchOrder] = useState("");
     const [filter, setFilter] = useState("");
     const [customers, setCustomers] = useState({});
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [selectedOrder, setSelectedOrder] = useState(null);
 
     function addOrder1() {
         navigate("/addOrder1");
@@ -67,7 +70,13 @@ export default function AllDelivery() {
     });
 
     const handleEditClick = (order) => {
-        navigate(`/updateDelivery/${order._id}`);
+        setSelectedOrder(order); 
+        setShowEditModal(true);  
+    };
+
+    const closeEditModal = () => {
+        setShowEditModal(false); 
+        setSelectedOrder(null);  
     };
 
     return (
@@ -107,6 +116,11 @@ export default function AllDelivery() {
                     </button>
                 </div>
             </div>
+            {showEditModal && (
+                <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center ">
+                     <UpdateDelivery order={selectedOrder} onClose={closeEditModal} />
+                </div>
+            )}
             <Footer />
         </>
     );
