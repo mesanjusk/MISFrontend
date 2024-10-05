@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import axios from "axios";
+import AddItem from "./addItem";
 
 export default function UpdateDelivery({ onClose, order }) {
     const navigate = useNavigate();
@@ -17,6 +18,7 @@ export default function UpdateDelivery({ onClose, order }) {
     const [itemOptions, setItemOptions] = useState([]);
     const [salePaymentModeUuid, setSalePaymentModeUuid] = useState(null); 
     const [loggedInUser, setLoggedInUser] = useState('');
+    const [showItemModal, setShowItemModal] = useState(false);
 
     useEffect(() => {
         const userNameFromState = location.state?.id;
@@ -158,7 +160,15 @@ export default function UpdateDelivery({ onClose, order }) {
         }
     }
 
+    const handleItem = () => {
+        setShowItemModal(true);
+    };
+
+    const exitModal = () => {
+        setShowItemModal(false);
+    };
     return (
+        <>
         <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
             <div className="bg-white p-3 rounded w-90">
                 <button type="button" onClick={onClose}>X</button>
@@ -184,7 +194,14 @@ export default function UpdateDelivery({ onClose, order }) {
                             ))}
                         </select>
                     </div>
-
+                    <button onClick={handleItem} type="button" className="text-white p-2 rounded-full bg-green-500 mb-3">
+                        <svg className="h-8 w-8 text-white-500" width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">  
+                            <path stroke="none" d="M0 0h24v24H0z"/>  
+                            <circle cx="12" cy="12" r="9" />  
+                            <line x1="9" y1="12" x2="15" y2="12" />  
+                            <line x1="12" y1="9" x2="12" y2="15" />
+                        </svg>
+                    </button>
                     <div className="mb-3">
                         <label htmlFor="quantity"><strong>Quantity</strong></label>
                         <input type="number" autoComplete="off" onChange={(e) => setQuantity(e.target.value)} value={Quantity} className="form-control rounded-0" />
@@ -206,5 +223,13 @@ export default function UpdateDelivery({ onClose, order }) {
                 </form>
             </div>
         </div>
+        {showItemModal && (
+            <div className="modal-overlay">
+                <div className="modal-content">
+                    <AddItem closeModal={exitModal} />
+                </div>
+            </div>
+        )}
+        </>
     );
 }
