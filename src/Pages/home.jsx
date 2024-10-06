@@ -15,85 +15,96 @@ export default function Home() {
   const [attendanceData, setAttendanceData] = useState([]); 
   const [userData, setUserData] = useState([]); 
   const [error, setError] = useState(null);
+  const [loggedInUser, setLoggedInUser] = useState(null); 
   const [selectedOrderId, setSelectedOrderId] = useState(null); 
   const [showEditModal, setShowEditModal] = useState(false); 
+  const [customers, setCustomers] = useState({});
 
   useEffect(() => {
     const userNameFromState = location.state?.id;
-    const loggedInUser = userNameFromState || localStorage.getItem('User_name');
-
-    if (loggedInUser) {
-      setUserName(loggedInUser);
-      fetchUserData(); 
-      fetchOrders(loggedInUser); 
-      fetchAttendance(loggedInUser); 
+    const user = userNameFromState || localStorage.getItem('User_name');
+    setLoggedInUser(user);
+    if (user) {
+      setUserName(user);
+      fetchUserData();  
+      fetchData(user);
+      fetchAttendance(user); 
     } else {
       navigate("/login");
     }
   }, [location.state, navigate]);
 
-  const fetchOrders = async (userName) => {
+  const fetchData = async (user) => {
     try {
-      const ordersResponse = await axios.get(`/order/GetOrderList`);
-      const customerResponse = await axios.get('/customer/GetCustomersList');
+        const [ordersRes, customersRes] = await Promise.all([
+            axios.get("/order/GetOrderList"),
+            axios.get("/customer/GetCustomersList"),
+        ]);
 
-      const customerMap = {};
-      if (Array.isArray(customerResponse.data.result)) {
-        customerResponse.data.result.forEach(customer => {
-          customerMap[customer.Customer_uuid] = customer.Customer_name;
-        });
-      }
-
-      const enrichedOrders = ordersResponse.data.result.map(order => {
-        let highestAssigned = null;
-        let highestTask = null;
-
-        order.Status.forEach(status => {
-          if (status.Assigned === userName) {
-            if (!highestAssigned || status.Status_number > highestAssigned.Status_number) {
-              highestAssigned = status;
-            }
-            if (!highestTask || status.Task > highestTask.Task) {
-              highestTask = status;
-            }
-          }
-        });
-
-        return {
-          ...order,
-          Customer_name: customerMap[order.Customer_uuid] || 'Unknown',
-          Highest_Assigned: highestAssigned ? highestAssigned.Assigned : 'N/A',
-          Highest_Task: highestTask ? highestTask.Task : 'N/A'
-        };
-      });
-
-      setOrders(enrichedOrders);
-    } catch (error) {
-      console.error('Error fetching orders:', error.message);
-      setError("Failed to fetch orders.");
-    }
-  };
-
-  const fetchUserNames = async () => {
-    try {
-        const response = await axios.get('/user/GetUserList');
-        const data = response.data;
-
-        if (data.success) {
-            const userLookup = {};
-            data.result.forEach(user => {
-                userLookup[user.User_uuid] = user.User_name.trim(); 
-            });
-            return userLookup;
+        if (ordersRes.data.success) {
+            setOrders(ordersRes.data.result);
         } else {
-            console.error('Failed to fetch user names:', data);
-            return {};
+            setOrders([]);
         }
-    } catch (error) {
-        console.error('Error fetching user names:', error);
-        return {};
+
+        if (customersRes.data.success) {
+            const customerMap = customersRes.data.result.reduce((acc, customer) => {
+                if (customer.Customer_uuid && customer.Customer_name) {
+                    acc[customer.Customer_uuid] = customer.Customer_name;
+                } else {
+                    console.warn("Invalid customer data:", customer);
+                }
+                return acc;
+            }, {});
+            setCustomers(customerMap);
+        } else {
+            setCustomers({});
+        }
+
+      
+    } catch (err) {
+        console.log('Error fetching data:', err);
     }
-  };
+};
+
+  const filteredOrders = orders
+    .map(order => {
+      if (order.Status.length === 0) return order; 
+  
+      const highestStatusTask = order.Status.reduce((prev, current) => 
+        (prev.Status_number > current.Status_number) ? prev : current
+      );
+  
+      const customerName = customers[order.Customer_uuid] || "Unknown";
+  
+      return {
+        ...order,
+        highestStatusTask,
+        Customer_name: customerName,
+      };
+    })
+    .filter(order => order.highestStatusTask.Assigned === loggedInUser); 
+  
+    const fetchUserNames = async () => {
+      try {
+          const response = await axios.get('/user/GetUserList');
+          const data = response.data;
+  
+          if (data.success) {
+              const userLookup = {};
+              data.result.forEach(user => {
+                  userLookup[user.User_uuid] = user.User_name.trim(); 
+              });
+              return userLookup;
+          } else {
+              console.error('Failed to fetch user names:', data);
+              return {};
+          }
+      } catch (error) {
+          console.error('Error fetching user names:', error);
+          return {};
+      }
+    };
 
   const fetchAttendance = async (loggedInUser) => { 
     try {
@@ -210,6 +221,10 @@ export default function Home() {
     setSelectedOrderId(null);  
   };
 
+  const getTodayDate = () => {
+    return format(new Date(), 'yyyy-MM-dd');
+  };
+
   return (
     <>
       <TopNavbar />
@@ -235,64 +250,41 @@ export default function Home() {
         </div>
       </div>
   
-      <div className="tables-container flex">
+      <div className="">
         <div className="orders-table flex-1 mr-4">
-          <h2 className="text-xl font-bold">Orders</h2>
-          <table className="min-w-full">
-            <thead>
-              <tr>
-                <th className="px-4 py-2">Order ID</th>
-                <th className="px-4 py-2">Order Name</th>
-                <th className="px-4 py-2">Assigned To</th>
-                <th className="px-4 py-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((order) => (
+          
+              {filteredOrders.map((order) => (
                 <tr key={order._id} onClick={() => handleOrderClick(order)} className="cursor-pointer hover:bg-gray-200">
                   <td className="border px-4 py-2">{order.Order_Number}</td>
                   <td className="border px-4 py-2">{order.Customer_name}</td>
-                  <td className="border px-4 py-2">{order.Highest_Assigned}</td>
-                  <td className="border px-4 py-2">{order.Highest_Task}</td>
+                  <td className="border px-4 py-2">{order.highestStatusTask.Assigned}</td>
+                  <td className="border px-4 py-2">{order.highestStatusTask.Task}</td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+       </div>
 
         <div className="attendance-table flex-1">
-          <h2 className="text-xl font-bold">Attendance</h2>
-          <table className="min-w-full">
-            <thead>
-              <tr>
-                <th className="px-4 py-2">Date</th>
-                <th className="px-4 py-2">User</th>
-                <th className="px-4 py-2">Time</th>
-                <th className="px-4 py-2">Type</th>
-                <th className="px-4 py-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {attendanceData.map((record, index) => (
-                <tr key={index} className="hover:bg-gray-200">
-                  <td className="border px-4 py-2">{record.Date}</td>
-                  <td className="border px-4 py-2">{record.User_name}</td>
-                  <td className="border px-4 py-2">{record.Time}</td>
-                  <td className="border px-4 py-2">{record.Type}</td>
-                  <td className="border px-4 py-2">{record.Status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <Footer />
-      {showEditModal && (
-                <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center w-full h-full">
-                     <OrderUpdate order={selectedOrderId} onClose={closeEditModal} />
+        <h2 className="text-xl font-bold">Attendance</h2>
+              {attendanceData
+                .filter(record => record.Date === getTodayDate()) 
+                .map((record, index) => (
+                    <div key={index} className="hover:bg-gray-200">
+                    <div> {record.Date}</div>
+                  <div> {record.User_name}</div>
+                  <div> {record.Time}</div>
+                  <div> {record.Type}  {record.Status}</div>
+                    </div>
+                ))}
                 </div>
-            )}
+        </div>
+  
+        {showEditModal && (
+          <div className="edit-modal">
+            <OrderUpdate order={selectedOrderId} onClose={closeEditModal} />
+          </div>
+        )}
+  
+      <Footer />
     </>
   );
 }
