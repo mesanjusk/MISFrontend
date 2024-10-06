@@ -277,13 +277,11 @@ export default function Home() {
                 ))}
                 </div>
         </div>
-  
-        {showEditModal && (
-          <div className="edit-modal">
-            <OrderUpdate order={selectedOrderId} onClose={closeEditModal} />
-          </div>
-        )}
-  
+   {showEditModal && (
+                <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center ">
+                     <OrderUpdate order={selectedOrderId} onClose={closeEditModal} />
+                </div>
+            )}
       <Footer />
     </>
   );
