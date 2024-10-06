@@ -100,7 +100,7 @@ export default function OrderUpdate({ order, onClose }) {
       .then(res => {
         if (res.data.success) {
           alert('Order updated successfully!');
-          closeEditModal(); 
+          onClose(); 
           navigate("/allOrder");  
         }
       })

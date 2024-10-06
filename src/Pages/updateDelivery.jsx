@@ -5,9 +5,8 @@ import AddItem from "./addItem";
 
 export default function UpdateDelivery({ onClose, order }) {
     const navigate = useNavigate();
-    const { id } = useParams();  
     const location = useLocation();  
-
+    const [orderId, setOrderId] = useState(order?.Order_id || "");
     const [Customer_uuid, setCustomer_uuid] = useState(''); 
     const [Quantity, setQuantity] = useState('');
     const [Rate, setRate] = useState('');
@@ -32,31 +31,17 @@ export default function UpdateDelivery({ onClose, order }) {
     }, [location.state, navigate]);
 
     useEffect(() => {
-        setCustomer_uuid(order.Customer_uuid);
-        setItem(order.Item); 
-        setQuantity(order.Quantity);
-        setRate(order.Rate);
-        setAmount(order.Amount);
+        if (order) {
+            setCustomer_uuid(order.Customer_uuid);
+            setItem(order.Item);
+            setQuantity(order.Quantity);
+            setRate(order.Rate);
+            setAmount(order.Amount);
+            setCustomer_name(order.Customer_name || '');
+            setOrderId(order._id);
+        }
     }, [order]);
 
-    useEffect(() => {
-        if (id) {
-            axios.get(`/order/${id}`)
-                .then(res => {
-                    if (res.data.success) {
-                        const order = res.data.result;
-                        setCustomer_uuid(order.Customer_uuid);
-                        setItem(order.Item); 
-                        setQuantity(order.Quantity);
-                        setRate(order.Rate);
-                        setAmount(order.Amount);
-                        setCustomer_name(order.Customer_name || ''); 
-                    }
-                })
-                .catch(err => console.log('Error fetching order data:', err));
-        }
-    }, [id]);
-    
     useEffect(() => {
         axios.get("/customer/GetCustomersList")
             .then(res => {
@@ -114,7 +99,7 @@ export default function UpdateDelivery({ onClose, order }) {
         }
     
         try {
-            const response = await axios.put(`/order/updateDelivery/${id}`, {
+            const response = await axios.put(`/order/updateDelivery/${orderId}`, {
                 Customer_uuid,
                 Item,
                 Quantity: Number(Quantity),
