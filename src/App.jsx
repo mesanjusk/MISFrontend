@@ -37,6 +37,7 @@ import AllTransaction2 from "./Reports/allTransaction2";
 import AllTransaction3 from "./Reports/allTransaction3";
 import ItemReport from "./Reports/itemReport";
 import EditItem from "./Reports/editItem";
+import AllBills from "./Reports/allBills";
 
 function App() {
     axios.defaults.baseURL = "https://misbackend-e078.onrender.com/";
@@ -68,6 +69,7 @@ function App() {
                     <Route path="/taskReport" element={<TaskReport />} />
                     <Route path="/itemReport" element={<ItemReport />} />
                     <Route path="/allDelivery" element={<AllDelivery />} />
+                    <Route path="/allBills" element={<AllBills />} />
                     <Route path="/allTransaction" element={<AllTransaction />} />
                     <Route path="/allTransaction1" element={<AllTransaction1 />} />
                     <Route path="/allTransaction2" element={<AllTransaction2 />} />
