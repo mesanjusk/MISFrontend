@@ -40,6 +40,10 @@ import EditItem from "./Reports/editItem";
 import AllBills from "./Reports/allBills";
 import UserReport from "./Reports/userReport";
 import EditUser from "./Reports/editUser";
+import PaymentReport from "./Reports/paymentReport";
+import EditPayment from "./Reports/editPayment";
+import PriorityReport from "./Reports/priorityReport";
+import EditPriority from "./Reports/editPriority";
 
 function App() {
     axios.defaults.baseURL = "https://misbackend-e078.onrender.com/";
@@ -71,6 +75,8 @@ function App() {
                     <Route path="/taskReport" element={<TaskReport />} />
                     <Route path="/userReport" element={<UserReport />} />
                     <Route path="/itemReport" element={<ItemReport />} />
+                    <Route path="/paymentReport" element={<PaymentReport />} />
+                    <Route path="/priorityReport" element={<PriorityReport />} />
                     <Route path="/allDelivery" element={<AllDelivery />} />
                     <Route path="/allBills" element={<AllBills />} />
                     <Route path="/allTransaction" element={<AllTransaction />} />
@@ -83,6 +89,8 @@ function App() {
                     <Route path="/editTask/:id" element={<EditTask />} />
                     <Route path="/editItem/:id" element={<EditItem />} />
                     <Route path="/editUser/:id" element={<EditUser />} />
+                    <Route path="/editPayment/:id" element={<EditPayment />} />
+                    <Route path="/editPriority/:id" element={<EditPriority />} />
                     <Route path="/footer" element={< Footer /> } />
                     <Route path="/header" element={< TopNavbar />} />
                 </Routes>
