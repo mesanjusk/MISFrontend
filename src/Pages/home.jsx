@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
+import Skeleton from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 import TopNavbar from "../Pages/topNavbar";
 import Footer from './footer';
 import axios from 'axios';
@@ -14,24 +16,27 @@ export default function Home() {
   const [orders, setOrders] = useState([]); 
   const [attendanceData, setAttendanceData] = useState([]); 
   const [userData, setUserData] = useState([]); 
-  const [error, setError] = useState(null);
   const [loggedInUser, setLoggedInUser] = useState(null); 
   const [selectedOrderId, setSelectedOrderId] = useState(null); 
   const [showEditModal, setShowEditModal] = useState(false); 
   const [customers, setCustomers] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const userNameFromState = location.state?.id;
-    const user = userNameFromState || localStorage.getItem('User_name');
-    setLoggedInUser(user);
-    if (user) {
-      setUserName(user);
-      fetchUserData();  
-      fetchData(user);
-      fetchAttendance(user); 
-    } else {
-      navigate("/login");
-    }
+    setTimeout(() => {
+      const userNameFromState = location.state?.id;
+      const user = userNameFromState || localStorage.getItem('User_name');
+      setLoggedInUser(user);
+      if (user) {
+        setUserName(user);
+        fetchUserData();
+        fetchData(user);
+        fetchAttendance(user);
+      } else {
+        navigate("/login");
+      }
+    }, 2000);
+    setTimeout(() => setIsLoading(false), 2000);
   }, [location.state, navigate]);
 
   const fetchData = async (user) => {
@@ -232,40 +237,54 @@ export default function Home() {
         <h1 className="absolute right-10 text-s font-bold mb-6">Welcome, {userName}!</h1>
   
         <div className="absolute right-10 top-10 p-2">
-          <button
-            onClick={handleInClick}
-            className={`sanju ${showOutButton ? 'hidden' : 'visible'} bg-green-500 text-white px-2 py-2 mr-2 rounded`}
-          >
-            In
-          </button>
-  
-          {showOutButton && (
-            <button
-              onClick={handleOutClick}
-              className="sanju bg-red-500 text-white px-2 py-2 rounded"
-            >
-              Out
-            </button>
+        {isLoading ? (
+            <Skeleton width={50} height={30} className="mr-2" />
+          ) : (
+            <>
+              {!showOutButton && (
+                <button
+                  onClick={handleInClick}
+                  className="sanju bg-green-500 text-white px-2 py-2 mr-2 rounded"
+                >
+                  In
+                </button>
+              )}
+              {showOutButton && (
+                <button
+                  onClick={handleOutClick}
+                  className="sanju bg-red-500 text-white px-2 py-2 rounded"
+                >
+                  Out
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
   
       <div className="">
         <div className="orders-table flex-1 mr-4">
-          
-              {filteredOrders.map((order) => (
+        <h2 className="text-xl font-bold">Order</h2>
+        {isLoading ? (
+            <Skeleton count={5} height={30} />
+          ) : (
+              filteredOrders.map((order) => (
                 <tr key={order._id} onClick={() => handleOrderClick(order)} className="cursor-pointer hover:bg-gray-200">
                   <td className="border px-4 py-2">{order.Order_Number}</td>
                   <td className="border px-4 py-2">{order.Customer_name}</td>
                   <td className="border px-4 py-2">{order.highestStatusTask.Assigned}</td>
                   <td className="border px-4 py-2">{order.highestStatusTask.Task}</td>
                 </tr>
-              ))}
+              ))
+            )}
        </div>
 
         <div className="attendance-table flex-1">
         <h2 className="text-xl font-bold">Attendance</h2>
-              {attendanceData
+        {isLoading ? (
+            <Skeleton count={5} height={30} />
+          ) : (
+              attendanceData
                 .filter(record => record.Date === getTodayDate()) 
                 .map((record, index) => (
                     <div key={index} className="hover:bg-gray-200">
@@ -274,7 +293,8 @@ export default function Home() {
                   <div> {record.Time}</div>
                   <div> {record.Type}  {record.Status}</div>
                     </div>
-                ))}
+                 ))
+                )}
                 </div>
         </div>
    {showEditModal && (
