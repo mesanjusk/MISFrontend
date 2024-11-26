@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import TopNavbar from "../Pages/topNavbar";
 import Footer from "../Pages/footer";
-import UpdateDelivery from "../Pages/updateDelivery";
+import BillUpdate from "../Reports/billUpdate";
 
 export default function AllBills() {
     const navigate = useNavigate();
@@ -118,7 +118,7 @@ export default function AllBills() {
             </div>
             {showEditModal && (
                 <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center ">
-                     <UpdateDelivery order={selectedOrder} onClose={closeEditModal} />
+                     <BillUpdate order={selectedOrder} onClose={closeEditModal} />
                 </div>
             )}
             <Footer />

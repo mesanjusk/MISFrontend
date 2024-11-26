@@ -46,7 +46,7 @@ import PriorityReport from "./Reports/priorityReport";
 import EditPriority from "./Reports/editPriority";
 
 function App() {
-    axios.defaults.baseURL = "https://misbackend-e078.onrender.com/";
+    axios.defaults.baseURL = "http://localhost:8000/";
     return (
         <Router>
             <div>
