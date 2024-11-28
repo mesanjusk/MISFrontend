@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import UpdateDelivery from '../Pages/updateDelivery';
 import AddNote from "../Pages/addNote";
+import OrderPrint from '../Pages/orderPrint';
 
 export default function OrderUpdate({ order, onClose }) {
   const navigate = useNavigate();
@@ -13,7 +14,8 @@ export default function OrderUpdate({ order, onClose }) {
   const [taskOptions, setTaskOptions] = useState([]);
   const [userOptions, setUserOptions] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false); 
-  const [showNoteModal, setShowNoteModal] = useState(false); 
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);  
   const [selectedOrder, setSelectedOrder] = useState(null);  
   const [values, setValues] = useState({
     id: order?._id || '',
@@ -72,8 +74,11 @@ export default function OrderUpdate({ order, onClose }) {
       .then(res => {
         if (res.data.success) {
           const customerMap = res.data.result.reduce((acc, customer) => {
-            if (customer.Customer_uuid && customer.Customer_name) {
-              acc[customer.Customer_uuid] = customer.Customer_name;
+            if (customer.Customer_uuid && customer.Customer_name && customer.Mobile_number) {
+              acc[customer.Customer_uuid] = {
+                Customer_name: customer.Customer_name,
+                Mobile_number: customer.Mobile_number,
+              };
             }
             return acc;
           }, {});
@@ -84,6 +89,7 @@ export default function OrderUpdate({ order, onClose }) {
       })
       .catch(err => console.log('Error fetching customers list:', err));
   }, []);
+  
  
   useEffect(() => {
     if (values.Order_uuid) {
@@ -144,6 +150,11 @@ export default function OrderUpdate({ order, onClose }) {
     setShowNoteModal(true);  
   }
 
+  const handlePrintClick = (order) => {
+    setSelectedOrder(order); 
+    setShowPrintModal(true);  
+  }
+
   const closeEditModal = () => {
     setShowEditModal(false); 
     setSelectedOrder(null);  
@@ -154,6 +165,49 @@ export default function OrderUpdate({ order, onClose }) {
     setSelectedOrder(null);  
   };
 
+  const closePrintModal = () => {
+    setShowPrintModal(false); 
+    setSelectedOrder(null);  
+  };
+
+  const handleWhatsAppClick = (order) => {
+    const customerUUID = order.Customer_uuid;
+    const customer = customers[customerUUID];
+  
+    if (!customer) {
+      alert("Customer information not found.");
+      return;
+    }
+  
+    const customerName = customer.Customer_name || "Customer";
+    let phoneNumber = customer.Mobile_number || "";
+  
+    if (!phoneNumber) {
+      alert("Phone number is missing.");
+      return;
+    }
+  
+    phoneNumber = String(phoneNumber); 
+    
+    const countryCode = "+91"; 
+  
+    phoneNumber = phoneNumber.replace(/\D/g, "");
+   
+    if (phoneNumber.length !== 10) {
+      alert("Phone number is invalid.");
+      return;
+    }
+  
+    phoneNumber = `${countryCode}${phoneNumber}`;
+  
+    const message = `Hello ${customerName},%0AYour order with ID ${order.Order_Number} has been processed.%0ATotal Amount: ${order?.Amount},,%0AThank you!`;
+  
+    const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+  
+    window.open(whatsappURL, "_blank");
+  };
+  
+  
   return (
     <>
       <div className="w-4/4 h-full pt-10 flex flex-col">
@@ -182,6 +236,38 @@ export default function OrderUpdate({ order, onClose }) {
                   <line x1="12" y1="9" x2="12" y2="15" />
                 </svg>
               </button>
+              <button onClick={() => handlePrintClick(order)} className="btn">
+  <svg
+    className="h-10 w-10 text-blue-500"
+    width="50"
+    height="40"
+    viewBox="0 0 24 24"
+    strokeWidth="2"
+    stroke="currentColor"
+    fill="none"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M6 9V3h12v6" />
+    <rect x="6" y="13" width="12" height="8" rx="2" />
+    <path d="M6 17h0" />
+    <path d="M18 17h0" />
+  </svg>
+</button>
+<button
+  onClick={() => handleWhatsAppClick(order)}
+  className="btn ml-2"
+>
+  <svg
+    className="h-10 w-10 text-green-500"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 32 32"
+    fill="currentColor"
+  >
+    <path d="M16 0C7.163 0 0 7.163 0 16c0 2.943.794 5.69 2.177 8.07L.019 32l8.202-2.125A15.94 15.94 0 0016 32c8.837 0 16-7.163 16-16S24.837 0 16 0zm8.449 23.021c-.398 1.125-2.306 2.069-3.15 2.188-.798.11-1.75.157-2.825-.16-.65-.16-1.488-.48-2.567-1.044a15.01 15.01 0 01-6.024-6.01c-.597-1.081-.933-1.94-1.097-2.59-.33-1.31-.285-2.374-.174-3.188.155-.868 1.03-2.54 2.15-2.91.396-.13.914-.064 1.214.46.17.303.398.652.642 1.057.286.458.607 1.06.744 1.353.26.52.086 1.072-.16 1.396l-.644.868c-.33.437-.693.694-.572 1.047.886 2.18 3.49 4.894 6.084 6.146.208.11.345.097.477-.048l.703-.698c.346-.347.787-.33 1.31-.197.413.108.974.435 1.558.808.487.325.945.643 1.227.907.39.367.672.72.744.918.235.653-.212 1.267-.498 1.747z" />
+  </svg>
+</button>
+
             </div>  
             <div>
               <div className="p-2 col-start-2 col-end-4">
@@ -276,6 +362,12 @@ export default function OrderUpdate({ order, onClose }) {
       {showNoteModal && (
         <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
           <AddNote order={selectedOrder} onClose={closeNoteModal} />
+        </div>
+      )}
+
+{showPrintModal && (
+        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
+          <OrderPrint order={selectedOrder} onClose={closePrintModal} />
         </div>
       )}
     </>

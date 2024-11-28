@@ -44,6 +44,7 @@ import PaymentReport from "./Reports/paymentReport";
 import EditPayment from "./Reports/editPayment";
 import PriorityReport from "./Reports/priorityReport";
 import EditPriority from "./Reports/editPriority";
+import OrderPrint from "./Pages/orderPrint";
 
 function App() {
     axios.defaults.baseURL = "https://misbackend-e078.onrender.com/";
@@ -93,6 +94,7 @@ function App() {
                     <Route path="/editPriority/:id" element={<EditPriority />} />
                     <Route path="/footer" element={< Footer /> } />
                     <Route path="/header" element={< TopNavbar />} />
+                    <Route path="/orderprint" element={< OrderPrint />} />
                 </Routes>
             </div>
         </Router>
