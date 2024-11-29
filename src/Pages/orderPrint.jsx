@@ -9,7 +9,9 @@ const OrderPrint = ({order}) => {
   });
 
   return (
-    <div>
+    <div style={{
+      textAlign: "center"
+       }}>
       <button onClick={handlePrint} className="ml-2 bg-green-500 text-white p-2 rounded-lg">Print</button>
       <div
        id="item-container"
