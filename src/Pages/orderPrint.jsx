@@ -44,179 +44,115 @@ const OrderPrint = ({order}) => {
   const customerDetails = customers[order?.Customer_uuid] || {};
 
   return (
-    <div style={{
-      textAlign: "center"
-       }}>
-      <button onClick={handlePrint} className="ml-2 bg-green-500 text-white p-2 rounded-lg">Print</button>
-     
-         <div
-			ref={componentRef}
-			style={{
-				width: "170mm",
-				height: "128mm",
-				border: "1px solid black",
-				pageBreakAfter: "always",
-				display: "flex",
-				flexDirection: "column",
-				justifyContent: "space-between"
-			}}
-		>   
-<table style={{ width: "100%", border: "1px solid black" }}>					
-									<tr>
-										<td
-											style={{
-												fontWeight: "600",
-												fontSize: "larger",
-												lineHeight: 0.5
-											}}
-										>
-											SANJU SK
-										</td>
-									</tr>
-									<tr>
-										<td style={{ fontWeight: "600", fontSize: "x-small" }}>
-											In Front of Santoshi Mata Mandir,
-                      </td>
-                      <td></td>                    
-                      <td>Memo:</td>									
-										
-									</tr>
-                  <tr>
-										<td style={{ fontWeight: "600", fontSize: "x-small" }}>
-										 Krishnapura Ward, Gondia - 441401
-                     </td>
-                    <td></td>
-                    <td>Order Date: {new Date(order.createdAt).toLocaleDateString()}</td>
-                    
-									</tr>
-                  <tr>
-										<td style={{ fontWeight: "600", fontSize: "x-small" }}>Email: skgondia@gmail.com</td>
-                    <td></td>
-                    <td> Invoice No.: {order.Order_Number}</td>
-									</tr>
-									<tr>
-										<td style={{ fontWeight: "600", fontSize: "x-small" }}>Phone: 9372 633 633</td>
-                    <td></td>
-                    <td>Delivery Date: {new Date(latestDeliveryDate).toLocaleDateString()}</td>
-									</tr>
-				</table>
-        <table>
-	
-						<tr>
-							<td>Party :</td>
-							<td>{customerDetails.Customer_name}</td>
-							<td>Mobile :</td>
-              <td>{customerDetails.Mobile_number}</td>
-						<hr />
-					
-						
-						
-						</tr>			
-			
-				</table>
-        <hr />	
-        <table>
-        <tr>
-							<td>Item :</td>
-							<td>Remarks :</td>
-							<td>Qty. :</td>
-              <td>Rate :</td>
-							<td>Amount :</td>
-						</tr>
-         
-            <tr>
-							<td>{order?.Item}</td>
-							<td>{order?.Remark}</td>
-							<td>{order?.Quantity}</td>
-							<td>{order?.Rate}</td>
-							<td>{order?.Amount}</td>
-						</tr>
+    <div style={{ textAlign: "center" }}>
+      <button onClick={handlePrint} className="ml-2 bg-green-500 text-white p-2 rounded-lg">
+        Print
+      </button>
+
+      <div
+        ref={componentRef}
+        style={{
+          width: "170mm",
+          height: "128mm",
+          border: "1px solid black",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+        }}
+        className="print-container"
+      >
+        <table style={{ width: "100%", border: "1px solid black" }}>
+          <tr>
+            <td style={{ fontWeight: "600", fontSize: "larger", lineHeight: 0.5 }}>SANJU SK</td>
+          </tr>
+          <tr>
+            <td style={{ fontWeight: "600", fontSize: "x-small" }}>
+              In Front of Santoshi Mata Mandir,
+            </td>
+            <td></td>
+            <td>Memo:</td>
+          </tr>
+          <tr>
+            <td style={{ fontWeight: "600", fontSize: "x-small" }}>
+              Krishnapura Ward, Gondia - 441401
+            </td>
+            <td></td>
+            <td>Order Date: {new Date(order.createdAt).toLocaleDateString()}</td>
+          </tr>
+          <tr>
+            <td style={{ fontWeight: "600", fontSize: "x-small" }}>Email: skgondia@gmail.com</td>
+            <td></td>
+            <td>Invoice No.: {order.Order_Number}</td>
+          </tr>
+          <tr>
+            <td style={{ fontWeight: "600", fontSize: "x-small" }}>Phone: 9372 633 633</td>
+            <td></td>
+            <td>Delivery Date: {new Date(latestDeliveryDate).toLocaleDateString()}</td>
+          </tr>
         </table>
-      
+        <table>
+          <tr>
+            <td>Party :</td>
+            <td>{customerDetails.Customer_name}</td>
+            <td>Mobile :</td>
+            <td>{customerDetails.Mobile_number}</td>
+          </tr>
+        </table>
         <hr />
-			<table style={{ width: "100%" }}>
-
-
-				
-					<tr style={{ borderBottom: "1px solid #000" }} className="order_item">
-						<td>
-							In Words
-						</td>
-						<td>
-							
-						</td>
-						<td>
-							
-						</td>
-						<td>
-							Total
-						</td>
-						<td>
+        <table>
+          <tr>
+            <td>Item :</td>
+            <td>Remarks :</td>
+            <td>Qty. :</td>
+            <td>Rate :</td>
+            <td>Amount :</td>
+          </tr>
+          <tr>
+            <td>{order?.Item}</td>
+            <td>{order?.Remark}</td>
+            <td>{order?.Quantity}</td>
+            <td>{order?.Rate}</td>
             <td>{order?.Amount}</td>
-						</td>
-						<td>
-							
-						</td>
-					</tr>
-				
-			
-				<tr>
-					<td
-						colSpan={28}
-						style={{
-							textAlign: "center",
-							fontWeight: "600",
-							fontSize: "small",
-							width: "100%"
-						}}
-					>
-						
-					</td>
-				</tr>
-				
-				<tr>
-					<th colSpan={28}>
-						<hr
-							style={{
-								height: "3px",
-								backgroundColor: "#000",
-								width: "100%"
-							}}
-						/>
-					</th>
-				</tr>
-	
-				
+          </tr>
+        </table>
+        <hr />
+        <table style={{ width: "100%" }}>
+          {order.items?.map((item) => (
+            <tr style={{ borderBottom: "1px solid #000" }} className="order_item">
+              <td>{item.item_title}</td>
+              <td>{item.remarks}</td>
+              <td>{item.units}</td>
+              <td>{item.price}</td>
+              <td>{item.item_total}</td>
+            </tr>
+          ))}
+        </table>
+      </div>
 
-				{order.items?.map((item) => {
-				
-					return (
-						<tr style={{ borderBottom: "1px solid #000" }} className="order_item">
-							<td>
-								{item.item_title}
-							</td>
-							<td>
-								{item.remarks}
-							</td>
-							<td>
-								{item.units}
-							</td>
-							<td>
-								{item.price}
-							</td>
-							<td>
-								{item.item_total}
-							</td>
-						</tr>
-					)
-				})}
-		
-			</table>
+      {/* Add Media Queries for Mobile */}
+      <style>
+        {`
+          @media print {
+            .print-container {
+              width: 100%;
+              height: auto;
+              margin: 0;
+              padding: 0;
+              page-break-inside: avoid;
+              transform: scale(0.8);
+            }
+          }
 
-			
-			
-		</div>
-        </div>
+          @media (max-width: 768px) {
+            .print-container {
+              width: 100%;
+              height: auto;
+              transform: scale(0.8); /* Adjust scaling for smaller screens */
+            }
+          }
+        `}
+      </style>
+    </div>
    
   );
 };
