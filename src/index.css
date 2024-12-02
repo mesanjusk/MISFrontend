@@ -80,3 +80,17 @@
   margin-right: 0; /* Remove margin from the last table */
 }
 
+.order-print-layout {
+	position: fixed;
+	top: -1000px;
+	right: -1000px;
+	z-index: -1000;
+	width: fit-content
+}
+
+.order-print-layout.visible {
+	top: 0;
+	left: 0;
+	z-index: 9999999999;
+	background: #ffff;
+}
