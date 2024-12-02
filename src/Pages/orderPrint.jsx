@@ -44,77 +44,180 @@ const OrderPrint = ({order}) => {
   const customerDetails = customers[order?.Customer_uuid] || {};
 
   return (
-	<div style={{ textAlign: "center", padding: "10px" }}>
-	{/* Print Button */}
-	<button
-        onClick={handlePrint}
-        className="bg-green-500 text-white px-4 py-2 rounded-lg mb-4 hover:bg-green-600"
-      >
-	  Print
-	</button>
+    <div className="text-center p-4">
+      <button onClick={handlePrint} className="bg-green-500 text-white px-4 py-2 rounded-lg mb-4 hover:bg-green-600"> 
+		Print
+		</button>
+     
+         <div
+			ref={componentRef}
+			
+			style={{
+				width: "170mm",
+				height: "128mm",
+				border: "1px solid black",
+				pageBreakAfter: "always",
+				display: "flex",
+				flexDirection: "column",
+				justifyContent: "space-between"
+			}}
+		>   
+<table style={{ width: "100%", border: "1px solid black" }}>					
+									<tr>
+										<td
+											style={{
+												fontWeight: "600",
+												fontSize: "larger",
+												lineHeight: 0.5
+											}}
+										>
+											SANJU SK
+										</td>
+									</tr>
+									<tr>
+										<td style={{ fontWeight: "600", fontSize: "x-small" }}>
+											In Front of Santoshi Mata Mandir,
+                      </td>
+                      <td></td>                    
+                      <td>Memo:</td>									
+										
+									</tr>
+                  <tr>
+										<td style={{ fontWeight: "600", fontSize: "x-small" }}>
+										 Krishnapura Ward, Gondia - 441401
+                     </td>
+                    <td></td>
+                    <td>Order Date: {new Date(order.createdAt).toLocaleDateString()}</td>
+                    
+									</tr>
+                  <tr>
+										<td style={{ fontWeight: "600", fontSize: "x-small" }}>Email: skgondia@gmail.com</td>
+                    <td></td>
+                    <td> Invoice No.: {order.Order_Number}</td>
+									</tr>
+									<tr>
+										<td style={{ fontWeight: "600", fontSize: "x-small" }}>Phone: 9372 633 633</td>
+                    <td></td>
+                    <td>Delivery Date: {new Date(latestDeliveryDate).toLocaleDateString()}</td>
+									</tr>
+				</table>
+        <table>
+	
+						<tr>
+							<td>Party :</td>
+							<td>{customerDetails.Customer_name}</td>
+							<td>Mobile :</td>
+              <td>{customerDetails.Mobile_number}</td>
+						<hr />
+					
+						
+						
+						</tr>			
+			
+				</table>
+        <hr />	
+        <table>
+        <tr>
+							<td>Item :</td>
+							<td>Remarks :</td>
+							<td>Qty. :</td>
+              <td>Rate :</td>
+							<td>Amount :</td>
+						</tr>
+         
+            <tr>
+							<td>{order?.Item}</td>
+							<td>{order?.Remark}</td>
+							<td>{order?.Quantity}</td>
+							<td>{order?.Rate}</td>
+							<td>{order?.Amount}</td>
+						</tr>
+        </table>
+      
+        <hr />
+			<table style={{ width: "100%" }}>
 
-	{/* Printable Content */}
-	<div
-	  ref={componentRef}
-	  className="border p-6 max-w-screen-md mx-auto bg-white"
-	>
-	  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-		<tbody>
-		  <tr>
-			<td style={{ fontWeight: "600", fontSize: "larger" }}>SANJU SK</td>
-		  </tr>
-		  <tr>
-			<td style={{ fontWeight: "600", fontSize: "x-small" }}>
-			  In Front of Santoshi Mata Mandir,
-			</td>
-			<td></td>
-			<td>Memo:</td>
-		  </tr>
-		  <tr>
-			<td style={{ fontWeight: "600", fontSize: "x-small" }}>
-			  Krishnapura Ward, Gondia - 441401
-			</td>
-			<td></td>
-			<td>Order Date: {new Date(order.createdAt).toLocaleDateString()}</td>
-		  </tr>
-		  <tr>
-			<td style={{ fontWeight: "600", fontSize: "x-small" }}>Email: skgondia@gmail.com</td>
-			<td></td>
-			<td>Invoice No.: {order.Order_Number}</td>
-		  </tr>
-		  <tr>
-			<td style={{ fontWeight: "600", fontSize: "x-small" }}>Phone: 9372 633 633</td>
-			<td></td>
-			<td>Delivery Date: {new Date(latestDeliveryDate).toLocaleDateString()}</td>
-		  </tr>
-		</tbody>
-	  </table>
 
-	  {/* Order Details */}
-	  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-		<thead>
-		  <tr>
-			<th>Item</th>
-			<th>Remarks</th>
-			<th>Qty</th>
-			<th>Rate</th>
-			<th>Amount</th>
-		  </tr>
-		</thead>
-		<tbody>
-		  {order.items?.map((item, index) => (
-			<tr key={index}>
-			  <td>{item.item_title}</td>
-			  <td>{item.remarks}</td>
-			  <td>{item.units}</td>
-			  <td>{item.price}</td>
-			  <td>{item.item_total}</td>
-			</tr>
-		  ))}
-		</tbody>
-	  </table>
-	</div>
-	<style>
+				
+					<tr style={{ borderBottom: "1px solid #000" }} className="order_item">
+						<td>
+							In Words
+						</td>
+						<td>
+							
+						</td>
+						<td>
+							
+						</td>
+						<td>
+							Total
+						</td>
+						<td>
+            <td>{order?.Amount}</td>
+						</td>
+						<td>
+							
+						</td>
+					</tr>
+				
+			
+				<tr>
+					<td
+						colSpan={28}
+						style={{
+							textAlign: "center",
+							fontWeight: "600",
+							fontSize: "small",
+							width: "100%"
+						}}
+					>
+						
+					</td>
+				</tr>
+				
+				<tr>
+					<th colSpan={28}>
+						<hr
+							style={{
+								height: "3px",
+								backgroundColor: "#000",
+								width: "100%"
+							}}
+						/>
+					</th>
+				</tr>
+	
+				
+
+				{order.items?.map((item) => {
+				
+					return (
+						<tr style={{ borderBottom: "1px solid #000" }} className="order_item">
+							<td>
+								{item.item_title}
+							</td>
+							<td>
+								{item.remarks}
+							</td>
+							<td>
+								{item.units}
+							</td>
+							<td>
+								{item.price}
+							</td>
+							<td>
+								{item.item_total}
+							</td>
+						</tr>
+					)
+				})}
+		
+			</table>
+
+			
+			
+		</div>
+		<style>
         {`
           @media print {
             button {
@@ -123,7 +226,8 @@ const OrderPrint = ({order}) => {
           }
         `}
       </style>
-  </div>
+        </div>
+   
   );
 };
 
