@@ -112,11 +112,7 @@ const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetail
 	<style>
       {`
        @media print {
-      div {
-        width: 170mm;
-        height: 128mm;
-        margin: 0 auto;
-      }
+      
 
       table {
         width: 100%;
