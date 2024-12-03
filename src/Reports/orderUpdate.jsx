@@ -157,7 +157,10 @@ export default function OrderUpdate({ order, onClose }) {
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
+    pageStyle: '@media print { .print-container { font-size: 10px; } }',
+    scale: 0.75, 
   });
+  
 
   useEffect(() => {
     if (order?.Status?.length) {
