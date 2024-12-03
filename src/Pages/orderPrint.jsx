@@ -6,13 +6,14 @@ const OrderPrint = React.forwardRef(({ order = {}, latestDeliveryDate, customerD
     className="print-container"
     ref={ref}
     style={{
-      width: '170mm',
-      height: '128mm',
+      width: '100%', // Use full width
+      height: '100%', // Allow content to scale
       border: '1px solid black',
       pageBreakAfter: 'always',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',
+      padding: '10mm', // Add padding for better spacing
     }}
   >
     <table className="print-table" style={{ width: '100%', border: '1px solid black' }}>
@@ -98,17 +99,35 @@ const OrderPrint = React.forwardRef(({ order = {}, latestDeliveryDate, customerD
         </tr>
       </thead>
     </table>
+
     <style>
       {`
         @media print {
-   #print-content {
-    display: block !important;
-    position: static;
-    width: 100%; 
-    font-size: 12pt; 
-  }
-}
+          #print-content {
+            display: block !important;
+            position: static;
+            width: 100%;
+            font-size: 12pt;
+          }
+          
+          /* Adjustments for mobile screens */
+          @media (max-width: 768px) {
+            #print-content {
+              width: 100% !important;
+              height: auto !important;
+              padding: 5mm;
+            }
 
+            .print-table {
+              font-size: 10pt;
+            }
+
+            table {
+              width: 100%;
+              font-size: 10pt;
+            }
+          }
+        }
       `}
     </style>
   </div>

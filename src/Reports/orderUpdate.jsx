@@ -267,8 +267,6 @@ export default function OrderUpdate({ order, onClose }) {
   >
     <path d="M6 9V3h12v6" />
     <rect x="6" y="13" width="12" height="8" rx="2" />
-    <path d="M6 17h0" />
-    <path d="M18 17h0" />
   </svg>
 </button>
 <button
