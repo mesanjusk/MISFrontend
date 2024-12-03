@@ -1,6 +1,6 @@
 import React from 'react';
 
-const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetails }, ref) => (
+const OrderPrint = React.forwardRef(({ order = {}, latestDeliveryDate, customerDetails = {} }, ref) => (
   <div
     id="print-content"
     className="print-container"
@@ -30,17 +30,17 @@ const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetail
         <tr>
           <td style={{ fontWeight: '600', fontSize: 'x-small' }}>Krishnapura Ward, Gondia - 441401</td>
           <td></td>
-          <td>Order Date: {new Date(order.createdAt).toLocaleDateString()}</td>
+          <td>Order Date: {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}</td>
         </tr>
         <tr>
           <td style={{ fontWeight: '600', fontSize: 'x-small' }}>Email: skgondia@gmail.com</td>
           <td></td>
-          <td>Invoice No.: {order.Order_Number}</td>
+          <td>Invoice No.: {order.Order_Number || 'N/A'}</td>
         </tr>
         <tr>
           <td style={{ fontWeight: '600', fontSize: 'x-small' }}>Phone: 9372 633 633</td>
           <td></td>
-          <td>Delivery Date: {new Date(latestDeliveryDate).toLocaleDateString()}</td>
+          <td>Delivery Date: {latestDeliveryDate ? new Date(latestDeliveryDate).toLocaleDateString() : 'N/A'}</td>
         </tr>
       </thead>
     </table>
@@ -49,9 +49,9 @@ const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetail
       <tbody>
         <tr>
           <td>Party:</td>
-          <td>{customerDetails.Customer_name}</td>
+          <td>{customerDetails?.Customer_name || 'N/A'}</td>
           <td>Mobile:</td>
-          <td>{customerDetails.Mobile_number}</td>
+          <td>{customerDetails?.Mobile_number || 'N/A'}</td>
         </tr>
       </tbody>
     </table>
@@ -73,9 +73,9 @@ const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetail
           <tr>
             <td>{order.Item}</td>
             <td>{order.Remark}</td>
-            <td>{order.Quantity}</td>
-            <td>{order.Rate}</td>
-            <td>{order.Amount}</td>
+            <td>{order.Quantity || 0}</td>
+            <td>{order.Rate || 0}</td>
+            <td>{order.Amount || 0}</td>
           </tr>
         ) : (
           <tr>
@@ -94,7 +94,7 @@ const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetail
           <td></td>
           <td></td>
           <td>Total</td>
-          <td>{order.Amount}</td>
+          <td>{order.Amount || 0}</td>
         </tr>
       </thead>
     </table>
