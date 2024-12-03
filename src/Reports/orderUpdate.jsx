@@ -157,8 +157,23 @@ export default function OrderUpdate({ order, onClose }) {
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    pageStyle: '@media print { .print-container { font-size: 10px; } }',
-    scale: 0.75, 
+    pageStyle: `
+    @media print {
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+      }
+      .print-container {
+        width: 100%;
+        font-size: 12px;
+      }
+      .print-table th, .print-table td {
+        padding: 8px;
+        text-align: left;
+      }
+    }
+  `,
   });
   
 
