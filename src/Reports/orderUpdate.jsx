@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import UpdateDelivery from '../Pages/updateDelivery';
 import AddNote from "../Pages/addNote";
-import OrderPrint from '../Pages/orderPrint';
+import { useReactToPrint } from "react-to-print";
+import OrderPrint from "../Pages/orderPrint";
 
 export default function OrderUpdate({ order, onClose }) {
   const navigate = useNavigate();
-
+  const printRef = useRef();
   const [orders, setOrders] = useState([]);
   const [notes, setNotes] = useState([]);
   const [customers, setCustomers] = useState({});
@@ -15,7 +16,7 @@ export default function OrderUpdate({ order, onClose }) {
   const [userOptions, setUserOptions] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false); 
   const [showNoteModal, setShowNoteModal] = useState(false);
-  const [showPrintModal, setShowPrintModal] = useState(false);  
+  const [latestDeliveryDate, setLatestDeliveryDate] = useState(""); 
   const [selectedOrder, setSelectedOrder] = useState(null);  
   const [values, setValues] = useState({
     id: order?._id || '',
@@ -150,10 +151,21 @@ export default function OrderUpdate({ order, onClose }) {
     setShowNoteModal(true);  
   }
 
-  const handlePrintClick = (order) => {
-    setSelectedOrder(order); 
-    setShowPrintModal(true);  
-  }
+  const handlePrintClick = () => {
+    handlePrint();
+  };
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+  });
+  useEffect(() => {
+    if (order?.Status?.length) {
+      const maxDeliveryDate = order.Status.reduce((latest, current) => {
+        return new Date(current.Delivery_Date) > new Date(latest.Delivery_Date) ? current : latest;
+      }, order.Status[0]);
+      setLatestDeliveryDate(maxDeliveryDate.Delivery_Date);
+    }
+  }, [order]);
 
   const closeEditModal = () => {
     setShowEditModal(false); 
@@ -162,11 +174,6 @@ export default function OrderUpdate({ order, onClose }) {
 
   const closeNoteModal = () => {
     setShowNoteModal(false); 
-    setSelectedOrder(null);  
-  };
-
-  const closePrintModal = () => {
-    setShowPrintModal(false); 
     setSelectedOrder(null);  
   };
 
@@ -207,9 +214,17 @@ export default function OrderUpdate({ order, onClose }) {
     window.open(whatsappURL, "_blank");
   };
   
-  
   return (
     <>
+   <div style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
+        <OrderPrint 
+          ref={printRef} 
+          order={order} 
+          latestDeliveryDate={latestDeliveryDate} 
+          customerDetails={customers[order.Customer_uuid]} 
+        />
+      </div>
+
       <div className="w-4/4 h-full pt-10 flex flex-col">
         <div className="p-3 bg-green-200 grid grid-cols-5 gap-1 items-center ">
           <button type="button" onClick={onClose}>X</button>
@@ -365,11 +380,6 @@ export default function OrderUpdate({ order, onClose }) {
         </div>
       )}
 
-{showPrintModal && (
-        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-          <OrderPrint order={selectedOrder} onClose={closePrintModal} />
-        </div>
-      )}
     </>
   );
 }
