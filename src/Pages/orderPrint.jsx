@@ -102,8 +102,10 @@ const OrderPrint = React.forwardRef(({ order = {}, latestDeliveryDate, customerD
       {`
         @media print {
    #print-content {
-    display: block !important; 
+    display: block !important;
     position: static;
+    width: 100%; 
+    font-size: 12pt; 
   }
 }
 
