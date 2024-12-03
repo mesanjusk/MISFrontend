@@ -5,7 +5,7 @@ const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetail
   return (
     <>
       <div
-        id="print-content"
+        className="print-container"
         ref={ref}
         style={{
           width: '170mm',
@@ -17,7 +17,7 @@ const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetail
           justifyContent: 'space-between',
         }}
       >
-        <table style={{ width: '100%', border: '1px solid black' }}>
+        <table className="print-table" style={{ width: '100%', border: '1px solid black' }}>
           <thead>
             <tr>
               <th style={{ fontWeight: '600', fontSize: 'larger', lineHeight: 0.5, textAlign: 'left', padding: '5px' }}>
@@ -103,7 +103,28 @@ const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetail
           </thead>
         </table>
       </div>
-     
+	  <style>
+        {`
+           @media print {
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  .print-container {
+    width: 100%;
+    height: auto;
+    font-size: 12px;
+  }
+
+  .print-table th, .print-table td {
+    padding: 8px;
+    text-align: left;
+  }
+}
+        `}
+      </style>
+
     </>
   );
 });
