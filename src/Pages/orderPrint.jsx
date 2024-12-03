@@ -101,37 +101,18 @@ const OrderPrint = React.forwardRef(({ order = {}, latestDeliveryDate, customerD
     <style>
       {`
         @media print {
-          body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-          }
+  body > * {
+    visibility: hidden; /* Hide everything */
+  }
 
-          .print-container {
-            width: 100%;
-            height: auto;
-            font-size: 12px;
-          }
+  #print-content {
+    visibility: visible; /* Show only the printable content */
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+}
 
-          .print-table th, .print-table td {
-            padding: 8px;
-            text-align: left;
-            font-size: 10px;
-          }
-
-          #print-content {
-            width: 100%;
-            margin: 0 auto;
-            padding: 10px;
-            box-sizing: border-box;
-          }
-
-          @media (max-width: 768px) {
-            .print-container {
-              font-size: 10px;
-            }
-          }
-        }
       `}
     </style>
   </div>
