@@ -3,17 +3,17 @@ import React from 'react';
 const OrderPrint = React.forwardRef(({ order = {}, latestDeliveryDate, customerDetails = {} }, ref) => (
   <div
     id="print-content"
-    className="print-container"
     ref={ref}
     style={{
-      width: '100%', // Use full width
-      height: '100%', // Allow content to scale
-      border: '1px solid black',
-      pageBreakAfter: 'always',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between',
-      padding: '10mm', // Add padding for better spacing
+		width: '100%', 
+		maxWidth: '170mm', 
+		height: 'auto',
+		border: '1px solid black',
+		pageBreakAfter: 'always',
+		display: 'flex',
+		flexDirection: 'column',
+		justifyContent: 'space-between',
+		margin: '0 auto',
     }}
   >
     <table className="print-table" style={{ width: '100%', border: '1px solid black' }}>
@@ -100,36 +100,36 @@ const OrderPrint = React.forwardRef(({ order = {}, latestDeliveryDate, customerD
       </thead>
     </table>
 
-    <style>
-      {`
-        @media print {
-          #print-content {
-            display: block !important;
-            position: static;
-            width: 100%;
-            font-size: 12pt;
-          }
-          
-          /* Adjustments for mobile screens */
-          @media (max-width: 768px) {
-            #print-content {
-              width: 100% !important;
-              height: auto !important;
-              padding: 5mm;
-            }
+	<style>
+  {`
+    @media print {
+      #print-content {
+        width: 100%;
+        font-size: 12pt;
+        margin: 0;
+        padding: 10px;
+      }
 
-            .print-table {
-              font-size: 10pt;
-            }
+      #print-content, #print-content * {
+        visibility: visible;
+      }
 
-            table {
-              width: 100%;
-              font-size: 10pt;
-            }
-          }
-        }
-      `}
-    </style>
+      #print-content {
+        position: relative;
+        display: block;
+      }
+    }
+
+    @media (max-width: 600px) {
+      /* For smaller devices (e.g., phones) */
+      #print-content {
+        width: 100%;
+        font-size: 10pt; /* Adjust font size for better readability */
+      }
+    }
+  `}
+</style>
+
   </div>
 ));
 
