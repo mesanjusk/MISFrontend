@@ -1,115 +1,158 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
-const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetails }, ref) => (
-  <>
-     <div
-      id="print-content"
-      ref={ref}
-      style={{
-        width: '170mm',
-        height: '128mm',
-        border: '1px solid black',
-        pageBreakAfter: 'always',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-      }}
-    >
-      <table style={{ width: '100%', border: '1px solid black' }}>
-        <thead>
-          <tr>
-            <th
-              style={{
-                fontWeight: '600',
-                fontSize: 'larger',
-                lineHeight: 0.5,
-                textAlign: 'left',
-                padding: '5px',
-              }}
-            >
-              SANJU SK
-            </th>
-          </tr>
-          <tr>
-            <td style={{ fontWeight: '600', fontSize: 'x-small' }}>
-              In Front of Santoshi Mata Mandir,
-            </td>
-            <td></td>
-            <td>Memo:</td>
-          </tr>
-          <tr>
-            <td style={{ fontWeight: '600', fontSize: 'x-small' }}>
-              Krishnapura Ward, Gondia - 441401
-            </td>
-            <td></td>
-            <td>Order Date: {new Date(order.createdAt).toLocaleDateString()}</td>
-          </tr>
-          <tr>
-            <td style={{ fontWeight: '600', fontSize: 'x-small' }}>
-              Email: skgondia@gmail.com
-            </td>
-            <td></td>
-            <td>Invoice No.: {order.Order_Number}</td>
-          </tr>
-          <tr>
-            <td style={{ fontWeight: '600', fontSize: 'x-small' }}>
-              Phone: 9372 633 633
-            </td>
-            <td></td>
-            <td>Delivery Date: {new Date(latestDeliveryDate).toLocaleDateString()}</td>
-          </tr>
-        </thead>
-      </table>
+const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetails }, ref) => {
+  const [loading, setLoading] = useState(true);
 
-      <table>
-        <tbody>
-          <tr>
-            <td>Party :</td>
-            <td>{customerDetails?.Customer_name}</td>
-            <td>Mobile :</td>
-            <td>{customerDetails?.Mobile_number}</td>
-          </tr>
-        </tbody>
-      </table>
+  useEffect(() => {
+    // Check if all required data is loaded
+    if (order && customerDetails && latestDeliveryDate) {
+      setLoading(false);
+    }
+  }, [order, customerDetails, latestDeliveryDate]);
 
-      <hr />
+  const handlePrint = () => {
+    if (!loading) {
+      window.print();
+    } else {
+      alert('Data is still loading, please wait.');
+    }
+  };
 
-      <table>
-        <thead>
-          <tr>
-            <th>Item :</th>
-            <th>Remarks :</th>
-            <th>Qty. :</th>
-            <th>Rate :</th>
-            <th>Amount :</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>{order?.Item}</td>
-            <td>{order?.Remark}</td>
-            <td>{order?.Quantity}</td>
-            <td>{order?.Rate}</td>
-            <td>{order?.Amount}</td>
-          </tr>
-        </tbody>
-      </table>
+  return (
+    <>
+      <div
+        id="print-content"
+        ref={ref}
+        style={{
+          width: '170mm',
+          height: '128mm',
+          border: '1px solid black',
+          pageBreakAfter: 'always',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+        }}
+      >
+        {/* Your existing content here */}
+        <table style={{ width: '100%', border: '1px solid black' }}>
+          <thead>
+            <tr>
+              <th style={{ fontWeight: '600', fontSize: 'larger', lineHeight: 0.5, textAlign: 'left', padding: '5px' }}>
+                SANJU SK
+              </th>
+            </tr>
+            <tr>
+              <td style={{ fontWeight: '600', fontSize: 'x-small' }}>
+                In Front of Santoshi Mata Mandir,
+              </td>
+              <td></td>
+              <td>Memo:</td>
+            </tr>
+            <tr>
+              <td style={{ fontWeight: '600', fontSize: 'x-small' }}>
+                Krishnapura Ward, Gondia - 441401
+              </td>
+              <td></td>
+              <td>Order Date: {new Date(order.createdAt).toLocaleDateString()}</td>
+            </tr>
+            <tr>
+              <td style={{ fontWeight: '600', fontSize: 'x-small' }}>
+                Email: skgondia@gmail.com
+              </td>
+              <td></td>
+              <td>Invoice No.: {order.Order_Number}</td>
+            </tr>
+            <tr>
+              <td style={{ fontWeight: '600', fontSize: 'x-small' }}>
+                Phone: 9372 633 633
+              </td>
+              <td></td>
+              <td>Delivery Date: {new Date(latestDeliveryDate).toLocaleDateString()}</td>
+            </tr>
+          </thead>
+        </table>
 
-      <hr />
+        <table>
+          <tbody>
+            <tr>
+              <td>Party :</td>
+              <td>{customerDetails?.Customer_name}</td>
+              <td>Mobile :</td>
+              <td>{customerDetails?.Mobile_number}</td>
+            </tr>
+          </tbody>
+        </table>
 
-      <table style={{ width: '100%' }}>
-        <thead>
-          <tr style={{ borderBottom: '1px solid #000' }} className="order_item">
-            <td>In Words</td>
-            <td></td>
-            <td></td>
-            <td>Total</td>
-            <td>{order?.Amount}</td>
-          </tr>
-        </thead>
-      </table>
-    </div>
-  </>
-));
+        <hr />
+
+        <table>
+          <thead>
+            <tr>
+              <th>Item :</th>
+              <th>Remarks :</th>
+              <th>Qty. :</th>
+              <th>Rate :</th>
+              <th>Amount :</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{order?.Item}</td>
+              <td>{order?.Remark}</td>
+              <td>{order?.Quantity}</td>
+              <td>{order?.Rate}</td>
+              <td>{order?.Amount}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr />
+
+        <table style={{ width: '100%' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid #000' }} className="order_item">
+              <td>In Words</td>
+              <td></td>
+              <td></td>
+              <td>Total</td>
+              <td>{order?.Amount}</td>
+            </tr>
+          </thead>
+        </table>
+      </div>
+
+      {/* Triggering print */}
+      <button onClick={handlePrint}>Print</button>
+
+      {/* Print-specific CSS */}
+      <style>
+        {`
+          @media print {
+            body {
+              width: 170mm;
+              height: 128mm;
+              margin: 0;
+            }
+
+            #print-content {
+              width: 170mm;
+              height: 128mm;
+              page-break-after: always;
+            }
+
+            table {
+              width: 100%;
+              page-break-inside: avoid;
+            }
+
+            .order_item {
+              page-break-after: always;
+            }
+          }
+        `}
+      </style>
+    </>
+  );
+});
 
 export default OrderPrint;
