@@ -101,15 +101,9 @@ const OrderPrint = React.forwardRef(({ order = {}, latestDeliveryDate, customerD
     <style>
       {`
         @media print {
-  body > * {
-    visibility: hidden; /* Hide everything */
-  }
-
-  #print-content {
-    visibility: visible; /* Show only the printable content */
-    position: absolute;
-    top: 0;
-    left: 0;
+   #print-content {
+    display: block !important; 
+    position: static;
   }
 }
 
