@@ -111,13 +111,7 @@ const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetail
     </div>
 	<style>
       {`
-       @media print {
-      
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-      }
+       @media table {
 
       th, td {
         padding: 5px;
