@@ -158,6 +158,7 @@ export default function OrderUpdate({ order, onClose }) {
   const handlePrint = useReactToPrint({
     contentRef: printRef,
   });
+
   useEffect(() => {
     if (order?.Status?.length) {
       const maxDeliveryDate = order.Status.reduce((latest, current) => {

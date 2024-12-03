@@ -110,30 +110,45 @@ const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetail
     </div>
 
     <style>
-      {`
-        @media print {
-          button {
-            display: none !important;
-          }
+  {`
+    @media print {
+      /* Hide buttons in the print preview */
+      button {
+        display: none !important;
+      }
 
-          /* Ensure that the print layout looks good */
-          table {
-            width: 100%;
-            border-collapse: collapse;
-          }
+      /* Ensure the print layout is consistent */
+      .order_item {
+        width: 100%;
+        border: 1px solid #000;
+      }
 
-          th, td {
-            padding: 5px;
-            text-align: left;
-            font-size: small;
-          }
-          
-          hr {
-            border: 1px solid #000;
-          }
-        }
-      `}
-    </style>
+      /* Make sure the table content is visible and formatted correctly */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th, td {
+        padding: 5px;
+        text-align: left;
+        font-size: small;
+      }
+
+      hr {
+        border: 1px solid #000;
+      }
+
+      /* Adjust the print container */
+      div {
+        width: 170mm; /* Adjust this width based on paper size */
+        height: 128mm; /* Adjust the height accordingly */
+        margin: 0 auto;
+      }
+    }
+  `}
+</style>
+
   </>
 ));
 
