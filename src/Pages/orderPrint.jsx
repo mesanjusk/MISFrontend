@@ -108,6 +108,25 @@ const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetail
         </thead>
       </table>
     </div>
+	<style>
+        {`
+          @media print {
+            div {
+    width: 170mm; 
+    height: 128mm; 
+    margin: 0 auto;
+  }
+
+  @media screen and (max-width: 600px) {
+    div {
+      width: 100%; 
+      height: auto;
+      padding: 10px;
+    }
+  }
+          }
+        `}
+      </style>
 
   </>
 ));
