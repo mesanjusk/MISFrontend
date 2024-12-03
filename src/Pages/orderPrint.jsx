@@ -103,41 +103,7 @@ const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetail
           </thead>
         </table>
       </div>
-      <style>
-        {`
-          @media print {
-            body {
-              width: 170mm;
-              height: 128mm;
-              margin: 0;
-            }
-
-            #print-content {
-              width: 170mm;
-              height: 128mm;
-              page-break-after: always;
-            }
-
-            table {
-              width: 100%;
-              page-break-inside: avoid;
-            }
-
-            .order_item {
-              page-break-after: always;
-            }
-			   @media (max-width: 768px) {
-              body {
-                font-size: 12px;
-              }
-              #print-content {
-                width: 100%;
-                height: auto;
-              }
-            }
-          }
-        `}
-      </style>
+     
     </>
   );
 });
