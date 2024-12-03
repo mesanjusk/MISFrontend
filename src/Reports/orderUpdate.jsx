@@ -152,7 +152,7 @@ export default function OrderUpdate({ order, onClose }) {
   }
 
   const handlePrintClick = () => {
-    window.print();
+    handlePrint();
   };
 
   const handlePrint = useReactToPrint({
@@ -217,8 +217,9 @@ export default function OrderUpdate({ order, onClose }) {
   
   return (
     <>
-   <div ref={printRef}>
-        <OrderPrint  
+   <div style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
+        <OrderPrint 
+          ref={printRef} 
           order={order} 
           latestDeliveryDate={latestDeliveryDate} 
           customerDetails={customers[order.Customer_uuid]} 
@@ -251,7 +252,7 @@ export default function OrderUpdate({ order, onClose }) {
                   <line x1="12" y1="9" x2="12" y2="15" />
                 </svg>
               </button>
-              <button onClick={() => handlePrintClick(order)} className="btn">
+              <button onClick={() => handlePrintClick} className="btn">
   <svg
     className="h-10 w-10 text-blue-500"
     width="50"

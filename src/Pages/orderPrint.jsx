@@ -1,21 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
 const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetails }, ref) => {
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (order && customerDetails && latestDeliveryDate) {
-      setLoading(false);
-    }
-  }, [order, customerDetails, latestDeliveryDate]);
-
-  const handlePrint = () => {
-    if (!loading) {
-      window.print();
-    } else {
-      alert('Data is still loading, please wait.');
-    }
-  };
 
   return (
     <>
