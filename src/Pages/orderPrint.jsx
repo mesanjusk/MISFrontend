@@ -2,7 +2,8 @@ import React from 'react';
 
 const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetails }, ref) => (
   <>
-    <div
+     <div
+      id="print-content"
       ref={ref}
       style={{
         width: '170mm',
@@ -109,25 +110,43 @@ const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetail
       </table>
     </div>
 	<style>
-        {`
-          @media print {
-            div {
-    width: 170mm; 
-    height: 128mm; 
-    margin: 0 auto;
-  }
-
-  @media screen and (max-width: 600px) {
-    div {
-      width: 100%; 
-      height: auto;
-      padding: 10px;
-    }
-  }
+      {`
+        @media print {
+          div {
+            width: 170mm; 
+            height: 128mm;
+            margin: 0 auto;
           }
-        `}
-      </style>
 
+          @media screen and (max-width: 600px) {
+            div {
+              width: 100%; 
+              height: auto;
+              padding: 10px;
+            }
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+
+          th, td {
+            padding: 5px;
+            text-align: left;
+            font-size: small;
+          }
+
+          hr {
+            border: 1px solid #000;
+          }
+
+          button, .no-print {
+            display: none !important;
+          }
+        }
+      `}
+    </style>
   </>
 ));
 
