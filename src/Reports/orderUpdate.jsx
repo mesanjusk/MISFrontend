@@ -152,7 +152,7 @@ export default function OrderUpdate({ order, onClose }) {
   }
 
   const handlePrintClick = () => {
-    handlePrint();
+    window.print();
   };
 
   const handlePrint = useReactToPrint({
@@ -217,9 +217,8 @@ export default function OrderUpdate({ order, onClose }) {
   
   return (
     <>
-   <div style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
-        <OrderPrint 
-          ref={printRef} 
+   <div ref={printRef}>
+        <OrderPrint  
           order={order} 
           latestDeliveryDate={latestDeliveryDate} 
           customerDetails={customers[order.Customer_uuid]} 

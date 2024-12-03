@@ -4,7 +4,6 @@ const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetail
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if all required data is loaded
     if (order && customerDetails && latestDeliveryDate) {
       setLoading(false);
     }
@@ -33,7 +32,6 @@ const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetail
           justifyContent: 'space-between',
         }}
       >
-        {/* Your existing content here */}
         <table style={{ width: '100%', border: '1px solid black' }}>
           <thead>
             <tr>
@@ -120,11 +118,6 @@ const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetail
           </thead>
         </table>
       </div>
-
-      {/* Triggering print */}
-      <button onClick={handlePrint}>Print</button>
-
-      {/* Print-specific CSS */}
       <style>
         {`
           @media print {
@@ -147,6 +140,15 @@ const OrderPrint = React.forwardRef(({ order, latestDeliveryDate, customerDetail
 
             .order_item {
               page-break-after: always;
+            }
+			   @media (max-width: 768px) {
+              body {
+                font-size: 12px;
+              }
+              #print-content {
+                width: 100%;
+                height: auto;
+              }
             }
           }
         `}
