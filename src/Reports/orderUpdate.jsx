@@ -252,7 +252,7 @@ export default function OrderUpdate({ order, onClose }) {
                   <line x1="12" y1="9" x2="12" y2="15" />
                 </svg>
               </button>
-              <button onClick={() => handlePrintClick} className="btn">
+              <button onClick={handlePrintClick} className="btn">
   <svg
     className="h-10 w-10 text-blue-500"
     width="50"
