@@ -82,9 +82,3 @@
   margin-right: 0; 
 }
 
-/* Print-specific styles */
-@media print {
-  .navbar, .footer {
-    display: none !important;
-  }
-}
