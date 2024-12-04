@@ -214,15 +214,7 @@ export default function OrderUpdate({ order, onClose }) {
   
   return (
     <>
-   <div style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
-        <OrderPrint 
-          ref={printRef} 
-          order={order} 
-          latestDeliveryDate={latestDeliveryDate} 
-          customerDetails={customers[order.Customer_uuid]} 
-        />
-      </div>
-
+<div className="order-update-content">
       <div className="w-4/4 h-full pt-10 flex flex-col">
         <div className="p-3 bg-green-200 grid grid-cols-5 gap-1 items-center ">
           <button type="button" onClick={onClose}>X</button>
@@ -363,6 +355,15 @@ export default function OrderUpdate({ order, onClose }) {
           </form>
         </div>
       </div>
+      </div>
+      <div className="order-print-content" style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
+        <OrderPrint 
+          ref={printRef} 
+          order={order} 
+          latestDeliveryDate={latestDeliveryDate} 
+          customerDetails={customers[order.Customer_uuid]} 
+        />
+      </div>
 
       {showEditModal && (
         <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
@@ -375,7 +376,20 @@ export default function OrderUpdate({ order, onClose }) {
           <AddNote order={selectedOrder} onClose={closeNoteModal} />
         </div>
       )}
+<style>
+        {`
+          @media print {
+  .order-update-content {
+    display: none !important;
+  }
+  .order-print-content {
+    display: block !important;
+    position: static !important; /* Ensure it's properly visible in print */
+  }
+}
 
+        `}
+      </style>
     </>
   );
 }
