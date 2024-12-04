@@ -411,6 +411,13 @@ export default function OrderUpdate({ order, onClose }) {
   }
 }
 
+@media print {
+  .navbar, .footer {
+    display: none !important; /* Hides the navbar and footer during printing */
+  }
+}
+
+
 
         `}
       </style>
