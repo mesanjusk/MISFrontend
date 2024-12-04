@@ -151,11 +151,7 @@ export default function OrderUpdate({ order, onClose }) {
     setShowNoteModal(true);  
   }
 
-  const handlePrintClick = () => {
-    handlePrint();
-  };
-
-  const handlePrint = useReactToPrint({
+  const handlePrintClick = useReactToPrint({
     contentRef: printRef,
   });
   
