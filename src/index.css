@@ -65,18 +65,30 @@
 
 .tables-container {
   display: flex;
-  justify-content: space-between; /* Adjust space between tables */
-  margin-top: 20px; /* Add some margin on top */
+  justify-content: space-between; 
+  
+  margin-top: 20px; 
 }
 
 .orders-table,
 .attendance-table {
-  flex: 1; /* Allow both tables to grow equally */
-  margin-right: 20px; /* Add space between the tables */
+  flex: 1; 
+  margin-right: 20px; 
 }
 
 .orders-table:last-child,
 .attendance-table:last-child {
-  margin-right: 0; /* Remove margin from the last table */
+  margin-right: 0; 
+}
+
+
+@media print {
+  .navbar, .footer {
+    display: none !important;
+  }
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
 }
 

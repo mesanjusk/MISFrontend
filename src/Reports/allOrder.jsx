@@ -271,15 +271,7 @@ export default function AllOrder() {
             )}
 
             <Footer className="footer"/>
-            <style>
-        {`
-          @media print {
-  .navbar, .footer {
-    display: none !important; 
-  }
-}
-        `}
-      </style>
+            
         </>
     );
 }
