@@ -379,14 +379,7 @@ export default function OrderUpdate({ order, onClose }) {
 <style>
         {`
       @media print {
-  html, body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-  }
-
+ 
   .order-update-content {
     display: none !important;
   }
@@ -401,14 +394,7 @@ export default function OrderUpdate({ order, onClose }) {
     page-break-after: auto;
   }
 
-  @page {
-    margin: 0; /* Remove any default browser margins */
-    size: auto; /* Use the content size */
-  }
-
-  .no-print {
-    display: none !important; /* Hide any elements you don't want to print */
-  }
+ 
 }
 
 
