@@ -6,6 +6,7 @@
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
+/* Other custom CSS */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -81,10 +82,9 @@
   margin-right: 0; 
 }
 
-
+/* Print-specific styles */
 @media print {
   .navbar, .footer {
     display: none !important;
   }
 }
-
