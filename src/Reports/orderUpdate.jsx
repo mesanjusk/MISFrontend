@@ -391,15 +391,6 @@ export default function OrderUpdate({ order, onClose }) {
     display: none !important;
   }
 
-  .order-print-content {
-    display: block !important;
-    position: static !important; /* Ensure visibility */
-    width: 100%; /* Fit content to full width */
-    height: auto; /* Adjust height automatically */
-    page-break-inside: avoid; /* Prevent breaking the content into multiple pages */
-    page-break-before: auto;
-    page-break-after: auto;
-  }
 
 }
 
