@@ -9,7 +9,6 @@ import OrderPrint from "../Pages/orderPrint";
 export default function OrderUpdate({ order, onClose }) {
   const navigate = useNavigate();
   const printRef = useRef();
-  const content = "Test Content for Printing";
   const [orders, setOrders] = useState([]);
   const [notes, setNotes] = useState([]);
   const [customers, setCustomers] = useState({});
@@ -154,8 +153,6 @@ export default function OrderUpdate({ order, onClose }) {
 
   const handlePrintClick = useReactToPrint({
     contentRef: printRef,
-    documentTitle: "Order Print",
-    onAfterPrint: () => console.log("Print completed"),
   });
   
 
@@ -365,7 +362,6 @@ export default function OrderUpdate({ order, onClose }) {
           order={order} 
           latestDeliveryDate={latestDeliveryDate} 
           customerDetails={customers[order.Customer_uuid]} 
-          content={content}
         />
       </div>
 
@@ -380,7 +376,37 @@ export default function OrderUpdate({ order, onClose }) {
           <AddNote order={selectedOrder} onClose={closeNoteModal} />
         </div>
       )}
+<style>
+        {`
+      @media print {
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
 
+  .order-update-content {
+    display: none !important;
+  }
+
+  .order-print-content {
+    display: block !important;
+    position: static !important; /* Ensure visibility */
+    width: 100%; /* Fit content to full width */
+    height: auto; /* Adjust height automatically */
+    page-break-inside: avoid; /* Prevent breaking the content into multiple pages */
+    page-break-before: auto;
+    page-break-after: auto;
+  }
+
+}
+
+
+
+        `}
+      </style>
     </>
   );
 }
