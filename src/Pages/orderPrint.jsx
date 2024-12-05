@@ -1,10 +1,11 @@
 import React from 'react';
 
-const OrderPrint = React.forwardRef((_, ref) => (
+const OrderPrint = React.forwardRef((props, ref) => (
 	<>
 	<div ref={ref}>
-	  <p>Test Content</p>
-	</div>
+    <h1>Order Print Preview</h1>
+    <p>{props.content || "No content provided"}</p>
+  </div>
 	  </>
   ));
 

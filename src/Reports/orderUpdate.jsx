@@ -9,6 +9,7 @@ import OrderPrint from "../Pages/orderPrint";
 export default function OrderUpdate({ order, onClose }) {
   const navigate = useNavigate();
   const printRef = useRef();
+  const content = "Test Content for Printing";
   const [orders, setOrders] = useState([]);
   const [notes, setNotes] = useState([]);
   const [customers, setCustomers] = useState({});
@@ -153,6 +154,8 @@ export default function OrderUpdate({ order, onClose }) {
 
   const handlePrintClick = useReactToPrint({
     contentRef: printRef,
+    documentTitle: "Order Print",
+    onAfterPrint: () => console.log("Print completed"),
   });
   
 
@@ -362,6 +365,7 @@ export default function OrderUpdate({ order, onClose }) {
           order={order} 
           latestDeliveryDate={latestDeliveryDate} 
           customerDetails={customers[order.Customer_uuid]} 
+          content={content}
         />
       </div>
 
