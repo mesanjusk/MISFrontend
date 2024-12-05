@@ -273,45 +273,7 @@ export default function AllOrder() {
 
             <Footer className="footer print:hidden" />
             </div>
-            <style>
-        {`
-      @media print {
-  html, body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-  }
-
-  .order-update-content {
-    display: none !important;
-  }
-
-  .order-print-content {
-    display: block !important;
-    position: static !important; /* Ensure visibility */
-    width: 100%; /* Fit content to full width */
-    height: auto; /* Adjust height automatically */
-    page-break-inside: avoid; /* Prevent breaking the content into multiple pages */
-    page-break-before: auto;
-    page-break-after: auto;
-  }
-
-  @page {
-    margin: 0; /* Remove any default browser margins */
-    size: auto; /* Use the content size */
-  }
-
-  .no-print {
-    display: none !important; /* Hide any elements you don't want to print */
-  }
-}
-
-
-
-        `}
-      </style>  
+       
         </>
     );
 }
