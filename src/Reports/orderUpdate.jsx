@@ -153,6 +153,28 @@ export default function OrderUpdate({ order, onClose }) {
 
   const handlePrintClick = useReactToPrint({
     contentRef: printRef,
+    pageStyle: `
+      @media print {
+        body {
+          margin: 0;
+          padding: 0;
+          color: #000;
+          background: #fff;
+        }
+        .order-update-content {
+          display: none !important; /* Hide the entire update content */
+        }
+        .modal-overlay {
+          display: none !important; /* Hide any modals */
+        }
+        .order-print-content {
+          display: block !important; /* Ensure print content is visible */
+        }
+        .no-print {
+          display: none !important; /* Hide elements marked as no-print */
+        }
+      }
+    `,
   });
   
 
@@ -376,15 +398,7 @@ export default function OrderUpdate({ order, onClose }) {
           <AddNote order={selectedOrder} onClose={closeNoteModal} />
         </div>
       )}
-<style>
-        {`
-          @media print {
-            order-update-content {
-              display: none !important; /* Hide the button during printing */
-            }
-          }
-        `}
-      </style>
+
     </>
   );
 }
