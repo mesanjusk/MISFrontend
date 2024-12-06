@@ -376,7 +376,15 @@ export default function OrderUpdate({ order, onClose }) {
           <AddNote order={selectedOrder} onClose={closeNoteModal} />
         </div>
       )}
-
+<style>
+        {`
+          @media print {
+            order-update-content {
+              display: none !important; /* Hide the button during printing */
+            }
+          }
+        `}
+      </style>
     </>
   );
 }

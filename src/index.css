@@ -82,14 +82,3 @@
   margin-right: 0; 
 }
 
-.order-update-content {
-  visibility: hidden;
-  height: 0;
-  overflow: hidden;
-}
-
-.order-print-content {
-  visibility: visible !important;
-  position: static !important;
-  height: auto !important;
-}
