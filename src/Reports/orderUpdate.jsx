@@ -153,28 +153,22 @@ export default function OrderUpdate({ order, onClose }) {
 
   const handlePrintClick = useReactToPrint({
     contentRef: printRef,
-    pageStyle: `
-      @media print {
-        body {
-          margin: 0;
-          padding: 0;
-          color: #000;
-          background: #fff;
-        }
-        .order-update-content {
-          display: none !important; /* Hide the entire update content */
-        }
-        .modal-overlay {
-          display: none !important; /* Hide any modals */
-        }
-        .order-print-content {
-          display: block !important; /* Ensure print content is visible */
-        }
-        .no-print {
-          display: none !important; /* Hide elements marked as no-print */
-        }
+     pageStyle: `
+    @media print {
+      body {
+        margin: 0;
+        padding: 0;
+        color: #000;
+        background: #fff;
       }
-    `,
+      .order-update-content {
+        display: none !important; /* Hide the update content */
+      }
+      .order-print-content {
+        display: block !important; /* Show only the print content */
+      }
+    }
+  `,
   });
   
 
@@ -378,9 +372,9 @@ export default function OrderUpdate({ order, onClose }) {
         </div>
       </div>
       </div>
-      <div className="order-print-content" style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
+      <div ref={printRef} className="order-print-content" style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
         <OrderPrint 
-          ref={printRef} 
+           
           order={order} 
           latestDeliveryDate={latestDeliveryDate} 
           customerDetails={customers[order.Customer_uuid]} 
