@@ -153,19 +153,20 @@ export default function OrderUpdate({ order, onClose }) {
 
   const handlePrintClick = useReactToPrint({
     contentRef: printRef,
-     pageStyle: `
+    pageStyle: `
     @media print {
       body {
         margin: 0;
         padding: 0;
         color: #000;
         background: #fff;
+        font-family: Arial, sans-serif;
       }
       .order-update-content {
         display: none !important; /* Hide the update content */
       }
       .order-print-content {
-        display: block !important; /* Show only the print content */
+        display: block !important; /* Ensure print content is visible */
       }
     }
   `,
@@ -372,14 +373,23 @@ export default function OrderUpdate({ order, onClose }) {
         </div>
       </div>
       </div>
-      <div ref={printRef} className="order-print-content" style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
-        <OrderPrint 
-           
-          order={order} 
-          latestDeliveryDate={latestDeliveryDate} 
-          customerDetails={customers[order.Customer_uuid]} 
-        />
-      </div>
+      <div
+  ref={printRef}
+  className="order-print-content"
+  style={{
+    display: "none", 
+    position: "absolute", 
+    left: "-9999px",
+    top: "-9999px",
+  }}
+>
+  <OrderPrint 
+    order={order} 
+    latestDeliveryDate={latestDeliveryDate} 
+    customerDetails={customers[order.Customer_uuid]} 
+  />
+</div>
+
 
       {showEditModal && (
         <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
