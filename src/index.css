@@ -82,3 +82,33 @@
   margin-right: 0; 
 }
 
+
+.print-container {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #fff;
+  width: 100%;
+  max-width: 800px;
+}
+
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+    color: #000;
+  }
+
+  .print-container {
+    border: none;
+    background: none;
+    width: 100%;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
+
