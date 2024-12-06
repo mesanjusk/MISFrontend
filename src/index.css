@@ -82,23 +82,14 @@
   margin-right: 0; 
 }
 
+.order-update-content {
+  visibility: hidden;
+  height: 0;
+  overflow: hidden;
+}
 
-@media print {
-  body {
-    margin: 0;
-    padding: 0;
-    color: #000;
-  }
-
-  .order-update-content {
-    display: none !important; /* Ensure the entire OrderUpdate is hidden */
-  }
-
-  .order-print-content {
-    display: block !important; /* Show the print content */
-  }
-
-  .no-print, .modal-overlay, .btn {
-    display: none !important;
-  }
+.order-print-content {
+  visibility: visible !important;
+  position: static !important;
+  height: auto !important;
 }
