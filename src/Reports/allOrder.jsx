@@ -133,7 +133,7 @@ export default function AllOrder() {
     return (
         <>
         <div className="order-update-content">
-            <TopNavbar className="navbar print:hidden"/>
+            <TopNavbar/>
             <div className="pt-12 pb-20">
                 <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
                     <input
@@ -271,7 +271,7 @@ export default function AllOrder() {
                 </div>
             )}
 
-            <Footer className="footer print:hidden" />
+            <Footer/>
             </div>
        
         </>

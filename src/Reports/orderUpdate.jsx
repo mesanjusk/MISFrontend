@@ -3,7 +3,6 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import UpdateDelivery from '../Pages/updateDelivery';
 import AddNote from "../Pages/addNote";
-import { useReactToPrint } from "react-to-print";
 import OrderPrint from "../Pages/orderPrint";
 
 export default function OrderUpdate({ order, onClose }) {
@@ -16,6 +15,7 @@ export default function OrderUpdate({ order, onClose }) {
   const [userOptions, setUserOptions] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false); 
   const [showNoteModal, setShowNoteModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
   const [latestDeliveryDate, setLatestDeliveryDate] = useState(""); 
   const [selectedOrder, setSelectedOrder] = useState(null);  
   const [values, setValues] = useState({
@@ -151,26 +151,10 @@ export default function OrderUpdate({ order, onClose }) {
     setShowNoteModal(true);  
   }
 
-  const handlePrintClick = useReactToPrint({
-    contentRef: printRef,
-    pageStyle: `
-    @media print {
-      body {
-        margin: 0;
-        padding: 0;
-        color: #000;
-        background: #fff;
-        font-family: Arial, sans-serif;
-      }
-      .order-update-content {
-        display: none !important; /* Hide the update content */
-      }
-      .order-print-content {
-        display: block !important; /* Ensure print content is visible */
-      }
-    }
-  `,
-  });
+  const handlePrintClick = (order) => {
+    setSelectedOrder(order); 
+    setShowPrintModal(true);  
+  };
   
 
   useEffect(() => {
@@ -258,7 +242,7 @@ export default function OrderUpdate({ order, onClose }) {
                   <line x1="12" y1="9" x2="12" y2="15" />
                 </svg>
               </button>
-              <button onClick={handlePrintClick} className="btn">
+              <button onClick={() => handlePrintClick(order)} className="btn">
   <svg
     className="h-10 w-10 text-blue-500"
     width="50"
@@ -400,6 +384,12 @@ export default function OrderUpdate({ order, onClose }) {
       {showNoteModal && (
         <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
           <AddNote order={selectedOrder} onClose={closeNoteModal} />
+        </div>
+      )}
+
+      {showPrintModal && (
+        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
+          <OrderPrint order={selectedOrder} />
         </div>
       )}
 
