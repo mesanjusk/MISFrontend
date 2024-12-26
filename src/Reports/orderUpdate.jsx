@@ -215,38 +215,37 @@ export default function OrderUpdate({ order, onClose }) {
   
   return (
     <>
-<div className="order-update-content">
-      <div className="w-4/4 h-full pt-10 flex flex-col">
-        <div className="p-3 bg-green-200 grid grid-cols-5 gap-1 items-center ">
-          <button type="button" onClick={onClose}>X</button>
+<div className=" max-w-lg " >
+      <div className="w-4/4 vh-100 pt-10 flex flex-col">
+        <div className="p-1 bg-green-200 grid grid-cols-12  items-center h-18"  >
+          
           <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
             <strong className="text-l text-gray-500">{values.Order_Number}</strong>
           </div>
           <div>
-            <div className="p-2 col-start-2 col-end-4">
+            <div className="p-2 col-start-2 col-end-5">
               <strong className="text-l text-gray-900">{values.Customer_name}</strong>
               <br />
             </div>        
+            
           </div>
-          <div>
-            <div className="p-2 row-start-2 row-end-4">
-              <button onClick={() => handleEditClick(order)} className="btn">
+          <div className="p-2 col-start-7 col-end-7"><button onClick={() => handleEditClick(order)} className="btn">
                 <svg className="h-6 w-6 text-blue-500" width="12" height="12" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">
                   <path stroke="none" d="M0 0h24v24H0z"/>
                   <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3l-11 11l-4 1l1 -4z"/>
                 </svg>
-              </button>
-              <button onClick={() => handleNoteClick(order)} className="btn">
-                <svg className="h-10 w-10 text-blue-500" width="50" height="40" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">                        
+              </button> </div>
+            <div className="p-2 col-start-8 col-end-8"> <button onClick={() => handleNoteClick(order)} className="btn">
+                <svg className="h-10 w-10 text-blue-500" width="30" height="30" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">                        
                   <line x1="9" y1="12" x2="15" y2="12" />
                   <line x1="12" y1="9" x2="12" y2="15" />
                 </svg>
-              </button>
-              <button onClick={() => handlePrintClick(order)} className="btn">
+              </button></div>
+            <div className="p-2 col-start-9 col-end-9"> <button onClick={() => handlePrintClick(order)} className="btn">
   <svg
     className="h-10 w-10 text-blue-500"
-    width="50"
-    height="40"
+    width="3"
+    height="30"
     viewBox="0 0 24 24"
     strokeWidth="2"
     stroke="currentColor"
@@ -257,7 +256,8 @@ export default function OrderUpdate({ order, onClose }) {
     <path d="M6 9V3h12v6" />
     <rect x="6" y="13" width="12" height="8" rx="2" />
   </svg>
-</button>
+</button></div>
+            <div className="p-2 col-start-10 col-end-10">              
 <button
   onClick={() => handleWhatsAppClick(order)}
   className="btn ml-2"
@@ -270,7 +270,14 @@ export default function OrderUpdate({ order, onClose }) {
   >
     <path d="M16 0C7.163 0 0 7.163 0 16c0 2.943.794 5.69 2.177 8.07L.019 32l8.202-2.125A15.94 15.94 0 0016 32c8.837 0 16-7.163 16-16S24.837 0 16 0zm8.449 23.021c-.398 1.125-2.306 2.069-3.15 2.188-.798.11-1.75.157-2.825-.16-.65-.16-1.488-.48-2.567-1.044a15.01 15.01 0 01-6.024-6.01c-.597-1.081-.933-1.94-1.097-2.59-.33-1.31-.285-2.374-.174-3.188.155-.868 1.03-2.54 2.15-2.91.396-.13.914-.064 1.214.46.17.303.398.652.642 1.057.286.458.607 1.06.744 1.353.26.52.086 1.072-.16 1.396l-.644.868c-.33.437-.693.694-.572 1.047.886 2.18 3.49 4.894 6.084 6.146.208.11.345.097.477-.048l.703-.698c.346-.347.787-.33 1.31-.197.413.108.974.435 1.558.808.487.325.945.643 1.227.907.39.367.672.72.744.918.235.653-.212 1.267-.498 1.747z" />
   </svg>
-</button>
+</button></div>
+          <div>
+            <div className="p-2 row-start-5 row-end-5">
+
+           
+              
+              
+ 
 
             </div>  
             <div>
@@ -348,10 +355,14 @@ export default function OrderUpdate({ order, onClose }) {
                   placeholder="Delivery Date"
                   className="flex-grow p-2 border border-gray-300 rounded-lg"
                 />
-                <button type="submit" className="ml-2 bg-green-500 text-white p-2 rounded-lg">
+                
+              </div>
+              <div className="flex items-center">
+              <button type="submit" className="ml-2 bg-green-500 text-white p-2 rounded-lg">
                   UPDATE
                 </button>
-              </div>
+                <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={onClose}>Cancel</button>
+                </div>
             </div>
           </form>
         </div>
