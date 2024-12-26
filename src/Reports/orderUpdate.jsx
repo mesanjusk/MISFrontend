@@ -217,7 +217,7 @@ export default function OrderUpdate({ order, onClose }) {
     <>
 <div className=" max-w-lg " >
       <div className="w-4/4 vh-100 pt-10 flex flex-col">
-        <div className="p-1 bg-green-200 grid grid-cols-12  items-center h-18"  >
+        <div className="px-1 pt-4 bg-green-200 grid grid-cols-12  items-center h-18"  >
           
           <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
             <strong className="text-l text-gray-500">{values.Order_Number}</strong>
