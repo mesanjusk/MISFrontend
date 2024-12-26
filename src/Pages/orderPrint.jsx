@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { useReactToPrint } from "react-to-print";
 import axios from "axios";
 
-const OrderPrint = ({order}) => {
+const OrderPrint = ({order, onClose}) => {
   const [customers, setCustomers] = useState({});
   const [latestDeliveryDate, setLatestDeliveryDate] = useState("");
   const componentRef = useRef();
@@ -44,16 +44,18 @@ const OrderPrint = ({order}) => {
   const customerDetails = customers[order?.Customer_uuid] || {};
 
   return (
+    
     <div className="text-center p-4">
       <button onClick={handlePrint} className="bg-green-500 text-white px-4 py-2 rounded-lg mb-4 hover:bg-green-600"> 
 		Print
 		</button>
-     
+   
          <div
 			ref={componentRef}
 			
 		
-		>   
+		>  
+     <button type="button" onClick={onClose} style={{ color: 'red' }}>X</button> 
 <table class="w-full bg-white text-left">	
 	
 

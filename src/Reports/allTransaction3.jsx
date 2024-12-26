@@ -7,11 +7,11 @@ const AllTransaction3 = () => {
     const [transactions, setTransactions] = useState([]);
     const [filteredEntries, setFilteredEntries] = useState([]);
     const [customers, setCustomers] = useState([]);
-    const [customerSearchTerm, setCustomerSearchTerm] = useState('CASH'); // Default search term set to "CASH"
+    const [customerSearchTerm, setCustomerSearchTerm] = useState('CASH'); 
     const [filteredCustomers, setFilteredCustomers] = useState([]);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
-    const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]); // Set to current date
-    const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]); // Set to current date
+    const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]); 
+    const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]); 
 
     useEffect(() => {
         const fetchTransactions = async () => {
@@ -31,7 +31,6 @@ const AllTransaction3 = () => {
                 if (response.data.success) {
                     setCustomers(response.data.result);
 
-                    // Automatically select the "CASH" customer if available
                     const cashCustomer = response.data.result.find(customer => customer.Customer_name === 'CASH');
                     if (cashCustomer) {
                         setSelectedCustomer(cashCustomer);
@@ -141,12 +140,18 @@ const AllTransaction3 = () => {
     const totals = calculateTotals();
 
     useEffect(() => {
-        handleSearch(); // Call handleSearch when component mounts or dependencies change
+        handleSearch(); 
     }, [transactions, selectedCustomer, startDate, endDate]);
+
+    const handlePrint = () => {
+        window.print();
+    };
 
     return (
         <>
-            <TopNavbar />
+            <div className="no-print">
+                <TopNavbar />
+            </div>
             <div className="pt-12 pb-20">
                 <div className="d-flex flex-wrap bg-white w-100 p-2">
                     <label>
@@ -166,6 +171,11 @@ const AllTransaction3 = () => {
                         />
                     </label>
                 </div>
+                <button onClick={handlePrint} className="btn">
+                            <svg className="h-8 w-8 text-blue" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 9V3h12v6M6 15h12m-6 0v6m0 0H9m3 0h3" />
+                            </svg>
+                        </button>
                 <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
                     <input
                         type="text"
@@ -238,7 +248,9 @@ const AllTransaction3 = () => {
                     </div>
                 </main>
             </div>
-            <Footer />
+            <div className="no-print">
+                <Footer />
+            </div>
         </>
     );
 };

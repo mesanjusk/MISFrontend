@@ -176,6 +176,11 @@ export default function OrderUpdate({ order, onClose }) {
     setSelectedOrder(null);  
   };
 
+  const closePrintModal = () => {
+    setShowPrintModal(false); 
+    setSelectedOrder(null);  
+  };
+
   const handleWhatsAppClick = (order) => {
     const customerUUID = order.Customer_uuid;
     const customer = customers[customerUUID];
@@ -242,20 +247,9 @@ export default function OrderUpdate({ order, onClose }) {
                 </svg>
               </button></div>
             <div className="p-2 col-start-9 col-end-9"> <button onClick={() => handlePrintClick(order)} className="btn">
-  <svg
-    className="h-10 w-10 text-blue-500"
-    width="3"
-    height="30"
-    viewBox="0 0 24 24"
-    strokeWidth="2"
-    stroke="currentColor"
-    fill="none"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M6 9V3h12v6" />
-    <rect x="6" y="13" width="12" height="8" rx="2" />
-  </svg>
+            <svg className="h-8 w-8 text-blue" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 9V3h12v6M6 15h12m-6 0v6m0 0H9m3 0h3" />
+                            </svg>
 </button></div>
             <div className="p-2 col-start-10 col-end-10">              
 <button
@@ -400,7 +394,7 @@ export default function OrderUpdate({ order, onClose }) {
 
       {showPrintModal && (
         <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-          <OrderPrint order={selectedOrder} />
+          <OrderPrint order={selectedOrder} onClose={closePrintModal}/>
         </div>
       )}
 

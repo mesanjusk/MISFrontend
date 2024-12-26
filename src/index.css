@@ -82,3 +82,26 @@
   margin-right: 0; 
 }
 
+@media print {
+  .no-print {
+      display: none;
+  }
+
+  .btn {
+    display: none;
+  }
+
+  .print-content {
+      display: block;
+  }
+}
+
+@media print {
+  @page {
+      margin: 0; 
+  }
+  body {
+      margin: 1cm; 
+  }
+}
+

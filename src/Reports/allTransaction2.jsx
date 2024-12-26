@@ -131,9 +131,15 @@ const AllTransaction2 = () => {
 
     const totals = calculateTotals();
 
+    const handlePrint = () => {
+        window.print();
+    };
+
     return (
         <>
-            <TopNavbar />
+            <div className="no-print">
+                <TopNavbar />
+            </div>
             <div className="pt-12 pb-20">
                 <div className="d-flex flex-wrap bg-white w-100 p-2">
                     <label>
@@ -153,6 +159,11 @@ const AllTransaction2 = () => {
                         />
                     </label>
                 </div>
+                <button onClick={handlePrint} className="btn">
+                            <svg className="h-8 w-8 text-blue" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 9V3h12v6M6 15h12m-6 0v6m0 0H9m3 0h3" />
+                            </svg>
+                        </button>
                 <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
                     <input
                         type="text"
@@ -225,7 +236,9 @@ const AllTransaction2 = () => {
                     </div>
                 </main>
             </div>
-            <Footer />
+            <div className="no-print">
+                <Footer />
+            </div>
         </>
     );
 };
