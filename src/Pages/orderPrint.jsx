@@ -54,27 +54,29 @@ const OrderPrint = ({order}) => {
 			
 		
 		>   
-<table style={{ width: "100%"   }}>		
+<table class="w-full bg-white text-left">	
 	
 
-		<th class="px-3 py-1 text-xl text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">	
-		S.K. DIGITAL 		
+		<th class="px-3	 py-1 w-full text-xl text-gray-700 uppercase ">	
+		<td class="px-3 py-1 ">S.K. DIGITAL 		</td>
 		</th>
 		
 		
 		<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
 		<td class="px-3 py-1 ">
-		In Front of Santoshi Mata Mandir, Krishnapura Ward, Gondia Email: skgondia@gmail.com Mob:9372633633
+		In Front of Santoshi Mata Mandir,  Krishnapura Ward, Gondia Email: skgondia@gmail.com Mob:9372633633
+		
 		</td>
+		
 		</tr>
                   
-        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">  <td class="px-4 py-1">Party : {customerDetails.Customer_name} </td>  
+        <tr class="bg-white  dark:bg-gray-800 dark:border-gray-700">  <td class="px-4 py-1">Party : {customerDetails.Customer_name} </td>  
 		<td class="px-1 py-1"></td>	   
 		<td class="px-1 py-1">Bill No.: </td> 
 		<td>{order.Order_Number}</td>
 		</tr>
                   
-		<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">  <td class="px-4 py-1">Mobile : {customerDetails.Mobile_number} </td> 
+		<tr class="bg-white  dark:bg-gray-800 dark:border-gray-700">  <td class="px-4 py-1">Mobile : {customerDetails.Mobile_number} </td> 
 		
 		<td class="px-1 py-1"> </td>
 		<td class="px-1 py-1">Date: </td>
@@ -93,20 +95,20 @@ const OrderPrint = ({order}) => {
 		 
 		 
        
-            <tr class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400" >
-                <th scope="col" class="px-6 py-3">
+            <tr class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400" >
+                <th scope="col" class="px-6 py-2">
                     Item
                 </th>
-				<th scope="col" class="px-6 py-3">
+				<th scope="col" class="px-6 py-2">
                    
                 </th>
-                <th scope="col" class="px-6 py-3">
+                <th scope="col" class="px-6 py-2">
                     Qty
                 </th>
-                <th scope="col" class="px-6 py-3">
+                <th scope="col" class="px-6 py-2">
                     Rate
                 </th>
-                <th scope="col" class="px-6 py-3">
+                <th scope="col" class="px-6 py-2">
                     Amount
                 </th>
             </tr>
@@ -114,24 +116,23 @@ const OrderPrint = ({order}) => {
         <tbody>
             
 			<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-			<td class="px-6 py-4">{order?.Item}</td>
-			<td class="px-6 py-4"></td>
-			<td class="px-6 py-4">{order?.Quantity}</td>
-			<td class="px-6 py-4">{order?.Rate}</td>
-			<td class="px-6 py-4">{order?.Amount}</td>
+			<td class="px-6 py-2">{order?.Item}</td>
+			<td class="px-6 py-2"></td>
+			<td class="px-6 py-2">{order?.Quantity}</td>
+			<td class="px-6 py-2">{order?.Rate}</td>
+			<td class="px-6 py-2">{order?.Amount}</td>
 						</tr>
 						<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                    
-                </th>
-                <td class="px-4 py-2">
+               
+                <td class="px-2 py-1">
                    
                 </td>
-				<td class="px-4 py-2"></td>
-                <td class="px-4 py-2">
+				<td class="px-4 py-1"></td>
+				<td class="px-4 py-1"></td>
+                <td class="px-4 py-1">
                    Total
                 </td>
-                <td class="px-4 py-2">
+                <td class="px-4 py-1">
                     {order?.Amount}
                 </td>
             </tr>
