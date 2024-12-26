@@ -52,180 +52,115 @@ const OrderPrint = ({order}) => {
          <div
 			ref={componentRef}
 			
-			style={{
-				width: "170mm",
-				height: "128mm",
-				border: "1px solid black",
-				pageBreakAfter: "always",
-				display: "flex",
-				flexDirection: "column",
-				justifyContent: "space-between"
-			}}
+		
 		>   
-<table style={{ width: "100%", border: "1px solid black" }}>					
-									<tr>
-										<td
-											style={{
-												fontWeight: "600",
-												fontSize: "larger",
-												lineHeight: 0.5
-											}}
-										>
-											SANJU SK
-										</td>
-									</tr>
-									<tr>
-										<td style={{ fontWeight: "600", fontSize: "x-small" }}>
-											In Front of Santoshi Mata Mandir,
-                      </td>
-                      <td></td>                    
-                      <td>Memo:</td>									
-										
-									</tr>
-                  <tr>
-										<td style={{ fontWeight: "600", fontSize: "x-small" }}>
-										 Krishnapura Ward, Gondia - 441401
-                     </td>
-                    <td></td>
-                    <td>Order Date: {new Date(order.createdAt).toLocaleDateString()}</td>
-                    
-									</tr>
-                  <tr>
-										<td style={{ fontWeight: "600", fontSize: "x-small" }}>Email: skgondia@gmail.com</td>
-                    <td></td>
-                    <td> Invoice No.: {order.Order_Number}</td>
-									</tr>
-									<tr>
-										<td style={{ fontWeight: "600", fontSize: "x-small" }}>Phone: 9372 633 633</td>
-                    <td></td>
-                    <td>Delivery Date: {new Date(latestDeliveryDate).toLocaleDateString()}</td>
-									</tr>
-				</table>
-        <table>
+<table style={{ width: "100%"   }}>		
 	
-						<tr>
-							<td>Party :</td>
-							<td>{customerDetails.Customer_name}</td>
-							<td>Mobile :</td>
-              <td>{customerDetails.Mobile_number}</td>
-						<hr />
-					
-						
-						
-						</tr>			
-			
-				</table>
-        <hr />	
-        <table>
-        <tr>
-							<td>Item :</td>
-							<td>Remarks :</td>
-							<td>Qty. :</td>
-              <td>Rate :</td>
-							<td>Amount :</td>
-						</tr>
-         
-            <tr>
-							<td>{order?.Item}</td>
-							<td>{order?.Remark}</td>
-							<td>{order?.Quantity}</td>
-							<td>{order?.Rate}</td>
-							<td>{order?.Amount}</td>
-						</tr>
-        </table>
-      
-        <hr />
-			<table style={{ width: "100%" }}>
 
-
+		<th class="px-3 py-1 text-xl text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">	
+		S.K. DIGITAL 		
+		</th>
+		
+		
+		<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+		<td class="px-3 py-1 ">
+		In Front of Santoshi Mata Mandir, Krishnapura Ward, Gondia Email: skgondia@gmail.com Mob:9372633633
+		</td>
+		</tr>
+                  
+        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">  <td class="px-4 py-1">Party : {customerDetails.Customer_name} </td>  
+		<td class="px-1 py-1"></td>	   
+		<td class="px-1 py-1">Bill No.: </td> 
+		<td>{order.Order_Number}</td>
+		</tr>
+                  
+		<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">  <td class="px-4 py-1">Mobile : {customerDetails.Mobile_number} </td> 
+		
+		<td class="px-1 py-1"> </td>
+		<td class="px-1 py-1">Date: </td>
+		<td>{new Date(order.createdAt).toLocaleDateString()}</td>
+		
+		</tr>
+									
+		<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+			<td></td>			
+			<td></td>						
+			<td class="px-1 py-1">Delivery </td>
+			<td>{new Date(latestDeliveryDate).toLocaleDateString()}</td>
+									</tr>
 				
-					<tr style={{ borderBottom: "1px solid #000" }} className="order_item">
+				
+		 
+		 
+       
+            <tr class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400" >
+                <th scope="col" class="px-6 py-3">
+                    Item
+                </th>
+				<th scope="col" class="px-6 py-3">
+                   
+                </th>
+                <th scope="col" class="px-6 py-3">
+                    Qty
+                </th>
+                <th scope="col" class="px-6 py-3">
+                    Rate
+                </th>
+                <th scope="col" class="px-6 py-3">
+                    Amount
+                </th>
+            </tr>
+        
+        <tbody>
+            
+			<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+			<td class="px-6 py-4">{order?.Item}</td>
+			<td class="px-6 py-4"></td>
+			<td class="px-6 py-4">{order?.Quantity}</td>
+			<td class="px-6 py-4">{order?.Rate}</td>
+			<td class="px-6 py-4">{order?.Amount}</td>
+						</tr>
+						<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                    
+                </th>
+                <td class="px-4 py-2">
+                   
+                </td>
+				<td class="px-4 py-2"></td>
+                <td class="px-4 py-2">
+                   Total
+                </td>
+                <td class="px-4 py-2">
+                    {order?.Amount}
+                </td>
+            </tr>
+            <tr> <td class="px-3 py-1">UPI </td>  </tr>
+			<tr> <td class="px-3 py-1">SBI </td>  </tr>
+			<tr> <td class="px-3 py-1">GPAY </td>  </tr>
+        </tbody>
+    </table>
+		</div>
+		{order.items?.map((item) => {
+				
+				return (
+					<tr  >
 						<td>
-							In Words
+							{item.item_title}
+						</td>
+						
+						<td>
+							{item.units}
 						</td>
 						<td>
-							
+							{item.price}
 						</td>
 						<td>
-							
-						</td>
-						<td>
-							Total
-						</td>
-						<td>
-            <td>{order?.Amount}</td>
-						</td>
-						<td>
-							
+							{item.item_total}
 						</td>
 					</tr>
-				
-			
-				<tr>
-					<td
-						colSpan={28}
-						style={{
-							textAlign: "center",
-							fontWeight: "600",
-							fontSize: "small",
-							width: "100%"
-						}}
-					>
-						
-					</td>
-				</tr>
-				
-				<tr>
-					<th colSpan={28}>
-						<hr
-							style={{
-								height: "3px",
-								backgroundColor: "#000",
-								width: "100%"
-							}}
-						/>
-					</th>
-				</tr>
-	
-				
-
-				{order.items?.map((item) => {
-				
-					return (
-						<tr style={{ borderBottom: "1px solid #000" }} className="order_item">
-							<td>
-								{item.item_title}
-							</td>
-							<td>
-								{item.remarks}
-							</td>
-							<td>
-								{item.units}
-							</td>
-							<td>
-								{item.price}
-							</td>
-							<td>
-								{item.item_total}
-							</td>
-						</tr>
-					)
-				})}
-		
-			</table>
-
-			
-			
-		</div>
-		<style>
-        {`
-          @media print {
-            button {
-              display: none !important; /* Hide the button during printing */
-            }
-          }
-        `}
-      </style>
+				)
+			})}
         </div>
    
   );
