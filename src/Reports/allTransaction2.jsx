@@ -103,7 +103,7 @@ const AllTransaction2 = () => {
     
             return {
                 ...entry,
-                Balance: runningDebit - runningCredit,
+                Balance: runningCredit - runningDebit,
             };
         });
     
@@ -124,7 +124,7 @@ const AllTransaction2 = () => {
             { debit: 0, credit: 0 }
         );
 
-        const total = totals.debit - totals.credit;
+        const total = totals.credit - totals.debit;
 
         return { debit: totals.debit, credit: totals.credit, total };
     };
@@ -236,7 +236,7 @@ const AllTransaction2 = () => {
                     </div>
                 </main>
             </div>
-            <div className="no-print">
+             <div className="no-print">
                 <Footer />
             </div>
         </>

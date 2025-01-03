@@ -147,6 +147,11 @@ export default function AddTransaction() {
         setShowOptions(false);
     };
 
+    const closeModal = () => {
+        navigate("/home");
+     };
+ 
+
     return (
         <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
             <div className="bg-white p-3 rounded w-90">
@@ -225,6 +230,7 @@ export default function AddTransaction() {
                     <button type="submit" className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center">
                         Submit
                     </button>
+                    <button type="button" className="w-100 h-10 bg-red-500 text-white shadow-lg flex items-center justify-center" onClick={closeModal}>Close</button>
                 </form>
             </div>
         </div>
