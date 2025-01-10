@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-export default function AddCustomer({ closeModal }) {
+export default function AddCustomer() {
     const navigate = useNavigate();
 
     const [Customer_name, setCustomer_Name] = useState('');
@@ -49,6 +49,9 @@ export default function AddCustomer({ closeModal }) {
         }
     }
 
+    const closeModal = () => {
+        navigate("/addTransaction1");
+     };
 
     return (
         <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
@@ -99,7 +102,7 @@ export default function AddCustomer({ closeModal }) {
                     </button>
                     <button 
                         type="button" 
-                        className="btn btn-secondary"
+                        className="btn bg-red-500 w-100 text-white rounded-0"
                         onClick={closeModal}
                     >
                         Close

@@ -68,6 +68,7 @@ const TopNavbar = () => {
                  { label: "Add Reciept", path: "/addTransaction1" },
                  { label: "Add Payment", path: "/addTransaction" },
                  { label: "Ledger", path: "/customerReport" },
+                 { label: "Search by mobile", path: "/customerMobile" },
                  { label: "Item Report", path: "/itemReport" },
                  { label: "Task Report", path: "/taskReport" },
                  { label: "User Report", path: "/userReport" },

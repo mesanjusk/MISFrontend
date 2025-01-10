@@ -178,7 +178,7 @@ export default function OrderUpdate({ order, onClose }) {
 
   const closePrintModal = () => {
     setShowPrintModal(false); 
-    setSelectedOrder(null);  
+    setSelectedOrder(null); 
   };
 
   const handleWhatsAppClick = (order) => {

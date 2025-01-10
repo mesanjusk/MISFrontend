@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useParams } from "react-router-dom";
 
 export default function EditCustomer({ customerId, closeModal }) {
+    const { id } = useParams();
     const [groupOptions, setGroupOptions] = useState([]);
     const [values, setValues] = useState({
         Customer_name: '',
@@ -67,41 +69,40 @@ export default function EditCustomer({ customerId, closeModal }) {
         <div className="bg-white-100">
             <h2 className="text-xl font-bold mb-4">Edit Customer</h2>
             <form onSubmit={handleSaveChanges}>
-            <div className="self-start bg-white p-2 w-100 mb-2 rounded-lg">
-                <label>Customer Name</label> 
-                <br></br>
-                <input
-                    type="text"
-                    value={values.Customer_name}
-                    onChange={(e) => setValues({ ...values, Customer_name: e.target.value })}
-                    required
-                />
-               <br></br>
-               <label>Mobile Number</label>
-                <br></br>
-                <input
-                    type="text"
-                    value={values.Mobile_number}
-                    onChange={(e) => setValues({ ...values, Mobile_number: e.target.value })}
-                    required
-                
-                />
-                 <br></br>
-                <label>Customer Group</label>
-                <br></br>
-                <select
-                    value={values.Customer_group}
-                    onChange={(e) => setValues({ ...values, Customer_group: e.target.value })}
-                    required
-                >
-                    {groupOptions.map((group, index) => (
-                        <option key={index} value={group}>
-                            {group}
-                        </option>
-                    ))}
-                </select>
-                <br></br>
-                <button type="submit" className="btn btn-primary">Save Changes</button>
+                <div className="self-start bg-white p-2 w-100 mb-2 rounded-lg">
+                    <label>Customer Name</label> 
+                    <br></br>
+                    <input
+                        type="text"
+                        value={values.Customer_name}
+                        onChange={(e) => setValues({ ...values, Customer_name: e.target.value })}
+                        required
+                    />
+                    <br></br>
+                    <label>Mobile Number</label>
+                    <br></br>
+                    <input
+                        type="text"
+                        value={values.Mobile_number}
+                        onChange={(e) => setValues({ ...values, Mobile_number: e.target.value })}
+                        required
+                    />
+                    <br></br>
+                    <label>Customer Group</label>
+                    <br></br>
+                    <select
+                        value={values.Customer_group}
+                        onChange={(e) => setValues({ ...values, Customer_group: e.target.value })}
+                        required
+                    >
+                        {groupOptions.map((group, index) => (
+                            <option key={index} value={group}>
+                                {group}
+                            </option>
+                        ))}
+                    </select>
+                    <br></br>
+                    <button type="submit" className="btn btn-primary">Save Changes</button>
                     <br></br>
                     <button type="button" className="btn btn-secondary" onClick={closeModal}>Cancel</button>
                 </div>

@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react';
 import { useNavigate } from "react-router-dom";
 import axios from "axios"
 
-export default function AddItem({ closeModal }) {
+export default function AddItem() {
     const navigate = useNavigate();
 
     const [Item_name,setItem_Name]=useState('')
@@ -48,7 +48,9 @@ export default function AddItem({ closeModal }) {
 
         }
     }
-
+    const closeModal = () => {
+        navigate("/home");
+     };
 
     return (
         <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
@@ -72,10 +74,10 @@ export default function AddItem({ closeModal }) {
                             }
                         </select>
                 </div>
-                <button type="submit" onClick={submit} className="btn btn-success w-100 rounded-0"> Submit </button>
+                <button type="submit" onClick={submit} className="btn bg-green-500 w-100 text-white rounded-0"> Submit </button>
                 <button 
                         type="button" 
-                        className="btn btn-secondary"
+                        className="btn bg-red-500 w-100 text-white rounded-0"
                         onClick={closeModal}
                     >
                         Close
