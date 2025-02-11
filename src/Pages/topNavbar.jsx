@@ -72,6 +72,7 @@ const TopNavbar = () => {
                  { label: "Item Report", path: "/itemReport" },
                  { label: "Task Report", path: "/taskReport" },
                  { label: "User Report", path: "/userReport" },
+                 { label: "Add User Task", path: "/addUsertask" },
                  { label: "Payment Report", path: "/paymentReport" },
                  { label: "Priority Report", path: "/priorityReport" },
                  { label: "Add Item", path: "/addItem" },

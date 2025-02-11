@@ -120,7 +120,8 @@ export default function UpdateDelivery({ onClose, order }) {
                         Amount: Number(Amount), 
                     }
                 ];
-    
+                console.log("Journal Entry Payload:", journal);
+
                 const transactionResponse = await axios.post("/transaction/addTransaction", {
                     Description: "Delivered", 
                     Total_Credit: Number(Amount), 
@@ -129,7 +130,7 @@ export default function UpdateDelivery({ onClose, order }) {
                     Journal_entry: journal,
                     Created_by: loggedInUser 
                 });
-    
+                console.log("Transaction Payload:", transactionResponse);
                 if (!transactionResponse.data.success) {
                     alert("Failed to add Transaction.");
                 }

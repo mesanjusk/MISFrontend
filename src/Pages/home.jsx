@@ -7,12 +7,14 @@ import Footer from './footer';
 import axios from 'axios';
 import { format } from 'date-fns';
 import OrderUpdate from '../Reports/orderUpdate'; 
+import UserTask from "../Pages/userTask";
 
 export default function Home() {
   const navigate = useNavigate();
   const location = useLocation();
   const [userName, setUserName] = useState('');
   const [showOutButton, setShowOutButton] = useState(false);
+  const [showUserModel, setShowUserModel] = useState(false);
   const [orders, setOrders] = useState([]); 
   const [attendanceData, setAttendanceData] = useState([]); 
   const [userData, setUserData] = useState([]); 
@@ -165,55 +167,9 @@ export default function Home() {
     }
   };
 
-  const saveAttendance = async (type) => {
-    const currentTime = new Date().toLocaleTimeString('en-US', { hour12: false });
-    const currentDate = new Date().toLocaleDateString();
 
-    try {
-      const existingAttendance = attendanceData.find(record => record.Date === currentDate);
-      
-      if (existingAttendance) {
-        const updateResponse = await axios.put(`/attendance/updateAttendance/${existingAttendance.Attendance_Record_ID}`, {
-          User_name: userName,
-          Time: currentTime,
-          Type: type,
-        });
-
-        if (updateResponse.data.success) {
-          alert(`Attendance updated successfully for ${type}`);
-        } else {
-          console.error('Failed to update attendance:', updateResponse.data.message);
-        }
-      } else {
-        const response = await axios.post('/attendance/addAttendance', {
-          User_name: userName,
-          Type: type,
-          Status: 'Present',
-          Date: currentDate,
-          Time: currentTime
-        });
-
-        if (response.data.success) {
-          alert(`Attendance saved successfully for ${type}`);
-        } else {
-          console.error('Failed to save attendance:', response.data.message);
-        }
-      }
-
-      fetchAttendance(userName); 
-    } catch (error) {
-      console.error('Error saving attendance:', error.response?.data?.message || error.message);
-    }
-  };
-
-  const handleInClick = () => {
-    setShowOutButton(true);
-    saveAttendance('In');
-  };
-
-  const handleOutClick = () => {
-    setShowOutButton(false);
-    saveAttendance('Out');
+  const handleUserClick = () => {
+    setShowUserModel(true);
   };
 
   const handleOrderClick = (order) => {
@@ -224,6 +180,10 @@ export default function Home() {
   const closeEditModal = () => {
     setShowEditModal(false); 
     setSelectedOrderId(null);  
+  };
+
+  const closeUserModal = () => {
+    setShowUserModel(false); 
   };
 
   const getTodayDate = () => {
@@ -241,22 +201,14 @@ export default function Home() {
             <Skeleton width={50} height={30} className="mr-2" />
           ) : (
             <>
-              {!showOutButton && (
+           
                 <button
-                  onClick={handleInClick}
+                  onClick={handleUserClick}
                   className="sanju bg-green-500 text-white px-2 py-2 mr-2 rounded"
                 >
-                  In
+                  Attendance
                 </button>
-              )}
-              {showOutButton && (
-                <button
-                  onClick={handleOutClick}
-                  className="sanju bg-red-500 text-white px-2 py-2 rounded"
-                >
-                  Out
-                </button>
-              )}
+              
             </>
           )}
         </div>
@@ -300,6 +252,11 @@ export default function Home() {
    {showEditModal && (
                 <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center ">
                      <OrderUpdate order={selectedOrderId} onClose={closeEditModal} />
+                </div>
+            )}
+            {showUserModel && (
+                <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center ">
+                     <UserTask order={selectedOrderId} onClose={closeUserModal} />
                 </div>
             )}
       <Footer />
