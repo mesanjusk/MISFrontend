@@ -66,20 +66,22 @@ export default function EditCustomer({ customerId, closeModal }) {
     };
 
     return (
-        <div className="bg-white-100">
+        <div className="d-flex justify-content-center align-items-center bg-gray-200 vh-80">
+        <div className="bg-white p-3 rounded w-90">
             <h2 className="text-xl font-bold mb-4">Edit Customer</h2>
             <form onSubmit={handleSaveChanges}>
-                <div className="self-start bg-white p-2 w-100 mb-2 rounded-lg">
-                    <label>Customer Name</label> 
-                    <br></br>
+                <div className="mb-3">
+                <label htmlFor="customer"><strong>Customer</strong></label>
+                   
                     <input
                         type="text"
                         value={values.Customer_name}
                         onChange={(e) => setValues({ ...values, Customer_name: e.target.value })}
                         required
+                        className="form-control rounded-0"
                     />
-                    <br></br>
-                    <label>Mobile Number</label>
+                    <div className="mb-3">
+                    <label htmlFor="mobile"><strong>Mobile</strong></label>
                     <br></br>
                     <input
                         type="text"
@@ -87,9 +89,10 @@ export default function EditCustomer({ customerId, closeModal }) {
                         onChange={(e) => setValues({ ...values, Mobile_number: e.target.value })}
                         required
                     />
-                    <br></br>
-                    <label>Customer Group</label>
-                    <br></br>
+                    </div>
+                     <div className="mb-3">
+                     <label htmlFor="group"><strong>Group</strong></label>
+                   
                     <select
                         value={values.Customer_group}
                         onChange={(e) => setValues({ ...values, Customer_group: e.target.value })}
@@ -101,12 +104,13 @@ export default function EditCustomer({ customerId, closeModal }) {
                             </option>
                         ))}
                     </select>
-                    <br></br>
+                    </div>
                     <button type="submit" className="btn btn-primary">Save Changes</button>
                     <br></br>
-                    <button type="button" className="btn btn-secondary" onClick={closeModal}>Cancel</button>
+                    <button type="button" className="btn btn-danger" onClick={closeModal}>Cancel</button>
                 </div>
             </form>
+        </div>
         </div>
     );
 }

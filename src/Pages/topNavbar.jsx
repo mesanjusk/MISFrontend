@@ -72,7 +72,6 @@ const TopNavbar = () => {
                  { label: "Item Report", path: "/itemReport" },
                  { label: "Task Report", path: "/taskReport" },
                  { label: "User Report", path: "/userReport" },
-                 { label: "Add User Task", path: "/addUsertask" },
                  { label: "Payment Report", path: "/paymentReport" },
                  { label: "Priority Report", path: "/priorityReport" },
                  { label: "Add Item", path: "/addItem" },
@@ -94,7 +93,7 @@ const TopNavbar = () => {
                 { label: "Ledger", path: "/customerReport" },
                 { label: "Add Payment", path: "/addTransaction1" },
                 { label: "Add Receipt", path: "/addTransaction" },
-                
+                { label: "Add User Task", path: "/addUsertask" },
                 { label: "Report2", path: "/allTransaction3" },
                 { label: "Task Report", path: "/taskReport" },
                 { label: "Item Report", path: "/itemReport" },

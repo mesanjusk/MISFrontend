@@ -84,7 +84,15 @@ export default function AllBills() {
             <TopNavbar />
             <div className="pt-12 pb-20">
                
-               
+            <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
+                    <input
+                        type="text"
+                        placeholder="Search by Customer Name"
+                        className="form-control text-black bg-gray-100 rounded-full"
+                        value={searchOrder}
+                        onChange={(e) => setSearchOrder(e.target.value)}
+                    />
+                </div>
                 <main className="flex flex-1 p-2 overflow-y-auto">
                     <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">
                         {filteredOrders.length > 0 ? (

@@ -7,6 +7,8 @@ export default function AddUsertask() {
 
     const [Usertask_name,setUsertask_Name]=useState('')
     const [User,setUser]=useState('')
+    const [Deadline, setDeadline] = useState('');
+    const [Remark, setRemark] = useState('');
      const [userOptions, setUserOptions] = useState([]);
 
      useEffect(() => {
@@ -28,7 +30,7 @@ export default function AddUsertask() {
         e.preventDefault();
         try{
             await axios.post("/usertask/addUsertask",{
-                Usertask_name, User
+                Usertask_name, User, Deadline, Remark
             })
             .then(res=>{
                 if(res.data=="exist"){
@@ -72,10 +74,17 @@ export default function AddUsertask() {
                         </select>
                 </div>     
                 <div className="mb-3">
-                    <label htmlFor="name"><strong>Name</strong></label>
-                <input type="name" autoComplete="off" onChange={(e) => { setUsertask_Name(e.target.value) }} placeholder="Name" className="form-control rounded-0" />
+                    <label htmlFor="task"><strong>Task</strong></label>
+                <input type="task" autoComplete="off" onChange={(e) => { setUsertask_Name(e.target.value) }} placeholder="Task" className="form-control rounded-0" />
                 </div>              
-              
+                <div className="mb-3">
+                    <label htmlFor="deadline"><strong>Deadline</strong></label>
+                <input type="date" autoComplete="off" onChange={(e) => { setDeadline(e.target.value) }} placeholder="Date" className="form-control rounded-0" />
+                </div> 
+                <div className="mb-3">
+                    <label htmlFor="remark"><strong>Remark</strong></label>
+                <input type="remark" autoComplete="off" onChange={(e) => { setRemark(e.target.value) }} placeholder="Remark" className="form-control rounded-0" />
+                </div> 
                 <button type="submit" onClick={submit} className="btn bg-green-500 w-100 text-white rounded-0"> Submit </button>
                 <button 
                         type="button" 

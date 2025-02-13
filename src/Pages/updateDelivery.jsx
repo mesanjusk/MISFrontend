@@ -13,6 +13,7 @@ export default function UpdateDelivery({ onClose, order }) {
     const [Item, setItem] = useState('');
     const [Customer_name, setCustomer_name] = useState('');
     const [Amount, setAmount] = useState(0);  
+    const [Remark, setRemark] = useState('');
     const [customers, setCustomers] = useState([]); 
     const [itemOptions, setItemOptions] = useState([]);
     const [salePaymentModeUuid, setSalePaymentModeUuid] = useState(null); 
@@ -39,6 +40,7 @@ export default function UpdateDelivery({ onClose, order }) {
             setAmount(order.Amount);
             setCustomer_name(order.Customer_name || '');
             setOrderId(order._id);
+            setRemark(order.Remark);
         }
     }, [order]);
 
@@ -104,7 +106,8 @@ export default function UpdateDelivery({ onClose, order }) {
                 Item,
                 Quantity: Number(Quantity),
                 Rate: Number(Rate),
-                Amount: Number(Amount)
+                Amount: Number(Amount),
+                Remark
             });
     
             if (response.data.success) {
@@ -179,6 +182,18 @@ export default function UpdateDelivery({ onClose, order }) {
                                 <option key={index} value={option}>{option}</option>
                             ))}
                         </select>
+                    </div>
+
+                    <div className="mb-3">
+                        <label htmlFor="customer"><strong>Remark</strong></label>
+                        <input
+                            type="text"
+                            autoComplete="off"
+                            value={Remark} 
+                            className="form-control rounded-0"
+                            onChange={(e) => setRemark(e.target.value)}
+                           
+                        />
                     </div>
                     <button onClick={handleItem} type="button" className="text-white p-2 rounded-full bg-green-500 mb-3">
                         <svg className="h-8 w-8 text-white-500" width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">  
