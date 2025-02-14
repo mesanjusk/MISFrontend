@@ -29,9 +29,13 @@ export default function AddUsertask() {
     
     async function submit(e){
         e.preventDefault();
+        const finalDeadline = isDeadlineChecked && Deadline ? Deadline : new Date().toISOString().split('T')[0];
         try{
             await axios.post("/usertask/addUsertask",{
-                Usertask_name, User, Deadline, Remark
+                Usertask_name, 
+                User, 
+                Deadline: finalDeadline, 
+                Remark
             })
             .then(res=>{
                 if(res.data=="exist"){

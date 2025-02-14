@@ -85,7 +85,7 @@ export default function Home() {
     }
 };
 
-const pendingTasks = task.filter(task => task.Status === "Pending");
+const pendingTasks = task.filter(task => task.Status === "Pending"  && task.User === loggedInUser);
 
   const filteredOrders = orders
     .map(order => {
@@ -235,7 +235,6 @@ const pendingTasks = task.filter(task => task.Status === "Pending");
         </div>
       </div>
   
-      <div className="">
       <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">
         <h2 className="text-xl font-bold">Task</h2>
         {isLoading ? (
@@ -281,40 +280,68 @@ const pendingTasks = task.filter(task => task.Status === "Pending");
               ))
             )}
        </div>
-        <div className="orders-table flex-1 mr-4">
+       <div className="tables-container flex">
+        <div className="orders-table flex-1 ml-10">
         <h2 className="text-xl font-bold">Order</h2>
         {isLoading ? (
             <Skeleton count={5} height={30} />
           ) : (
-              filteredOrders.map((order) => (
+            <table className="min-w-half">
+            <thead>
+              <tr>
+                <th className="px-4 py-2">No</th>
+                <th className="px-4 py-2">Name</th>
+                <th className="px-4 py-2">Assigned</th>
+                <th className="px-4 py-2">Task</th>
+              </tr>
+            </thead>
+            <tbody>
+              { filteredOrders.map((order) => (
                 <tr key={order._id} onClick={() => handleOrderClick(order)} className="cursor-pointer hover:bg-gray-200">
                   <td className="border px-4 py-2">{order.Order_Number}</td>
                   <td className="border px-4 py-2">{order.Customer_name}</td>
                   <td className="border px-4 py-2">{order.highestStatusTask.Assigned}</td>
                   <td className="border px-4 py-2">{order.highestStatusTask.Task}</td>
                 </tr>
-              ))
-            )}
+              ))}
+              </tbody>
+              </table>          )}
        </div>
-
+       </div>
         <div className="attendance-table flex-1">
         <h2 className="text-xl font-bold">Attendance</h2>
         {isLoading ? (
             <Skeleton count={5} height={30} />
           ) : (
-              attendanceData
+            <table className="min-w-half">
+            <thead>
+              <tr>
+                <th className="px-4 py-2">No</th>
+                <th className="px-4 py-2">User Name</th>
+                <th className="px-4 py-2">Date</th>
+                <th className="px-4 py-2">Time</th>
+                <th className="px-4 py-2">Type</th>
+                <th className="px-4 py-2">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+             { attendanceData
                 .filter(record => record.Date === getTodayDate()) 
                 .map((record, index) => (
-                    <div key={index} className="hover:bg-gray-200">
-                    <div> {record.Date}</div>
-                  <div> {record.User_name}</div>
-                  <div> {record.Time}</div>
-                  <div> {record.Type}  {record.Status}</div>
-                    </div>
-                 ))
+                  <tr key={index} className="hover:bg-gray-200">
+                  <td className="border px-4 py-2">{attendance.Attendance_Record_ID}</td>
+                  <td className="border px-4 py-2">{attendance.User_name}</td>
+                  <td className="border px-4 py-2">{attendance.Date}</td>
+                  <td className="border px-4 py-2">{attendance.Time}</td>
+                  <td className="border px-4 py-2">{attendance.Type}</td>
+                  <td className="border px-4 py-2">{attendance.Status}</td>
+                </tr>
+                 ))}
+                 </tbody>
+                 </table>
                 )}
                 </div>
-        </div>
+      
    {showEditModal && (
                 <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center ">
                      <OrderUpdate order={selectedOrderId} onClose={closeEditModal} />
