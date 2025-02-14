@@ -85,6 +85,8 @@ export default function Home() {
     }
 };
 
+const pendingTasks = task.filter(task => task.Status === "Pending");
+
   const filteredOrders = orders
     .map(order => {
       if (order.Status.length === 0) return order; 
@@ -239,7 +241,7 @@ export default function Home() {
         {isLoading ? (
             <Skeleton count={5} height={30} />
           ) : (
-              task.map((task, index) => (
+              pendingTasks.map((task, index) => (
                 <div key={index}>
                 <div
                     onClick={() => handleTaskClick(task)}

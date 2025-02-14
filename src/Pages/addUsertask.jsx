@@ -9,7 +9,8 @@ export default function AddUsertask() {
     const [User,setUser]=useState('')
     const [Deadline, setDeadline] = useState('');
     const [Remark, setRemark] = useState('');
-     const [userOptions, setUserOptions] = useState([]);
+    const [userOptions, setUserOptions] = useState([]);
+    const [isDeadlineChecked, setIsDeadlineChecked] = useState(false);
 
      useEffect(() => {
         axios.get("/user/GetUserList")
@@ -55,6 +56,11 @@ export default function AddUsertask() {
         navigate("/home");
      };
 
+     const handleDeadlineCheckboxChange = () => {
+        setIsDeadlineChecked(prev => !prev); 
+        setDeadline(''); 
+    };
+
     return (
         <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
            
@@ -76,12 +82,26 @@ export default function AddUsertask() {
                 <div className="mb-3">
                     <label htmlFor="task"><strong>Task</strong></label>
                 <input type="task" autoComplete="off" onChange={(e) => { setUsertask_Name(e.target.value) }} placeholder="Task" className="form-control rounded-0" />
-                </div>              
+                </div> 
+                <div className="mb-3 ">
+                        <input
+                            type="checkbox"
+                            className="form-check-input"
+                            id="deadlineCheckbox"
+                            checked={isDeadlineChecked}
+                            onChange={handleDeadlineCheckboxChange}
+                        />
+                        <label className="form-check-label" htmlFor="deadlineCheckbox">
+                            Deadline 
+                        </label>
+                    </div> 
+                    {isDeadlineChecked && (            
                 <div className="mb-3">
                     <label htmlFor="deadline"><strong>Deadline</strong></label>
                 <input type="date" autoComplete="off" onChange={(e) => { setDeadline(e.target.value) }} placeholder="Date" className="form-control rounded-0" />
                 </div> 
-                <div className="mb-3">
+                )}
+                  <div className="mb-3">
                     <label htmlFor="remark"><strong>Remark</strong></label>
                 <input type="remark" autoComplete="off" onChange={(e) => { setRemark(e.target.value) }} placeholder="Remark" className="form-control rounded-0" />
                 </div> 
