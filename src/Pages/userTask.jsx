@@ -119,6 +119,8 @@ export default function UserTask({ onClose }) {
             });
     }, []);
 
+    const pendingTasks = tasks.filter(task => task.Status === "Pending");
+
     const handleCheckboxChange = (taskId) => {
         setSelectedTasks(prevSelected => {
             let updatedSelection;
@@ -128,7 +130,7 @@ export default function UserTask({ onClose }) {
                 updatedSelection = [...prevSelected, taskId];
             }
 
-            setIsCheckedAll(updatedSelection.length === tasks.length);
+            setIsCheckedAll(updatedSelection.length === pendingTasks.length);
             return updatedSelection;
         });
     };
@@ -183,6 +185,7 @@ export default function UserTask({ onClose }) {
         setIsInClicked(false); 
         saveAttendance('Out');
     };
+
     return (
         <div className="d-flex justify-content-center align-items-center bg-gray-200 vh-80">
             <div className="bg-white p-3 rounded w-90">
@@ -190,8 +193,8 @@ export default function UserTask({ onClose }) {
                 <h1 className="text-xl font-bold">User Task</h1>
 
                 <div className="mt-3">
-                    {tasks.length > 0 ? (
-                        tasks.map(task => (
+                    {pendingTasks.length > 0 ? (
+                        pendingTasks.map(task => (
                             <div key={task._id} className="form-check">
                                 <input
                                     type="checkbox"
