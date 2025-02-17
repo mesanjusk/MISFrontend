@@ -70,6 +70,7 @@ const TopNavbar = () => {
                  { label: "Ledger", path: "/customerReport" },
                  { label: "Search by mobile", path: "/customerMobile" },
                  { label: "Item Report", path: "/itemReport" },
+                 { label: "Call logs" , path: "/calllogs"},
                  { label: "Task Report", path: "/taskReport" },
                  { label: "User Report", path: "/userReport" },
                  { label: "Payment Report", path: "/paymentReport" },

@@ -46,6 +46,7 @@ import PriorityReport from "./Reports/priorityReport";
 import EditPriority from "./Reports/editPriority";
 import SearchMobile from "./Pages/searchMobile";
 import AddUsertask from "./Pages/addUsertask";
+import CallLogs from "./Pages/callLogs";
 
 function App() {
     axios.defaults.baseURL = "https://misbackend-e078.onrender.com/";
@@ -97,6 +98,7 @@ function App() {
                     <Route path="/header" element={< TopNavbar />} />
                     <Route path="/customerMobile" element={< SearchMobile />} />
                     <Route path="/addUsertask" element={< AddUsertask />} />
+                    <Route path="/calllogs" element={< CallLogs />} />
                 </Routes>
             </div>
         </Router>
