@@ -234,13 +234,13 @@ const pendingTasks = task.filter(task => task.Status === "Pending"  && task.User
           )}
         </div>
       </div>
-  
+      {isLoading ? (
+            <Skeleton count={5} height={30}/>
+          ) : (
       <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">
         <h2 className="text-xl font-bold">Task</h2>
-        {isLoading ? (
-            <Skeleton count={5} height={30} />
-          ) : (
-              pendingTasks.map((task, index) => (
+        
+             { pendingTasks.map((task, index) => (
                 <div key={index}>
                 <div
                     onClick={() => handleTaskClick(task)}
@@ -277,15 +277,17 @@ const pendingTasks = task.filter(task => task.Status === "Pending"  && task.User
                     </div>
                     </div>
 
-              ))
-            )}
+              ))}
+          
        </div>
+         )}
        <div className="tables-container flex">
-        <div className="orders-table flex-1 ml-10">
-        <h2 className="text-xl font-bold">Order</h2>
-        {isLoading ? (
+       {isLoading ? (
             <Skeleton count={5} height={30} />
           ) : (
+        <div className="orders-table flex-1 ml-10">
+        <h2 className="text-xl font-bold">Order</h2>
+       
             <table className="min-w-half">
             <thead>
               <tr>
@@ -305,14 +307,16 @@ const pendingTasks = task.filter(task => task.Status === "Pending"  && task.User
                 </tr>
               ))}
               </tbody>
-              </table>          )}
+              </table>         
        </div>
+        )}
        </div>
-        <div className="attendance-table flex-1">
-        <h2 className="text-xl font-bold">Attendance</h2>
-        {isLoading ? (
+       {isLoading ? (
             <Skeleton count={5} height={30} />
           ) : (
+        <div className="attendance-table flex-1">
+        <h2 className="text-xl font-bold">Attendance</h2>
+        
             <table className="min-w-half">
             <thead>
               <tr>
@@ -329,19 +333,19 @@ const pendingTasks = task.filter(task => task.Status === "Pending"  && task.User
                 .filter(record => record.Date === getTodayDate()) 
                 .map((record, index) => (
                   <tr key={index} className="hover:bg-gray-200">
-                  <td className="border px-4 py-2">{attendance.Attendance_Record_ID}</td>
-                  <td className="border px-4 py-2">{attendance.User_name}</td>
-                  <td className="border px-4 py-2">{attendance.Date}</td>
-                  <td className="border px-4 py-2">{attendance.Time}</td>
-                  <td className="border px-4 py-2">{attendance.Type}</td>
-                  <td className="border px-4 py-2">{attendance.Status}</td>
+                  <td className="border px-4 py-2">{record.Attendance_Record_ID}</td>
+                  <td className="border px-4 py-2">{record.User_name}</td>
+                  <td className="border px-4 py-2">{record.Date}</td>
+                  <td className="border px-4 py-2">{record.Time}</td>
+                  <td className="border px-4 py-2">{record.Type}</td>
+                  <td className="border px-4 py-2">{record.Status}</td>
                 </tr>
                  ))}
                  </tbody>
                  </table>
-                )}
+              
                 </div>
-      
+        )}
    {showEditModal && (
                 <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center ">
                      <OrderUpdate order={selectedOrderId} onClose={closeEditModal} />
