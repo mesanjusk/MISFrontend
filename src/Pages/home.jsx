@@ -244,38 +244,19 @@ const pendingTasks = task.filter(task => task.Status === "Pending"  && task.User
               
                     {pendingTasks.map((task, index) => (
                       <div key={index}>
-                      <div
-                          onClick={() => handleTaskClick(task)}
-                          className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer"
-                      >
+                      <div onClick={() => handleTaskClick(task)} className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer">
                           <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
                               <strong className="text-l text-gray-500">
                                   {task.Usertask_Number}
                               </strong>
                           </div>
                           <div className="p-2 col-start-2 col-end-8">
-                                                        <strong className="text-l text-gray-900">
-                                                            {task.Usertask_name}
-                                                        </strong>
-                                                        <br />
-                                                        <label className="text-xs">
-                                                            {new Date(
-                                                                task.Date
-                                                            ).toLocaleDateString()}{" "}
-                                                            - {task.Remark}
-                                                        </label>
-                                                    </div>
-                                                    <div className="items-center justify-center text-right col-end-9 col-span-1">
-                                                        <label className="text-xs pr-2">
-                                                            {new Date(
-                                                                task.Deadline
-                                                            ).toLocaleDateString()}
-                                                        </label>
-                                                        <br />
-                                                        <label className="text-s text-green-500 pr-2">
-                                                            {task.Status}
-                                                        </label>
-                                                    </div>
+                               <strong className="text-l text-gray-900">{task.Usertask_name}</strong><br />
+                                <label className="text-xs">{new Date(task.Date).toLocaleDateString()}{" "}-{task.Remark}</label>
+                          </div>
+                          <div className="items-center justify-center text-right col-end-9 col-span-1">
+                                <label className="text-xs pr-2">{new Date(task.Deadline).toLocaleDateString()}</label><br />
+                                <label className="text-s text-green-500 pr-2">{task.Status}</label></div>
                           </div>
                           </div>
       
@@ -283,70 +264,67 @@ const pendingTasks = task.filter(task => task.Status === "Pending"  && task.User
              </div>
               )}
 
-            <div className="tables-container flex">
             {isLoading ? (
-                            <Skeleton count={5} height={30} />
-                          ) : (
-              <div className="order-table flex-1 ml-10">
-                <h2 className="text-xl font-bold">Orders</h2>
-                
-                <table className="min-w-full">
-                  <thead>
-                    <tr>
-                      <th className="px-4 py-2">No</th>
-                      <th className="px-4 py-2">Name</th>
-                      <th className="px-4 py-2">Assigned</th>
-                      <th className="px-4 py-2">Task</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                  { filteredOrders.map((order) => (
-                <tr key={order._id} onClick={() => handleOrderClick(order)} className="cursor-pointer hover:bg-gray-200">
-                  <td className="border px-4 py-2">{order.Order_Number}</td>
-                  <td className="border px-4 py-2">{order.Customer_name}</td>
-                  <td className="border px-4 py-2">{order.highestStatusTask.Assigned}</td>
-                  <td className="border px-4 py-2">{order.highestStatusTask.Task}</td>
-                </tr>
+                  <Skeleton count={5} height={30} />
+                ) : (
+            <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto"> 
+            <h2 className="text-xl font-bold">Orders</h2>             
+                  { filteredOrders.map((order, index) => (
+                    <div key={index}>
+                <div onClick={() => handleOrderClick(order)} className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer">
+                <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
+                              <strong className="text-l text-gray-500">
+                                  {order.Order_Number}
+                              </strong>
+                </div>
+                <div className="p-2 col-start-2 col-end-8">
+                      <strong className="text-l text-gray-900">{order.Customer_name}</strong><br />
+                       <label className="text-xs">
+                            {new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString()}{" "} - {order.Remark}
+                      </label>
+                  </div>
+                  <div className="items-center justify-center text-right col-end-9 col-span-1">
+                        <label className="text-xs pr-2">{order.highestStatusTask.Assigned}</label><br />
+                        <label className="text-s text-green-500 pr-2">{order.highestStatusTask.Task}</label>
+                  </div>
+               </div>
+               </div>
               ))}
-                  </tbody>
-                </table>
-            </div>
-        )}
-              {isLoading ? (
-                            <Skeleton count={5} height={30} />
-                          ) : (
-              <div className="attendance-table flex-1">
-                <h2 className="text-xl font-bold">Attendance Records</h2>
-                
-                <table className="min-w-full">
-                  <thead>
-                    <tr>
-                      <th className="px-4 py-2">No</th>
-                      <th className="px-4 py-2">User Name</th>
-                      <th className="px-4 py-2">Date</th>
-                      <th className="px-4 py-2">Time</th>
-                      <th className="px-4 py-2">Type</th>
-                      <th className="px-4 py-2">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+           </div>  
+           )}     
+       {isLoading ? (
+        <Skeleton count={5} height={30} />
+      ) : (
+              <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">
+                <h2 className="text-xl font-bold">Attendance</h2>
                   { attendanceData
                 .filter(record => record.Date === getTodayDate()) 
                 .map((record, index) => (
-                  <tr key={index} className="hover:bg-gray-200">
-                  <td className="border px-4 py-2">{record.Attendance_Record_ID}</td>
-                  <td className="border px-4 py-2">{record.User_name}</td>
-                  <td className="border px-4 py-2">{record.Date}</td>
-                  <td className="border px-4 py-2">{record.Time}</td>
-                  <td className="border px-4 py-2">{record.Type}</td>
-                  <td className="border px-4 py-2">{record.Status}</td>
-                </tr>
+                  <div key={index}>
+                  <div className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer">
+                  <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
+                              <strong className="text-l text-gray-500">
+                                  {record.Attendance_Record_ID}
+                              </strong>
+                </div>
+                <div className="p-2 col-start-2 col-end-8">
+                      <strong className="text-l text-gray-900">{record.User_name}</strong><br />
+                       <label className="text-xs">
+                            {record.Date}{" "} - {record.Status}
+                      </label>
+                  </div>
+                  <div className="items-center justify-center text-right col-end-9 col-span-1">
+                        <label className="text-xs pr-2">{record.Time}</label><br />
+                        <label className="text-s text-green-500 pr-2">{record.Type}</label>
+                  </div>
+                
+                  </div>
+                </div>
                  ))}
-                  </tbody>
-                </table>               
+                              
               </div>
                )}
-            </div>
+           
             {showEditModal && (
                 <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center ">
                      <OrderUpdate order={selectedOrderId} onClose={closeEditModal} />
