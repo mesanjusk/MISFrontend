@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import TopNavbar from '../Pages/topNavbar';
 import Footer from '../Pages/footer';
+import AddOrder1 from "../Pages/addOrder1";
 
 const AllTransaction2 = () => {
     const [transactions, setTransactions] = useState([]);
@@ -12,6 +13,7 @@ const AllTransaction2 = () => {
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+     const [showOrderModal, setShowOrderModal] = useState(false);
 
     useEffect(() => {
         const fetchTransactions = async () => {
@@ -134,7 +136,13 @@ const AllTransaction2 = () => {
     const handlePrint = () => {
         window.print();
     };
+    const handleOrder = () => {
+        setShowOrderModal(true);
+    };
 
+    const closeModal = () => {
+        setShowOrderModal(false);
+    };
     return (
         <>
             <div className="no-print">
@@ -235,7 +243,37 @@ const AllTransaction2 = () => {
                         )}
                     </div>
                 </main>
+                <div className="fixed bottom-20 right-8">
+                    <button
+                        onClick={handleOrder}
+                        className="w-12 h-12 bg-green-500 text-white rounded-full shadow-lg flex items-center justify-center"
+                    >
+                        <svg
+                            className="h-8 w-8 text-white-500"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            strokeWidth="2"
+                            stroke="currentColor"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            <path stroke="none" d="M0 0h24v24H0z" />
+                            <circle cx="12" cy="12" r="9" />
+                            <line x1="9" y1="12" x2="15" y2="12" />
+                            <line x1="12" y1="9" x2="12" y2="15" />
+                        </svg>
+                    </button>
+                </div>
             </div>
+            {showOrderModal && (
+                                        <div className="modal-overlay">
+                                            <div className="modal-content">
+                                                <AddOrder1 closeModal={closeModal} />
+                                            </div>
+                                        </div>
+                                    )}
              <div className="no-print">
                 <Footer />
             </div>

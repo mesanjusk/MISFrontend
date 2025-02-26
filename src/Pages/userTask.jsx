@@ -187,8 +187,8 @@ export default function UserTask({ onClose }) {
     };
 
     return (
-        <div className="d-flex justify-content-center align-items-center bg-gray-200 vh-80">
-            <div className="bg-white p-3 rounded w-90">
+        <div className="d-flex justify-content-center align-items-center bg-gray-200 vh-100 vw-100">
+            <div className="top-0 right-0  w-50 h-4/6 ">
             <button type="button" onClick={onClose}>X</button>
                 <h1 className="text-xl font-bold">User Task</h1>
 

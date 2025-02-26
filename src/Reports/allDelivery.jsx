@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import TopNavbar from "../Pages/topNavbar";
 import Footer from "../Pages/footer";
 import UpdateDelivery from "../Pages/updateDelivery";
+import AddOrder1 from "../Pages/addOrder1";
 
 export default function AllDelivery() {
     const navigate = useNavigate();
@@ -13,6 +14,7 @@ export default function AllDelivery() {
     const [customers, setCustomers] = useState({});
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
+     const [showOrderModal, setShowOrderModal] = useState(false);
     
 
     function addOrder1() {
@@ -80,6 +82,13 @@ export default function AllDelivery() {
         setSelectedOrder(null);  
     };
 
+    const handleOrder = () => {
+        setShowOrderModal(true);
+    };
+
+    const closeModal = () => {
+        setShowOrderModal(false);
+    };
     return (
         <>
             <TopNavbar />
@@ -120,11 +129,36 @@ export default function AllDelivery() {
                     </div>
                 </main>
                 <div className="fixed bottom-20 right-8">
-                    <button onClick={addOrder1} className="w-14 h-14 bg-green-500 text-white rounded-full shadow-lg flex items-center justify-center">
-                        <strong>+</strong>
+                    <button
+                        onClick={handleOrder}
+                        className="w-12 h-12 bg-green-500 text-white rounded-full shadow-lg flex items-center justify-center"
+                    >
+                        <svg
+                            className="h-8 w-8 text-white-500"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            strokeWidth="2"
+                            stroke="currentColor"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            <path stroke="none" d="M0 0h24v24H0z" />
+                            <circle cx="12" cy="12" r="9" />
+                            <line x1="9" y1="12" x2="15" y2="12" />
+                            <line x1="12" y1="9" x2="12" y2="15" />
+                        </svg>
                     </button>
                 </div>
             </div>
+               {showOrderModal && (
+                            <div className="modal-overlay">
+                                <div className="modal-content">
+                                    <AddOrder1 closeModal={closeModal} />
+                                </div>
+                            </div>
+                        )}
             {showEditModal && (
                 <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center ">
                      <UpdateDelivery order={selectedOrder} onClose={closeEditModal} />
