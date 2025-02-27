@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { format } from 'date-fns';
 
-export default function UserTask({ onClose }) {
+export default function UserTask() {
     const [tasks, setTasks] = useState([]);
     const [selectedTasks, setSelectedTasks] = useState([]); 
     const [isCheckedAll, setIsCheckedAll] = useState(false);  
@@ -189,7 +189,6 @@ export default function UserTask({ onClose }) {
     return (
         <div className="d-flex justify-content-center align-items-center bg-gray-200 vh-100 vw-100">
             <div className="top-0 right-0  w-50 h-4/6 ">
-            <button type="button" onClick={onClose}>X</button>
                 <h1 className="text-xl font-bold">User Task</h1>
 
                 <div className="mt-3">

@@ -122,9 +122,6 @@ const pendingTasks = task.filter(task => task.Status === "Pending"  && task.User
     setSelectedTaskId(task);
     setShowTaskModal(true);
 };
-  const handleUserClick = () => {
-    setShowUserModel(true);
-  };
 
   const handleOrderClick = (order) => {
     setSelectedOrderId(order); 
@@ -141,10 +138,7 @@ const pendingTasks = task.filter(task => task.Status === "Pending"  && task.User
     setSelectedTaskId(null);  
   };
 
-  const closeUserModal = () => {
-    setShowUserModel(false); 
-  };
-
+  
   
 
   return (
