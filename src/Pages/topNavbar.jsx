@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import UserTask from "../Pages/userTask";
+import axios from "axios";
+import { format } from 'date-fns';
+import TaskUpdate from "../Pages/taskUpdate";
 
 const TopNavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -8,19 +11,102 @@ const TopNavbar = () => {
   const [userName, setUserName] = useState('');
   const [loggedInUser, setLoggedInUser] = useState(null); 
   const [showUserModel, setShowUserModel] = useState(false);
+  const [attendanceData, setAttendanceData] = useState([]); 
+   const [task, setTask] = useState([]);
+    const [selectedTaskId, setSelectedTaskId] = useState(null);
+     const [showTaskModal, setShowTaskModal] = useState(false); 
+   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
    const location = useLocation();
 
-   useEffect(() => {
+    useEffect(() => {
+       setTimeout(() => {
          const userNameFromState = location.state?.id;
          const user = userNameFromState || localStorage.getItem('User_name');
          setLoggedInUser(user);
          if (user) {
            setUserName(user);
+           fetchData(user);
+           fetchAttendance(user);
          } else {
            navigate("/login");
          }
+       }, 2000);
+       setTimeout(() => setIsLoading(false), 2000);
      }, [location.state, navigate]);
+
+     const fetchData = async (user) => {
+      try {
+          const [taskRes] = await Promise.all([
+              axios.get("/usertask/GetUsertaskList")
+          ]);
+  
+          if (taskRes.data.success) {
+            setTask(taskRes.data.result);
+        } else {
+            setTask([]);
+        }
+  
+        
+      } catch (err) {
+          console.log('Error fetching data:', err);
+      }
+  };
+  
+  const pendingTasks = task.filter(task => task.Status === "Pending"  && task.User === loggedInUser);
+
+  const fetchUserNames = async () => {
+    try {
+        const response = await axios.get('/user/GetUserList');
+        const data = response.data;
+
+        if (data.success) {
+            const userLookup = {};
+            data.result.forEach(user => {
+                userLookup[user.User_uuid] = user.User_name.trim(); 
+            });
+            return userLookup;
+        } else {
+            console.error('Failed to fetch user names:', data);
+            return {};
+        }
+    } catch (error) {
+        console.error('Error fetching user names:', error);
+        return {};
+    }
+  };
+
+const fetchAttendance = async (loggedInUser) => { 
+  try {
+    const userLookup = await fetchUserNames();
+    
+    const attendanceResponse = await axios.get('/attendance/GetAttendanceList');
+
+    const attendanceRecords = attendanceResponse.data.result || [];
+
+    const attendanceWithUserNames = attendanceRecords.flatMap(record => {
+      const employeeUuid = record.Employee_uuid.trim(); 
+      const userName = userLookup[employeeUuid] || 'Unknown'; 
+
+      return record.User.map(user => {
+        return {
+          Attendance_Record_ID: record.Attendance_Record_ID,
+          User_name: userName, 
+          Date: user.Date ? format(new Date(user.Date), 'yyyy-MM-dd') : 'Invalid Date',
+          Time: user.Time || 'N/A',
+          Type: user.Type || 'N/A',
+          Status: record.Status || 'N/A',
+        };
+      });
+    });
+
+    const filteredAttendance = attendanceWithUserNames.filter(record => record.User_name === loggedInUser);
+    setAttendanceData(filteredAttendance);
+
+  } catch (error) {
+    console.error("Error fetching attendance:", error);
+  }
+};
 
   useEffect(() => {
     const group = localStorage.getItem("User_group");
@@ -56,6 +142,19 @@ const TopNavbar = () => {
     setShowUserModel(false); 
   };
 
+  const handleTaskClick = (task) => {
+    setSelectedTaskId(task);
+    setShowTaskModal(true);
+};
+
+const closeTaskModal = () => {
+  setShowTaskModal(false); 
+  setSelectedTaskId(null);  
+};
+
+  const getTodayDate = () => {
+    return format(new Date(), 'yyyy-MM-dd');
+  };
   return (
     <>
     <div>
@@ -92,7 +191,7 @@ const TopNavbar = () => {
         <div className={`shadow-md fixed top-10 right-0  w-50 h-4/6 bg-white transform ${isOpen ? "translate-x-0" : "-translate-x-full"} transition-transform duration-300 ease-in-out z-40`}>
         <div className="p-4 flex justify-between items-center border-b"> 
           
-            <button className="focus:outline-none" onClick={handleLogout}>Logout</button>
+  
             </div>
 
           {userGroup === "Office User" && (
@@ -167,14 +266,76 @@ const TopNavbar = () => {
       )}
     </div>
      {showUserModel && (
+       <div className="pt-12 pb-20">
         <div className="d-flex justify-content-center align-items-center bg-gray-200 vh-100 vw-100"> 
-        <div className="top-0 right-0  w-50 h-4/6 ">
+        <div className="top-0 right-0  w-100 h-75 ">
         <button type="button" onClick={closeUserModal}>X</button>
         <h1 className="absolute right-10 text-s font-bold mb-6">Welcome, {userName}!</h1>
+        <button className="absolute right-10 text-s" onClick={handleLogout}>Logout</button><br /><br />
+                {isLoading ? (
+                                <Skeleton count={5} height={30} />
+                              ) : (
+                    pendingTasks.map((task, index) => (
+                      <div key={index}>
+                      <div onClick={() => handleTaskClick(task)} className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer">
+                          <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
+                              <strong className="text-l text-gray-500">
+                                  {task.Usertask_Number}
+                              </strong>
+                          </div>
+                          <div className="p-2 col-start-2 col-end-8">
+                               <strong className="text-l text-gray-900">{task.Usertask_name}</strong><br />
+                                <label className="text-xs">{new Date(task.Date).toLocaleDateString()}{" "}-{task.Remark}</label>
+                          </div>
+                          <div className="items-center justify-center text-right col-end-9 col-span-1">
+                                <label className="text-xs pr-2">{new Date(task.Deadline).toLocaleDateString()}</label><br />
+                                <label className="text-s text-green-500 pr-2">{task.Status}</label></div>
+                          </div>
+                          </div>
+      
+                    ))          
+              )}
+<br />
+{isLoading ? (
+        <Skeleton count={5} height={30} />
+      ) : (
+            attendanceData
+                .filter(record => record.Date === getTodayDate()) 
+                .map((record, index) => (
+                  <div key={index}>
+                  <div className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer">
+                  <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
+                              <strong className="text-l text-gray-500">
+                                  {record.Attendance_Record_ID}
+                              </strong>
+                </div>
+                <div className="p-2 col-start-2 col-end-8">
+                      <strong className="text-l text-gray-900">{record.User_name}</strong><br />
+                       <label className="text-xs">
+                            {record.Date}{" "} - {record.Status}
+                      </label>
+                  </div>
+                  <div className="items-center justify-center text-right col-end-9 col-span-1">
+                        <label className="text-xs pr-2">{record.Time}</label><br />
+                        <label className="text-s text-green-500 pr-2">{record.Type}</label>
+                  </div>
+                
+                  </div>
+                </div>
+                 ))
+          
+               )}
+      
         <UserTask onClose={closeUserModal} />
         </div>
  </div>
+ </div>
                 )}
+                {showTaskModal && (
+                                <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center ">
+                                     <TaskUpdate task={selectedTaskId} onClose={closeTaskModal} />
+                                </div>
+                            )}
     </>
   );
 };
