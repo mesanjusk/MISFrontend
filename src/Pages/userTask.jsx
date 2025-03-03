@@ -1,16 +1,14 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { format } from 'date-fns';
 
 export default function UserTask() {
     const [tasks, setTasks] = useState([]);
     const [selectedTasks, setSelectedTasks] = useState([]);
-    const [isCheckedAll, setIsCheckedAll] = useState(false);
-    const [attendanceState, setAttendanceState] = useState("None");
+    const [attendanceState, setAttendanceState] = useState(localStorage.getItem("attendanceState") || "None");
     const [loggedInUser, setLoggedInUser] = useState(null);
-    const [attendanceData, setAttendanceData] = useState([]);
     const [userName, setUserName] = useState('');
+    const [totalTime, setTotalTime] = useState(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -26,14 +24,13 @@ export default function UserTask() {
 
     const fetchAttendance = async (loggedInUser) => {
         try {
-            const attendanceResponse = await axios.get('/attendance/GetAttendanceList');
-            const attendanceRecords = attendanceResponse.data.result || [];
-            const filteredAttendance = attendanceRecords.filter(record => record.User_name === loggedInUser);
-            setAttendanceData(filteredAttendance);
+            const response = await axios.get('/attendance/GetAttendanceList');
+            const records = response.data.result || [];
+            const lastRecord = records.filter(record => record.User_name === loggedInUser).pop();
             
-            if (filteredAttendance.length > 0) {
-                const lastAttendance = filteredAttendance[filteredAttendance.length - 1];
-                setAttendanceState(lastAttendance.Type);
+            if (lastRecord) {
+                setAttendanceState(lastRecord.Type);
+                localStorage.setItem('attendanceState', lastRecord.Type);
             }
         } catch (error) {
             console.error("Error fetching attendance:", error);
@@ -61,39 +58,64 @@ export default function UserTask() {
             const updatedSelection = prevSelected.includes(taskId)
                 ? prevSelected.filter(id => id !== taskId)
                 : [...prevSelected, taskId];
-            setIsCheckedAll(updatedSelection.length === pendingTasks.length);
             return updatedSelection;
         });
     };
 
     const saveAttendance = async (type) => {
-      const currentTime = new Date().toLocaleTimeString('en-US', { hour12: false });
-      const currentDate = new Date().toLocaleDateString();
-  
-      try {
-          const response = await axios.post('/attendance/addAttendance', {
-              User_name: userName,
-              Type: type,
-              Status: 'Present',
-              Date: currentDate,
-              Time: currentTime
-          });
-  
-          if (response.data.success) {
-              alert(`Attendance saved successfully for ${type}`);
-  
-              setAttendanceState(type === "Out" ? "None" : type);
-          } else {
-              console.error('Failed to save attendance:', response.data.message);
-          }
-      } catch (error) {
-          console.error('Error saving attendance:', error.response?.data?.message || error.message);
-      }
-  };
-  
+        try {
+            const response = await axios.post("/attendance/addAttendance", {
+                User_name: userName,
+                Type: type,
+                Status: "Present",
+                Time: new Date().toISOString()
+            });
+
+            if (response.data.success) {
+                alert(`Attendance saved successfully for ${type}`);
+                setAttendanceState(type);
+                localStorage.setItem("attendanceState", type);
+
+                if (type === "Out") {
+                    await calculateTotalTime();
+                    setAttendanceState("None");
+                    localStorage.setItem("attendanceState", "None");
+                }
+            }
+        } catch (error) {
+            console.error("Error saving attendance:", error);
+        }
+    };
+
+    const calculateTotalTime = async () => {
+        try {
+            const response = await axios.get(`/attendance/getLastIn/${loggedInUser}`);
+            if (response.data && response.data.Time) {
+                const inTime = new Date(response.data.Time);
+                const outTime = new Date();
+
+                if (isNaN(inTime.getTime())) {
+                    console.error("Invalid inTime format:", response.data.Time);
+                    return;
+                }
+
+                const diffMs = outTime - inTime;
+                const hours = Math.floor(diffMs / 3600000);
+                const minutes = Math.floor((diffMs % 3600000) / 60000);
+                const seconds = Math.floor((diffMs % 60000) / 1000);
+
+                setTotalTime(`${hours}h ${minutes}m ${seconds}s`);
+            } else {
+                console.error("Error: No valid Time found in response");
+            }
+        } catch (error) {
+            console.error("Error calculating total time:", error);
+        }
+    };
+
     return (
         <div className="d-flex justify-content-center align-items-center bg-gray-200 vh-100 vw-100">
-            <div className="top-0 right-0  w-50 h-4/6 ">
+            <div className="top-0 right-0 w-50 h-4/6">
                 <h1 className="text-xl font-bold">User Task</h1>
 
                 <div className="mt-3">
@@ -117,32 +139,37 @@ export default function UserTask() {
                     )}
                 </div>
 
-                {isCheckedAll && attendanceState === "None" && (
-    <div className="text-center mt-3">
-        <button className="bg-green-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('In')}>In</button>
-    </div>
-)}
+                {selectedTasks.length > 0 && (
+                    <div className="text-center mt-3">
+                        {attendanceState === "None" && (
+                            <div className="text-center mt-3">
+                            <button className="bg-green-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('In')}>In</button>
+                        </div>
+                        )}
 
-{isCheckedAll && attendanceState === "In" && (
-    <div className="text-center mt-3">
-        <button className="bg-red-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Out')}>Out</button>&nbsp;&nbsp;
-        <button className="bg-yellow-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Break')}>Break</button>
-    </div>
-)}
+                        {attendanceState === "In" && (
+                            <div className="text-center mt-3">
+                            <button className="bg-red-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Out')}>Out</button>&nbsp;&nbsp;
+                            <button className="bg-yellow-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Break')}>Break</button>
+                        </div>
+                        )}
 
-{isCheckedAll && attendanceState === "Break" && (
-    <div className="text-center mt-3">
-        <button className="bg-red-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Out')}>Out</button>&nbsp;&nbsp;
-        <button className="bg-green-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Start')}>Start</button>
-    </div>
-)}
+                        {attendanceState === "Break" && (
+                              <div className="text-center mt-3">
+                              <button className="bg-red-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Out')}>Out</button>&nbsp;&nbsp;
+                              <button className="bg-green-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Start')}>Start</button>
+                          </div>
+                        )}
 
-{isCheckedAll && attendanceState === "Start" && (
-    <div className="text-center mt-3">
-        <button className="bg-red-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Out')}>Out</button>
-    </div>
-)}
+                        {(attendanceState === "Start") && (
+                            <div className="text-center mt-3">
+                            <button className="bg-red-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Out')}>Out</button>
+                        </div>
+                        )}
 
+                        {totalTime && <p className="text-xl font-bold mt-2">Total Time Worked: {totalTime}</p>}
+                    </div>
+                )}
             </div>
         </div>
     );
