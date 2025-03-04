@@ -11,6 +11,7 @@ const TopNavbar = () => {
   const [userName, setUserName] = useState('');
   const [loggedInUser, setLoggedInUser] = useState(null); 
   const [showUserModel, setShowUserModel] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
   const [attendanceData, setAttendanceData] = useState([]); 
    const [task, setTask] = useState([]);
     const [selectedTaskId, setSelectedTaskId] = useState(null);
@@ -92,8 +93,8 @@ const fetchAttendance = async (loggedInUser) => {
         return {
           Attendance_Record_ID: record.Attendance_Record_ID,
           User_name: userName, 
-          Date: user.Date ? format(new Date(user.Date), 'yyyy-MM-dd') : 'Invalid Date',
-          Time: user.Time || 'N/A',
+          Date: record.Date,
+          Time: user.CreatedAt ? format(new Date(user.CreatedAt), "hh:mm a") : "No Time",
           Type: user.Type || 'N/A',
           Status: record.Status || 'N/A',
         };
@@ -116,6 +117,10 @@ const fetchAttendance = async (loggedInUser) => {
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
   };
+
+  const toggleVisibility = () => {
+    setIsHidden(prev => !prev);
+};
 
   const handleUser = () => {
     setShowUserModel(true);
@@ -296,35 +301,39 @@ const closeTaskModal = () => {
                     ))          
               )}
 <br />
-{isLoading ? (
+<button onClick={toggleVisibility}>
+    {isHidden ? "Show Attendance" : "Hide Attendance"}
+</button>
+
+{!isHidden && (
+    isLoading ? (
         <Skeleton count={5} height={30} />
-      ) : (
-            attendanceData
-                .filter(record => record.Date === getTodayDate()) 
-                .map((record, index) => (
-                  <div key={index}>
-                  <div className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer">
-                  <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
-                              <strong className="text-l text-gray-500">
-                                  {record.Attendance_Record_ID}
-                              </strong>
+    ) : (
+        attendanceData
+            .filter(record => new Date(record.Date).toISOString().split("T")[0] === getTodayDate()) 
+            .map((record, index) => (
+                <div key={index}>
+                    <div className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer">
+                        <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
+                            <strong className="text-l text-gray-500">
+                                {record.Attendance_Record_ID}
+                            </strong>
+                        </div>
+                        <div className="p-2 col-start-2 col-end-8">
+                            <strong className="text-l text-gray-900">{record.User_name}</strong><br />
+                            <label className="text-xs">
+                                {record.Date}{" "} - {record.Status}
+                            </label>
+                        </div>
+                        <div className="items-center justify-center text-right col-end-9 col-span-1">
+                            <label className="text-xs pr-2">{record.Time}</label><br />
+                            <label className="text-s text-green-500 pr-2">{record.Type}</label>
+                        </div>
+                    </div>
                 </div>
-                <div className="p-2 col-start-2 col-end-8">
-                      <strong className="text-l text-gray-900">{record.User_name}</strong><br />
-                       <label className="text-xs">
-                            {record.Date}{" "} - {record.Status}
-                      </label>
-                  </div>
-                  <div className="items-center justify-center text-right col-end-9 col-span-1">
-                        <label className="text-xs pr-2">{record.Time}</label><br />
-                        <label className="text-s text-green-500 pr-2">{record.Type}</label>
-                  </div>
-                
-                  </div>
-                </div>
-                 ))
-          
-               )}
+            ))
+    )
+)}
       
         <UserTask onClose={closeUserModal} />
         </div>

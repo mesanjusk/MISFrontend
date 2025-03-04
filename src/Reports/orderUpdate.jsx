@@ -17,6 +17,7 @@ export default function OrderUpdate({ order, onClose }) {
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [latestDeliveryDate, setLatestDeliveryDate] = useState(""); 
+   const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);  
   const [values, setValues] = useState({
     id: order?._id || '',
@@ -156,6 +157,19 @@ export default function OrderUpdate({ order, onClose }) {
     setShowPrintModal(true);  
   };
   
+  const handleAdvanceCheckboxChange = () => {
+    setIsAdvanceChecked(prev => {
+        const newCheckedState = !prev;
+
+        setValues(values => ({
+            ...values,
+            Delivery_Date: newCheckedState ? '' : new Date().toISOString().split('T')[0], 
+        }));
+
+        return newCheckedState;
+    });
+};
+
 
   useEffect(() => {
     if (order?.Status?.length) {
@@ -246,35 +260,7 @@ export default function OrderUpdate({ order, onClose }) {
                   <line x1="12" y1="9" x2="12" y2="15" />
                 </svg>
               </button></div>
-            <div className="p-2 col-start-9 col-end-9"> <button onClick={() => handlePrintClick(order)} className="btn">
-            <svg className="h-8 w-8 text-blue" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 9V3h12v6M6 15h12m-6 0v6m0 0H9m3 0h3" />
-                            </svg>
-</button></div>
-            <div className="p-2 col-start-10 col-end-10">              
-<button
-  onClick={() => handleWhatsAppClick(order)}
-  className="btn ml-2"
->
-  <svg
-    className="h-10 w-10 text-green-500"
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 32 32"
-    fill="currentColor"
-  >
-    <path d="M16 0C7.163 0 0 7.163 0 16c0 2.943.794 5.69 2.177 8.07L.019 32l8.202-2.125A15.94 15.94 0 0016 32c8.837 0 16-7.163 16-16S24.837 0 16 0zm8.449 23.021c-.398 1.125-2.306 2.069-3.15 2.188-.798.11-1.75.157-2.825-.16-.65-.16-1.488-.48-2.567-1.044a15.01 15.01 0 01-6.024-6.01c-.597-1.081-.933-1.94-1.097-2.59-.33-1.31-.285-2.374-.174-3.188.155-.868 1.03-2.54 2.15-2.91.396-.13.914-.064 1.214.46.17.303.398.652.642 1.057.286.458.607 1.06.744 1.353.26.52.086 1.072-.16 1.396l-.644.868c-.33.437-.693.694-.572 1.047.886 2.18 3.49 4.894 6.084 6.146.208.11.345.097.477-.048l.703-.698c.346-.347.787-.33 1.31-.197.413.108.974.435 1.558.808.487.325.945.643 1.227.907.39.367.672.72.744.918.235.653-.212 1.267-.498 1.747z" />
-  </svg>
-</button></div>
-          <div>
-            <div className="p-2 row-start-5 row-end-5">
-
-           
-              
-              
- 
-
-            </div>  
-            <div>
+   
               <div className="p-2 col-start-2 col-end-4">
               {notes.filter(note => note.Order_uuid === values.Order_uuid).map((note, index) => (
                 <div key={index}>
@@ -282,8 +268,6 @@ export default function OrderUpdate({ order, onClose }) {
                 </div>
               ))}
              </div>     
-            </div>     
-          </div>
         </div>
 
         <div className="flex-1 overflow-y-scroll bg-gray-100 p-4">
@@ -341,6 +325,19 @@ export default function OrderUpdate({ order, onClose }) {
             </div>
 
             <div className="pb-14 border-t border-gray-300">
+            <div className="mb-3 ">
+                        <input
+                            type="checkbox"
+                            className="form-check-input"
+                            id="advanceCheckbox"
+                            checked={isAdvanceChecked}
+                            onChange={handleAdvanceCheckboxChange}
+                        />
+                        <label className="form-check-label" htmlFor="advanceCheckbox">
+                            Advance 
+                        </label>
+                    </div>
+                    {isAdvanceChecked && (
               <div className="flex items-center">
                 <input
                   type="date"
@@ -351,10 +348,13 @@ export default function OrderUpdate({ order, onClose }) {
                 />
                 
               </div>
+               )}
               <div className="flex items-center">
               <button type="submit" className="ml-2 bg-green-500 text-white p-2 rounded-lg">
                   UPDATE
                 </button>
+                <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={() => handlePrintClick(order)}>Print</button>
+                <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={() => handleWhatsAppClick(order)}>Share</button>
                 <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={onClose}>Cancel</button>
                 </div>
             </div>
