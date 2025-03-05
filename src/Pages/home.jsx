@@ -7,6 +7,7 @@ import Footer from './footer';
 import axios from 'axios';
 import OrderUpdate from '../Reports/orderUpdate'; 
 import AddOrder1 from "../Pages/addOrder1";
+import { Container, Button, Link } from 'react-floating-action-button'
 
 export default function Home() {
   const navigate = useNavigate();
@@ -150,29 +151,32 @@ const closeModal = () => {
               ))}
            </div>  
            )} 
-            <div className="fixed bottom-20 right-8">
-                    <button
-                        onClick={handleOrder}
-                        className="w-12 h-12 bg-green-500 text-white rounded-full shadow-lg flex items-center justify-center"
-                    >
-                        <svg
-                            className="h-8 w-8 text-white-500"
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            strokeWidth="2"
-                            stroke="currentColor"
-                            fill="none"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        >
-                            <path stroke="none" d="M0 0h24v24H0z" />
-                            <circle cx="12" cy="12" r="9" />
-                            <line x1="9" y1="12" x2="15" y2="12" />
-                            <line x1="12" y1="9" x2="12" y2="15" />
-                        </svg>
-                    </button>
-                </div>    
+             <Container>
+            <Link href="#"
+                tooltip="Create note link"
+                icon="far fa-sticky-note" />
+            <Link href="#"
+                tooltip="Add user link"
+                icon="fas fa-user-plus" />
+                 <Link href="#"
+                tooltip="Create note link"
+                icon="far fa-sticky-note" />
+            <Link href="#"
+                tooltip="Add user link"
+                icon="fas fa-user-plus" />
+                 <Link href="#"
+                tooltip="Create note link"
+                icon="far fa-sticky-note" />
+            <Link href="#"
+                tooltip="Add user link"
+                icon="fas fa-user-plus" />
+            <Button className="fab-item btn btn-link btn-lg text-white"
+                tooltip="The big plus button!"
+                
+                icon="fas fa-plus"
+                rotate={true}
+                 />
+        </Container>  
       
             {showOrderModal && (
                            <div className="modal-overlay">
