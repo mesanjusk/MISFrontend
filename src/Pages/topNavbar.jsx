@@ -217,8 +217,6 @@ const closeTaskModal = () => {
                  { label: "Priority Report", path: "/priorityReport" },
                  { label: "Add Item", path: "/addItem" },
                  { label: "Add Item Group", path: "/addItemgroup" },
-                 { label: "Report1", path: "/allTransaction2" },
-                 { label: "Report2", path: "/allTransaction3" },
                 
               ].map((item) => (
                 <div key={item.label} onClick={() => navigate(item.path)} className="px-4 hover:bg-gray-100 text-s p-2 rounded">
@@ -235,7 +233,6 @@ const closeTaskModal = () => {
                 { label: "Add Payment", path: "/addTransaction1" },
                 { label: "Add Receipt", path: "/addTransaction" },
                 { label: "Add User Task", path: "/addUsertask" },
-                { label: "Report2", path: "/allTransaction3" },
                 { label: "Task Report", path: "/taskReport" },
                 { label: "Item Report", path: "/itemReport" },
                 { label: "User Report", path: "/userReport" },
@@ -243,8 +240,7 @@ const closeTaskModal = () => {
                 { label: "Priority Report", path: "/priorityReport" },
                 { label: "Add Customer", path: "/addCustomer" },
                 { label: "Add Priority", path: "/addPriority" },
-                { label: "Add Task", path: "/addTask" },
-               
+                { label: "Add Task", path: "/addTask" },              
                 { label: "Add User Group", path: "/addUsergroup" },
                 { label: "Add Task Group", path: "/addTaskgroup" },
                 { label: "Add Payment", path: "/addPayment" },

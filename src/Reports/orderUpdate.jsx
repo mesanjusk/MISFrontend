@@ -334,7 +334,7 @@ export default function OrderUpdate({ order, onClose }) {
                             onChange={handleAdvanceCheckboxChange}
                         />
                         <label className="form-check-label" htmlFor="advanceCheckbox">
-                            Advance 
+                            Update Date
                         </label>
                     </div>
                     {isAdvanceChecked && (
@@ -353,9 +353,9 @@ export default function OrderUpdate({ order, onClose }) {
               <button type="submit" className="ml-2 bg-green-500 text-white p-2 rounded-lg">
                   UPDATE
                 </button>
+                <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={onClose}>Cancel</button>
                 <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={() => handlePrintClick(order)}>Print</button>
                 <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={() => handleWhatsAppClick(order)}>Share</button>
-                <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={onClose}>Cancel</button>
                 </div>
             </div>
           </form>

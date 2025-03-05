@@ -163,19 +163,19 @@ export default function UpdateDelivery({ onClose, order }) {
                 <button type="button" onClick={onClose}>X</button>
                 <h2>Update Order</h2>
                 <form onSubmit={submit}>
-                    <div className="mb-3">
-                        <label htmlFor="customer"><strong>Customer</strong></label>
-                        <input
-                            type="text"
-                            autoComplete="off"
-                            value={Customer_name} 
-                            className="form-control rounded-0"
-                            readOnly 
-                        />
-                    </div>
 
                     <div className="mb-3">
-                        <label htmlFor="item"><strong>Item Name</strong></label>
+                        <label htmlFor="item"><strong>Item Name</strong>
+                        <button onClick={handleItem} type="button" className="text-white p-2 rounded-full bg-green-500 mb-3">
+                        <svg className="h-8 w-8 text-white-500" width="20" height="20" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">  
+                            <path stroke="none" d="M0 0h24v24H0z"/>  
+                            <circle cx="12" cy="12" r="9" />  
+                            <line x1="9" y1="12" x2="15" y2="12" />  
+                            <line x1="12" y1="9" x2="12" y2="15" />
+                        </svg>
+                    </button>
+                        </label>
+
                         <select className="form-control rounded-0" onChange={(e) => setItem(e.target.value)} value={Item}>
                             <option value="">Select Item</option>
                             {itemOptions.map((option, index) => (
@@ -195,14 +195,7 @@ export default function UpdateDelivery({ onClose, order }) {
                            
                         />
                     </div>
-                    <button onClick={handleItem} type="button" className="text-white p-2 rounded-full bg-green-500 mb-3">
-                        <svg className="h-8 w-8 text-white-500" width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">  
-                            <path stroke="none" d="M0 0h24v24H0z"/>  
-                            <circle cx="12" cy="12" r="9" />  
-                            <line x1="9" y1="12" x2="15" y2="12" />  
-                            <line x1="12" y1="9" x2="12" y2="15" />
-                        </svg>
-                    </button>
+                   
                     <div className="mb-3">
                         <label htmlFor="quantity"><strong>Quantity</strong></label>
                         <input type="number" autoComplete="off" onChange={(e) => setQuantity(e.target.value)} value={Quantity} className="form-control rounded-0" />

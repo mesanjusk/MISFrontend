@@ -78,16 +78,6 @@ export default function AddNote({ onClose, order }) {
                 <button type="button" onClick={onClose}>X</button>
                 <h2>Add Note</h2>
                 <form onSubmit={submit}>
-                <div className="mb-3">
-                        <label htmlFor="customer"><strong>Order uuid</strong></label>
-                        <input
-                            type="text"
-                            autoComplete="off"
-                            value={Order_uuid} 
-                            className="form-control rounded-0"
-                            readOnly 
-                        />
-                    </div>
 
                     <div className="mb-3">
                         <label htmlFor="customer"><strong>Customer</strong></label>
