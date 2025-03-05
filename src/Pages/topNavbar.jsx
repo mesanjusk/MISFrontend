@@ -203,20 +203,13 @@ const closeTaskModal = () => {
             <>
               {[
                 
-
-                
-                 { label: "Add Reciept", path: "/addTransaction1" },
-                 { label: "Add Payment", path: "/addTransaction" },
                  { label: "Ledger", path: "/customerReport" },
-                 { label: "Search by mobile", path: "/customerMobile" },
                  { label: "Item Report", path: "/itemReport" },
                  { label: "Call logs" , path: "/calllogs"},
                  { label: "Task Report", path: "/taskReport" },
                  { label: "User Report", path: "/userReport" },
                  { label: "Payment Report", path: "/paymentReport" },
                  { label: "Priority Report", path: "/priorityReport" },
-                 { label: "Add Item", path: "/addItem" },
-                 { label: "Add Item Group", path: "/addItemgroup" },
                 
               ].map((item) => (
                 <div key={item.label} onClick={() => navigate(item.path)} className="px-4 hover:bg-gray-100 text-s p-2 rounded">
@@ -230,24 +223,11 @@ const closeTaskModal = () => {
             <>
               {[
                 { label: "Ledger", path: "/customerReport" },
-                { label: "Add Payment", path: "/addTransaction1" },
-                { label: "Add Receipt", path: "/addTransaction" },
-                { label: "Add User Task", path: "/addUsertask" },
                 { label: "Task Report", path: "/taskReport" },
                 { label: "Item Report", path: "/itemReport" },
                 { label: "User Report", path: "/userReport" },
                 { label: "Payment Report", path: "/paymentReport" },
-                { label: "Priority Report", path: "/priorityReport" },
-                { label: "Add Customer", path: "/addCustomer" },
-                { label: "Add Priority", path: "/addPriority" },
-                { label: "Add Task", path: "/addTask" },              
-                { label: "Add User Group", path: "/addUsergroup" },
-                { label: "Add Task Group", path: "/addTaskgroup" },
-                { label: "Add Payment", path: "/addPayment" },
-                { label: "Add Enquiry", path: "/addEnquiry" },
-                { label: "Add User", path: "/addUser" },
-                { label: "Add Order", path: "/addOrder" },
-                { label: "Add Customer Group", path: "/addCustgroup" },
+                { label: "Priority Report", path: "/priorityReport" },       
               ].map((item) => (
                 <div key={item.label} onClick={() => navigate(item.path)} className="px-4 hover:bg-gray-100 text-s p-2 rounded">
                   {item.label}

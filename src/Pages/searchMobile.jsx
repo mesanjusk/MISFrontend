@@ -12,6 +12,7 @@ const SearchMobile = () => {
     const [userGroup, setUserGroup] = useState(''); 
     const [isLoading, setIsLoading] = useState(true);
 
+    
     useEffect(() => {
         const fetchCustomers = async () => {
             setIsLoading(true);

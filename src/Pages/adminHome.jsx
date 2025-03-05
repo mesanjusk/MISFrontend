@@ -6,8 +6,8 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import OrderUpdate from '../Reports/orderUpdate'; 
 import Skeleton from "react-loading-skeleton";
-import UserTask from "../Pages/userTask";
-import TaskUpdate from "../Pages/taskUpdate";
+import { Container, Button, Link, lightColors, darkColors } from 'react-floating-action-button';
+
 
 export default function AdminHome() {
   const navigate = useNavigate();
@@ -15,15 +15,17 @@ export default function AdminHome() {
   const [userName, setUserName] = useState('');
   const [showOutButton, setShowOutButton] = useState(false);
   const [attendanceData, setAttendanceData] = useState([]);
+   const [userGroup, setUserGroup] = useState("");
   const [userData, setUserData] = useState([]);
   const [orders, setOrders] = useState([]); 
-   const [task, setTask] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false); 
   const [selectedOrderId, setSelectedOrderId] = useState(null); 
-   const [selectedTaskId, setSelectedTaskId] = useState(null);
-    const [showTaskModal, setShowTaskModal] = useState(false); 
      const [isLoading, setIsLoading] = useState(true);
-     const [showUserModel, setShowUserModel] = useState(false);
+
+     useEffect(() => {
+           const group = localStorage.getItem("User_group");
+           setUserGroup(group);
+         }, []);
 
   useEffect(() => {
     setTimeout(() => {
@@ -235,7 +237,80 @@ export default function AdminHome() {
                            </div>  
                            )} 
        
+       {userGroup === "Office User" && (
+                  <Container>
+                 <Link href="/addTransaction"
+                     tooltip="Add Reciept"
+                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
+                     icon="far fa-sticky-note" />
+                 <Link href="/addTransaction1"
+                     tooltip="Add Payment"
+                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
+                     icon="fas fa-user-plus" />
+                      <Link href="/addOrder1"
+                     tooltip="Add Order"
+                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
+                     icon="far fa-sticky-note" />
+                 <Link href="/addItemgroup"
+                     tooltip="Add Item Group"
+                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
+                     icon="fas fa-user-plus" />
+                 <Button className="fab-item btn btn-link btn-lg text-white"
+                     tooltip="The big plus button!" 
+                     styles={{backgroundColor: darkColors.green, color: lightColors.white}}            
+                     icon="fas fa-plus"
+                     rotate={true}
+                      />
+             </Container>  
+              )}
      
+     {(userGroup === "Admin User" || userGroup === "Vendor") && (
+                  <Container>
+                 <Link href="/addTransaction"
+                     tooltip="Add Reciept"
+                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
+                     icon="far fa-sticky-note" />
+                 <Link href="/addTransaction1"
+                     tooltip="Add Payment"
+                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
+                     icon="fas fa-user-plus" />
+                      <Link href="/addOrder1"
+                     tooltip="Add Order"
+                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
+                     icon="far fa-sticky-note" />
+                      <Link href="/addUsertask"
+                     tooltip="Add User Task"
+                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
+                     icon="far fa-sticky-note" />
+                      <Link href="/addUsergroup"
+                     tooltip="Add User Group"
+                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
+                     icon="far fa-sticky-note" />
+                      <Link href="/addTaskgroup"
+                     tooltip="Add Task Group"
+                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
+                     icon="far fa-sticky-note" />
+                       <Link href="/addEnquiry"
+                     tooltip="Add Enquiry"
+                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
+                     icon="far fa-sticky-note" />
+                      <Link href="/addCustgroup"
+                     tooltip="Add Customer Group"
+                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
+                     icon="far fa-sticky-note" />
+                 <Link href="/addItemgroup"
+                     tooltip="Add Item Group"
+                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
+                     icon="fas fa-user-plus" />
+                 <Button className="fab-item btn btn-link btn-lg text-white"
+                     tooltip="The big plus button!" 
+                     styles={{backgroundColor: darkColors.green, color: lightColors.white}}            
+                     icon="fas fa-plus"
+                     rotate={true}
+                      />
+             </Container>  
+              )}
+           
       {showEditModal && (
                 <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center w-full h-full">
                      <OrderUpdate order={selectedOrderId} onClose={closeEditModal} />

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import AddCustomer from "./addCustomer"
 
-export default function AddOrder1({ closeModal }) {
+export default function AddOrder1() {
     const navigate = useNavigate();
 
     const [Customer_name, setCustomer_Name] = useState('');
@@ -107,7 +107,6 @@ export default function AddOrder1({ closeModal }) {
                 }
 
                 alert("Order added successfully!");
-                closeModal();
                 navigate("/allOrder");
 
             } else {
@@ -152,6 +151,10 @@ export default function AddOrder1({ closeModal }) {
     const exitModal = () => {
         setShowCustomerModal(false);
     };
+
+    const closeModal = () => {
+        navigate("/home");
+     };
 
     return (
         <>
