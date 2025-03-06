@@ -7,7 +7,14 @@ import Footer from './footer';
 import axios from 'axios';
 import OrderUpdate from '../Reports/orderUpdate'; 
 import AddOrder1 from "../Pages/addOrder1";
-import { Container, Button, Link, lightColors, darkColors } from 'react-floating-action-button';
+import github from  '../assets/github.svg'
+import dribbble from  '../assets/dribbble.svg'
+import linkedin from  '../assets/linkedin.svg'
+import medium from  '../assets/medium.svg'
+import spotify from  '../assets/spotify.svg'
+import twitter from  '../assets/twitter.svg'
+import instagram from  '../assets/instagram.svg'
+import FloatingButtons from 'react-floating-buttons'
 
 export default function Home() {
   const navigate = useNavigate();
@@ -125,6 +132,15 @@ export default function Home() {
 const closeModal = () => {
     setShowOrderModal(false);
 };
+
+const buttonsList = [
+  { onClick: ()=> navigate('/addTransaction'), src: instagram },
+  { onClick: ()=> navigate('/addTransaction1'), src: medium },
+  { onClick: ()=> navigate('/addOrder1'), src: dribbble },
+  { onClick: ()=> navigate('/addItemgroup'), src: github },
+]
+
+
   return (
     <>
       <TopNavbar />
@@ -157,79 +173,36 @@ const closeModal = () => {
               ))}
            </div>  
            )} 
-             {userGroup === "Office User" && (
-             <Container>
-            <Link href="/addTransaction"
-                tooltip="Add Reciept"
-                styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                icon="far fa-sticky-note" />
-            <Link href="/addTransaction1"
-                tooltip="Add Payment"
-                styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                icon="fas fa-user-plus" />
-                 <Link href="/addOrder1"
-                tooltip="Add Order"
-                styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                icon="far fa-sticky-note" />
-            <Link href="/addItemgroup"
-                tooltip="Add Item Group"
-                styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                icon="fas fa-user-plus" />
-            <Button className="fab-item btn btn-link btn-lg text-white"
-                tooltip="The big plus button!" 
-                styles={{backgroundColor: darkColors.green, color: lightColors.white}}            
-                icon="fas fa-plus"
-                rotate={true}
-                 />
-        </Container>  
-         )}
-
-{(userGroup === "Admin User" || userGroup === "Vendor") && (
-             <Container>
-            <Link href="/addTransaction"
-                tooltip="Add Reciept"
-                styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                icon="far fa-sticky-note" />
-            <Link href="/addTransaction1"
-                tooltip="Add Payment"
-                styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                icon="fas fa-user-plus" />
-                 <Link href="/addOrder1"
-                tooltip="Add Order"
-                styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                icon="far fa-sticky-note" />
-                 <Link href="/addUsertask"
-                tooltip="Add User Task"
-                styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                icon="far fa-sticky-note" />
-                 <Link href="/addUsergroup"
-                tooltip="Add User Group"
-                styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                icon="far fa-sticky-note" />
-                 <Link href="/addTaskgroup"
-                tooltip="Add Task Group"
-                styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                icon="far fa-sticky-note" />
-                  <Link href="/addEnquiry"
-                tooltip="Add Enquiry"
-                styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                icon="far fa-sticky-note" />
-                 <Link href="/addCustgroup"
-                tooltip="Add Customer Group"
-                styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                icon="far fa-sticky-note" />
-            <Link href="/addItemgroup"
-                tooltip="Add Item Group"
-                styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                icon="fas fa-user-plus" />
-            <Button className="fab-item btn btn-link btn-lg text-white"
-                tooltip="The big plus button!" 
-                styles={{backgroundColor: darkColors.green, color: lightColors.white}}            
-                icon="fas fa-plus"
-                rotate={true}
-                 />
-        </Container>  
-         )}
+            <div className="exemple-wrapper vertical">
+                <div className="exemples">                  
+                        <code>
+                            {`  <FloatingButtons 
+                                    buttonType='plus' 
+                                    dimension={50} 
+                                    buttonsList={buttonsList}
+                                    top={'250px'} 
+                                    left={'50%'} 
+                                    direction="up" 
+                                    buttonColor="white"
+                                    backgroundColor="green"
+                                    itemBackgroundColor="green" />    `}
+                        </code>
+                        <div className="component">
+                            <FloatingButtons 
+                                buttonType='plus' 
+                                dimension={50} 
+                                buttonsList={[...buttonsList.slice(0, 5)]}
+                                top={'500px'} 
+                                                left={'80%'}
+                                direction="up" 
+                                buttonColor="white"
+                                backgroundColor="green"
+                                itemBackgroundColor="green"
+                                />
+                        </div>
+                   
+                </div>
+            </div>
       
             {showOrderModal && (
                            <div className="modal-overlay">

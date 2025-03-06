@@ -309,7 +309,6 @@ export default function UserTask() {
                         </div>
                         )}
 
-                        {totalTime && <p className="text-xl font-bold mt-2">Total Time Worked: {totalTime}</p>}
                     </div>
                 )}
 
@@ -342,7 +341,9 @@ export default function UserTask() {
 </table>
 
                 </div>
+                
             </div>
         </div>
+        
     );
 }

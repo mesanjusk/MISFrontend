@@ -10,18 +10,18 @@ export default function EditCustomer({ customerId, closeModal }) {
         Mobile_number: '',
         Customer_group: '',
     });
+    useEffect(() => {
+        console.log("✅ EditCustomer component mounted for ID:", customerId);
+    }, [customerId]);
 
     useEffect(() => {
         axios.get("/customergroup/GetCustomergroupList")
             .then(res => {
                 if (res.data.success) {
-                    const options = res.data.result.map(item => item.Customer_group);
-                    setGroupOptions(options);
+                    setGroupOptions(res.data.result.map(item => item.Customer_group));
                 }
             })
-            .catch(err => {
-                console.error("Error fetching customer group options:", err);
-            });
+            .catch(err => console.error("Error fetching customer group options:", err));
     }, []);
 
     useEffect(() => {
@@ -29,17 +29,20 @@ export default function EditCustomer({ customerId, closeModal }) {
             axios.get(`/customer/${customerId}`)
                 .then(res => {
                     if (res.data.success) {
-                        const customer = res.data.result;
                         setValues({
-                            Customer_name: customer.Customer_name || '',
-                            Mobile_number: customer.Mobile_number || '',
-                            Customer_group: customer.Customer_group || '',
+                            Customer_name: res.data.result.Customer_name || '',
+                            Mobile_number: res.data.result.Mobile_number || '',
+                            Customer_group: res.data.result.Customer_group || '',
                         });
                     }
                 })
                 .catch(err => console.log('Error fetching customer data:', err));
         }
     }, [customerId]);
+
+    const handleInputChange = (e) => {
+        setValues({ ...values, [e.target.name]: e.target.value });
+    };
 
     const handleSaveChanges = (e) => {
         e.preventDefault();
@@ -49,68 +52,64 @@ export default function EditCustomer({ customerId, closeModal }) {
             return;
         }
 
-        axios.put(`/customer/update/${customerId}`, { 
-            Customer_name: values.Customer_name,
-            Mobile_number: values.Mobile_number,
-            Customer_group: values.Customer_group,
-        })
-        .then(res => {
-            if (res.data.success) {
-                alert('Customer updated successfully!');
-                closeModal(); 
-            }
-        })
-        .catch(err => {
-            console.log('Error updating customer:', err);
-        });
+        axios.put(`/customer/update/${customerId}`, values)
+            .then(res => {
+                if (res.data.success) {
+                    alert('Customer updated successfully!');
+                    closeModal();
+                }
+            })
+            .catch(err => console.log('Error updating customer:', err));
     };
 
     return (
-        <div className="d-flex justify-content-center align-items-center bg-gray-200 vh-80">
-        <div className="bg-white p-3 rounded w-90">
-            <h2 className="text-xl font-bold mb-4">Edit Customer</h2>
-            <form onSubmit={handleSaveChanges}>
-                <div className="mb-3">
-                <label htmlFor="customer"><strong>Customer</strong></label>
-                   
-                    <input
-                        type="text"
-                        value={values.Customer_name}
-                        onChange={(e) => setValues({ ...values, Customer_name: e.target.value })}
-                        required
-                        className="form-control rounded-0"
-                    />
+        <div className="d-flex justify-content-center align-items-center bg-light vh-100">
+            <div className="bg-white p-4 rounded w-50">
+                <h2 className="text-center font-weight-bold mb-4">Edit Customer</h2>
+                <form onSubmit={handleSaveChanges}>
                     <div className="mb-3">
-                    <label htmlFor="mobile"><strong>Mobile</strong></label>
-                    <br></br>
-                    <input
-                        type="text"
-                        value={values.Mobile_number}
-                        onChange={(e) => setValues({ ...values, Mobile_number: e.target.value })}
-                        required
-                    />
+                    <label>Customer Name</label> 
+                        <input
+                            type="text"
+                            name="Customer_name"
+                            value={values.Customer_name}
+                            onChange={handleInputChange}
+                            className="form-control"
+                            required
+                        />
                     </div>
-                     <div className="mb-3">
-                     <label htmlFor="group"><strong>Group</strong></label>
-                   
-                    <select
-                        value={values.Customer_group}
-                        onChange={(e) => setValues({ ...values, Customer_group: e.target.value })}
-                        required
-                    >
-                        {groupOptions.map((group, index) => (
-                            <option key={index} value={group}>
-                                {group}
-                            </option>
-                        ))}
-                    </select>
+                    <div className="mb-3">
+                    <label>Mobile Number</label> 
+                        <input
+                            type="text"
+                            name="Mobile_number"
+                            value={values.Mobile_number}
+                            onChange={handleInputChange}
+                            className="form-control"
+                            required
+                        />
                     </div>
-                    <button type="submit" className="btn btn-primary">Save Changes</button>
-                    <br></br>
-                    <button type="button" className="btn btn-danger" onClick={closeModal}>Cancel</button>
-                </div>
-            </form>
-        </div>
+                    <div className="mb-3">
+                    <label>Customer Group</label> 
+                        <select
+                            name="Customer_group"
+                            value={values.Customer_group}
+                            onChange={handleInputChange}
+                            className="form-control"
+                            required
+                        >
+                            <option value="" disabled>Select a group</option>
+                            {groupOptions.map((group, index) => (
+                                <option key={index} value={group}>{group}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="d-flex justify-content-between">
+                        <button type="submit" className="btn btn-primary">Save Changes</button>
+                        <button type="button" className="btn btn-danger" onClick={closeModal}>Cancel</button>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 }

@@ -4,9 +4,10 @@ import TopNavbar from "../Pages/topNavbar";
 import Footer from "../Pages/footer";
 import EditCustomer from "./editCustomer";
 import AddCustomer from "../Pages/addCustomer";
+import AddOrder1 from "../Pages/addOrder1";
 
 const CustomerReport = () => {
-    const [customers, setCustomers] = useState([]);  // Store as an array instead of an object
+    const [customers, setCustomers] = useState([]);  
     const [searchTerm, setSearchTerm] = useState("");
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedCustomerId, setSelectedCustomerId] = useState(null);
@@ -23,10 +24,9 @@ const CustomerReport = () => {
                 setUserGroup(group);
 
                 const res = await axios.get("/customer/GetCustomersList");
-                console.log("API Response:", res.data);
 
                 if (res.data.success && Array.isArray(res.data.result)) {
-                    setCustomers(res.data.result); // Directly store as an array
+                    setCustomers(res.data.result); 
                 } else {
                     setCustomers([]);
                     console.warn("No customers returned from API.");
@@ -43,7 +43,7 @@ const CustomerReport = () => {
         setSelectedCustomerId(customerId);
         setShowEditModal(true);
     };
-
+    
     const handleDeleteClick = (customer) => {
         setSelectedCustomer(customer);
         setShowDeleteModal(true);
@@ -201,8 +201,14 @@ const CustomerReport = () => {
             </div>
 
             {showEditModal && (
-                <EditCustomer customerId={selectedCustomerId} closeModal={() => setShowEditModal(false)} />
-            )}
+   
+        <EditCustomer 
+            customerId={selectedCustomerId} 
+            closeModal={() => setShowEditModal(false)} 
+        />
+ 
+)}
+
 
             {showDeleteModal && (
                 <div className="modal-overlay">

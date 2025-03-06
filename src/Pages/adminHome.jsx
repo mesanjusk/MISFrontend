@@ -6,7 +6,14 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import OrderUpdate from '../Reports/orderUpdate'; 
 import Skeleton from "react-loading-skeleton";
-import { Container, Button, Link, lightColors, darkColors } from 'react-floating-action-button';
+import github from  '../assets/github.svg'
+import dribbble from  '../assets/dribbble.svg'
+import linkedin from  '../assets/linkedin.svg'
+import medium from  '../assets/medium.svg'
+import spotify from  '../assets/spotify.svg'
+import twitter from  '../assets/twitter.svg'
+import FloatingButtons from 'react-floating-buttons'
+import instagram from  '../assets/instagram.svg'
 
 
 export default function AdminHome() {
@@ -18,6 +25,7 @@ export default function AdminHome() {
    const [userGroup, setUserGroup] = useState("");
   const [userData, setUserData] = useState([]);
   const [orders, setOrders] = useState([]); 
+    const [attendance, setAttendance] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false); 
   const [selectedOrderId, setSelectedOrderId] = useState(null); 
      const [isLoading, setIsLoading] = useState(true);
@@ -37,6 +45,7 @@ export default function AdminHome() {
       fetchUserData();
       fetchAttendance(loggedInUser);
       fetchFilteredOrders(loggedInUser); 
+      fetchAttendanceData();
     } else {
       navigate("/login");
     }
@@ -164,6 +173,143 @@ export default function AdminHome() {
     }
   };
 
+  const fetchAttendanceData = async (loggedInUser) => { 
+    try {
+      const userLookup = await fetchUserNames();
+      
+      const attendanceResponse = await axios.get('/attendance/GetAttendanceList');
+      const attendanceRecords = attendanceResponse.data.result || [];
+
+      const formattedData = processAttendanceData(attendanceRecords); 
+      setAttendance(formattedData);
+
+  
+      const attendanceWithUserNames = attendanceRecords.flatMap(record => {
+        const employeeUuid = record.Employee_uuid.trim(); 
+        const userName = userLookup[employeeUuid] || 'Unknown'; 
+  
+        return record.User.map(user => {
+          return {
+            Attendance_Record_ID: record.Attendance_Record_ID,
+            User_name: userName, 
+            Date: record.Date,
+            Time: user.CreatedAt ? format(new Date(user.CreatedAt), "hh:mm a") : "No Time",
+            Type: user.Type || 'N/A',
+            Status: record.Status || 'N/A',
+          };
+        });
+      });
+      const filteredAttendance = attendanceWithUserNames.filter(record => record.User_name === loggedInUser);
+      setAttendanceData(filteredAttendance);
+  
+    } catch (error) {
+      console.error("Error fetching attendance:", error);
+    }
+  };
+
+  const processAttendanceData = (data) => {
+    const groupedData = new Map();
+
+    data.forEach(({ Date: recordDate, User, Amount }) => {  
+
+        if (!recordDate) {
+            console.error("Invalid Date:", recordDate);
+            return;
+        }
+
+        const parsedDate = new Date(recordDate);
+        if (isNaN(parsedDate.getTime())) {
+            console.error("Invalid Date format:", recordDate);
+            return;
+        }
+
+        const dateKey = parsedDate.toISOString().split("T")[0];
+
+        if (!groupedData.has(dateKey)) {
+            groupedData.set(dateKey, { 
+                Date: dateKey, 
+                In: "N/A", 
+                Break: "N/A", 
+                Start: "N/A", 
+                Out: "N/A", 
+                TotalHours: "N/A", 
+                Amount: "N/A" 
+            });
+        }
+
+        const record = groupedData.get(dateKey);
+
+        User.forEach(userEntry => {
+            switch (userEntry.Type) {
+                case "In":
+                    record.In = userEntry.Time.trim() || "No Time";  
+                    break;
+                case "Break":
+                    record.Break = userEntry.Time.trim() || "No Time";
+                    break;
+                case "Start":
+                    record.Start = userEntry.Time.trim() || "No Time";
+                    break;
+                case "Out":
+                    record.Out = userEntry.Time.trim() || "No Time";
+                    break;
+                default:
+                    console.warn("Unexpected Type:", userEntry.Type);
+                    break;
+            }
+        });
+
+        record.Amount = Amount || record.Amount;
+
+    });
+
+    return Array.from(groupedData.values()).map((record) => {
+        record.TotalHours = calculateWorkingHours(record.In, record.Out, record.Break, record.Start);
+        return record;
+    });
+};
+
+const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
+    if (!inTime || !outTime) {
+        return "N/A"; 
+    }
+
+    const parseTime = (timeStr) => {
+        if (!timeStr || timeStr === "N/A") return null;
+        const [time, period] = timeStr.split(" "); 
+        const [hours, minutes] = time.split(":").map(Number);
+
+        let hours24 = hours;
+        if (period === "PM" && hours !== 12) hours24 += 12;
+        if (period === "AM" && hours === 12) hours24 = 0;
+
+        const now = new Date();
+        now.setHours(hours24, minutes, 0, 0);
+        return now;
+    };
+
+    const inDate = parseTime(inTime);
+    const outDate = parseTime(outTime);
+    const breakDate = parseTime(breakTime) || 0;
+    const startDate = parseTime(startTime) || 0;
+
+    if (!inDate || !outDate) {
+        return "N/A";
+    }
+
+    let workDuration = (outDate - inDate) / 1000; 
+
+    if (breakDate && startDate) {
+        const breakDuration = (startDate - breakDate) / 1000;
+        workDuration -= breakDuration; 
+    }
+
+    const hours = Math.floor(workDuration / 3600);
+    const minutes = Math.floor((workDuration % 3600) / 60);
+    const seconds = workDuration % 60;
+
+    return `${hours}h ${minutes}m ${seconds}s`;
+};
 
   const handleOrderClick = (order) => {
     setSelectedOrderId(order); 
@@ -175,7 +321,19 @@ export default function AdminHome() {
     setSelectedOrderId(null); 
   };
 
-  
+  const buttonsList = [
+   { onClick: () => navigate('/addTransaction'), src: github },
+   { onClick: ()=>  navigate('/addTransaction1'), src: medium },
+   { onClick: ()=> navigate('/addOrder1'), src: dribbble },
+   { onClick: ()=> navigate('/addItemgroup'), src: linkedin },
+   { onClick: () => navigate('/addUsertask'), src: spotify },
+   { onClick: ()=>  navigate('/addUsergroup'), src: instagram },
+   { onClick: ()=>  navigate('/addTaskgroup'), src: twitter },
+   { onClick: ()=> navigate('/addEnquiry'), src: linkedin },
+   { onClick: ()=> navigate('/addCustgroup'), src: github },
+ ]
+ 
+
   return (
     <>
       <TopNavbar />
@@ -208,109 +366,66 @@ export default function AdminHome() {
                    ))}
                 </div>  
                 )} 
-             
-                            {isLoading ? (
-                                  <Skeleton count={5} height={30} />
-                                ) : (
-                            <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">            
-                                  { attendanceData.map((attendance, index) => (
-                                    <div key={index}>
-                                       <div className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer">
-                                <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
-                                              <strong className="text-l text-gray-500">
-                                                  {attendance.Attendance_Record_ID}
-                                              </strong>
+              <div className="tables-container flex">
+                <table className="min-w-half border">
+    <thead>
+        <tr>
+            <th className="px-4 py-2 border">Date</th>
+            <th className="px-4 py-2 border">In</th>
+            <th className="px-4 py-2 border">Break</th>
+            <th className="px-4 py-2 border">Start</th>
+            <th className="px-4 py-2 border">Out</th>
+            <th className="px-4 py-2 border">Total</th>
+            <th className="px-4 py-2 border">Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+    {attendance.map((row, index) => (
+            <tr key={index}>
+              <td className="border px-4 py-2">{row.Date}</td>
+              <td className="border px-4 py-2">{row.In}</td>
+              <td className="border px-4 py-2">{row.Break}</td>
+              <td className="border px-4 py-2">{row.Start}</td>
+              <td className="border px-4 py-2">{row.Out}</td>
+              <td className="border px-4 py-2">{row.TotalHours}</td>
+              <td className="border px-4 py-2">{row.Amount}</td>
+            </tr>
+          ))}
+    </tbody>
+</table>
+
+                </div>
+                <div className="exemple-wrapper vertical">
+                                <div className="exemples">                  
+                                        <code>
+                                            {`  <FloatingButtons 
+                                                    buttonType='plus' 
+                                                    dimension={50} 
+                                                    buttonsList={buttonsList}
+                                                    top={'250px'} 
+                                                    left={'50%'} 
+                                                    direction="up" 
+                                                    buttonColor="white"
+                                                    backgroundColor="green"
+                                                    itemBackgroundColor="green" />    `}
+                                        </code>
+                                        <div className="component">
+                                            <FloatingButtons 
+                                                buttonType='plus' 
+                                                dimension={50} 
+                                                buttonsList={[...buttonsList.slice(0, 9)]}
+                                                top={'500px'} 
+                                                left={'80%'}
+                                                direction="up" 
+                                                buttonColor="white"
+                                                backgroundColor="green"
+                                                itemBackgroundColor="green"
+                                                />
+                                        </div>
+                                   
                                 </div>
-                                <div className="p-2 col-start-2 col-end-8">
-                                      <strong className="text-l text-gray-900">{attendance.User_name}</strong><br />
-                                       <label className="text-xs">
-                                            {attendance.Date}{" "} - {attendance.Status}
-                                      </label>
-                                  </div>
-                                  <div className="items-center justify-center text-right col-end-9 col-span-1">
-                                        <label className="text-xs pr-2">{attendance.Type}</label><br />
-                                        <label className="text-s text-green-500 pr-2">{attendance.Time}</label>
-                                  </div>
-                                  </div>
-                               </div>
-                              ))}
-                           </div>  
-                           )} 
-       
-       {userGroup === "Office User" && (
-                  <Container>
-                 <Link href="/addTransaction"
-                     tooltip="Add Reciept"
-                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                     icon="far fa-sticky-note" />
-                 <Link href="/addTransaction1"
-                     tooltip="Add Payment"
-                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                     icon="fas fa-user-plus" />
-                      <Link href="/addOrder1"
-                     tooltip="Add Order"
-                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                     icon="far fa-sticky-note" />
-                 <Link href="/addItemgroup"
-                     tooltip="Add Item Group"
-                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                     icon="fas fa-user-plus" />
-                 <Button className="fab-item btn btn-link btn-lg text-white"
-                     tooltip="The big plus button!" 
-                     styles={{backgroundColor: darkColors.green, color: lightColors.white}}            
-                     icon="fas fa-plus"
-                     rotate={true}
-                      />
-             </Container>  
-              )}
-     
-     {(userGroup === "Admin User" || userGroup === "Vendor") && (
-                  <Container>
-                 <Link href="/addTransaction"
-                     tooltip="Add Reciept"
-                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                     icon="far fa-sticky-note" />
-                 <Link href="/addTransaction1"
-                     tooltip="Add Payment"
-                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                     icon="fas fa-user-plus" />
-                      <Link href="/addOrder1"
-                     tooltip="Add Order"
-                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                     icon="far fa-sticky-note" />
-                      <Link href="/addUsertask"
-                     tooltip="Add User Task"
-                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                     icon="far fa-sticky-note" />
-                      <Link href="/addUsergroup"
-                     tooltip="Add User Group"
-                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                     icon="far fa-sticky-note" />
-                      <Link href="/addTaskgroup"
-                     tooltip="Add Task Group"
-                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                     icon="far fa-sticky-note" />
-                       <Link href="/addEnquiry"
-                     tooltip="Add Enquiry"
-                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                     icon="far fa-sticky-note" />
-                      <Link href="/addCustgroup"
-                     tooltip="Add Customer Group"
-                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                     icon="far fa-sticky-note" />
-                 <Link href="/addItemgroup"
-                     tooltip="Add Item Group"
-                     styles={{backgroundColor: darkColors.green, color: lightColors.white}} 
-                     icon="fas fa-user-plus" />
-                 <Button className="fab-item btn btn-link btn-lg text-white"
-                     tooltip="The big plus button!" 
-                     styles={{backgroundColor: darkColors.green, color: lightColors.white}}            
-                     icon="fas fa-plus"
-                     rotate={true}
-                      />
-             </Container>  
-              )}
-           
+                            </div>
+                     
       {showEditModal && (
                 <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center w-full h-full">
                      <OrderUpdate order={selectedOrderId} onClose={closeEditModal} />

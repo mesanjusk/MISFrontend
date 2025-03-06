@@ -36,7 +36,7 @@ export default function AddCustGroup() {
     return (
         <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
            
-            <div className="bg-white p-3 rounded w-25">
+            <div className="bg-white p-3 rounded w-90">
             <h3>Add User Group</h3>
             <form action="POST">
                 <div className="mb-3">

@@ -54,7 +54,7 @@ export default function AddUser() {
     return (
         <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
            
-            <div className="bg-white p-3 rounded w-25">
+            <div className="bg-white p-3 rounded w-90">
             <h2>Add User</h2>
 
             <form action="POST">

@@ -36,7 +36,7 @@ export default function AddCustomer() {
                     alert("Customer already exists");
                 } else if (res.data === "notexist") {
                     alert("Customer added successfully");
-                    exitModal(); // Close modal after successful submission
+                    exitModal(); 
                     navigate("/allOrder"); 
                 }
             })

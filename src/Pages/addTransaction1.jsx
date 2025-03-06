@@ -139,7 +139,7 @@ export default function AddTransaction1() {
     return (
         <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
             <div className="bg-white p-3 rounded w-90">
-                <h2>Add Transaction</h2>
+                <h2>Add Payment</h2>
 
                 <form onSubmit={submit}>
                     <div className="mb-3 position-relative">
