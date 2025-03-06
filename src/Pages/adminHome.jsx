@@ -366,36 +366,7 @@ const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
                    ))}
                 </div>  
                 )} 
-              <div className="tables-container flex">
-                <table className="min-w-half border">
-    <thead>
-        <tr>
-            <th className="px-4 py-2 border">Date</th>
-            <th className="px-4 py-2 border">In</th>
-            <th className="px-4 py-2 border">Break</th>
-            <th className="px-4 py-2 border">Start</th>
-            <th className="px-4 py-2 border">Out</th>
-            <th className="px-4 py-2 border">Total</th>
-            <th className="px-4 py-2 border">Amount</th>
-        </tr>
-    </thead>
-    <tbody>
-    {attendance.map((row, index) => (
-            <tr key={index}>
-              <td className="border px-4 py-2">{row.Date}</td>
-              <td className="border px-4 py-2">{row.In}</td>
-              <td className="border px-4 py-2">{row.Break}</td>
-              <td className="border px-4 py-2">{row.Start}</td>
-              <td className="border px-4 py-2">{row.Out}</td>
-              <td className="border px-4 py-2">{row.TotalHours}</td>
-              <td className="border px-4 py-2">{row.Amount}</td>
-            </tr>
-          ))}
-    </tbody>
-</table>
-
-                </div>
-                <div className="exemple-wrapper vertical">
+                 <div className="exemple-wrapper vertical">
                                 <div className="exemples">                  
                                         <code>
                                             {`  <FloatingButtons 
@@ -425,7 +396,42 @@ const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
                                    
                                 </div>
                             </div>
-                     
+                {isLoading ? (
+                       <Skeleton count={5} height={30} />
+                     ) : (
+              <div className="tables-container flex">
+                <table className="min-w-half border">
+    <thead>
+        <tr>
+            <th className="px-4 py-2 border">Date</th>
+            <th className="px-4 py-2 border">In</th>
+            <th className="px-4 py-2 border">Break</th>
+            <th className="px-4 py-2 border">Start</th>
+            <th className="px-4 py-2 border">Out</th>
+            <th className="px-4 py-2 border">Total</th>
+            <th className="px-4 py-2 border">Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+    {attendance.map((row, index) => (
+            <tr key={index}>
+              <td className="border px-4 py-2">{row.Date}</td>
+              <td className="border px-4 py-2">{row.In}</td>
+              <td className="border px-4 py-2">{row.Break}</td>
+              <td className="border px-4 py-2">{row.Start}</td>
+              <td className="border px-4 py-2">{row.Out}</td>
+              <td className="border px-4 py-2">{row.TotalHours}</td>
+              <td className="border px-4 py-2">{row.Amount}</td>
+            </tr>
+          ))}
+    </tbody>
+</table>
+
+                </div>
+                 )} 
+                
+               
+                       
       {showEditModal && (
                 <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center w-full h-full">
                      <OrderUpdate order={selectedOrderId} onClose={closeEditModal} />
