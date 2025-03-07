@@ -238,7 +238,6 @@ const closeTaskModal = () => {
         </div>
       )}
 
-      {/* Backdrop to close sidebar on mobile */}
       {isOpen && (
         <div
           onClick={toggleSidebar}

@@ -6,24 +6,18 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import OrderUpdate from '../Reports/orderUpdate'; 
 import Skeleton from "react-loading-skeleton";
-import github from  '../assets/github.svg'
-import dribbble from  '../assets/dribbble.svg'
-import linkedin from  '../assets/linkedin.svg'
-import medium from  '../assets/medium.svg'
-import spotify from  '../assets/spotify.svg'
-import twitter from  '../assets/twitter.svg'
+import order from  '../assets/order.svg'
+import enquiry from  '../assets/enquiry.svg'
+import payment from  '../assets/payment.svg'
+import reciept from  '../assets/reciept.svg'
+import usertask from  '../assets/usertask.svg'
 import FloatingButtons from "./floatingButton";
-import instagram from  '../assets/instagram.svg'
-
 
 export default function AdminHome() {
   const navigate = useNavigate();
   const location = useLocation();
   const [userName, setUserName] = useState('');
-  const [showOutButton, setShowOutButton] = useState(false);
-  const [attendanceData, setAttendanceData] = useState([]);
    const [userGroup, setUserGroup] = useState("");
-  const [userData, setUserData] = useState([]);
   const [orders, setOrders] = useState([]); 
     const [attendance, setAttendance] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false); 
@@ -42,8 +36,6 @@ export default function AdminHome() {
 
     if (loggedInUser) {
       setUserName(loggedInUser);
-      fetchUserData();
-      fetchAttendance(loggedInUser);
       fetchFilteredOrders(loggedInUser); 
       fetchAttendanceData();
     } else {
@@ -71,61 +63,6 @@ export default function AdminHome() {
     } catch (error) {
       console.error('Error fetching user names:', error);
       return {};
-    }
-  };
-
-
-  const fetchAttendance = async (loggedInUser) => { 
-    try {
-      const userLookup = await fetchUserNames();
-
-      const attendanceResponse = await axios.get('/attendance/GetAttendanceList');
-      const attendanceRecords = attendanceResponse.data.result || [];
-
-      const attendanceWithUserNames = attendanceRecords.flatMap(record => {
-        const employeeUuid = record.Employee_uuid.trim();
-        const userName = userLookup[employeeUuid] || 'Unknown';
-
-        return record.User.map(user => {
-          return {
-            Attendance_Record_ID: record.Attendance_Record_ID,
-            User_name: userName,
-            Date: record.Date ? format(new Date(record.Date), 'yyyy-MM-dd') : 'Invalid Date',
-            Time: user.Time || 'N/A',
-            Type: user.Type || 'N/A',
-            Status: record.Status || 'N/A',
-          };
-        });
-      });
-
-      setAttendanceData(attendanceWithUserNames);
-
-      const filteredAttendance = attendanceWithUserNames.filter(record => record.User_name === loggedInUser);
-
-      if (filteredAttendance.length > 0) {
-        const lastAttendance = filteredAttendance[filteredAttendance.length - 1];
-        if (lastAttendance.Type === 'In') {
-          setShowOutButton(true);
-        } else {
-          setShowOutButton(false);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching attendance:", error);
-    }
-  };
-
-  const fetchUserData = async () => {
-    try {
-      const response = await axios.get("/user/GetUserList");
-      if (response.data && response.data.success && Array.isArray(response.data.result)) {
-        setUserData(response.data.result);
-        return response.data.result;
-      } else {
-        return null;
-      }
-    } catch (error) {
-      return null;
     }
   };
 
@@ -173,93 +110,75 @@ export default function AdminHome() {
     }
   };
 
-  const fetchAttendanceData = async (loggedInUser) => { 
+  const fetchAttendanceData = async () => { 
     try {
       const userLookup = await fetchUserNames();
       
       const attendanceResponse = await axios.get('/attendance/GetAttendanceList');
       const attendanceRecords = attendanceResponse.data.result || [];
-
-      const formattedData = processAttendanceData(attendanceRecords); 
+      const formattedData = processAttendanceData(attendanceRecords, userLookup);
       setAttendance(formattedData);
 
-  
-      const attendanceWithUserNames = attendanceRecords.flatMap(record => {
-        const employeeUuid = record.Employee_uuid.trim(); 
-        const userName = userLookup[employeeUuid] || 'Unknown'; 
-  
-        return record.User.map(user => {
-          return {
-            Attendance_Record_ID: record.Attendance_Record_ID,
-            User_name: userName, 
-            Date: record.Date,
-            Time: user.CreatedAt ? format(new Date(user.CreatedAt), "hh:mm a") : "No Time",
-            Type: user.Type || 'N/A',
-            Status: record.Status || 'N/A',
-          };
-        });
-      });
-      const filteredAttendance = attendanceWithUserNames.filter(record => record.User_name === loggedInUser);
-      setAttendanceData(filteredAttendance);
-  
     } catch (error) {
       console.error("Error fetching attendance:", error);
     }
-  };
+};
 
-  const processAttendanceData = (data) => {
+const processAttendanceData = (data, userLookup) => {
     const groupedData = new Map();
+    const todayDate = new Date().toISOString().split("T")[0]; 
 
-    data.forEach(({ Date: recordDate, User, Amount }) => {  
-
-        if (!recordDate) {
-            console.error("Invalid Date:", recordDate);
+    data.forEach(({ Date: recordDate, User, Employee_uuid }) => {  
+        if (!recordDate || isNaN(new Date(recordDate).getTime())) {
+            console.error("Skipping invalid date:", recordDate);
             return;
         }
 
         const parsedDate = new Date(recordDate);
-        if (isNaN(parsedDate.getTime())) {
-            console.error("Invalid Date format:", recordDate);
-            return;
-        }
-
         const dateKey = parsedDate.toISOString().split("T")[0];
 
-        if (!groupedData.has(dateKey)) {
-            groupedData.set(dateKey, { 
+        if (dateKey !== todayDate) return; 
+
+        const userName = userLookup[Employee_uuid.trim()] || 'Unknown';
+        const userDateKey = `${userName}-${dateKey}`;
+
+        if (!groupedData.has(userDateKey)) {
+            groupedData.set(userDateKey, { 
                 Date: dateKey, 
+                User_name: userName,
                 In: "N/A", 
                 Break: "N/A", 
                 Start: "N/A", 
                 Out: "N/A", 
-                TotalHours: "N/A", 
-                Amount: "N/A" 
+                TotalHours: "N/A"
             });
         }
 
-        const record = groupedData.get(dateKey);
+        const record = groupedData.get(userDateKey);
 
         User.forEach(userEntry => {
+            if (!userEntry.CreatedAt) return; 
+
+            const formattedTime = format(new Date(userEntry.CreatedAt), "hh:mm a");
+
             switch (userEntry.Type) {
                 case "In":
-                    record.In = userEntry.Time.trim() || "No Time";  
+                    record.In = formattedTime;  
                     break;
                 case "Break":
-                    record.Break = userEntry.Time.trim() || "No Time";
+                    record.Break = formattedTime;
                     break;
                 case "Start":
-                    record.Start = userEntry.Time.trim() || "No Time";
+                    record.Start = formattedTime;
                     break;
                 case "Out":
-                    record.Out = userEntry.Time.trim() || "No Time";
+                    record.Out = formattedTime;
                     break;
                 default:
                     console.warn("Unexpected Type:", userEntry.Type);
                     break;
             }
         });
-
-        record.Amount = Amount || record.Amount;
 
     });
 
@@ -322,15 +241,11 @@ const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
   };
 
   const buttonsList = [
-   { onClick: () => navigate('/addTransaction'), src: github },
-   { onClick: ()=>  navigate('/addTransaction1'), src: medium },
-   { onClick: ()=> navigate('/addOrder1'), src: dribbble },
-   { onClick: ()=> navigate('/addItemgroup'), src: linkedin },
-   { onClick: () => navigate('/addUsertask'), src: spotify },
-   { onClick: ()=>  navigate('/addUsergroup'), src: instagram },
-   { onClick: ()=>  navigate('/addTaskgroup'), src: twitter },
-   { onClick: ()=> navigate('/addEnquiry'), src: linkedin },
-   { onClick: ()=> navigate('/addCustgroup'), src: github },
+   { onClick: () => navigate('/addTransaction'), src: reciept },
+   { onClick: ()=>  navigate('/addTransaction1'), src: payment },
+   { onClick: ()=> navigate('/addOrder1'), src: order },
+   { onClick: () => navigate('/addUsertask'), src: usertask },
+   { onClick: ()=> navigate('/addEnquiry'), src: enquiry },
  ]
  
 
@@ -367,41 +282,41 @@ const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
                 </div>  
                 )} 
                
-                {isLoading ? (
-                       <Skeleton count={5} height={30} />
-                     ) : (
-              <div className="tables-container flex">
-                <table className="min-w-half border">
-    <thead>
+               {isLoading ? (
+  <Skeleton count={5} height={30} />
+) : (
+  <div className="tables-container flex">
+    <table className="min-w-half border">
+      <thead>
         <tr>
-            <th className="px-4 py-2 border">Date</th>
-            <th className="px-4 py-2 border">In</th>
-            <th className="px-4 py-2 border">Break</th>
-            <th className="px-4 py-2 border">Start</th>
-            <th className="px-4 py-2 border">Out</th>
-            <th className="px-4 py-2 border">Total</th>
-            <th className="px-4 py-2 border">Amount</th>
+          <th className="px-4 py-2 border">Name</th>
+          <th className="px-4 py-2 border">In</th>
+          <th className="px-4 py-2 border">Break</th>
+          <th className="px-4 py-2 border">Start</th>
+          <th className="px-4 py-2 border">Out</th>
+          <th className="px-4 py-2 border">Total</th>
         </tr>
-    </thead>
-    <tbody>
-    {attendance.map((row, index) => (
-            <tr key={index}>
-              <td className="border px-4 py-2">{row.Date}</td>
-              <td className="border px-4 py-2">{row.In}</td>
-              <td className="border px-4 py-2">{row.Break}</td>
-              <td className="border px-4 py-2">{row.Start}</td>
-              <td className="border px-4 py-2">{row.Out}</td>
-              <td className="border px-4 py-2">{row.TotalHours}</td>
-              <td className="border px-4 py-2">{row.Amount}</td>
-            </tr>
-          ))}
-    </tbody>
-</table>
+      </thead>
+      <tbody>
+  {attendance
+    .map((row, index) => (
+      <tr key={index}>
+       <td className="border px-4 py-2">{row.User_name}</td>
+        <td className="border px-4 py-2">{row.In}</td>
+        <td className="border px-4 py-2">{row.Break}</td>
+        <td className="border px-4 py-2">{row.Start}</td>
+        <td className="border px-4 py-2">{row.Out}</td>
+        <td className="border px-4 py-2">{row.TotalHours}</td>
+      </tr>
+    ))}
+</tbody>
 
-                </div>
-                 )} 
+    </table>
+  </div>
+)}
+
                 
-                <FloatingButtons buttonType="plus" buttonsList={buttonsList} direction="up" />
+                <FloatingButtons buttonType="bars" buttonsList={buttonsList} direction="up" />
                        
       {showEditModal && (
                 <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center w-full h-full">

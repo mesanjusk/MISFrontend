@@ -7,10 +7,10 @@ import Footer from './footer';
 import axios from 'axios';
 import OrderUpdate from '../Reports/orderUpdate'; 
 import AddOrder1 from "../Pages/addOrder1";
-import github from  '../assets/github.svg'
-import dribbble from  '../assets/dribbble.svg'
-import medium from  '../assets/medium.svg'
-import instagram from  '../assets/instagram.svg'
+import order from  '../assets/order.svg'
+import enquiry from  '../assets/enquiry.svg'
+import payment from  '../assets/payment.svg'
+import reciept from  '../assets/reciept.svg'
 import FloatingButtons from "./floatingButton";
 
 export default function Home() {
@@ -131,10 +131,10 @@ const closeModal = () => {
 };
 
 const buttonsList = [
-  { onClick: ()=> navigate('/addTransaction'), src: instagram },
-  { onClick: ()=> navigate('/addTransaction1'), src: medium },
-  { onClick: ()=> navigate('/addOrder1'), src: dribbble },
-  { onClick: ()=> navigate('/addItemgroup'), src: github },
+  { onClick: ()=> navigate('/addTransaction'), src: reciept },
+  { onClick: ()=> navigate('/addTransaction1'), src: payment },
+  { onClick: ()=> navigate('/addOrder1'), src: order },
+  { onClick: ()=> navigate('/addEnquiry'), src: enquiry },
 ]
 
 
@@ -170,7 +170,7 @@ const buttonsList = [
               ))}
            </div>  
            )} 
-            <FloatingButtons buttonType="plus" buttonsList={buttonsList} direction="up" />
+            <FloatingButtons buttonType="bars" buttonsList={buttonsList} direction="up" />
             {showOrderModal && (
                            <div className="modal-overlay">
                                <div className="modal-content">
