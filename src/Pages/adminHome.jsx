@@ -6,14 +6,6 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import OrderUpdate from '../Reports/orderUpdate'; 
 import Skeleton from "react-loading-skeleton";
-import github from  '../assets/github.svg'
-import dribbble from  '../assets/dribbble.svg'
-import linkedin from  '../assets/linkedin.svg'
-import medium from  '../assets/medium.svg'
-import spotify from  '../assets/spotify.svg'
-import twitter from  '../assets/twitter.svg'
-import FloatingButtons from 'react-floating-buttons'
-import instagram from  '../assets/instagram.svg'
 
 
 export default function AdminHome() {
@@ -321,18 +313,6 @@ const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
     setSelectedOrderId(null); 
   };
 
-  const buttonsList = [
-   { onClick: () => navigate('/addTransaction'), src: github },
-   { onClick: ()=>  navigate('/addTransaction1'), src: medium },
-   { onClick: ()=> navigate('/addOrder1'), src: dribbble },
-   { onClick: ()=> navigate('/addItemgroup'), src: linkedin },
-   { onClick: () => navigate('/addUsertask'), src: spotify },
-   { onClick: ()=>  navigate('/addUsergroup'), src: instagram },
-   { onClick: ()=>  navigate('/addTaskgroup'), src: twitter },
-   { onClick: ()=> navigate('/addEnquiry'), src: linkedin },
-   { onClick: ()=> navigate('/addCustgroup'), src: github },
- ]
- 
 
   return (
     <>
@@ -366,36 +346,7 @@ const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
                    ))}
                 </div>  
                 )} 
-                 <div className="exemple-wrapper vertical">
-                                <div className="exemples">                  
-                                        <code>
-                                            {`  <FloatingButtons 
-                                                    buttonType='plus' 
-                                                    dimension={50} 
-                                                    buttonsList={buttonsList}
-                                                    top={'250px'} 
-                                                    left={'50%'} 
-                                                    direction="up" 
-                                                    buttonColor="white"
-                                                    backgroundColor="green"
-                                                    itemBackgroundColor="green" />    `}
-                                        </code>
-                                        <div className="component">
-                                            <FloatingButtons 
-                                                buttonType='plus' 
-                                                dimension={50} 
-                                                buttonsList={[...buttonsList.slice(0, 9)]}
-                                                top={'500px'} 
-                                                left={'80%'}
-                                                direction="up" 
-                                                buttonColor="white"
-                                                backgroundColor="green"
-                                                itemBackgroundColor="green"
-                                                />
-                                        </div>
-                                   
-                                </div>
-                            </div>
+                
                 {isLoading ? (
                        <Skeleton count={5} height={30} />
                      ) : (
