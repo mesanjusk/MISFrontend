@@ -57,7 +57,7 @@ export default function AddUsertask() {
         }
     }
     const closeModal = () => {
-        navigate("/home");
+        navigate("/adminHome");
      };
 
      const handleDeadlineCheckboxChange = () => {

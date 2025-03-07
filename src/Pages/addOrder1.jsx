@@ -253,7 +253,7 @@ export default function AddOrder1() {
                     <button type="submit" className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center">
                         Submit
                     </button>
-                    <button type="button" className="btn btn-secondary" onClick={closeModal}>Close</button>
+                    <button type="button" className="w-100 h-10 bg-red-500 text-white shadow-lg flex items-center justify-center" onClick={closeModal}>Close</button>
                 </form>
             </div>
         </div>
