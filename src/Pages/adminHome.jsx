@@ -6,6 +6,14 @@ import axios from 'axios';
 import { format } from 'date-fns';
 import OrderUpdate from '../Reports/orderUpdate'; 
 import Skeleton from "react-loading-skeleton";
+import github from  '../assets/github.svg'
+import dribbble from  '../assets/dribbble.svg'
+import linkedin from  '../assets/linkedin.svg'
+import medium from  '../assets/medium.svg'
+import spotify from  '../assets/spotify.svg'
+import twitter from  '../assets/twitter.svg'
+import FloatingButtons from "./floatingButton";
+import instagram from  '../assets/instagram.svg'
 
 
 export default function AdminHome() {
@@ -313,6 +321,18 @@ const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
     setSelectedOrderId(null); 
   };
 
+  const buttonsList = [
+   { onClick: () => navigate('/addTransaction'), src: github },
+   { onClick: ()=>  navigate('/addTransaction1'), src: medium },
+   { onClick: ()=> navigate('/addOrder1'), src: dribbble },
+   { onClick: ()=> navigate('/addItemgroup'), src: linkedin },
+   { onClick: () => navigate('/addUsertask'), src: spotify },
+   { onClick: ()=>  navigate('/addUsergroup'), src: instagram },
+   { onClick: ()=>  navigate('/addTaskgroup'), src: twitter },
+   { onClick: ()=> navigate('/addEnquiry'), src: linkedin },
+   { onClick: ()=> navigate('/addCustgroup'), src: github },
+ ]
+ 
 
   return (
     <>
@@ -346,7 +366,7 @@ const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
                    ))}
                 </div>  
                 )} 
-                
+               
                 {isLoading ? (
                        <Skeleton count={5} height={30} />
                      ) : (
@@ -381,7 +401,7 @@ const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
                 </div>
                  )} 
                 
-               
+                <FloatingButtons buttonType="plus" buttonsList={buttonsList} direction="up" />
                        
       {showEditModal && (
                 <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center w-full h-full">

@@ -10,9 +10,6 @@ export default function EditCustomer({ customerId, closeModal }) {
         Mobile_number: '',
         Customer_group: '',
     });
-    useEffect(() => {
-        console.log("✅ EditCustomer component mounted for ID:", customerId);
-    }, [customerId]);
 
     useEffect(() => {
         axios.get("/customergroup/GetCustomergroupList")
@@ -29,20 +26,17 @@ export default function EditCustomer({ customerId, closeModal }) {
             axios.get(`/customer/${customerId}`)
                 .then(res => {
                     if (res.data.success) {
+                        const customer = res.data.result;
                         setValues({
-                            Customer_name: res.data.result.Customer_name || '',
-                            Mobile_number: res.data.result.Mobile_number || '',
-                            Customer_group: res.data.result.Customer_group || '',
+                            Customer_name: customer.Customer_name || '',
+                            Mobile_number: customer.Mobile_number || '',
+                            Customer_group: customer.Customer_group || '',
                         });
                     }
                 })
                 .catch(err => console.log('Error fetching customer data:', err));
         }
     }, [customerId]);
-
-    const handleInputChange = (e) => {
-        setValues({ ...values, [e.target.name]: e.target.value });
-    };
 
     const handleSaveChanges = (e) => {
         e.preventDefault();
@@ -51,7 +45,20 @@ export default function EditCustomer({ customerId, closeModal }) {
             alert('All fields are required.');
             return;
         }
-
+        axios.put(`/customer/update/${customerId}`, { 
+            Customer_name: values.Customer_name,
+            Mobile_number: values.Mobile_number,
+            Customer_group: values.Customer_group,
+        })
+        .then(res => {
+            if (res.data.success) {
+                alert('Customer updated successfully!');
+                closeModal(); 
+            }
+        })
+        .catch(err => {
+            console.log('Error updating item:', err);
+        });
         axios.put(`/customer/update/${customerId}`, values)
             .then(res => {
                 if (res.data.success) {
@@ -69,32 +76,29 @@ export default function EditCustomer({ customerId, closeModal }) {
                 <form onSubmit={handleSaveChanges}>
                     <div className="mb-3">
                     <label>Customer Name</label> 
-                        <input
-                            type="text"
-                            name="Customer_name"
-                            value={values.Customer_name}
-                            onChange={handleInputChange}
-                            className="form-control"
-                            required
-                        />
+                    <input
+                       type="text"
+                        className="form-control"
+                        value={values.Customer_name}
+                      onChange={(e) => setValues({ ...values, Customer_name: e.target.value })}
+                      required
+                />
                     </div>
                     <div className="mb-3">
                     <label>Mobile Number</label> 
                         <input
                             type="text"
-                            name="Mobile_number"
+                             className="form-control"
                             value={values.Mobile_number}
-                            onChange={handleInputChange}
-                            className="form-control"
+                            onChange={(e) => setValues({ ...values, Mobile_number: e.target.value })}
                             required
                         />
                     </div>
                     <div className="mb-3">
                     <label>Customer Group</label> 
                         <select
-                            name="Customer_group"
                             value={values.Customer_group}
-                            onChange={handleInputChange}
+                            onChange={(e) => setValues({ ...values, Customer_group: e.target.value })}
                             className="form-control"
                             required
                         >
@@ -105,8 +109,8 @@ export default function EditCustomer({ customerId, closeModal }) {
                         </select>
                     </div>
                     <div className="d-flex justify-content-between">
-                        <button type="submit" className="btn btn-primary">Save Changes</button>
-                        <button type="button" className="btn btn-danger" onClick={closeModal}>Cancel</button>
+                        <button type="submit"  className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center">Save</button>
+                        <button type="button" className="w-100 h-10 bg-red-500 text-white shadow-lg flex items-center justify-center" onClick={closeModal}>Cancel</button>
                     </div>
                 </form>
             </div>
