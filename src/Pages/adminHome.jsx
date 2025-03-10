@@ -294,7 +294,6 @@ const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
           <th className="px-4 py-2 border">Break</th>
           <th className="px-4 py-2 border">Start</th>
           <th className="px-4 py-2 border">Out</th>
-          <th className="px-4 py-2 border">Total</th>
         </tr>
       </thead>
       <tbody>
@@ -306,7 +305,6 @@ const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
         <td className="border px-4 py-2">{row.Break}</td>
         <td className="border px-4 py-2">{row.Start}</td>
         <td className="border px-4 py-2">{row.Out}</td>
-        <td className="border px-4 py-2">{row.TotalHours}</td>
       </tr>
     ))}
 </tbody>
