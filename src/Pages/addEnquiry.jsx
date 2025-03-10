@@ -7,6 +7,7 @@ export default function AddCategory() {
 
     const [Customer_name, setCustomer_Name] = useState('');
     const [Remark, setRemark] = useState('');
+     const [userGroup, setUserGroup] = useState("");
     const [customerOptions, setCustomerOptions] = useState([]);
 
     useEffect(() => {
@@ -22,6 +23,10 @@ export default function AddCategory() {
             });
     }, []);
 
+ useEffect(() => {
+            const group = localStorage.getItem("User_group");
+            setUserGroup(group);
+          }, []);
 
     function addCustomer() {
         navigate("/addCustomer");
@@ -55,8 +60,12 @@ export default function AddCategory() {
     }
 
     const closeModal = () => {
-        navigate("/home");
-     };
+        if (userGroup === "Office User") {
+            navigate("/home");
+        } else if (userGroup === "Admin User") {
+            navigate("/adminHome");
+        }
+    };
 
     return (
         <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">

@@ -8,6 +8,7 @@ export default function AddOrder1() {
 
     const [Customer_name, setCustomer_Name] = useState('');
     const [Customer_uuid, setCustomer_uuid] = useState('');
+    const [userGroup, setUserGroup] = useState("");
     const [Remark, setRemark] = useState('');
     const [customerOptions, setCustomerOptions] = useState([]);
     const [filteredOptions, setFilteredOptions] = useState([]);
@@ -31,6 +32,10 @@ export default function AddOrder1() {
         }
     }, [location.state, navigate]);
     
+   useEffect(() => {
+            const group = localStorage.getItem("User_group");
+            setUserGroup(group);
+          }, []);
 
     useEffect(() => {
         axios.get("/customer/GetCustomersList")
@@ -153,9 +158,13 @@ export default function AddOrder1() {
     };
 
     const closeModal = () => {
-        navigate("/home");
-     };
-
+        if (userGroup === "Office User") {
+            navigate("/home");
+        } else if (userGroup === "Admin User") {
+            navigate("/adminHome");
+        }
+    };
+ 
     return (
         <>
         <div className="d-flex justify-content-center align-items-center bg-gray-200 vh-100">

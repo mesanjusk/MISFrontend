@@ -8,6 +8,8 @@ export default function AddTransaction1() {
     const [Description, setDescription] = useState('');
     const [Amount, setAmount] = useState('');
     const [Total_Debit, setTotal_Debit] = useState('');
+     const [Transaction_date, setTransaction_date] = useState('');
+    const [userGroup, setUserGroup] = useState("");
     const [Total_Credit, setTotal_Credit] = useState('');
     const [CreditCustomer, setCreditCustomer] = useState(''); 
     const [DebitCustomer, setDebitCustomer] = useState(''); 
@@ -17,6 +19,7 @@ export default function AddTransaction1() {
     const [showOptions, setShowOptions] = useState(false);
     const [filteredOptions, setFilteredOptions] = useState([]);
     const [Customer_name, setCustomer_Name] = useState('');
+    const [isDateChecked, setIsDateChecked] = useState(false);
 
     useEffect(() => {
         const userNameFromState = location.state?.id;
@@ -28,6 +31,12 @@ export default function AddTransaction1() {
             navigate("/login");
         }
     }, [location.state, navigate]);
+
+      useEffect(() => {
+            const group = localStorage.getItem("User_group");
+            setUserGroup(group);
+          }, []);
+    
 
     useEffect(() => {
         axios.get("/customer/GetCustomersList")
@@ -64,6 +73,7 @@ export default function AddTransaction1() {
         try {
             const creditCustomer = allCustomerOptions.find(option => option.Customer_uuid === CreditCustomer);
             const debitCustomer = accountCustomerOptions.find(option => option.Customer_uuid === DebitCustomer);
+            const todayDate = new Date().toISOString().split("T")[0];
 
             if (!creditCustomer || !debitCustomer) {
                 alert("Please select valid customers.");
@@ -89,7 +99,8 @@ export default function AddTransaction1() {
                 Total_Debit: Number(Amount),
                 Payment_mode: debitCustomer.Customer_name,  
                 Journal_entry: journal,
-                Created_by: loggedInUser
+                Created_by: loggedInUser,
+                Transaction_date: Transaction_date || todayDate,
             });
 
             if (response.data.success) {
@@ -103,6 +114,12 @@ export default function AddTransaction1() {
             alert("Error occurred while submitting the form.");
         }
     }
+
+    
+    const handleDateCheckboxChange = () => {
+        setIsDateChecked(prev => !prev); 
+        setTransaction_date(''); 
+    };
 
     const handleAmountChange = (e) => {
         const value = e.target.value;
@@ -133,8 +150,12 @@ export default function AddTransaction1() {
     };
 
     const closeModal = () => {
-       navigate("/home");
-    };
+        if (userGroup === "Office User") {
+            navigate("/home");
+        } else if (userGroup === "Admin User") {
+            navigate("/adminHome");
+        }
+    };   
 
     return (
         <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
@@ -210,7 +231,31 @@ export default function AddTransaction1() {
                             ))}
                         </select>
                     </div>
-
+                    <div className="mb-3 ">
+                        <input
+                            type="checkbox"
+                            className="form-check-input"
+                            id="dateCheckbox"
+                            checked={isDateChecked}
+                            onChange={handleDateCheckboxChange}
+                        />
+                        <label className="form-check-label" htmlFor="dateCheckbox">
+                            Save Date 
+                        </label>
+                    </div>
+                    {isDateChecked && (
+                        <div className="mb-3">
+                            <label htmlFor="date"><strong>Date</strong></label>
+                            <input
+                                type="date"
+                                id="date"
+                                autoComplete="off"
+                                onChange={(e) => setTransaction_date(e.target.value)}
+                                value={Transaction_date}
+                                className="form-control rounded-0"
+                            />
+                       </div>
+                    )}
                     <button type="submit" className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center">
                         Submit
                     </button>

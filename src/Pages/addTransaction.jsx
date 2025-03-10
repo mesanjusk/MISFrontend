@@ -7,8 +7,10 @@ export default function AddTransaction() {
 
     const [Description, setDescription] = useState('');
     const [Amount, setAmount] = useState('');
+    const [Transaction_date, setTransaction_date] = useState('');
     const [Total_Debit, setTotal_Debit] = useState('');
     const [Total_Credit, setTotal_Credit] = useState('');
+     const [userGroup, setUserGroup] = useState("");
     const [customers, setCustomers] = useState(''); 
     const [group, setGroup] = useState(''); 
     const [allCustomerOptions, setAllCustomerOptions] = useState([]); 
@@ -17,6 +19,7 @@ export default function AddTransaction() {
     const [showOptions, setShowOptions] = useState(false);
     const [filteredOptions, setFilteredOptions] = useState([]);
     const [Customer_name, setCustomer_Name] = useState('');
+    const [isDateChecked, setIsDateChecked] = useState(false);
 
     useEffect(() => {
         const userNameFromState = location.state?.id;
@@ -28,6 +31,11 @@ export default function AddTransaction() {
             navigate("/login");
         }
     }, [location.state, navigate]);
+
+     useEffect(() => {
+        const group = localStorage.getItem("User_group");
+        setUserGroup(group);
+      }, []);
 
     useEffect(() => {
         axios.get("/customer/GetCustomersList")
@@ -64,6 +72,7 @@ export default function AddTransaction() {
         try {
             const Customer = allCustomerOptions.find(option => option.Customer_uuid === customers);
             const Group = accountCustomerOptions.find(option => option.Customer_uuid === group);
+            const todayDate = new Date().toISOString().split("T")[0];
     
             if (!Customer || !Group) {
                 alert("Please select valid customers.");
@@ -83,22 +92,14 @@ export default function AddTransaction() {
                 }
             ];
     
-            console.log({
-                Description,
-                Total_Credit: Number(Amount),
-                Total_Debit: Number(Amount),
-                Payment_mode: Group.Customer_name,  
-                Journal_entry: journal,
-                Created_by: loggedInUser
-            });
-    
             const response = await axios.post("/transaction/addTransaction", {
                 Description,
                 Total_Credit: Number(Amount),
                 Total_Debit: Number(Amount),
                 Payment_mode: Group.Customer_name,  
                 Journal_entry: journal,
-                Created_by: loggedInUser
+                Created_by: loggedInUser,
+                Transaction_date: Transaction_date || todayDate,
             });
     
             if (response.data.success) {
@@ -117,7 +118,11 @@ export default function AddTransaction() {
             alert("Error occurred while submitting the form.");
         }
     }
-    
+
+    const handleDateCheckboxChange = () => {
+        setIsDateChecked(prev => !prev); 
+        setTransaction_date(''); 
+    };
 
     const handleAmountChange = (e) => {
         const value = e.target.value;
@@ -146,12 +151,15 @@ export default function AddTransaction() {
         setCustomers(option.Customer_uuid); 
         setShowOptions(false);
     };
-
+    
     const closeModal = () => {
-        navigate("/home");
-     };
- 
-
+        if (userGroup === "Office User") {
+            navigate("/home");
+        } else if (userGroup === "Admin User") {
+            navigate("/adminHome");
+        }
+    };
+    
     return (
         <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
             <div className="bg-white p-3 rounded w-90">
@@ -226,7 +234,31 @@ export default function AddTransaction() {
                             ))}
                         </select>
                     </div>
-
+                    <div className="mb-3 ">
+                        <input
+                            type="checkbox"
+                            className="form-check-input"
+                            id="dateCheckbox"
+                            checked={isDateChecked}
+                            onChange={handleDateCheckboxChange}
+                        />
+                        <label className="form-check-label" htmlFor="dateCheckbox">
+                            Save Date 
+                        </label>
+                    </div>
+                    {isDateChecked && (
+                        <div className="mb-3">
+                            <label htmlFor="date"><strong>Date</strong></label>
+                            <input
+                                type="date"
+                                id="date"
+                                autoComplete="off"
+                                onChange={(e) => setTransaction_date(e.target.value)}
+                                value={Transaction_date}
+                                className="form-control rounded-0"
+                            />
+                       </div>
+                    )}
                     <button type="submit" className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center">
                         Submit
                     </button>
