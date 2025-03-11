@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 export default function UserTask() {
     const [tasks, setTasks] = useState([]);
     const [attendanceData, setAttendanceData] = useState([]);
-    const [attendanceState, setAttendanceState] = useState(localStorage.getItem("attendanceState") || "None");
+    const [attendanceState, setAttendanceState] = useState(null);
     const [loggedInUser, setLoggedInUser] = useState(null);
     const [userName, setUserName] = useState('');
     const [attendance, setAttendance] = useState([]);
@@ -25,9 +25,54 @@ export default function UserTask() {
         }
     }, [navigate]);
 
+    useEffect(() => {
+        const savedState = localStorage.getItem("attendanceState");
+        const lastUpdated = localStorage.getItem("attendanceDate");
+        const today = new Date().toLocaleDateString();
+
+        if (savedState && lastUpdated === today) {
+            setAttendanceState(savedState);  
+        } else {
+            setAttendanceState("None"); 
+        }
+    }, []);
+
     const formatTime = (dateString) => {
         return format(new Date(dateString), "h:mm a", { locale: enIN });
     };
+
+    const fetchLastAttendance = async () => {
+        try {
+            const response = await fetch(`http://localhost:8000/attendance/getLastAttendance/${userName}`);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error("Fetch error:", error);
+            return null; 
+        }
+    };
+
+    useEffect(() => {
+        if (showButtons) {
+            fetchLastAttendance().then((lastAttendance) => {
+                if (lastAttendance && lastAttendance.success) {
+                    const lastType = lastAttendance.lastState;
+    
+                    if (lastType === "In") {
+                        setAttendanceState("Break"); 
+                    } else if (lastType === "Break") {
+                        setAttendanceState("Start"); 
+                    } else if (lastType === "Start") {
+                        setAttendanceState("Out"); 
+                    } else {
+                        setAttendanceState(lastType); 
+                    }
+                } else {
+                    setAttendanceState(null);
+                }
+            });
+        }
+    }, [showButtons]);
 
     useEffect(() => {
         axios.get("/usertask/GetUsertaskList")
@@ -57,12 +102,22 @@ export default function UserTask() {
     
             if (response.data.success) {
                 alert(`Attendance saved successfully for ${type}`);
-                setAttendanceState(type);
-                localStorage.setItem("attendanceState", type);
-
+                let newState = "None";
+                if (type === "In") {
+                    newState = "Out_Break"; 
+                } else if (type === "Break") {
+                    newState = "Out_Start"; 
+                } else if (type === "Start") {
+                    newState = "Out";       
+                } else if (type === "Out") {
+                    newState = "In";       
+                }
+    
+                setAttendanceState(newState);
+                localStorage.setItem("attendanceState", newState);
+                localStorage.setItem("attendanceDate", new Date().toLocaleDateString());
+    
                 if (type === "Out") {
-                        setAttendanceState("None");  
-                        localStorage.setItem("attendanceState", "None");
                     await createTransaction(loggedInUser);
                 }
             }
@@ -154,7 +209,7 @@ export default function UserTask() {
         }
       };
 
-      const fetchAttendanceData = async (loggedInUser) => { 
+      const fetchAttendanceData = async (loggedInUser) => {
         try {
             const userLookup = await fetchUserNames();
             const attendanceResponse = await axios.get('/attendance/GetAttendanceList');
@@ -167,36 +222,56 @@ export default function UserTask() {
                 const employeeUuid = record.Employee_uuid.trim();
                 const userName = userLookup[employeeUuid] || 'Unknown';
     
-                return record.User.map(user => {
-                    return {
-                        Attendance_Record_ID: record.Attendance_Record_ID,
-                        User_name: userName,
-                        Date: record.Date,
-                        Time: user.CreatedAt ? format(new Date(user.CreatedAt), "hh:mm a") : "No Time",
-                        Type: user.Type || 'N/A',
-                        Status: record.Status || 'N/A',
-                    };
-                });
+                return record.User.map(user => ({
+                    Attendance_Record_ID: record.Attendance_Record_ID,
+                    User_name: userName,
+                    Date: new Date(user.CreatedAt).toISOString().split("T")[0], 
+                    Time: user.CreatedAt ? format(new Date(user.CreatedAt), "hh:mm a") : "No Time",
+                    Type: user.Type || 'N/A',
+                    Status: record.Status || 'N/A',
+                }));
             }).filter(record => record.User_name === loggedInUser);
     
             setAttendanceData(filteredAttendance);
     
-            if (filteredAttendance.length > 0) {
-                const lastRecord = filteredAttendance[filteredAttendance.length - 1];
-                const lastDate = new Date(lastRecord.Date).toISOString().split("T")[0];
-                const todayDate = new Date().toISOString().split("T")[0];
+            const todayDate = new Date().toISOString().split("T")[0];
+            const attendanceByDate = filteredAttendance.reduce((acc, record) => {
+                acc[record.Date] = acc[record.Date] || [];
+                acc[record.Date].push(record);
+                return acc;
+            }, {});
     
-                if (lastDate !== todayDate && lastRecord.Type === "In") {
-                    setAttendanceState("None");
-                    localStorage.setItem("attendanceState", "None");
+            const lastRecordedDate = Object.keys(attendanceByDate).sort().pop();
+            const lastDayRecords = attendanceByDate[lastRecordedDate] || [];
+            const lastRecord = lastDayRecords.length > 0 ? lastDayRecords[lastDayRecords.length - 1] : null;
+            
+            if (lastRecordedDate !== todayDate) {
+                setAttendanceState("In");
+                localStorage.setItem("attendanceState", "In");
+            } else {
+                let newState = "In";
+            
+                if (lastRecord) {
+                    if (lastRecord.Type === "In") {
+                        newState = "Out_Break";
+                    } else if (lastRecord.Type === "Break") {
+                        newState = "Out_Start";
+                    } else if (lastRecord.Type === "Start") {
+                        newState = "Out";
+                    } else if (lastRecord.Type === "Out") {
+                        newState = "In";
+                    }
                 }
+            
+                setAttendanceState(newState);
+                localStorage.setItem("attendanceState", newState);
             }
+            
         } catch (error) {
             console.error("Error fetching attendance:", error);
         }
-    };
+    };    
     
-
       const processAttendanceData = (data, userLookup) => {
         const groupedData = new Map();
     
@@ -325,44 +400,37 @@ export default function UserTask() {
         </div>
         <div className="form-check mt-3">
         <input
-    type="checkbox"
-    id="toggleButtons"
-    className="form-check-input"
-    checked={showButtons}
-    onChange={() => {
-        setShowButtons(prev => !prev);
-        if (!showButtons) {
-            setAttendanceState("None"); 
-        }
-    }}
-/>
-
-            <label className="form-check-label" htmlFor="toggleButtons">
-                Please select checkbox
-            </label>
-        </div>
-
+            type="checkbox"
+            id="toggleButtons"
+            className="form-check-input"
+            checked={showButtons}
+            onChange={() => setShowButtons(!showButtons)}
+        />
+        <label className="form-check-label" htmlFor="toggleButtons">
+            Please select checkbox
+        </label>
+    </div>
         {showButtons && (
             <div className="text-center mt-3">
-                {attendanceState === "None" && (
+                {attendanceState === "In" && (
                     <button className="bg-green-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('In')}>In</button>
                 )}
 
-                {attendanceState === "In" && (
+                {attendanceState === "Break" && (
                     <>
                         <button className="bg-red-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Out')}>Out</button>&nbsp;&nbsp;
                         <button className="bg-yellow-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Break')}>Break</button>
                     </>
                 )}
 
-                {attendanceState === "Break" && (
+                {attendanceState === "Start" && (
                     <>
                         <button className="bg-red-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Out')}>Out</button>&nbsp;&nbsp;
                         <button className="bg-green-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Start')}>Start</button>
                     </>
                 )}
 
-                {attendanceState === "Start" && (
+                {attendanceState === "Out" && (
                     <button className="bg-red-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Out')}>Out</button>
                 )}
             </div>

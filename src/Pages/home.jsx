@@ -122,10 +122,6 @@ export default function Home() {
     setShowEditModal(false); 
     setSelectedOrderId(null);  
   };
-  const handleOrder = () => {
-    setShowOrderModal(true);
-};
-
 const closeModal = () => {
     setShowOrderModal(false);
 };

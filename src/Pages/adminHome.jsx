@@ -23,6 +23,8 @@ export default function AdminHome() {
   const [showEditModal, setShowEditModal] = useState(false); 
   const [selectedOrderId, setSelectedOrderId] = useState(null); 
      const [isLoading, setIsLoading] = useState(true);
+     const [customers, setCustomers] = useState({});
+     const [loggedInUser, setLoggedInUser] = useState(null);
 
      useEffect(() => {
            const group = localStorage.getItem("User_group");
@@ -32,11 +34,11 @@ export default function AdminHome() {
   useEffect(() => {
     setTimeout(() => {
     const userNameFromState = location.state?.id;
-    const loggedInUser = userNameFromState || localStorage.getItem('User_name');
-
-    if (loggedInUser) {
-      setUserName(loggedInUser);
-      fetchFilteredOrders(loggedInUser); 
+    const user = userNameFromState || localStorage.getItem('User_name');
+    setLoggedInUser(user);
+    if (user) {
+      setUserName(user);
+      fetchData(user); 
       fetchAttendanceData();
     } else {
       navigate("/login");
@@ -66,49 +68,56 @@ export default function AdminHome() {
     }
   };
 
-  const fetchFilteredOrders = async (loggedInUser) => {
-    try {
-      const ordersResponse = await axios.get(`/order/GetOrderList`);
-      const customerResponse = await axios.get('/customer/GetCustomersList');
-      const customerMap = {};
-      if (Array.isArray(customerResponse.data.result)) {
-        customerResponse.data.result.forEach(customer => {
-          customerMap[customer.Customer_uuid] = customer.Customer_name;
-        });
-      }
-
-      const filteredOrders = ordersResponse.data.result.filter(order => {
-        return order.Status.some(status => status.Assigned === loggedInUser);
-      });
-  
-      const enrichedOrders = filteredOrders.map(order => {
-        let highestAssigned = null;
-        let highestTask = null;
-  
-        order.Status.forEach(status => {
-          if (status.Assigned === loggedInUser) {
-            if (!highestAssigned || status.Status_number > highestAssigned.Status_number) {
-              highestAssigned = status;
-            }
-            if (!highestTask || status.Task > highestTask.Task) {
-              highestTask = status;
-            }
-          }
-        });
-  
-        return {
-          ...order,
-          Customer_name: customerMap[order.Customer_uuid] || 'Unknown',
-          Highest_Assigned: highestAssigned ? highestAssigned.Assigned : 'N/A',
-          Highest_Task: highestTask ? highestTask.Task : 'N/A'
-        };
-      });
-  
-      setOrders(enrichedOrders);
-    } catch (error) {
-      console.error('Error fetching orders:', error.message);
-    }
-  };
+ const fetchData = async (user) => {
+     try {
+         const [ordersRes, customersRes] = await Promise.all([
+             axios.get("/order/GetOrderList"),
+             axios.get("/customer/GetCustomersList"),
+         ]);
+ 
+         if (ordersRes.data.success) {
+             setOrders(ordersRes.data.result);
+         } else {
+             setOrders([]);
+         }
+ 
+         if (customersRes.data.success) {
+             const customerMap = customersRes.data.result.reduce((acc, customer) => {
+                 if (customer.Customer_uuid && customer.Customer_name) {
+                     acc[customer.Customer_uuid] = customer.Customer_name;
+                 } else {
+                     console.warn("Invalid customer data:", customer);
+                 }
+                 return acc;
+             }, {});
+             setCustomers(customerMap);
+         } else {
+             setCustomers({});
+         }
+ 
+       
+     } catch (err) {
+         console.log('Error fetching data:', err);
+     }
+ };
+ 
+   const filteredOrders = orders
+     .map(order => {
+       if (order.Status.length === 0) return order; 
+   
+       const highestStatusTask = order.Status.reduce((prev, current) => 
+         (prev.Status_number > current.Status_number) ? prev : current
+       );
+   
+       const customerName = customers[order.Customer_uuid] || "Unknown";
+   
+       return {
+         ...order,
+         highestStatusTask,
+         Customer_name: customerName,
+       };
+     })
+     .filter(order => order.highestStatusTask.Assigned === loggedInUser); 
 
   const fetchAttendanceData = async () => { 
     try {
@@ -257,7 +266,7 @@ const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
                        <Skeleton count={5} height={30} />
                      ) : (
                  <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">            
-                       { orders.map((order, index) => (
+                       { filteredOrders.map((order, index) => (
                          <div key={index}>
                      <div onClick={() => handleOrderClick(order)} className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer">
                      <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
@@ -268,14 +277,13 @@ const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
                      <div className="p-2 col-start-2 col-end-8">
                            <strong className="text-l text-gray-900">{order.Customer_name}</strong><br />
                             <label className="text-xs">
-                                 {new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString()}{" "} - {order.Remark}
+                            {new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString()}{" "}  - {order.Remark}
                            </label>
                        </div>
                        <div className="items-center justify-center text-right col-end-9 col-span-1">
-                             <label className="text-xs pr-2">{order.highestStatusTask.Assigned}</label><br />
-                             <label className="text-s text-green-500 pr-2">{order.highestStatusTask.Task}</label>
-                       </div>
-     
+                           <label className="text-xs pr-2">{order.highestStatusTask.Assigned}</label><br />
+                            <label className="text-s text-green-500 pr-2">{order.highestStatusTask.Task}</label>
+                      </div> 
                     </div>
                     </div>
                    ))}
@@ -285,32 +293,30 @@ const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
                {isLoading ? (
   <Skeleton count={5} height={30} />
 ) : (
-  <div className="tables-container flex">
-    <table className="min-w-half border">
-      <thead>
-        <tr>
-          <th className="px-4 py-2 border">Name</th>
-          <th className="px-4 py-2 border">In</th>
-          <th className="px-4 py-2 border">Break</th>
-          <th className="px-4 py-2 border">Start</th>
-          <th className="px-4 py-2 border">Out</th>
-        </tr>
-      </thead>
-      <tbody>
-  {attendance
-    .map((row, index) => (
-      <tr key={index}>
-       <td className="border px-4 py-2">{row.User_name}</td>
-        <td className="border px-4 py-2">{row.In}</td>
-        <td className="border px-4 py-2">{row.Break}</td>
-        <td className="border px-4 py-2">{row.Start}</td>
-        <td className="border px-4 py-2">{row.Out}</td>
+  <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">
+  <table className="w-auto table-fixed border">
+    <thead>
+      <tr>
+        <th className="border px-2 py-1 text-nowrap">Name</th>
+        <th className="border px-2 py-1 text-nowrap">In</th>
+        <th className="border px-2 py-1 text-nowrap">Break</th>
+        <th className="border px-2 py-1 text-nowrap">Start</th>
+        <th className="border px-2 py-1 text-nowrap">Out</th>
       </tr>
-    ))}
-</tbody>
-
-    </table>
-  </div>
+    </thead>
+    <tbody>
+      {attendance.map((row, index) => (
+        <tr key={index}>
+          <td className="border px-2 py-1">{row.User_name}</td>
+          <td className="border px-2 py-1">{row.In}</td>
+          <td className="border px-2 py-1">{row.Break}</td>
+          <td className="border px-2 py-1">{row.Start}</td>
+          <td className="border px-2 py-1">{row.Out}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
 )}
 
                 
