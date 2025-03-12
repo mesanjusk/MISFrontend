@@ -28,12 +28,12 @@ export default function UserTask() {
     useEffect(() => {
         const savedState = localStorage.getItem("attendanceState");
         const lastUpdated = localStorage.getItem("attendanceDate");
-        const today = new Date().toLocaleDateString();
+        const today = new Date().toISOString().split("T")[0];
 
         if (savedState && lastUpdated === today) {
             setAttendanceState(savedState);  
         } else {
-            setAttendanceState("None"); 
+            setAttendanceState("In"); 
         }
     }, []);
 
@@ -43,9 +43,13 @@ export default function UserTask() {
 
     const fetchLastAttendance = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/attendance/getLastAttendance/${userName}`);
+            const response = await fetch(`https://misbackend-e078.onrender.com/attendance/getTodayAttendance/${userName}`);
             const data = await response.json();
-            return data;
+            if (data && data.success) {
+                return data; 
+            } else {
+                return null; 
+            }
         } catch (error) {
             console.error("Fetch error:", error);
             return null; 
@@ -55,21 +59,18 @@ export default function UserTask() {
     useEffect(() => {
         if (showButtons) {
             fetchLastAttendance().then((lastAttendance) => {
+                let newState = "In";
                 if (lastAttendance && lastAttendance.success) {
                     const lastType = lastAttendance.lastState;
-    
-                    if (lastType === "In") {
-                        setAttendanceState("Break"); 
-                    } else if (lastType === "Break") {
-                        setAttendanceState("Start"); 
-                    } else if (lastType === "Start") {
-                        setAttendanceState("Out"); 
-                    } else {
-                        setAttendanceState(lastType); 
-                    }
-                } else {
-                    setAttendanceState(null);
+                    if (lastType === "In") newState = "Break";
+                    else if (lastType === "Break") newState = "Start";
+                    else if (lastType === "Start") newState = "Out";
+                    else if (lastType === "Out") newState = "In";
                 }
+                setAttendanceState(newState);
+            }).catch((error) => {
+                console.error("Error fetching last attendance:", error);
+                setAttendanceState("In"); 
             });
         }
     }, [showButtons]);
@@ -92,33 +93,34 @@ export default function UserTask() {
 
     const saveAttendance = async (type) => {
         try {
-            const formattedTime = formatTime(new Date());
+            const formattedTime = new Date().toLocaleTimeString();
             const response = await axios.post("/attendance/addAttendance", {
-                User_name: userName,
+                User_name: "YourUserName",
                 Type: type,
                 Status: "Present",
                 Time: formattedTime
             });
-    
+
             if (response.data.success) {
                 alert(`Attendance saved successfully for ${type}`);
+
                 let newState = "None";
                 if (type === "In") {
-                    newState = "Out_Break"; 
+                    newState = "Break";
                 } else if (type === "Break") {
-                    newState = "Out_Start"; 
+                    newState = "Start";
                 } else if (type === "Start") {
-                    newState = "Out";       
+                    newState = "Out";
                 } else if (type === "Out") {
-                    newState = "In";       
+                    newState = "In"; 
                 }
-    
+
                 setAttendanceState(newState);
                 localStorage.setItem("attendanceState", newState);
                 localStorage.setItem("attendanceDate", new Date().toLocaleDateString());
-    
+
                 if (type === "Out") {
-                    await createTransaction(loggedInUser);
+                    await createTransaction();
                 }
             }
         } catch (error) {
@@ -274,6 +276,7 @@ export default function UserTask() {
     
       const processAttendanceData = (data, userLookup) => {
         const groupedData = new Map();
+        const todayDate = new Date().toISOString().split("T")[0]; 
     
         data.forEach(({ Date: recordDate, User, Employee_uuid }) => {  
    
@@ -283,13 +286,10 @@ export default function UserTask() {
             }
     
             const parsedDate = new Date(recordDate);
-            if (isNaN(parsedDate.getTime())) {
-                console.error("Invalid Date format:", recordDate);
-                return;
-            }
-    
             const dateKey = parsedDate.toISOString().split("T")[0];
-
+    
+            if (dateKey !== todayDate) return; 
+    
             const userName = userLookup[Employee_uuid.trim()] || 'Unknown';
             const userDateKey = `${userName}-${dateKey}`;
     
@@ -379,7 +379,7 @@ export default function UserTask() {
     };
     
     return (
-        <div className="d-flex justify-content-center align-items-center bg-gray-200 vh-100 vw-100">
+        <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">
             <div className="top-0 right-0 w-50 h-100">
                 <h1 className="text-xl font-bold">User Task</h1>
 
@@ -399,53 +399,90 @@ export default function UserTask() {
         )}
         </div>
         <div className="form-check mt-3">
-        <input
-            type="checkbox"
-            id="toggleButtons"
-            className="form-check-input"
-            checked={showButtons}
-            onChange={() => setShowButtons(!showButtons)}
-        />
-        <label className="form-check-label" htmlFor="toggleButtons">
-            Please select checkbox
-        </label>
-    </div>
-        {showButtons && (
-            <div className="text-center mt-3">
-                {attendanceState === "In" && (
-                    <button className="bg-green-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('In')}>In</button>
-                )}
-
-                {attendanceState === "Break" && (
-                    <>
-                        <button className="bg-red-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Out')}>Out</button>&nbsp;&nbsp;
-                        <button className="bg-yellow-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Break')}>Break</button>
-                    </>
-                )}
-
-                {attendanceState === "Start" && (
-                    <>
-                        <button className="bg-red-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Out')}>Out</button>&nbsp;&nbsp;
-                        <button className="bg-green-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Start')}>Start</button>
-                    </>
-                )}
-
-                {attendanceState === "Out" && (
-                    <button className="bg-red-500 text-white px-2 py-2 rounded" onClick={() => saveAttendance('Out')}>Out</button>
-                )}
+                <input
+                    type="checkbox"
+                    id="toggleButtons"
+                    className="form-check-input"
+                    checked={showButtons}
+                    onChange={() => {
+                        setShowButtons((prev) => {
+                            return !prev;
+                        });
+                    }}
+                />
+                <label className="form-check-label" htmlFor="toggleButtons">
+                    Please select checkbox
+                </label>
             </div>
-        )}
+
+            {showButtons && attendanceState && (
+                <div className="text-center mt-3">
+                    
+                    {attendanceState === "In" && (
+                        <button
+                            className="bg-green-500 text-white px-2 py-2 rounded"
+                            onClick={() => saveAttendance("In")}
+                        >
+                            In
+                        </button>
+                    )}
+
+                    {attendanceState === "Break" && (
+                        <>
+                            <button
+                                className="bg-red-500 text-white px-2 py-2 rounded"
+                                onClick={() => saveAttendance("Out")}
+                            >
+                                Out
+                            </button>&nbsp;&nbsp;
+                            <button
+                                className="bg-yellow-500 text-white px-2 py-2 rounded"
+                                onClick={() => saveAttendance("Break")}
+                            >
+                                Break
+                            </button>
+                        </>
+                    )}
+
+                    {attendanceState === "Start" && (
+                        <>
+                            <button
+                                className="bg-red-500 text-white px-2 py-2 rounded"
+                                onClick={() => saveAttendance("Out")}
+                            >
+                                Out
+                            </button>&nbsp;&nbsp;
+                            <button
+                                className="bg-green-500 text-white px-2 py-2 rounded"
+                                onClick={() => saveAttendance("Start")}
+                            >
+                                Start
+                            </button>
+                        </>
+                    )}
+
+                    {attendanceState === "Out" && (
+                        <button
+                            className="bg-red-500 text-white px-2 py-2 rounded"
+                            onClick={() => saveAttendance("Out")}
+                        >
+                            Out
+                        </button>
+                    )}
+                </div>
+            )}
+
              
-                <div className="tables-container flex">
-                <table className="min-w-full border">
+                <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">
+                <table className="w-auto table-fixed border">
     <thead>
         <tr>
-            <th className="px-4 py-2 border">Date</th>
-            <th className="px-4 py-2 border">In</th>
-            <th className="px-4 py-2 border">Break</th>
-            <th className="px-4 py-2 border">Start</th>
-            <th className="px-4 py-2 border">Out</th>
-            <th className="px-4 py-2 border">Total</th>
+            <th className="border px-2 py-1 text-nowrap">Date</th>
+            <th className="border px-2 py-1 text-nowrap">In</th>
+            <th className="border px-2 py-1 text-nowrap">Break</th>
+            <th className="border px-2 py-1 text-nowrap">Start</th>
+            <th className="border px-2 py-1 text-nowrap">Out</th>
+            <th className="border px-2 py-1 text-nowrap">Total</th>
         </tr>
     </thead>
     <tbody>
@@ -453,12 +490,12 @@ export default function UserTask() {
                 .filter(row => row.User_name === loggedInUser) 
                 .map((row, index) => (
                     <tr key={index}>
-                        <td className="border px-4 py-2">{row.Date}</td>
-                        <td className="border px-4 py-2">{row.In}</td>
-                        <td className="border px-4 py-2">{row.Break}</td>
-                        <td className="border px-4 py-2">{row.Start}</td>
-                        <td className="border px-4 py-2">{row.Out}</td>
-                        <td className="border px-4 py-2">{row.TotalHours}</td>
+                        <td className="border px-2 py-1">{row.Date}</td>
+                        <td className="border px-2 py-1">{row.In}</td>
+                        <td className="border px-2 py-1">{row.Break}</td>
+                        <td className="border px-2 py-1">{row.Start}</td>
+                        <td className="border px-2 py-1">{row.Out}</td>
+                        <td className="border px-2 py-1">{row.TotalHours}</td>
 
                     </tr>
                 ))}
