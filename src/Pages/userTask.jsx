@@ -43,7 +43,7 @@ export default function UserTask() {
 
     const fetchLastAttendance = async () => {
         try {
-            const response = await fetch(`https://misbackend-e078.onrender.com/attendance/getTodayAttendance/${userName}`);
+            const response = await fetch(`https://misbackend-e078.onrender.com/attendance/getTodayAttendance/${userName}`);      
             const data = await response.json();
             if (data && data.success) {
                 return data; 
