@@ -43,7 +43,7 @@ export default function UserTask() {
 
     const fetchLastAttendance = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/attendance/getLastAttendance/${userName}`);
+            const response = await fetch(`https://misbackend-e078.onrender.com/attendance/getLastAttendance/${userName}`);
             const data = await response.json();
             return data;
         } catch (error) {
