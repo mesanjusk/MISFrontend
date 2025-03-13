@@ -95,7 +95,7 @@ export default function UserTask() {
         try {
             const formattedTime = new Date().toLocaleTimeString();
             const response = await axios.post("/attendance/addAttendance", {
-                User_name: "YourUserName",
+                User_name: userName,
                 Type: type,
                 Status: "Present",
                 Time: formattedTime
