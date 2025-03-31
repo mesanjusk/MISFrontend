@@ -429,12 +429,7 @@ export default function UserTask() {
 
                     {attendanceState === "Break" && (
                         <>
-                            <button
-                                className="bg-red-500 text-white px-2 py-2 rounded"
-                                onClick={() => saveAttendance("Out")}
-                            >
-                                Out
-                            </button>&nbsp;&nbsp;
+                            
                             <button
                                 className="bg-yellow-500 text-white px-2 py-2 rounded"
                                 onClick={() => saveAttendance("Break")}
