@@ -7,7 +7,7 @@ const AllTransaction3 = () => {
     const [transactions, setTransactions] = useState([]);
     const [filteredEntries, setFilteredEntries] = useState([]);
     const [customers, setCustomers] = useState([]);
-    const [customerSearchTerm, setCustomerSearchTerm] = useState('CASH'); 
+    const [customerSearchTerm, setCustomerSearchTerm] = useState('Cash'); 
     const [filteredCustomers, setFilteredCustomers] = useState([]);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]); 
@@ -31,7 +31,7 @@ const AllTransaction3 = () => {
                 if (response.data.success) {
                     setCustomers(response.data.result);
 
-                    const cashCustomer = response.data.result.find(customer => customer.Customer_name === 'CASH');
+                    const cashCustomer = response.data.result.find(customer => customer.Customer_name === 'Cash');
                     if (cashCustomer) {
                         setSelectedCustomer(cashCustomer);
                         setCustomerSearchTerm(cashCustomer.Customer_name);
