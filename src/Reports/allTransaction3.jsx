@@ -7,7 +7,7 @@ const AllTransaction3 = () => {
     const [transactions, setTransactions] = useState([]);
     const [filteredEntries, setFilteredEntries] = useState([]);
     const [customers, setCustomers] = useState([]);
-    const [customerSearchTerm, setCustomerSearchTerm] = useState('CASH'); 
+    const [customerSearchTerm, setCustomerSearchTerm] = useState('Cash'); 
     const [filteredCustomers, setFilteredCustomers] = useState([]);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]); 
