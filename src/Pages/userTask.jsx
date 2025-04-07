@@ -97,7 +97,7 @@ export default function UserTask() {
     const pendingTasks = tasks.filter(task => task.Status === "Pending");
 
     const sendmsg = async (type) => {
-        const response = await axios.post(`http://148.251.129.118/wapp/api/send?apikey=9d8db6b2a1584a489e7270a9bbe1b7a0&mobile=9372333633%20&msg=${type}${userName}`);
+        const response = await axios.post(`https://148.251.129.118/wapp/api/send?apikey=9d8db6b2a1584a489e7270a9bbe1b7a0&mobile=9372333633%20&msg=${type}${userName}`);
 
         if (response.data.success) {
             alert(`Attendance saved successfully for ${type}`);
