@@ -43,7 +43,7 @@ export default function AddTransaction() {
                 if (res.data.success) {
                     setAllCustomerOptions(res.data.result);
 
-                    const accountOptions = res.data.result.filter(item => item.Customer_group === "Account");
+                    const accountOptions = res.data.result.filter(item => item.Customer_group === "Bank and Account");
                     setAccountCustomerOptions(accountOptions);
                 }
             })

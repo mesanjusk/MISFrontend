@@ -33,6 +33,7 @@ export default function Login() {
             }
     
             const userGroup = data.userGroup; 
+            const userMob =  data.userMob;
             if (!userGroup) {
                 alert("User group not found in API response");
                 return;
@@ -40,7 +41,9 @@ export default function Login() {
     
             localStorage.setItem('User_name', User_name);
             localStorage.setItem('User_group', userGroup); 
-    
+            localStorage.setItem('Mobile_number', userMob); 
+    console.log(userMob);
+    console.log(userGroup);
 
             if (userGroup === "Office User") {
                 navigate("/home", { state: { id: User_name } });

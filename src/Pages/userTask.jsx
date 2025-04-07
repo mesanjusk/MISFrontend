@@ -9,19 +9,24 @@ export default function UserTask() {
     const [attendanceData, setAttendanceData] = useState([]);
     const [attendanceState, setAttendanceState] = useState(null);
     const [loggedInUser, setLoggedInUser] = useState(null);
+    const [usermobile, setUsermobile] = useState(null);
     const [userName, setUserName] = useState('');
+    const [mobile, setMobile] = useState('');
     const [attendance, setAttendance] = useState([]);
     const [showButtons, setShowButtons] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
         const user = location.state?.id || localStorage.getItem('User_name');
+        const usermobile = location.state?.id || localStorage.getItem('userMobile');
         setLoggedInUser(user);
+        console.log(usermobile);
         if (user) {
             setUserName(user);
+            console.log(userName);
             fetchAttendanceData(user);
-        } else {
-            navigate("/login");
+        }else {
+            navigate("/");
         }
     }, [navigate]);
 
@@ -91,6 +96,15 @@ export default function UserTask() {
 
     const pendingTasks = tasks.filter(task => task.Status === "Pending");
 
+    const sendmsg = async (type) => {
+        const response = await axios.post(`http://148.251.129.118/wapp/api/send?apikey=9d8db6b2a1584a489e7270a9bbe1b7a0&mobile=9372333633%20&msg=${type}${userName}`);
+
+        if (response.data.success) {
+            alert(`Attendance saved successfully for ${type}`);
+   
+    }
+}
+
     const saveAttendance = async (type) => {
         try {
             const formattedTime = new Date().toLocaleTimeString();
@@ -128,9 +142,9 @@ export default function UserTask() {
         }
     };
     
-    const createTransaction = async (loggedInUser) => {
+    const createTransaction = async (userName) => {
         try {
-            const userResponse = await axios.get(`/user/getUserByName/${loggedInUser}`);
+            const userResponse = await axios.get(`/user/getUserByName/${userName}`);
             if (!userResponse.data.success || !userResponse.data.result) {
                 alert("Failed to fetch user details!");
                 return;
@@ -421,7 +435,7 @@ export default function UserTask() {
                     {attendanceState === "In" && (
                         <button
                             className="bg-green-500 text-white px-2 py-2 rounded"
-                            onClick={() => saveAttendance("In")}
+                            onClick={() => {saveAttendance("In"); sendmsg("In")}}
                         >
                             In
                         </button>
@@ -432,7 +446,7 @@ export default function UserTask() {
                             
                             <button
                                 className="bg-yellow-500 text-white px-2 py-2 rounded"
-                                onClick={() => saveAttendance("Break")}
+                                onClick={() => {saveAttendance("Break"); sendmsg("Break")}}                          
                             >
                                 Break
                             </button>
@@ -444,7 +458,7 @@ export default function UserTask() {
                             
                             <button
                                 className="bg-green-500 text-white px-2 py-2 rounded"
-                                onClick={() => saveAttendance("Start")}
+                                onClick={() => {saveAttendance("Start"); sendmsg("Start")}}
                             >
                                 Start
                             </button>
@@ -454,14 +468,14 @@ export default function UserTask() {
                     {attendanceState === "Out" && (
                         <button
                             className="bg-red-500 text-white px-2 py-2 rounded"
-                            onClick={() => saveAttendance("Out")}
+                            onClick={() => {saveAttendance("Out"); sendmsg("Out")}}
                         >
                             Out
                         </button>
                     )}
                 </div>
             )}
-
+ 
              
                 <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">
                 <table className="w-auto table-fixed border">

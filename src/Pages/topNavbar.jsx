@@ -276,6 +276,7 @@ const closeTaskModal = () => {
                     ))          
               )}
 <br />
+<div style={{ display: "none"}}>
 <button onClick={toggleVisibility}>
     {isHidden ? "Show Attendance" : "Hide Attendance"}
 </button>
@@ -309,7 +310,7 @@ const closeTaskModal = () => {
             ))
     )
 )}
-      
+  </div>    
         <UserTask onClose={closeUserModal} />
         </div>
  </div>
