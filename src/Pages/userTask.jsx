@@ -9,7 +9,7 @@ export default function UserTask() {
     const [attendanceData, setAttendanceData] = useState([]);
     const [attendanceState, setAttendanceState] = useState(null);
     const [loggedInUser, setLoggedInUser] = useState(null);
-    const [usermobile, setUsermobile] = useState(null);
+    const [userMobile, setUserMobile] = useState(null);
     const [userName, setUserName] = useState('');
     const [mobile, setMobile] = useState('');
     const [attendance, setAttendance] = useState([]);
@@ -18,12 +18,11 @@ export default function UserTask() {
 
     useEffect(() => {
         const user = location.state?.id || localStorage.getItem('User_name');
-        const usermobile = location.state?.id || localStorage.getItem('userMobile');
+        const usermobile = localStorage.getItem('Mobile_number');
         setLoggedInUser(user);
-        console.log(usermobile);
         if (user) {
             setUserName(user);
-            console.log(userName);
+            setUserMobile(usermobile);
             fetchAttendanceData(user);
         }else {
             navigate("/");
@@ -97,12 +96,21 @@ export default function UserTask() {
     const pendingTasks = tasks.filter(task => task.Status === "Pending");
 
     const sendmsg = async (type) => {
-        const response = await axios.post(`http://148.251.129.118/wapp/api/send?apikey=9d8db6b2a1584a489e7270a9bbe1b7a0&mobile=9372333633%20&msg=${type}${userName}`);
-
-        if (response.data.success) {
-            alert(`Attendance saved successfully for ${type}`);
-   
-    }
+            const res = await fetch('https://misbackend-e078.onrender.com/usertask/send-message', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                userName,
+                mobile: "9372333633",
+                type
+              }),
+            });
+          
+            const result = await res.json();
+            console.log(result);
+          
 }
 
     const saveAttendance = async (type) => {
@@ -393,11 +401,13 @@ export default function UserTask() {
     };
     
     return (
-        <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">
-            <div className="top-0 right-0 w-50 h-100">
-                <h1 className="text-xl font-bold">User Task</h1>
+       
+<div className=" max-w-lg " >
+      <div className="w-4/4 vh-100 pt-10 flex flex-col">
+                
 
-    <div className="mt-3">
+    <div className="px-1 pt-4 bg-green-200 grid grid-cols-12  items-center h-18"  >
+    <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center"></div>
         {pendingTasks.length > 0 ? (
             pendingTasks
                 .filter(task => task.User === loggedInUser)
@@ -412,6 +422,7 @@ export default function UserTask() {
             <p>No tasks available.</p>
         )}
         </div>
+        
         <div className="form-check mt-3">
                 <input
                     type="checkbox"
@@ -425,7 +436,7 @@ export default function UserTask() {
                     }}
                 />
                 <label className="form-check-label" htmlFor="toggleButtons">
-                    Please select checkbox
+                उपरोक्त सभी टास्क ध्यान से पढ़े और उनका पूरा करे
                 </label>
             </div>
 
@@ -478,7 +489,7 @@ export default function UserTask() {
  
              
                 <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">
-                <table className="w-auto table-fixed border">
+                <table className="min-w-full border border-gray-300 text-sm">
     <thead>
         <tr>
             <th className="border px-2 py-1 text-nowrap">Date</th>
