@@ -29,10 +29,10 @@ export default function AddItem() {
                 Item_name, Item_group
             })
             .then(res=>{
-                if(res.data=="exist"){
+                if(res.data === "exist"){
                     alert("Item already exists")
                 }
-                else if(res.data=="notexist"){
+                else if(res.data === "notexist"){
                     alert("Item added successfully")
                     closeModal();
                     navigate("/home")

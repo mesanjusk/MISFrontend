@@ -17,17 +17,119 @@ export default function UserTask() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const user = location.state?.id || localStorage.getItem('User_name');
-        const usermobile = localStorage.getItem('Mobile_number');
+        const userNameFromState = location.state?.id;
+        const user = userNameFromState || localStorage.getItem('User_name');
+        const usermobile = userNameFromState || localStorage.getItem('Mobile_number');
         setLoggedInUser(user);
+        console.log(user);
+        setUserMobile(usermobile);
         if (user) {
-            setUserName(user);
-            setUserMobile(usermobile);
+          setUserName(user);
+          setUserMobile(usermobile);
             fetchAttendanceData(user);
-        }else {
-            navigate("/");
+        } else {
+          navigate("/");
         }
     }, [navigate]);
+
+    const saveAttendance = async (type) => {
+        try {
+            const formattedTime = new Date().toLocaleTimeString();
+            const response = await axios.post("/attendance/addAttendance", {
+                User_name: userName,
+                Type: type,
+                Status: "Present",
+                Time: formattedTime
+            });
+
+            if (response.data.success) {
+                alert(`Attendance saved successfully for ${type}`);
+
+                let newState = "None";
+                if (type === "In") {
+                    newState = "Break";
+                } else if (type === "Break") {
+                    newState = "Start";
+                } else if (type === "Start") {
+                    newState = "Out";
+                } else if (type === "Out") {
+                    newState = "In"; 
+                }
+
+                setAttendanceState(newState);
+                localStorage.setItem("attendanceState", newState);
+                localStorage.setItem("attendanceDate", new Date().toLocaleDateString());
+
+                if (type === "Out") {
+                    await createTransaction(userName);
+                }
+            }
+        } catch (error) {
+            console.error("Error saving attendance:", error);
+        }
+    };
+    
+    const createTransaction = async (userName) => {
+        try {
+            const userResponse = await axios.get(`/user/getUserByName/${userName}`);
+            if (!userResponse.data.success || !userResponse.data.result) {
+                alert("Failed to fetch user details!");
+                return;
+            }
+    
+            const user = userResponse.data.result;
+            const Amount = Number(user.Amount); 
+            const userGroup = user.User_group; 
+    
+            if (!Amount || !userGroup) {
+                alert("Amount or User Group not found for user!");
+                return;
+            }
+   
+            const userGroupResponse = await axios.get(`/usergroup/getGroup/${userGroup}`);
+            if (!userGroupResponse.data.success || !userGroupResponse.data.group) {
+                alert("Failed to fetch user group details!");
+                return;
+            }
+    
+            const groupUuid = userGroupResponse.data.group.User_group_uuid; 
+    
+            if (!groupUuid) {
+                alert("User Group UUID not found!");
+                return;
+            }
+ 
+            const journal = [
+                {
+                    Account_id: groupUuid,  
+                    Type: "Debit",
+                    Amount: Amount
+                },
+                {
+                    Account_id: user.AccountID,
+                    Type: "Credit",
+                    Amount: Amount
+                }
+            ];
+   
+            const transactionResponse = await axios.post("/transaction/addTransaction", {
+                Description: "Salary", 
+                Transaction_date: new Date().toISOString(),
+                Total_Credit: Amount,
+                Total_Debit: Amount,
+                Payment_mode: user.User_group, 
+                Journal_entry: journal,
+                Created_by: loggedInUser
+            });
+    
+            if (!transactionResponse.data.success) {
+                alert("Failed to add Transaction.");
+            }
+    
+        } catch (error) {
+            console.error("Error creating transaction:", error);
+        }
+    };
 
     useEffect(() => {
         const savedState = localStorage.getItem("attendanceState");
@@ -41,9 +143,6 @@ export default function UserTask() {
         }
     }, []);
 
-    const formatTime = (dateString) => {
-        return format(new Date(dateString), "h:mm a", { locale: enIN });
-    };
 
     const fetchLastAttendance = async () => {
         try {
@@ -112,104 +211,6 @@ export default function UserTask() {
             console.log(result);
           
 }
-
-    const saveAttendance = async (type) => {
-        try {
-            const formattedTime = new Date().toLocaleTimeString();
-            const response = await axios.post("/attendance/addAttendance", {
-                User_name: userName,
-                Type: type,
-                Status: "Present",
-                Time: formattedTime
-            });
-
-            if (response.data.success) {
-                alert(`Attendance saved successfully for ${type}`);
-
-                let newState = "None";
-                if (type === "In") {
-                    newState = "Break";
-                } else if (type === "Break") {
-                    newState = "Start";
-                } else if (type === "Start") {
-                    newState = "Out";
-                } else if (type === "Out") {
-                    newState = "In"; 
-                }
-
-                setAttendanceState(newState);
-                localStorage.setItem("attendanceState", newState);
-                localStorage.setItem("attendanceDate", new Date().toLocaleDateString());
-
-                if (type === "Out") {
-                    await createTransaction();
-                }
-            }
-        } catch (error) {
-            console.error("Error saving attendance:", error);
-        }
-    };
-    
-    const createTransaction = async (userName) => {
-        try {
-            const userResponse = await axios.get(`/user/getUserByName/${userName}`);
-            if (!userResponse.data.success || !userResponse.data.result) {
-                alert("Failed to fetch user details!");
-                return;
-            }
-    
-            const user = userResponse.data.result;
-            const Amount = Number(user.Amount); 
-            const userGroup = user.User_group; 
-    
-            if (!Amount || !userGroup) {
-                alert("Amount or User Group not found for user!");
-                return;
-            }
-   
-            const userGroupResponse = await axios.get(`/usergroup/getGroup/${userGroup}`);
-            if (!userGroupResponse.data.success || !userGroupResponse.data.group) {
-                alert("Failed to fetch user group details!");
-                return;
-            }
-    
-            const groupUuid = userGroupResponse.data.group.User_group_uuid; 
-    
-            if (!groupUuid) {
-                alert("User Group UUID not found!");
-                return;
-            }
- 
-            const journal = [
-                {
-                    Account_id: groupUuid,  
-                    Type: "Debit",
-                    Amount: Amount
-                },
-                {
-                    Account_id: user.User_uuid,
-                    Type: "Credit",
-                    Amount: Amount
-                }
-            ];
-   
-            const transactionResponse = await axios.post("/transaction/addTransaction", {
-                Description: "Salary", 
-                Total_Credit: Amount,
-                Total_Debit: Amount,
-                Payment_mode: user.User_group, 
-                Journal_entry: journal,
-                Created_by: loggedInUser
-            });
-    
-            if (!transactionResponse.data.success) {
-                alert("Failed to add Transaction.");
-            }
-    
-        } catch (error) {
-            console.error("Error creating transaction:", error);
-        }
-    };
     
     
     const fetchUserNames = async () => {
