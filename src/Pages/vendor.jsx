@@ -3,14 +3,16 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import axios from "axios";
 import AddItem from "./addItem";
 
-export default function UpdateDelivery({ onClose, order }) {
+export default function Vendor({ onClose, order }) {
     const navigate = useNavigate();
     const location = useLocation();  
     const [orderId, setOrderId] = useState(order?.Order_id || "");
+    const [customer,setCustomer]=useState('');
     const [Customer_uuid, setCustomer_uuid] = useState(''); 
     const [Quantity, setQuantity] = useState('');
     const [Rate, setRate] = useState('');
     const [Item, setItem] = useState('');
+    const [items, setItems] = useState('');
     const [Customer_name, setCustomer_name] = useState('');
     const [Amount, setAmount] = useState(0);  
     const [Remark, setRemark] = useState('');
@@ -19,6 +21,24 @@ export default function UpdateDelivery({ onClose, order }) {
     const [salePaymentModeUuid, setSalePaymentModeUuid] = useState(null); 
     const [loggedInUser, setLoggedInUser] = useState('');
     const [showItemModal, setShowItemModal] = useState(false);
+    const [filteredOptions, setFilteredOptions] = useState([]);
+    const [customerOptions, setCustomerOptions] = useState([]);
+    const [showOptions, setShowOptions] = useState(false);
+
+    useEffect(() => {
+            axios.get("/customer/GetCustomersList")
+                .then(res => {
+                    if (res.data.success) {
+                        const filteredCustomers = res.data.result
+                            .filter(item => item.Customer_group === "Office & Vendor")
+                            .map(item => item.Customer_name);
+                        setCustomerOptions(filteredCustomers);
+                    }
+                })
+                .catch(err => {
+                    console.error("Error fetching user options:", err);
+                });
+        }, []);
 
     useEffect(() => {
         const userNameFromState = location.state?.id;
@@ -157,16 +177,67 @@ export default function UpdateDelivery({ onClose, order }) {
     const exitModal = () => {
         setShowItemModal(false);
     };
+    const handleInputChange = (e) => {
+        const value = e.target.value;
+        setItem(value);
+
+        if (value) {
+            const filtered = itemOptions.filter(option =>
+                option.Item_name
+            );
+            setFilteredOptions(filtered);
+            setShowOptions(true);
+        } else {
+            setShowOptions(false);
+        }
+    };
+    const handleOptionClick = (option) => {
+        setItem(option.Item_name);
+        setItems(option.Item_uuid); 
+        setShowOptions(false);
+    };
     return (
         <>
         <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
             <div className="bg-white p-3 rounded w-90">
                 <button type="button" onClick={onClose}>X</button>
-                <h2>Update Order</h2>
+                <h2>Add Vendor</h2>
                 <form onSubmit={submit}>
-
+                <div className="mb-3">
+                    <label htmlFor="name"><strong>Vendors</strong></label>
+                    <select className="form-control rounded-0" onChange={(e) => setCustomer(e.target.value)} value={customer}>
+                            <option value="">Select Vendor</option>
+                           
+                               { customerOptions.map((option, index) => (
+                                    <option key={index} value={option}>{option}</option>
+                                ))
+                            }
+                        </select>
+                </div> 
                     <div className="mb-3">
-                        <label htmlFor="item"><strong>Item Name</strong>
+                        <label>
+                            Search by Item Name 
+                            <input
+                                list="itemNames"
+                                value={Item}
+                                onChange={handleInputChange}
+                                placeholder="Search by name"
+                                onFocus={() => setShowOptions(true)}
+                            />
+                        </label>                    
+                        {showOptions && filteredOptions.length > 0 && (
+                            <ul className="list-group position-absolute w-100">
+                                {filteredOptions.map((option, index) => (
+                                    <li 
+                                        key={index} 
+                                        className="list-group-item list-group-item-action"
+                                        onClick={() => handleOptionClick(option)}
+                                    >
+                                        {option.Item_name}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                         <button onClick={handleItem} type="button" className="text-white p-2 rounded-full bg-green-500 mb-3">
                         <svg className="h-8 w-8 text-white-500" width="20" height="20" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">  
                             <path stroke="none" d="M0 0h24v24H0z"/>  
@@ -175,14 +246,7 @@ export default function UpdateDelivery({ onClose, order }) {
                             <line x1="12" y1="9" x2="12" y2="15" />
                         </svg>
                     </button>
-                        </label>
-
-                        <select className="form-control rounded-0" onChange={(e) => setItem(e.target.value)} value={Item}>
-                            <option value="">Select Item</option>
-                            {itemOptions.map((option, index) => (
-                                <option key={index} value={option}>{option}</option>
-                            ))}
-                        </select>
+                    
                     </div>
 
                     <div className="mb-3">

@@ -47,6 +47,8 @@ import EditPriority from "./Reports/editPriority";
 import SearchMobile from "./Pages/searchMobile";
 import AddUsertask from "./Pages/addUsertask";
 import CallLogs from "./Pages/callLogs";
+import AddRecievable from "./Pages/addRecievable";
+import AddPayable from "./Pages/addPayable";
 
 function App() {
     axios.defaults.baseURL = "https://misbackend-e078.onrender.com/";
@@ -99,6 +101,8 @@ function App() {
                     <Route path="/customerMobile" element={< SearchMobile />} />
                     <Route path="/addUsertask" element={< AddUsertask />} />
                     <Route path="/calllogs" element={< CallLogs />} />
+                    <Route path="/addRecievable" element={< AddRecievable />} />
+                    <Route path="/addPayable" element={< AddPayable />} />
                 </Routes>
             </div>
         </Router>

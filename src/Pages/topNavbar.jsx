@@ -210,6 +210,8 @@ const closeTaskModal = () => {
                  { label: "User Report", path: "/userReport" },
                  { label: "Payment Report", path: "/paymentReport" },
                  { label: "Priority Report", path: "/priorityReport" },
+                 { label: "Add Recievable", path: "/addRecievable" }, 
+                { label: "Add Payable", path: "/addPayable" },  
                 
               ].map((item) => (
                 <div key={item.label} onClick={() => navigate(item.path)} className="px-4 hover:bg-gray-100 text-s p-2 rounded">
@@ -227,7 +229,9 @@ const closeTaskModal = () => {
                 { label: "Item Report", path: "/itemReport" },
                 { label: "User Report", path: "/userReport" },
                 { label: "Payment Report", path: "/paymentReport" },
-                { label: "Priority Report", path: "/priorityReport" },       
+                { label: "Priority Report", path: "/priorityReport" },   
+                { label: "Add Recievable", path: "/addRecievable" }, 
+                { label: "Add Payable", path: "/addPayable" },     
               ].map((item) => (
                 <div key={item.label} onClick={() => navigate(item.path)} className="px-4 hover:bg-gray-100 text-s p-2 rounded">
                   {item.label}

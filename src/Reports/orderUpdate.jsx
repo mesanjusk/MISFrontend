@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import UpdateDelivery from '../Pages/updateDelivery';
 import AddNote from "../Pages/addNote";
 import OrderPrint from "../Pages/orderPrint";
+import Vendor from '../Pages/vendor';
 
 export default function OrderUpdate({ order, onClose }) {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ export default function OrderUpdate({ order, onClose }) {
   const [showEditModal, setShowEditModal] = useState(false); 
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showVendorModal, setShowVendorModal] = useState(false);
   const [latestDeliveryDate, setLatestDeliveryDate] = useState(""); 
    const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);  
@@ -156,6 +158,11 @@ export default function OrderUpdate({ order, onClose }) {
     setSelectedOrder(order); 
     setShowPrintModal(true);  
   };
+
+  const handleVendorClick = (order) => {
+    setSelectedOrder(order); 
+    setShowVendorModal(true);  
+  };
   
   const handleAdvanceCheckboxChange = () => {
     setIsAdvanceChecked(prev => {
@@ -192,6 +199,11 @@ export default function OrderUpdate({ order, onClose }) {
 
   const closePrintModal = () => {
     setShowPrintModal(false); 
+    setSelectedOrder(null); 
+  };
+
+  const closeVendorModal = () => {
+    setShowVendorModal(false); 
     setSelectedOrder(null); 
   };
 
@@ -260,6 +272,7 @@ export default function OrderUpdate({ order, onClose }) {
                   <line x1="12" y1="9" x2="12" y2="15" />
                 </svg>
               </button></div>
+
    
               <div className="p-2 col-start-2 col-end-4">
               {notes.filter(note => note.Order_uuid === values.Order_uuid).map((note, index) => (
@@ -356,6 +369,7 @@ export default function OrderUpdate({ order, onClose }) {
                 <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={onClose}>Cancel</button>
                 <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={() => handlePrintClick(order)}>Print</button>
                 <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={() => handleWhatsAppClick(order)}>Share</button>
+                <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={() => handleVendorClick(order)}>Vendor</button>
                 </div>
             </div>
           </form>
@@ -395,6 +409,12 @@ export default function OrderUpdate({ order, onClose }) {
       {showPrintModal && (
         <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
           <OrderPrint order={selectedOrder} onClose={closePrintModal}/>
+        </div>
+      )}
+
+{showVendorModal && (
+        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
+          <Vendor order={selectedOrder} onClose={closeVendorModal}/>
         </div>
       )}
 

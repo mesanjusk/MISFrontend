@@ -7,6 +7,11 @@ import TopNavbar from "../Pages/topNavbar";
 import Footer from "../Pages/footer";
 import AddOrder1 from "../Pages/addOrder1";
 import OrderUpdate from "../Reports/orderUpdate";
+import enquiry from  '../assets/enquiry.svg'
+import payment from  '../assets/payment.svg'
+import reciept from  '../assets/reciept.svg'
+import FloatingButtons from "../Pages/floatingButton";
+import order from  '../assets/order.svg'
 
 export default function AllOrder() {
     const navigate = useNavigate();
@@ -130,6 +135,13 @@ export default function AllOrder() {
         setSelectedOrder(null);
     };
 
+    const buttonsList = [
+      { onClick: ()=> navigate('/addTransaction'), src: reciept },
+      { onClick: ()=> navigate('/addTransaction1'), src: payment },
+      { onClick: ()=> navigate('/addOrder1'), src: order },
+      { onClick: ()=> navigate('/addEnquiry'), src: enquiry },
+    ]
+
     return (
         <>
         <div className="order-update-content">
@@ -232,29 +244,7 @@ export default function AllOrder() {
                         </SkeletonTheme>
                     </div>
                 </main>
-                <div className="fixed bottom-20 right-8">
-                    <button
-                        onClick={handleOrder}
-                        className="w-12 h-12 bg-green-500 text-white rounded-full shadow-lg flex items-center justify-center"
-                    >
-                        <svg
-                            className="h-8 w-8 text-white-500"
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            strokeWidth="2"
-                            stroke="currentColor"
-                            fill="none"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        >
-                            <path stroke="none" d="M0 0h24v24H0z" />
-                            <circle cx="12" cy="12" r="9" />
-                            <line x1="9" y1="12" x2="15" y2="12" />
-                            <line x1="12" y1="9" x2="12" y2="15" />
-                        </svg>
-                    </button>
-                </div>
+                <FloatingButtons buttonType="bars" buttonsList={buttonsList} direction="up" />
             </div>
 
             {showOrderModal && (

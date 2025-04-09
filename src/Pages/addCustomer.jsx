@@ -34,11 +34,11 @@ export default function AddCustomer() {
             .then(res => {
                 if (res.data === "exist") {
                     alert("Customer already exists");
+
                 } else if (res.data === "notexist") {
                     alert("Customer added successfully");
-                    
-                    exitModal(); 
-                    navigate("/allOrder"); 
+                    closeModal(); 
+                    navigate("/home"); 
                 }
             })
             .catch(e => {
@@ -51,7 +51,7 @@ export default function AddCustomer() {
     }
 
     const closeModal = () => {
-        navigate("/addTransaction1");
+        navigate("/home");
      };
 
     return (
