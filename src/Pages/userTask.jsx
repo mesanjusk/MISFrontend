@@ -102,12 +102,12 @@ export default function UserTask() {
             const journal = [
                 {
                     Account_id: "ceb70e15-d545-4ed2-8c3f-384e4f677d10",  
-                    Type: "Debit",
+                    Type: "Credit",
                     Amount: Amount
                 },
                 {
                     Account_id: user.AccountID,
-                    Type: "Credit",
+                    Type: "Debit",
                     Amount: Amount
                 }
             ];
