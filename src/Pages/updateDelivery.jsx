@@ -114,12 +114,12 @@ export default function UpdateDelivery({ onClose, order }) {
                 const journal = [
                     {
                         Account_id: Customer_uuid, 
-                        Type: 'Debit',
+                        Type: 'Credit',
                         Amount: Number(Amount), 
                     },
                     {
                         Account_id: salePaymentModeUuid, 
-                        Type: 'Credit',
+                        Type: 'Debit',
                         Amount: Number(Amount), 
                     }
                 ];
