@@ -208,8 +208,8 @@ const AllTransaction2 = () => {
                                         <th>No</th>
                                         <th>Date</th>
                                         <th>Name</th>
-                                        <th>Debit</th>
                                         <th>Credit</th>
+                                        <th>Debit </th>
                                         <th>Balance</th>
                                     </tr>
                                 </thead>
