@@ -118,7 +118,7 @@ export default function UpdateDelivery({ onClose, order }) {
                         Amount: Number(Amount), 
                     },
                     {
-                        Account_id: salePaymentModeUuid, 
+                        Account_id: '6c91bf35-e9c4-4732-a428-0310f56bd0a7', 
                         Type: 'Debit',
                         Amount: Number(Amount), 
                     }
