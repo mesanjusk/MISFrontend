@@ -5,6 +5,7 @@ import UpdateDelivery from '../Pages/updateDelivery';
 import AddNote from "../Pages/addNote";
 import OrderPrint from "../Pages/orderPrint";
 import Vendor from '../Pages/vendor';
+import VendorDetails from '../Pages/vendorDetails';
 
 export default function OrderUpdate({ order, onClose }) {
   const navigate = useNavigate();
@@ -13,11 +14,13 @@ export default function OrderUpdate({ order, onClose }) {
   const [notes, setNotes] = useState([]);
   const [customers, setCustomers] = useState({});
   const [taskOptions, setTaskOptions] = useState([]);
+  const [taskId, setTaskId] = useState([]);
   const [userOptions, setUserOptions] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false); 
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showVendorModal, setShowVendorModal] = useState(false);
+  const [showClickModal, setShowClickModal] = useState(false);
   const [latestDeliveryDate, setLatestDeliveryDate] = useState(""); 
    const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);  
@@ -39,8 +42,10 @@ export default function OrderUpdate({ order, onClose }) {
     axios.get("/taskgroup/GetTaskgroupList")
       .then(res => {
         if (res.data.success) {
+          const filteredData = res.data.result.filter(item => item.Id === 1); 
           const options = res.data.result.map(item => item.Task_group);
           setTaskOptions(options);
+          setTaskId(filteredData);
         }
       })
       .catch(err => {
@@ -163,6 +168,11 @@ export default function OrderUpdate({ order, onClose }) {
     setSelectedOrder(order); 
     setShowVendorModal(true);  
   };
+
+  const handleClick = (order) => {
+    setSelectedOrder(order); 
+    setShowClickModal(true);  
+  };
   
   const handleAdvanceCheckboxChange = () => {
     setIsAdvanceChecked(prev => {
@@ -207,7 +217,13 @@ export default function OrderUpdate({ order, onClose }) {
     setSelectedOrder(null); 
   };
 
-  const handleWhatsAppClick = (order) => {
+  const closeClickModal = () => {
+    setShowClickModal(false); 
+    setSelectedOrder(null); 
+  };
+
+
+  const handleWhatsAppClick = async (order) => {
     const customerUUID = order.Customer_uuid;
     const customer = customers[customerUUID];
   
@@ -216,33 +232,51 @@ export default function OrderUpdate({ order, onClose }) {
       return;
     }
   
-    const customerName = customer.Customer_name || "Customer";
-    let phoneNumber = customer.Mobile_number || "";
+    const customerName = customer.Customer_name?.trim() || "Customer";
+    let phoneNumber = customer.Mobile_number?.toString().trim() || "";
   
     if (!phoneNumber) {
       alert("Phone number is missing.");
       return;
     }
   
-    phoneNumber = String(phoneNumber); 
-    
-    const countryCode = "+91"; 
-  
     phoneNumber = phoneNumber.replace(/\D/g, "");
-   
+  
     if (phoneNumber.length !== 10) {
-      alert("Phone number is invalid.");
+      alert("Phone number must be 10 digits.");
       return;
     }
   
-    phoneNumber = `${countryCode}${phoneNumber}`;
+    const payload = {
+      userName: customerName,
+      mobile: phoneNumber,
+      type: "order_update",
+    };
   
-    const message = `Hello ${customerName},%0AYour order with ID ${order.Order_Number} has been processed.%0ATotal Amount: ${order?.Amount},,%0AThank you!`;
+    console.log("Sending payload:", payload); 
   
-    const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    try {
+      const res = await fetch('https://misbackend-e078.onrender.com/usertask/send-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
   
-    window.open(whatsappURL, "_blank");
-  };
+      const result = await res.json();
+      console.log("Message sent:", result);
+  
+      if (result.error) {
+        alert("Failed to send: " + result.error);
+      } else {
+        alert("Message sent successfully.");
+      }
+    } catch (error) {
+      console.error("Request failed:", error);
+      alert("Failed to send message.");
+    }
+  };  
   
   return (
     <>
@@ -363,13 +397,44 @@ export default function OrderUpdate({ order, onClose }) {
               </div>
                )}
               <div className="flex items-center">
+            
               <button type="submit" className="ml-2 bg-green-500 text-white p-2 rounded-lg">
                   UPDATE
                 </button>
                 <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={onClose}>Cancel</button>
                 <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={() => handlePrintClick(order)}>Print</button>
                 <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={() => handleWhatsAppClick(order)}>Share</button>
-                <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={() => handleVendorClick(order)}>Vendor</button>
+                {values.Status.length > 0 ? (
+  values.Status.reduce((acc, status) => {
+    const matchedTask = taskId.find(task => task.Task_group === status.Task && task.Id === 1);   
+    if (matchedTask && !acc.includes(matchedTask.Task_group)) {
+      acc.push(matchedTask.Task_group);
+    }
+    
+    return acc;
+  }, []).map((taskGroup, index) => {
+    const matchedTask = taskId.find(task => task.Task_group === taskGroup && task.Id === 1);
+
+    if (matchedTask) {
+      return (
+        <div key={index}>
+          <button
+            type="button"
+            className="ml-2 bg-green-500 text-white p-2 rounded-lg"
+            onClick={() => handleVendorClick(order)}
+          >
+           {matchedTask.Id} 
+          </button>
+        </div>
+      );
+    }
+    return null; 
+  })
+) : (
+  <div>No status data available</div>
+)}
+
+                <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={() => handleClick(order)}>Click</button>
                 </div>
             </div>
           </form>
@@ -415,6 +480,12 @@ export default function OrderUpdate({ order, onClose }) {
 {showVendorModal && (
         <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
           <Vendor order={selectedOrder} onClose={closeVendorModal}/>
+        </div>
+      )}
+
+{showClickModal && (
+        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
+          <VendorDetails order={selectedOrder} onClose={closeClickModal}/>
         </div>
       )}
 

@@ -112,15 +112,10 @@ const CustomerReport = () => {
             <div className="print-content">
                 <div className="pt-12 pb-20">
                     <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
-                        <label>
-                            Search by Customer Name 
-                            <input
-                                list="customerNames"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="Search by name"
-                            />
-                        </label>
+                    <label>
+                         Search by Name or Mobile
+                        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search by name or mobile" className="form-control" />
+                    </label>
                         <button onClick={handlePrint} className="btn">
                             <svg className="h-8 w-8 text-blue" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 9V3h12v6M6 15h12m-6 0v6m0 0H9m3 0h3" />
@@ -150,10 +145,13 @@ const CustomerReport = () => {
                                     </thead>
                                     <tbody>
                                         {Object.entries(customer)
-                                            .filter(([id, customer]) =>
-                                                customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                (customer.mobile && customer.mobile.toLowerCase().includes(searchTerm.toLowerCase()))
-                                            )
+                                            .filter(([id, customer]) => {
+                                                const search = searchTerm.toLowerCase();
+                                                const nameMatch = customer.name?.toLowerCase().includes(search);
+                                                const mobileMatch = customer.mobile?.toString().toLowerCase().includes(search);
+                                                return nameMatch || mobileMatch;
+                                            })
+                                            
                                             .map(([id, customer]) => (
                                                 <tr key={id}>
                                                     <td onClick={() => handleEdit(id)} style={{ cursor: 'pointer' }}>

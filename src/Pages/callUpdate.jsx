@@ -86,10 +86,10 @@ export default function CallUpdate({ log, onClose }) {
             <div className="pb-14 border-t border-gray-300">
              
               <div className="flex items-center">
-              <button type="submit" className="ml-2 bg-green-500 text-white p-2 rounded-lg">
+              <button type="submit" className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center">
                  Save
                 </button>
-                <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={onClose}>Cancel</button>
+                <button type="button" className="w-100 h-10 bg-red-500 text-white shadow-lg flex items-center justify-center" onClick={onClose}>Cancel</button>
                 </div>
             </div>
           </form>

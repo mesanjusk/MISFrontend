@@ -87,6 +87,7 @@ const AllTransaction2 = () => {
                             ...entry,
                             Transaction_id: transaction.Transaction_id,
                             Transaction_date: transaction.Transaction_date,
+                            Description: transaction.Description,
                         }));
                 }
             }
@@ -143,6 +144,11 @@ const AllTransaction2 = () => {
     const closeModal = () => {
         setShowOrderModal(false);
     };
+
+    const handleEdit = () => {
+       
+    };
+
     return (
         <>
             <div className="no-print">
@@ -208,23 +214,25 @@ const AllTransaction2 = () => {
                                         <th>No</th>
                                         <th>Date</th>
                                         <th>Name</th>
+                                        <th>Description</th>
                                         <th>Credit</th>
                                         <th>Debit </th>
                                         <th>Balance</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredEntries.map((entry, index) => {
+                                    {filteredEntries.map((entry, id) => {
                                         const customerName = customerMap[entry.Account_id] || 'Unknown';
 
                                         return (
-                                            <tr key={index}>
-                                                <td>{entry.Transaction_id}</td>
-                                                <td>{new Date(entry.Transaction_date).toLocaleDateString()}</td>
-                                                <td>{customerName}</td>                                          
-                                                <td>{entry.Type === 'Debit' ? entry.Amount : '0'}</td>
-                                                <td>{entry.Type === 'Credit' ? entry.Amount : '0'}</td>
-                                                <td>{entry.Balance}</td> 
+                                            <tr key={id}>
+                                                <td onClick={() => handleEdit(id)} style={{ cursor: 'pointer' }}>{entry.Transaction_id}</td>
+                                                <td onClick={() => handleEdit(id)} style={{ cursor: 'pointer' }}>{new Date(entry.Transaction_date).toLocaleDateString()}</td>
+                                                <td onClick={() => handleEdit(id)} style={{ cursor: 'pointer' }}>{customerName}</td> 
+                                                <td onClick={() => handleEdit(id)} style={{ cursor: 'pointer' }}>{entry.Description}</td>                                         
+                                                <td onClick={() => handleEdit(id)} style={{ cursor: 'pointer' }}>{entry.Type === 'Debit' ? entry.Amount : '0'}</td>
+                                                <td onClick={() => handleEdit(id)} style={{ cursor: 'pointer' }}>{entry.Type === 'Credit' ? entry.Amount : '0'}</td>
+                                                <td onClick={() => handleEdit(id)} style={{ cursor: 'pointer' }}>{entry.Balance}</td> 
                                             </tr>
                                         );
                                     })}

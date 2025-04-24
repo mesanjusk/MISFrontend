@@ -74,10 +74,10 @@ export default function AddItem() {
                             }
                         </select>
                 </div>
-                <button type="submit" onClick={submit} className="btn bg-green-500 w-100 text-white rounded-0"> Submit </button>
+                <button type="submit" onClick={submit} className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center"> Submit </button>
                 <button 
                         type="button" 
-                        className="btn bg-red-500 w-100 text-white rounded-0"
+                        className="w-100 h-10 bg-red-500 text-white shadow-lg flex items-center justify-center"
                         onClick={closeModal}
                     >
                         Close

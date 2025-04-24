@@ -32,10 +32,10 @@ export default function AddCustomer() {
                 Customer_group
             })
             .then(res => {
-                if (res.data === "exist") {
-                    alert("Customer already exists");
+                if (!res.data.success) {
+                    alert("Failed to add Customer.");
 
-                } else if (res.data === "notexist") {
+                } else {
                     alert("Customer added successfully");
                     closeModal(); 
                     navigate("/home"); 
@@ -97,13 +97,13 @@ export default function AddCustomer() {
                     </div>
                     <button 
                         type="submit" 
-                        className="btn bg-green-500 w-100 text-white rounded-0"
+                        className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center"
                     >
                         Submit
                     </button>
                     <button 
                         type="button" 
-                        className="btn bg-red-500 w-100 text-white rounded-0"
+                        className="w-100 h-10 bg-red-500 text-white shadow-lg flex items-center justify-center"
                         onClick={closeModal}
                     >
                         Close

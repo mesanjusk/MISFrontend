@@ -407,7 +407,7 @@ export default function UserTask() {
       <div className="w-4/4 vh-100 pt-10 flex flex-col">
                 
 
-    <div className="px-1 pt-4 bg-green-200 grid grid-cols-12  items-center h-18"  >
+    <div className="px-1 pt-4 bg-green-200 grid grid-cols-12  items-center h-18" style={{display: 'none'}} >
     <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center"></div>
         {pendingTasks.length > 0 ? (
             pendingTasks

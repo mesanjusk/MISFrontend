@@ -72,10 +72,10 @@ export default function AddTask({ closeModal }) {
                             }
                         </select>
                 </div>
-                <button type="submit" onClick={submit} className="btn btn-success w-100 rounded-0"> Submit </button>
+                <button type="submit" onClick={submit} className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center"> Submit </button>
                 <button 
                         type="button" 
-                        className="btn btn-secondary"
+                        className="w-100 h-10 bg-red-500 text-white shadow-lg flex items-center justify-center"
                         onClick={closeModal}
                     >
                         Close
