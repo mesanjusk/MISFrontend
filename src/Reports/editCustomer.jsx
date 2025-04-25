@@ -45,20 +45,7 @@ export default function EditCustomer({ customerId, closeModal }) {
             alert('All fields are required.');
             return;
         }
-        axios.put(`/customer/update/${customerId}`, { 
-            Customer_name: values.Customer_name,
-            Mobile_number: values.Mobile_number,
-            Customer_group: values.Customer_group,
-        })
-        .then(res => {
-            if (res.data.success) {
-                alert('Customer updated successfully!');
-                closeModal(); 
-            }
-        })
-        .catch(err => {
-            console.log('Error updating item:', err);
-        });
+
         axios.put(`/customer/update/${customerId}`, values)
             .then(res => {
                 if (res.data.success) {
@@ -70,36 +57,36 @@ export default function EditCustomer({ customerId, closeModal }) {
     };
 
     return (
-        <div className="d-flex justify-content-center align-items-center bg-light vh-100">
-            <div className="bg-white p-4 rounded w-50">
-                <h2 className="text-center font-weight-bold mb-4">Edit Customer</h2>
-                <form onSubmit={handleSaveChanges}>
-                    <div className="mb-3">
-                    <label>Customer Name</label> 
-                    <input
-                       type="text"
-                        className="form-control"
-                        value={values.Customer_name}
-                      onChange={(e) => setValues({ ...values, Customer_name: e.target.value })}
-                      required
-                />
-                    </div>
-                    <div className="mb-3">
-                    <label>Mobile Number</label> 
+        <div className="flex justify-center items-center bg-[#eae6df] min-h-screen">
+            <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+                <h2 className="text-2xl font-semibold text-green-600 mb-4 text-center">Edit Customer</h2>
+                <form onSubmit={handleSaveChanges} className="space-y-4">
+                    <div>
+                        <label className="block text-gray-700 text-sm mb-1">Customer Name</label>
                         <input
                             type="text"
-                             className="form-control"
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                            value={values.Customer_name}
+                            onChange={(e) => setValues({ ...values, Customer_name: e.target.value })}
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-gray-700 text-sm mb-1">Mobile Number</label>
+                        <input
+                            type="text"
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
                             value={values.Mobile_number}
                             onChange={(e) => setValues({ ...values, Mobile_number: e.target.value })}
                             required
                         />
                     </div>
-                    <div className="mb-3">
-                    <label>Customer Group</label> 
+                    <div>
+                        <label className="block text-gray-700 text-sm mb-1">Customer Group</label>
                         <select
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
                             value={values.Customer_group}
                             onChange={(e) => setValues({ ...values, Customer_group: e.target.value })}
-                            className="form-control"
                             required
                         >
                             <option value="" disabled>Select a group</option>
@@ -108,9 +95,20 @@ export default function EditCustomer({ customerId, closeModal }) {
                             ))}
                         </select>
                     </div>
-                    <div className="d-flex justify-content-between">
-                        <button type="submit"  className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center">Save</button>
-                        <button type="button" className="w-100 h-10 bg-red-500 text-white shadow-lg flex items-center justify-center" onClick={closeModal}>Cancel</button>
+                    <div className="flex gap-4 mt-6">
+                        <button
+                            type="submit"
+                            className="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition"
+                        >
+                            Save
+                        </button>
+                        <button
+                            type="button"
+                            onClick={closeModal}
+                            className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg transition"
+                        >
+                            Cancel
+                        </button>
                     </div>
                 </form>
             </div>
