@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import AddCustomer from "./addCustomer";
+import AddCustomer from '../Pages/addCustomer';
 
-export default function AddOrder1() {
+export default function EditOrder({order, onClose}) {
     const navigate = useNavigate();
 
     const [Customer_name, setCustomer_Name] = useState('');
@@ -20,6 +20,19 @@ export default function AddOrder1() {
     const [showCustomerModal, setShowCustomerModal] = useState(false);
     const [accountCustomerOptions, setAccountCustomerOptions] = useState([]);
     const [group, setGroup] = useState('');
+     const [values, setValues] = useState({
+        id: order?._id || '',
+        Customer_name: order?.Customer_name || '',
+        Order_Number: order?.Order_Number || '',
+        Remark: order?.Remark || '',
+        Order_uuid: order?.Order_uuid || '',  
+        Item: order?.Item || '',
+        Delivery_Date: order?.highestStatusTask?.Delivery_Date || '',
+        Assigned: order?.highestStatusTask?.Assigned || '',
+        Task: order?.highestStatusTask?.Task || '',
+        CreatedAt: order?.highestStatusTask?.CreatedAt || new Date().toISOString().split("T")[0],
+        Status: order?.Status || []
+      });
 
     useEffect(() => {
         const userNameFromState = location.state?.id;
@@ -52,43 +65,23 @@ export default function AddOrder1() {
         }).catch(err => console.error("Error fetching payment modes:", err));
     }, []);
 
-    const submit = async (e) => {
+    const handleSaveChanges = async (e) => {
         e.preventDefault();
         try {
             const customer = customerOptions.find(option => option.Customer_name === Customer_name);
-            const Group = accountCustomerOptions.find(option => option.Customer_uuid === group);
+           
             if (!customer) return alert("Invalid Customer selection.");
 
-            const orderResponse = await axios.post("/order/addOrder", {
+           await axios.put(`/order/update/${order}`, {
                 Customer_uuid: customer.Customer_uuid,
-                Remark: Remark,
-            });
+            })   .then(res => {
+              if (res.data.success) {
+                alert('Order updated successfully!');
+                onClose(); 
+                navigate("/allOrder");  
+              }
+            })
 
-            if (orderResponse.data.success) {
-                if (isAdvanceChecked && Amount && group) {
-                    const journal = [
-                        { Account_id: group, Type: 'Debit', Amount: Number(Amount) },
-                        { Account_id: customer.Customer_uuid, Type: 'Credit', Amount: Number(Amount) }
-                    ];
-
-                    const transactionResponse = await axios.post("/transaction/addTransaction", {
-                        Description: Remark,
-                        Total_Credit: Number(Amount),
-                        Total_Debit: Number(Amount),
-                        Payment_mode: Group.Customer_name,
-                        Journal_entry: journal,
-                        Created_by: loggedInUser
-                    });
-
-                    if (!transactionResponse.data.success) {
-                        alert("Failed to add Transaction.");
-                    }
-                }
-                alert("Order added successfully!");
-                navigate("/allOrder");
-            } else {
-                alert("Failed to add Order.");
-            }
         } catch (e) {
             console.error("Error adding Order or Transaction:", e);
         }
@@ -128,13 +121,42 @@ export default function AddOrder1() {
 
     return (
         <>
-            <div className="flex justify-center items-center bg-[#f0f2f5] min-h-screen text-[#111b21] px-4">
-  <div className="bg-white w-full max-w-2xl rounded-xl shadow-xl p-6">
-    <h2 className="text-xl font-semibold mb-4 text-center">Add Order</h2>
+         <div className="w-4/4 h-full pt-10 flex flex-col">
+        <div className="p-3 bg-green-200 grid grid-cols-5 gap-1 items-center">
+          <button type="button" onClick={onClose}>X</button>
+          <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
+            <strong className="text-l text-gray-500">{values.Order_Number}</strong>
+          </div>
+          <div>
+            <div className="p-2 col-start-2 col-end-4">
+              <strong className="text-l text-gray-900">{values.Customer_name}</strong>
+              <br />
+            </div>        
+          </div>
+          <div>
+            <div className="p-2 row-start-2 row-end-4">
+              <button onClick={() => handleEditClick(order)} className="btn">
+                <svg className="h-6 w-6 text-blue-500" width="12" height="12" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                  <path stroke="none" d="M0 0h24v24H0z"/>
+                  <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3l-11 11l-4 1l1 -4z"/>
+                </svg>
+              </button>
+              <br />
+            </div>       
+          </div>
+        </div>
+        
+        <div className="flex-1 overflow-y-scroll bg-gray-100 p-4">
+          <div className="bg-green-100 p-3 mb-2 text-right-xs rounded-lg shadow-lg w-3/4 ml-auto">
+            <p className="text-sm text-gray-600">{values.Remark}</p>
+          </div>
+       
+          <form onSubmit={handleSaveChanges}>
+           
 
-    <form onSubmit={submit}>
-      <div className="mb-4 relative">
-        <input
+            <div className="pb-14 border-t border-gray-300">
+              <div className="flex items-center">
+              <input
           type="text"
           placeholder="Search by Customer Name"
           className="w-full p-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#25D366]"
@@ -155,75 +177,34 @@ export default function AddOrder1() {
             ))}
           </ul>
         )}
-      </div>
+   
 
-      <button onClick={handleCustomer} type="button" className="mb-4 bg-[#25D366] text-white px-4 py-2 rounded-md hover:bg-[#20c95c]">
-        Add New Customer
+      <button onClick={handleCustomer} type="button" className="text-white p-2 rounded-full bg-green-500 mb-3">
+      <svg className="h-8 w-8" width="20" height="20" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none">
+                                <path stroke="none" d="M0 0h24v24H0z"/>  
+                                <circle cx="12" cy="12" r="9" />  
+                                <line x1="9" y1="12" x2="15" y2="12" />  
+                                <line x1="12" y1="9" x2="12" y2="15" />
+                            </svg>
       </button>
 
-      <div className="mb-4">
-        <label className="block mb-1 font-medium">Order</label>
-        <input
-          type="text"
-          className="w-full p-2 rounded-md border border-gray-300"
-          placeholder="Item Details"
-          value={Remark}
-          onChange={(e) => setRemark(e.target.value)}
-        />
+                <button type="submit" className="ml-2 bg-green-500 text-white p-2 rounded-lg">
+                  UPDATE
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
       </div>
+           
+       
 
-      <div className="mb-4 flex items-center gap-2">
-        <input
-          type="checkbox"
-          id="advanceCheckbox"
-          className="accent-[#25D366]"
-          checked={isAdvanceChecked}
-          onChange={handleAdvanceCheckboxChange}
-        />
-        <label htmlFor="advanceCheckbox">Advance</label>
-      </div>
-
-      {isAdvanceChecked && (
-        <>
-          <div className="mb-4">
-            <label className="block mb-1 font-medium">Amount</label>
-            <input
-              type="number"
-              className="w-full p-2 rounded-md border border-gray-300"
-              placeholder="Enter Amount"
-              value={Amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block mb-1 font-medium">Payment Mode</label>
-            <select
-              className="w-full p-2 rounded-md border border-gray-300"
-              value={group}
-              onChange={(e) => setGroup(e.target.value)}
-            >
-              <option value="">Select Payment</option>
-              {accountCustomerOptions.map((customer, index) => (
-                <option key={index} value={customer.Customer_uuid}>
-                  {customer.Customer_name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </>
+     
+{showCustomerModal && (
+        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
+          <AddCustomer onClose={exitModal}/>
+        </div>
       )}
-
-      <button type="submit" className="w-full bg-[#25D366] py-2 rounded-md font-medium text-white hover:bg-[#20c95c]">
-        Submit
-      </button>
-      <button type="button" onClick={closeModal} className="w-full mt-2 bg-red-500 py-2 rounded-md text-white font-medium hover:bg-red-600">
-        Close
-      </button>
-    </form>
-  </div>
-</div>
-
             
         </>
     );

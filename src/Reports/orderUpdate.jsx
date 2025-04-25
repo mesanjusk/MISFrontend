@@ -6,6 +6,7 @@ import AddNote from "../Pages/addNote";
 import OrderPrint from "../Pages/orderPrint";
 import Vendor from '../Pages/vendor';
 import VendorDetails from '../Pages/vendorDetails';
+import EditOrder from './editOrder';
 
 export default function OrderUpdate({ order, onClose }) {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export default function OrderUpdate({ order, onClose }) {
   const [userOptions, setUserOptions] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false); 
   const [showNoteModal, setShowNoteModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showVendorModal, setShowVendorModal] = useState(false);
   const [showClickModal, setShowClickModal] = useState(false);
@@ -159,6 +161,11 @@ export default function OrderUpdate({ order, onClose }) {
     setShowNoteModal(true);  
   }
 
+  const handleUpdateClick = (order) => {
+    setSelectedOrder(order); 
+    setShowUpdateModal(true);  
+  }
+
   const handlePrintClick = (order) => {
     setSelectedOrder(order); 
     setShowPrintModal(true);  
@@ -204,6 +211,11 @@ export default function OrderUpdate({ order, onClose }) {
 
   const closeNoteModal = () => {
     setShowNoteModal(false); 
+    setSelectedOrder(null);  
+  };
+
+  const closeUpdateModal = () => {
+    setShowUpdateModal(false); 
     setSelectedOrder(null);  
   };
 
@@ -307,7 +319,9 @@ export default function OrderUpdate({ order, onClose }) {
                 </svg>
               </button></div>
 
-   
+              <div className="p-2 col-start-8 col-end-8"> <button onClick={() => handleUpdateClick(order)} className="btn">
+                Edit
+              </button></div>
               <div className="p-2 col-start-2 col-end-4">
               {notes.filter(note => note.Order_uuid === values.Order_uuid).map((note, index) => (
                 <div key={index}>
@@ -423,7 +437,7 @@ export default function OrderUpdate({ order, onClose }) {
             className="ml-2 bg-green-500 text-white p-2 rounded-lg"
             onClick={() => handleVendorClick(order)}
           >
-           {matchedTask.Id} 
+           {matchedTask.Task_group} 
           </button>
         </div>
       );
@@ -434,7 +448,7 @@ export default function OrderUpdate({ order, onClose }) {
   <div>No status data available</div>
 )}
 
-                <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={() => handleClick(order)}>Click</button>
+                <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={() => handleClick(order)} style={{ display: 'none'}}>Click</button>
                 </div>
             </div>
           </form>
@@ -468,6 +482,12 @@ export default function OrderUpdate({ order, onClose }) {
       {showNoteModal && (
         <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
           <AddNote order={selectedOrder} onClose={closeNoteModal} />
+        </div>
+      )}
+
+{showUpdateModal && (
+        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
+          <EditOrder order={selectedOrder} onClose={closeUpdateModal} />
         </div>
       )}
 
