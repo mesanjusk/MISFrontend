@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { jsPDF } from 'jspdf';
 import TopNavbar from '../Pages/topNavbar';
 import Footer from '../Pages/footer';
 
@@ -11,7 +12,12 @@ const AllTransaction3 = () => {
     const [filteredCustomers, setFilteredCustomers] = useState([]);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]); 
-    const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]); 
+    const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+    
+    const [sortConfig, setSortConfig] = useState({
+        key: 'Transaction_date',
+        direction: 'desc',
+    });
 
     useEffect(() => {
         const fetchTransactions = async () => {
@@ -116,7 +122,12 @@ const AllTransaction3 = () => {
             };
         });
 
-        setFilteredEntries(updatedEntries);
+        // Sort the entries by date in descending order (most recent first)
+        const sortedEntries = updatedEntries.sort((a, b) => {
+            return new Date(b.Transaction_date) - new Date(a.Transaction_date);
+        });
+
+        setFilteredEntries(sortedEntries);
     };
 
     const calculateTotals = () => {
@@ -147,49 +158,101 @@ const AllTransaction3 = () => {
         window.print();
     };
 
+    const handleSort = (column) => {
+        let direction = 'asc';
+        if (sortConfig.key === column && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+
+        setSortConfig({ key: column, direction });
+
+        const sortedEntries = [...filteredEntries].sort((a, b) => {
+            if (a[column] < b[column]) return direction === 'asc' ? -1 : 1;
+            if (a[column] > b[column]) return direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        setFilteredEntries(sortedEntries);
+    };
+
+    const handleSaveAsPDF = () => {
+        const doc = new jsPDF();
+        const currentDate = new Date().toLocaleDateString();
+        
+        // Title and Date
+        doc.setFontSize(18);
+        doc.text(`Transactions Report - ${currentDate}`, 14, 20);
+
+        // Table header
+        const headers = ['No', 'Date', 'Name', 'Debit', 'Credit', 'Balance'];
+        const rows = filteredEntries.map(entry => [
+            entry.Transaction_id,
+            new Date(entry.Transaction_date).toLocaleDateString(),
+            customerMap[entry.Account_id] || 'Unknown',
+            entry.Type === 'Debit' ? entry.Amount : '0',
+            entry.Type === 'Credit' ? entry.Amount : '0',
+            entry.Balance,
+        ]);
+
+        doc.autoTable({
+            head: [headers],
+            body: rows,
+            startY: 30,
+            theme: 'striped',
+        });
+
+        // Save PDF
+        doc.save(`${selectedCustomer.Customer_name}_transactions_${currentDate}.pdf`);
+    };
+
     return (
         <>
             <div className="no-print">
                 <TopNavbar />
             </div>
-            <div className="pt-12 pb-20">
-                <div className="d-flex flex-wrap bg-white w-100 p-2">
-                    <label>
-                        Start :
+            <div className="pt-12 pb-20 bg-gray-50">
+                <div className="flex flex-wrap bg-white w-full p-4 rounded-md shadow-md mb-6">
+                    <label className="text-sm font-medium mr-4">
+                        Start Date:
                         <input
                             type="date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
+                            className="ml-2 px-4 py-2 border rounded-md"
                         />
                     </label>
-                    <label>
-                        End :
+                    <label className="text-sm font-medium mr-4">
+                        End Date:
                         <input
                             type="date"
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
+                            className="ml-2 px-4 py-2 border rounded-md"
                         />
                     </label>
+                    <button 
+                        onClick={handlePrint} 
+                        className="ml-auto bg-green-600 text-white p-3 rounded-full hover:bg-green-500 focus:outline-none transition-colors"
+                    >
+                        <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 9V3h12v6M6 15h12m-6 0v6m0 0H9m3 0h3" />
+                        </svg>
+                    </button>
                 </div>
-                <button onClick={handlePrint} className="btn">
-                            <svg className="h-8 w-8 text-blue" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 9V3h12v6M6 15h12m-6 0v6m0 0H9m3 0h3" />
-                            </svg>
-                        </button>
-                <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
+                <div className="relative max-w-md mx-auto my-4 p-2 bg-white border rounded-md shadow-md">
                     <input
                         type="text"
                         placeholder="Search Customer"
                         value={customerSearchTerm}
                         onChange={handleSearchInputChange}
-                        className="mr-2"
+                        className="w-full p-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                     />
                     {filteredCustomers.length > 0 && (
-                        <ul className="absolute bg-white border border-gray-300 z-10">
+                        <ul className="absolute top-full left-0 w-full bg-white border mt-2 rounded-md shadow-lg z-10">
                             {filteredCustomers.map((customer) => (
                                 <li
                                     key={customer.Customer_uuid}
-                                    className="cursor-pointer p-1 hover:bg-gray-200"
+                                    className="cursor-pointer p-2 hover:bg-gray-200"
                                     onClick={() => handleCustomerSelect(customer)}
                                 >
                                     {customer.Customer_name}
@@ -198,37 +261,69 @@ const AllTransaction3 = () => {
                         </ul>
                     )}
                 </div>
-                <div className="d-flex justify-content-center">
-                    <button onClick={handleSearch} className="bg-green-600 text-white px-2 py-1 mr-2 rounded">
+                <div className="flex justify-center mb-6">
+                    <button 
+                        onClick={handleSearch} 
+                        className="bg-green-600 text-white px-4 py-2 rounded-md shadow-md hover:bg-green-500 transition-colors"
+                    >
                         Search
                     </button>
                 </div>
-                <main className="flex flex-1 p-1 overflow-y-auto">
-                    <div className="w-100 max-w-md mx-auto">
+                <main className="mt-6 overflow-x-auto">
+                    <div className="w-full max-w-4xl mx-auto">
                         {filteredEntries.length > 0 ? (
-                            <table className="table table-striped">
-                                <thead>
+                            <table className="min-w-full bg-white shadow-md rounded-md overflow-hidden">
+                                <thead className="bg-green-600 text-white">
                                     <tr>
-                                        <th>No</th>
-                                        <th>Date</th>
-                                        <th>Name</th>
-                                        <th>Debit</th>
-                                        <th>Credit</th>
-                                        <th>Balance</th>
+                                        <th 
+                                            className="py-3 px-4 text-left cursor-pointer"
+                                            onClick={() => handleSort('Transaction_id')}
+                                        >
+                                            No
+                                        </th>
+                                        <th 
+                                            className="py-3 px-4 text-left cursor-pointer"
+                                            onClick={() => handleSort('Transaction_date')}
+                                        >
+                                            Date
+                                        </th>
+                                        <th 
+                                            className="py-3 px-4 text-left cursor-pointer"
+                                            onClick={() => handleSort('Customer_name')}
+                                        >
+                                            Name
+                                        </th>
+                                        <th 
+                                            className="py-3 px-4 text-left cursor-pointer"
+                                            onClick={() => handleSort('Debit')}
+                                        >
+                                            Debit
+                                        </th>
+                                        <th 
+                                            className="py-3 px-4 text-left cursor-pointer"
+                                            onClick={() => handleSort('Credit')}
+                                        >
+                                            Credit
+                                        </th>
+                                        <th 
+                                            className="py-3 px-4 text-left cursor-pointer"
+                                            onClick={() => handleSort('Balance')}
+                                        >
+                                            Balance
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {filteredEntries.map((entry, index) => {
                                         const customerName = customerMap[entry.Account_id] || 'Unknown';
-
                                         return (
-                                            <tr key={index}>
-                                                <td>{entry.Transaction_id}</td>
-                                                <td>{new Date(entry.Transaction_date).toLocaleDateString()}</td>
-                                                <td>{customerName}</td>                                          
-                                                <td>{entry.Type === 'Debit' ? entry.Amount : '0'}</td>
-                                                <td>{entry.Type === 'Credit' ? entry.Amount : '0'}</td>
-                                                <td>{entry.Balance}</td> 
+                                            <tr key={index} className="hover:bg-gray-100">
+                                                <td className="py-2 px-4">{entry.Transaction_id}</td>
+                                                <td className="py-2 px-4">{new Date(entry.Transaction_date).toLocaleDateString('en-GB')}</td>
+                                                <td className="py-2 px-4">{customerName}</td>                                          
+                                                <td className="py-2 px-4">{entry.Type === 'Debit' ? entry.Amount : '0'}</td>
+                                                <td className="py-2 px-4">{entry.Type === 'Credit' ? entry.Amount : '0'}</td>
+                                                <td className="py-2 px-4">{entry.Balance}</td> 
                                             </tr>
                                         );
                                     })}
@@ -243,10 +338,18 @@ const AllTransaction3 = () => {
                                 </tfoot>
                             </table>
                         ) : (
-                            <p>No transactions found.</p>
+                            <p className="text-center py-4">No transactions found.</p>
                         )}
                     </div>
                 </main>
+                <div className="flex justify-center mt-6">
+                    <button 
+                        onClick={handleSaveAsPDF} 
+                        className="bg-blue-600 text-white px-6 py-2 rounded-md shadow-md hover:bg-blue-500 transition-colors"
+                    >
+                        Save as PDF
+                    </button>
+                </div>
             </div>
             <div className="no-print">
                 <Footer />
