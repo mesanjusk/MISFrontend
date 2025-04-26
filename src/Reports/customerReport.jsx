@@ -7,7 +7,6 @@ import AddCustomer from '../Pages/addCustomer';
 
 const CustomerReport = () => {
     const [customer, setCustomer] = useState({});
-    const [customerNames, setCustomerNames] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedCustomerId, setSelectedCustomerId] = useState(null);
@@ -39,7 +38,6 @@ const CustomerReport = () => {
                         return acc;
                     }, {});
                     setCustomer(customerMap);
-                    setCustomerNames(Object.values(customerMap).map(c => c.name));
                 } else {
                     setCustomer({});
                 }
@@ -51,29 +49,26 @@ const CustomerReport = () => {
         setSelectedCustomerId(customerId);
         setShowEditModal(true);
     };
-    
+
     const handleDeleteConfirm = async () => {
-        if (!selectedCustomer || !selectedCustomer._id) {
-            console.error("No valid customer selected for deletion");
-            return;
-        }
-    
+        if (!selectedCustomer || !selectedCustomer._id) return;
+
         try {
             const [orderResponse, transactionResponse] = await Promise.all([
                 axios.get(`/order/CheckCustomer/${selectedCustomer._id}`),
                 axios.get(`/transaction/CheckCustomer/${selectedCustomer._id}`)
             ]);
-    
+
             if (orderResponse.data.exists || transactionResponse.data.exists) {
                 setDeleteErrorMessage("This customer cannot be deleted due to linked records.");
                 return;
             }
-    
+
             const deleteResponse = await axios.delete(`/customer/DeleteCustomer/${selectedCustomer._id}`);
             if (deleteResponse.data.success) {
                 setCustomer((prevCustomers) => {
                     const updatedCustomers = { ...prevCustomers };
-                    delete updatedCustomers[selectedCustomer._id]; 
+                    delete updatedCustomers[selectedCustomer._id];
                     return updatedCustomers;
                 });
             }
@@ -81,10 +76,10 @@ const CustomerReport = () => {
             console.error("Error deleting customer:", error);
             setDeleteErrorMessage("An error occurred while deleting the customer.");
         }
-    
+
         setShowDeleteModal(false);
     };
-    
+
     const handleDeleteClick = (customerId) => {
         setSelectedCustomer({ ...customer[customerId], _id: customerId });
         setShowDeleteModal(true);
@@ -104,118 +99,98 @@ const CustomerReport = () => {
     };
 
     return (
-        <>
+        <div className="min-h-screen bg-[#f0f2f5] text-[#111b21]">
             <div className="no-print">
                 <TopNavbar />
             </div>
 
-            <div className="print-content">
-                <div className="pt-12 pb-20">
-                    <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
-                    <label>
-                         Search by Name or Mobile
-                        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search by name or mobile" className="form-control" />
-                    </label>
-                        <button onClick={handlePrint} className="btn">
-                            <svg className="h-8 w-8 text-blue" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 9V3h12v6M6 15h12m-6 0v6m0 0H9m3 0h3" />
-                            </svg>
+            <div className="px-4 py-6">
+                <div className="bg-white max-w-3xl mx-auto rounded-xl shadow-md p-4">
+                    <div className="flex flex-col sm:flex-row justify-between gap-4 items-center">
+                        <input 
+                            type="text" 
+                            value={searchTerm} 
+                            onChange={(e) => setSearchTerm(e.target.value)} 
+                            placeholder="Search by name or mobile" 
+                            className="w-full sm:w-2/3 border border-gray-300 rounded-md p-2 focus:outline-none"
+                        />
+                        <button onClick={handlePrint} className="text-green-600 hover:text-green-700">
+                            🖨️ Print
+                        </button>
+                        <button onClick={handleAddCustomer} className="bg-[#25D366] hover:bg-[#20c95c] text-white font-medium py-2 px-4 rounded-md">
+                            ➕ Add Customer
                         </button>
                     </div>
-                    <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
-                    <button onClick={handleAddCustomer} type="button" className="p-3 rounded-full text-white bg-green-500 mb-3">
-                        <svg className="h-8 w-8 text-white-500" width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">  
-                            <path stroke="none" d="M0 0h24v24H0z"/>  
-                            <circle cx="12" cy="12" r="9" />  
-                            <line x1="9" y1="12" x2="15" y2="12" />  
-                            <line x1="12" y1="9" x2="12" y2="15" />
-                        </svg>
-                    </button>
                 </div>
-                    <main className="flex flex-1 p-1 overflow-y-auto">
-                        <div className="w-100 max-w-md mx-auto">
-                            {Object.keys(customer).length > 0 ? (
-                                <table className="table table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Name</th>
-                                            <th>Mobile</th>
-                                            {userGroup === "Admin User" && <th>Actions</th>}
+
+                <div className="bg-white mt-4 max-w-3xl mx-auto rounded-xl shadow-md p-4">
+                    {Object.keys(customer).length > 0 ? (
+                        <table className="w-full table-auto text-sm text-left text-gray-700">
+                            <thead className="bg-[#e5e5e5] text-gray-800">
+                                <tr>
+                                    <th className="px-4 py-2">Name</th>
+                                    <th className="px-4 py-2">Mobile</th>
+                                    {userGroup === "Admin User" && <th className="px-4 py-2">Actions</th>}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Object.entries(customer)
+                                    .filter(([id, c]) => {
+                                        const search = searchTerm.toLowerCase();
+                                        return c.name?.toLowerCase().includes(search) || c.mobile?.toString().includes(search);
+                                    })
+                                    .map(([id, c]) => (
+                                        <tr key={id} className="hover:bg-[#f0f2f5]">
+                                            <td className="px-4 py-2 cursor-pointer" onClick={() => handleEdit(id)}>{c.name}</td>
+                                            <td className="px-4 py-2 cursor-pointer" onClick={() => handleEdit(id)}>{c.mobile}</td>
+                                            {userGroup === "Admin User" && (
+                                                <td className="px-4 py-2">
+                                                    <button onClick={() => handleDeleteClick(id)} className="text-red-500 hover:text-red-600">🗑️</button>
+                                                </td>
+                                            )}
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        {Object.entries(customer)
-                                            .filter(([id, customer]) => {
-                                                const search = searchTerm.toLowerCase();
-                                                const nameMatch = customer.name?.toLowerCase().includes(search);
-                                                const mobileMatch = customer.mobile?.toString().toLowerCase().includes(search);
-                                                return nameMatch || mobileMatch;
-                                            })
-                                            
-                                            .map(([id, customer]) => (
-                                                <tr key={id}>
-                                                    <td onClick={() => handleEdit(id)} style={{ cursor: 'pointer' }}>
-                                                        {customer.name}
-                                                    </td>
-                                                    <td onClick={() => handleEdit(id)} style={{ cursor: 'pointer' }}>
-                                                        {customer.mobile}
-                                                    </td>
-                                                    {userGroup === "Admin User" && (
-                                                        <td>
-                                                            <button onClick={() => handleDeleteClick(id)} className="btn">
-                                                                <svg className="h-6 w-6 text-red-500" width="12" height="12" viewBox="0 0 22 22" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                                                                    <path stroke="none" d="M0 0h24v24H0z" />
-                                                                    <line x1="4" y1="7" x2="20" y2="7" />
-                                                                    <line x1="10" y1="11" x2="10" y2="17" />
-                                                                    <line x1="14" y1="11" x2="14" y2="17" />
-                                                                    <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
-                                                                    <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
-                                                                </svg>
-                                                            </button>
-                                                        </td>
-                                                    )}
-                                                </tr>
-                                            ))}
-                                    </tbody>
-                                </table>
-                            ) : (
-                                <p>No data available for the selected filters.</p>
-                            )}
-                        </div>
-                    </main>
+                                    ))}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <p className="text-center text-gray-500">No data available for the selected filters.</p>
+                    )}
                 </div>
             </div>
+
             {showEditModal && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 shadow-lg">
                         <EditCustomer customerId={selectedCustomerId} closeModal={() => setShowEditModal(false)} />
                     </div>
                 </div>
             )}
 
             {showDeleteModal && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <h4>Are you sure you want to delete {selectedCustomer?.name}?</h4>
-                        <div className="modal-actions">
-                            <button onClick={() => handleDeleteConfirm(selectedCustomer?._id)} className="btn btn-danger">Yes</button>
-                            <button onClick={handleDeleteCancel} className="btn btn-secondary">Cancel</button>
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 shadow-lg">
+                        <h4 className="text-lg font-semibold mb-4">Are you sure you want to delete {selectedCustomer?.name}?</h4>
+                        {deleteErrorMessage && <p className="text-red-500 mb-2">{deleteErrorMessage}</p>}
+                        <div className="flex justify-end gap-4">
+                            <button onClick={handleDeleteConfirm} className="bg-red-500 text-white px-4 py-2 rounded-md">Yes</button>
+                            <button onClick={handleDeleteCancel} className="bg-gray-300 px-4 py-2 rounded-md">Cancel</button>
                         </div>
                     </div>
                 </div>
             )}
 
             {showAddModal && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <AddCustomer closeModal={() => setShowAddModal(false)} /> 
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 shadow-lg">
+                        <AddCustomer closeModal={() => setShowAddModal(false)} />
                     </div>
                 </div>
             )}
+
             <div className="no-print">
                 <Footer />
             </div>
-        </>
+        </div>
     );
 };
 
