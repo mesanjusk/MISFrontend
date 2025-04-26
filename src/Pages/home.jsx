@@ -2,16 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
-import TopNavbar from "../Pages/topNavbar";
+import TopNavbar from "./topNavbar";
 import Footer from './footer';
 import axios from 'axios';
 import OrderUpdate from '../Reports/orderUpdate'; 
-import AddOrder1 from "../Pages/addOrder1";
+import AllOrder from "../Reports/allOrder";
 import order from  '../assets/order.svg'
 import enquiry from  '../assets/enquiry.svg'
 import payment from  '../assets/payment.svg'
 import reciept from  '../assets/reciept.svg'
 import FloatingButtons from "./floatingButton";
+import UserTask from "./userTask";
+import { format } from 'date-fns';
+import TaskUpdate from "./taskUpdate";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -26,6 +29,13 @@ export default function Home() {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [customers, setCustomers] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const [showUserModel, setShowUserModel] = useState(false);
+    const [isHidden, setIsHidden] = useState(false);
+    const [attendanceData, setAttendanceData] = useState([]); 
+     const [task, setTask] = useState([]);
+      const [selectedTaskId, setSelectedTaskId] = useState(null);
+       const [showTaskModal, setShowTaskModal] = useState(false); 
+  
 
    useEffect(() => {
       const group = localStorage.getItem("User_group");
@@ -39,8 +49,8 @@ export default function Home() {
       setLoggedInUser(user);
       if (user) {
         setUserName(user);
-        fetchUserData();
         fetchData(user);
+        fetchAttendance(user);
       } else {
         navigate("/login");
       }
@@ -48,76 +58,108 @@ export default function Home() {
     setTimeout(() => setIsLoading(false), 2000);
   }, [location.state, navigate]);
 
-  const fetchData = async (user) => {
+
+ const fetchData = async (user) => {
+      try {
+          const [taskRes] = await Promise.all([
+              axios.get("/usertask/GetUsertaskList")
+          ]);
+  
+          if (taskRes.data.success) {
+            setTask(taskRes.data.result);
+        } else {
+            setTask([]);
+        }
+  
+        
+      } catch (err) {
+          console.log('Error fetching data:', err);
+      }
+  };
+  
+  const pendingTasks = task.filter(task => task.Status === "Pending"  && task.User === loggedInUser);
+
+  const fetchUserNames = async () => {
     try {
-        const [ordersRes, customersRes] = await Promise.all([
-            axios.get("/order/GetOrderList"),
-            axios.get("/customer/GetCustomersList"),
-        ]);
+        const response = await axios.get('/user/GetUserList');
+        const data = response.data;
 
-        if (ordersRes.data.success) {
-            setOrders(ordersRes.data.result);
+        if (data.success) {
+            const userLookup = {};
+            data.result.forEach(user => {
+                userLookup[user.User_uuid] = user.User_name.trim(); 
+            });
+            return userLookup;
         } else {
-            setOrders([]);
+            console.error('Failed to fetch user names:', data);
+            return {};
         }
-
-        if (customersRes.data.success) {
-            const customerMap = customersRes.data.result.reduce((acc, customer) => {
-                if (customer.Customer_uuid && customer.Customer_name) {
-                    acc[customer.Customer_uuid] = customer.Customer_name;
-                } else {
-                    console.warn("Invalid customer data:", customer);
-                }
-                return acc;
-            }, {});
-            setCustomers(customerMap);
-        } else {
-            setCustomers({});
-        }
-
-      
-    } catch (err) {
-        console.log('Error fetching data:', err);
+    } catch (error) {
+        console.error('Error fetching user names:', error);
+        return {};
     }
+  };
+
+const fetchAttendance = async (loggedInUser) => { 
+  try {
+    const userLookup = await fetchUserNames();
+    
+    const attendanceResponse = await axios.get('/attendance/GetAttendanceList');
+
+    const attendanceRecords = attendanceResponse.data.result || [];
+
+    const attendanceWithUserNames = attendanceRecords.flatMap(record => {
+      const employeeUuid = record.Employee_uuid.trim(); 
+      const userName = userLookup[employeeUuid] || 'Unknown'; 
+
+      return record.User.map(user => {
+        return {
+          Attendance_Record_ID: record.Attendance_Record_ID,
+          User_name: userName, 
+          Date: record.Date,
+          Time: user.CreatedAt ? format(new Date(user.CreatedAt), "hh:mm a") : "No Time",
+          Type: user.Type || 'N/A',
+          Status: record.Status || 'N/A',
+        };
+      });
+    });
+
+    const filteredAttendance = attendanceWithUserNames.filter(record => record.User_name === loggedInUser);
+    setAttendanceData(filteredAttendance);
+
+  } catch (error) {
+    console.error("Error fetching attendance:", error);
+  }
 };
 
-  const filteredOrders = orders
-    .map(order => {
-      if (order.Status.length === 0) return order; 
-  
-      const highestStatusTask = order.Status.reduce((prev, current) => 
-        (prev.Status_number > current.Status_number) ? prev : current
-      );
-  
-      const customerName = customers[order.Customer_uuid] || "Unknown";
-  
-      return {
-        ...order,
-        highestStatusTask,
-        Customer_name: customerName,
-      };
-    })
-    .filter(order => order.highestStatusTask.Assigned === loggedInUser); 
+  useEffect(() => {
+    const group = localStorage.getItem("User_group");
+    setUserGroup(group);
+  }, []);
 
-  const fetchUserData = async () => {
-    try {
-      const response = await axios.get("/user/GetUserList");
-      if (response.data && response.data.success && Array.isArray(response.data.result)) {
-        setUserData(response.data.result); 
-        return response.data.result; 
-      } else {
-        return null; 
-      }
-    } catch (error) {
-      return null; 
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("User_name");
+    localStorage.removeItem("User_group");
+    navigate("/");
   };
+  const toggleVisibility = () => {
+    setIsHidden(prev => !prev);
+};
+const handleTaskClick = (task) => {
+    setSelectedTaskId(task);
+    setShowTaskModal(true);
+};
 
-  const handleOrderClick = (order) => {
-    setSelectedOrderId(order); 
-    setShowEditModal(true); 
+const closeTaskModal = () => {
+  setShowTaskModal(false); 
+  setSelectedTaskId(null);  
+};
+const closeUserModal = () => {
+  setShowUserModel(false); 
+};
+  const getTodayDate = () => {
+    return format(new Date(), 'yyyy-MM-dd');
   };
-
   const closeEditModal = () => {
     setShowEditModal(false); 
     setSelectedOrderId(null);  
@@ -138,34 +180,75 @@ const buttonsList = [
     <>
       <TopNavbar />
       <br /><br />
-            {isLoading ? (
-                  <Skeleton count={5} height={30} />
-                ) : (
-            <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">            
-                  { filteredOrders.map((order, index) => (
-                    <div key={index}>
-                <div onClick={() => handleOrderClick(order)} className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer">
-                <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
-                              <strong className="text-l text-gray-500">
-                                  {order.Order_Number}
-                              </strong>
-                </div>
-                <div className="p-2 col-start-2 col-end-8">
-                      <strong className="text-l text-gray-900">{order.Customer_name}</strong><br />
-                       <label className="text-xs">
-                            {new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString()}{" "} - {order.Remark}
-                      </label>
-                  </div>
-                  <div className="items-center justify-center text-right col-end-9 col-span-1">
-                        <label className="text-xs pr-2">{order.highestStatusTask.Assigned}</label><br />
-                        <label className="text-s text-green-500 pr-2">{order.highestStatusTask.Task}</label>
-                  </div>
-
-               </div>
-               </div>
-              ))}
-           </div>  
-           )} 
+        <div className="pt-12 pb-20">
+              <div className="d-flex justify-content-center align-items-center bg-gray-200 vh-100 vw-100"> 
+              <div className="top-0 right-0  w-100 h-75 ">
+              <h1 className="absolute right-10 text-s font-bold mb-6">Welcome, {userName}!</h1><br />
+              <button className="absolute right-10 text-s" onClick={handleLogout}>Logout</button><br /><br />
+                      {isLoading ? (
+                                      <Skeleton count={5} height={30} />
+                                    ) : (
+                          pendingTasks.map((task, index) => (
+                            <div key={index}>
+                            <div onClick={() => handleTaskClick(task)} className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer">
+                                <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
+                                    <strong className="text-l text-gray-500">
+                                        {task.Usertask_Number}
+                                    </strong>
+                                </div>
+                                <div className="p-2 col-start-2 col-end-8">
+                                     <strong className="text-l text-gray-900">{task.Usertask_name}</strong><br />
+                                      <label className="text-xs">{new Date(task.Date).toLocaleDateString()}{" "}-{task.Remark}</label>
+                                </div>
+                                <div className="items-center justify-center text-right col-end-9 col-span-1">
+                                      <label className="text-xs pr-2">{new Date(task.Deadline).toLocaleDateString()}</label><br />
+                                      <label className="text-s text-green-500 pr-2">{task.Status}</label></div>
+                                </div>
+                                </div>
+            
+                          ))          
+                    )}
+      <br />
+      <div style={{ display: "none"}}>
+      <button onClick={toggleVisibility}>
+          {isHidden ? "Show Attendance" : "Hide Attendance"}
+      </button>
+      
+      {!isHidden && (
+          isLoading ? (
+              <Skeleton count={5} height={30} />
+          ) : (
+              attendanceData
+                  .filter(record => new Date(record.Date).toISOString().split("T")[0] === getTodayDate()) 
+                  .map((record, index) => (
+                      <div key={index}>
+                          <div className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer">
+                              <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
+                                  <strong className="text-l text-gray-500">
+                                      {record.Attendance_Record_ID}
+                                  </strong>
+                              </div>
+                              <div className="p-2 col-start-2 col-end-8">
+                                  <strong className="text-l text-gray-900">{record.User_name}</strong><br />
+                                  <label className="text-xs">
+                                      {record.Date}{" "} - {record.Status}
+                                  </label>
+                              </div>
+                              <div className="items-center justify-center text-right col-end-9 col-span-1">
+                                  <label className="text-xs pr-2">{record.Time}</label><br />
+                                  <label className="text-s text-green-500 pr-2">{record.Type}</label>
+                              </div>
+                          </div>
+                      </div>
+                  ))
+          )
+      )}
+        </div>    
+              <UserTask onClose={closeUserModal} />
+              </div>
+       </div>
+       </div>
+            <AllOrder />
             <FloatingButtons buttonType="bars" buttonsList={buttonsList} direction="up" />
             {showOrderModal && (
                            <div className="modal-overlay">
@@ -179,6 +262,11 @@ const buttonsList = [
                      <OrderUpdate order={selectedOrderId} onClose={closeEditModal} />
                 </div>
             )}
+             {showTaskModal && (
+                                            <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center ">
+                                                 <TaskUpdate task={selectedTaskId} onClose={closeTaskModal} />
+                                            </div>
+                                        )}
             <Footer /> 
     </>
   );
