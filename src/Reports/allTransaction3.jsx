@@ -1,21 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useLocation } from 'react-router-dom';
 import TopNavbar from '../Pages/topNavbar';
 import Footer from '../Pages/footer';
 import AddOrder1 from "../Pages/addOrder1";
-import { FaWhatsapp, FaSortUp, FaSortDown } from 'react-icons/fa';
 
 const AllTransaction3 = () => {
     const [transactions, setTransactions] = useState([]);
     const [customers, setCustomers] = useState([]);
-    const [outstandingReport, setOutstandingReport] = useState([]);
-    const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filterType, setFilterType] = useState('all'); // 'all' | 'receivable' | 'payable'
     const [showOrderModal, setShowOrderModal] = useState(false);
-    const [showCustomerTransactions, setShowCustomerTransactions] = useState(false);
-    const [selectedCustomer, setSelectedCustomer] = useState(null);
+    const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
 
+    const location = useLocation();
+    const { uuid: customerUuid, name: customerName } = location.state?.customer || {}; // 🛠️ fixed
+
+    // Fetch data on component mount
     useEffect(() => {
         const fetchTransactions = async () => {
             try {
@@ -43,110 +42,62 @@ const AllTransaction3 = () => {
         fetchCustomers();
     }, []);
 
-    useEffect(() => {
-        generateOutstandingReport();
-    }, [transactions, customers]);
+    const customerTransactions = transactions.filter(transaction => {
+        const matchingEntries = transaction.Journal_entry.filter(entry => entry.Account_id === customerUuid);
+        return matchingEntries.length > 0;
+    });
 
-    const generateOutstandingReport = () => {
-        const report = customers.map(customer => {
-            let debit = 0;
-            let credit = 0;
-            transactions.forEach(tx => {
-                tx.Journal_entry.forEach(entry => {
-                    if (entry.Account_id === customer.Customer_uuid) {
-                        if (entry.Type === 'Debit') debit += entry.Amount || 0;
-                        if (entry.Type === 'Credit') credit += entry.Amount || 0;
+    const calculateTotals = () => {
+        const totals = customerTransactions.reduce(
+            (acc, transaction) => {
+                transaction.Journal_entry.forEach(entry => {
+                    if (entry.Account_id === customerUuid) {
+                        if (entry.Type === 'Debit') {
+                            acc.debit += entry.Amount || 0;
+                        } else if (entry.Type === 'Credit') {
+                            acc.credit += entry.Amount || 0;
+                        }
                     }
                 });
-            });
-            return {
-                uuid: customer.Customer_uuid,
-                name: customer.Customer_name,
-                mobile: customer.Mobile_number || 'No phone number',
-                debit,
-                credit,
-                balance: credit - debit
-            };
-        }).filter(r => (r.debit !== 0 || r.credit !== 0) && r.balance !== 0);
+                return acc;
+            },
+            { debit: 0, credit: 0 }
+        );
 
-        setOutstandingReport(report);
+        const total = totals.credit - totals.debit;
+        return { debit: totals.debit, credit: totals.credit, total };
     };
 
-    const sortedReport = [...outstandingReport]
-        .filter(item => {
-            if (filterType === 'receivable') return item.balance > 0;
-            if (filterType === 'payable') return item.balance < 0;
-            return true;
-        })
-        .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
-        .sort((a, b) => {
-            if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
-            if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
-            return 0;
-        });
+    const totals = calculateTotals();
 
-    const handleSort = (key) => {
+    const sortTable = (key) => {
         let direction = 'asc';
         if (sortConfig.key === key && sortConfig.direction === 'asc') {
             direction = 'desc';
         }
         setSortConfig({ key, direction });
+
+        const sortedEntries = [...customerTransactions].sort((a, b) => {
+            const aValue = a[key] || '';
+            const bValue = b[key] || '';
+            if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+            if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        setTransactions(sortedEntries);
     };
 
-    const sendMessageToAPI = async (name, phone, balance) => {
-        const today = new Date().toLocaleDateString('en-IN');
-        const senderName = "S.K.Digital";
-
-        const message = `Dear ${name}, your balance is ₹${balance} as of ${today}. Please clear it soon. - ${senderName}`;
-
-        const payload = {
-            mobile: phone,
-            userName: name,
-            type: 'customer',
-            message: message
-        };
-
-        try {
-            const res = await fetch('https://misbackend-e078.onrender.com/usertask/send-message', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            const result = await res.json();
-            if (result.error) {
-                alert("Failed to send: " + result.error);
-            } else {
-                alert("Message sent successfully.");
-            }
-        } catch (error) {
-            console.error("Request failed:", error);
-            alert("Failed to send message.");
-        }
+    const handlePrint = () => {
+        window.print();
     };
 
-    const sendWhatsApp = (name, phone, balance) => {
-        if (phone === 'No phone number') {
-            alert("No phone number available for this customer.");
-            return;
-        }
-        sendMessageToAPI(name, phone, balance);
+    const handleOrder = () => {
+        setShowOrderModal(true);
     };
 
-    const viewTransactions = (customer) => {
-        setSelectedCustomer(customer);
-        setShowCustomerTransactions(true);
-    };
-
-    const closeTransactionModal = () => {
-        setShowCustomerTransactions(false);
-        setSelectedCustomer(null);
-    };
-
-    // Helper function to check if the date is valid
-    const isValidDate = (date) => {
-        const parsedDate = new Date(date);
-        return !isNaN(parsedDate.getTime());
+    const closeModal = () => {
+        setShowOrderModal(false);
     };
 
     return (
@@ -155,147 +106,89 @@ const AllTransaction3 = () => {
                 <TopNavbar />
             </div>
             <div className="pt-12 pb-20">
-                <div className="mt-6 max-w-4xl mx-auto bg-white p-4 rounded shadow">
-                    <h2 className="text-lg font-semibold mb-4 text-center text-green-700">Outstanding Report</h2>
-
-                    {/* Search and Filter Buttons */}
-                    <div className="mb-4 flex flex-col md:flex-row gap-3 md:items-center">
-                        <input
-                            type="text"
-                            placeholder="Search customer name..."
-                            className="flex-1 p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-300"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => setFilterType('receivable')}
-                                className={`px-4 py-2 rounded ${filterType === 'receivable' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-700'} hover:bg-green-200`}
-                            >
-                                Receivable
-                            </button>
-                            <button
-                                onClick={() => setFilterType('payable')}
-                                className={`px-4 py-2 rounded ${filterType === 'payable' ? 'bg-red-600 text-white' : 'bg-red-100 text-red-700'} hover:bg-red-200`}
-                            >
-                                Payable
-                            </button>
-                            <button
-                                onClick={() => setFilterType('all')}
-                                className={`px-4 py-2 rounded ${filterType === 'all' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-700'} hover:bg-gray-200`}
-                            >
-                                Show All
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Table */}
-                    <table className="w-full table-auto text-sm border">
-                        <thead className="bg-green-100 text-green-900">
-                            <tr>
-                                <th onClick={() => handleSort('name')} className="border px-3 py-2 cursor-pointer text-left">
-                                    Customer {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? <FaSortUp className="inline ml-1" /> : <FaSortDown className="inline ml-1" />)}
-                                </th>
-                                <th onClick={() => handleSort('mobile')} className="border px-3 py-2 cursor-pointer text-left">
-                                    Mobile {sortConfig.key === 'mobile' && (sortConfig.direction === 'asc' ? <FaSortUp className="inline ml-1" /> : <FaSortDown className="inline ml-1" />)}
-                                </th>
-                                <th onClick={() => handleSort('balance')} className="border px-3 py-2 cursor-pointer text-right">
-                                    Amount {sortConfig.key === 'balance' && (sortConfig.direction === 'asc' ? <FaSortUp className="inline ml-1" /> : <FaSortDown className="inline ml-1" />)}
-                                </th>
-                                <th className="border px-3 py-2 text-center">Send</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {sortedReport.length === 0 ? (
-                                <tr>
-                                    <td colSpan="4" className="text-center py-6 text-gray-500">
-                                        No customers found.
-                                    </td>
-                                </tr>
-                            ) : (
-                                sortedReport.map((item, index) => (
-                                    <tr key={index} className="border-t hover:bg-gray-50">
-                                        <td
-                                            className="px-3 py-2 cursor-pointer text-green-600"
-                                            onClick={() => viewTransactions(item)} // Make name clickable
-                                        >
-                                            {item.name}
-                                        </td>
-                                        <td className="px-3 py-2">{item.mobile}</td>
-                                        <td className={`px-3 py-2 text-right ${item.balance < 0 ? 'text-red-600' : 'text-green-700'}`}>
-                                            ₹{Math.abs(item.balance)}
-                                        </td>
-                                        <td className="px-3 py-2 text-center">
-                                            {item.mobile !== 'No phone number' && (
-                                                <button onClick={() => sendWhatsApp(item.name, item.mobile, item.balance)}>
-                                                    <FaWhatsapp className="text-green-600 text-lg" />
-                                                </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Customer Transaction Modal */}
-                {showCustomerTransactions && (
-                    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
-                            <h3 className="text-xl font-semibold mb-4">{selectedCustomer.name}'s Transactions</h3>
-                            <table className="w-full table-auto text-sm border">
-                                <thead className="bg-gray-100 text-gray-900">
+                <main className="overflow-x-auto mt-6">
+                    <div className="w-full overflow-x-scroll">
+                        {customerTransactions.length > 0 ? (
+                            <table className="min-w-full table-auto border-collapse">
+                                <thead className="bg-gray-100">
                                     <tr>
-                                        <th className="border px-3 py-2 text-left">Date</th>
-                                        <th className="border px-3 py-2 text-left">Description</th>
-                                        <th className="border px-3 py-2 text-right">Amount</th>
+                                        <th onClick={() => sortTable("Transaction_id")} className="py-2 px-4 cursor-pointer">No</th>
+                                        <th onClick={() => sortTable("Transaction_date")} className="py-2 px-4 cursor-pointer">Date</th>
+                                        <th onClick={() => sortTable("Account_id")} className="py-2 px-4 cursor-pointer">Name</th>
+                                        <th onClick={() => sortTable("Description")} className="py-2 px-4 cursor-pointer">Description</th>
+                                        <th onClick={() => sortTable("Debit")} className="py-2 px-4 cursor-pointer">Credit</th>
+                                        <th onClick={() => sortTable("Credit")} className="py-2 px-4 cursor-pointer">Debit</th>
+                                        <th onClick={() => sortTable("Balance")} className="py-2 px-4 cursor-pointer">Balance</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {transactions
-                                        .filter(tx => tx.Journal_entry.some(entry => entry.Account_id === selectedCustomer.uuid)) // Filter by selected customer
-                                        .map((tx, idx) => (
-                                            <tr key={idx} className="border-t hover:bg-gray-50">
-                                                <td className="px-3 py-2">
-                                                    {isValidDate(tx.Date) ? new Date(tx.Date).toLocaleDateString() : 'Invalid Date'}
-                                                </td>
-                                                <td className="px-3 py-2">{tx.Description || 'No Description'}</td>
-                                                <td className="px-3 py-2 text-right">
-                                                    {tx.Journal_entry.map(entry => {
-                                                        if (entry.Account_id === selectedCustomer.uuid) {
-                                                            return entry.Amount ? `₹${entry.Amount.toFixed(2)}` : 'No Amount';
-                                                        }
-                                                        return null;
-                                                    }).join(', ')}
-                                                </td>
-                                            </tr>
-                                        ))}
+                                {(() => {
+                                    let runningBalance = 0;
+                                    return customerTransactions.flatMap((transaction, index) =>
+                                    transaction.Journal_entry.filter(entry => entry.Account_id === customerUuid)
+                                    .map((entry, entryIndex) => {
+                                     if (entry.Type === 'Debit') {
+                                        runningBalance -= entry.Amount || 0;
+                                    } else if (entry.Type === 'Credit') {
+                                     runningBalance += entry.Amount || 0;
+                                    }
+
+                                 return (
+                                     <tr key={`${index}-${entryIndex}`} className="border-t hover:bg-gray-50">
+                                        <td className="py-2 px-4">{transaction.Transaction_id}</td>
+                                        <td className="py-2 px-4">{new Date(transaction.Transaction_date).toLocaleDateString()}</td>
+                                        <td className="py-2 px-4">{customerName}</td>
+                                        <td className="py-2 px-4">{transaction.Description}</td>
+                                        <td className="py-2 px-4">{entry.Type === 'Debit' ? entry.Amount : '0'}</td>
+                                        <td className="py-2 px-4">{entry.Type === 'Credit' ? entry.Amount : '0'}</td>
+                                        <td className="py-2 px-4">{runningBalance}</td>
+                                    </tr>
+                                );
+                             })
+                                );
+                            })()}
                                 </tbody>
+                                <tfoot>
+                                    <tr className="bg-gray-100">
+                                        <td colSpan="6" className="py-2 px-4 text-right font-semibold">Total</td>
+                                        <td className="py-2 px-4 font-semibold">{totals.total}</td>
+                                    </tr>
+                                </tfoot>
                             </table>
-                            <button
-                                onClick={closeTransactionModal}
-                                className="mt-4 bg-gray-600 text-white px-4 py-2 rounded"
-                            >
-                                Close
-                            </button>
-                        </div>
+                        ) : (
+                            <p className="text-center text-gray-600">No transactions found.</p>
+                        )}
                     </div>
-                )}
+                </main>
 
-                {/* Order Modal */}
-                {showOrderModal && (
-                    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
-                            <AddOrder1 closeModal={() => setShowOrderModal(false)} />
-                        </div>
-                    </div>
-                )}
-
-                <div className="no-print">
-                    <Footer />
+                <div className="fixed bottom-6 right-6">
+                    <button
+                        onClick={handleOrder}
+                        className="w-14 h-14 bg-green-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-green-700"
+                    >
+                        <svg
+                            className="h-8 w-8"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v14m7-7H5" />
+                        </svg>
+                    </button>
                 </div>
+            </div>
+
+            {showOrderModal && (
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+                        <AddOrder1 closeModal={closeModal} />
+                    </div>
+                </div>
+            )}
+
+            <div className="no-print">
+                <Footer />
             </div>
         </>
     );

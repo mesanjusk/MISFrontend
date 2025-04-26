@@ -181,10 +181,12 @@ const buttonsList = [
       <TopNavbar />
       <br /><br />
         <div className="pt-12 pb-20">
-              <div className="d-flex justify-content-center align-items-center bg-gray-200 vh-100 vw-100"> 
+              <div className="d-flex justify-content-center align-items-center vh-100 vw-100"> 
               <div className="top-0 right-0  w-100 h-75 ">
               <h1 className="absolute right-10 text-s font-bold mb-6">Welcome, {userName}!</h1><br />
               <button className="absolute right-10 text-s" onClick={handleLogout}>Logout</button><br /><br />
+              <main className="flex flex-1 p-2 overflow-y-auto">
+                        <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">
                       {isLoading ? (
                                       <Skeleton count={5} height={30} />
                                     ) : (
@@ -208,6 +210,8 @@ const buttonsList = [
             
                           ))          
                     )}
+                    </div>
+                    </main>
       <br />
       <div style={{ display: "none"}}>
       <button onClick={toggleVisibility}>

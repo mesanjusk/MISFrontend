@@ -403,7 +403,7 @@ export default function UserTask() {
     
     return (
        
-<div className=" max-w-lg " >
+<div className="d-flex justify-content-center mt-3" >
       <div className="w-4/4 vh-100 pt-10 flex flex-col">
                 
 
