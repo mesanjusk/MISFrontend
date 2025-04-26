@@ -54,8 +54,7 @@ const AllTransaction = () => {
 
         if (searchTerm) {
             const filtered = customers.filter(customer =>
-                customer.Customer_name.toLowerCase().includes(searchTerm) &&
-                customer.Customer_group === 'Bank and Account'
+                customer.Customer_name.toLowerCase().includes(searchTerm)
             );
             setFilteredCustomers(filtered);
         } else {
