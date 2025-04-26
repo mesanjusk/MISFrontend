@@ -68,17 +68,17 @@ const AllTransaction3 = () => {
     };
 
     const sendMessageToAPI = async (name, phone, balance) => {
-        const today = new Date().toLocaleDateString('en-IN'); // format: DD/MM/YYYY
-        const senderName = "S.K.Digital"; // <-- Your Company/Sender Name
+        const today = new Date().toLocaleDateString('en-IN'); // DD/MM/YYYY
+        const senderName = "S.K.Digital"; // Your company name
     
-        // Full proper message
-        const messageText = `Customer Name: ${name}\nOutstanding Balance: ₹${balance}\nDate: ${today}\n\nKindly clear the pending amount at your earliest convenience.\n\nThank you,\n${senderName}`;
+        // ✨ Short and simple message
+        const message = `Dear ${name}, your balance is ₹${balance} as of ${today}. Please clear it soon. - ${senderName}`;
     
         const payload = {
-            mobile: phone,           // Customer mobile number
-            userName: name,          // Still pass customer name
-            type: 'customer',        // Message type
-            message: messageText     // IMPORTANT: pass full message here
+            mobile: phone,
+            userName: name,
+            type: 'customer',
+            message: message
         };
     
         console.log("Sending payload:", payload);
@@ -105,7 +105,7 @@ const AllTransaction3 = () => {
             alert("Failed to send message.");
         }
     };
-    
+     
     
     
     const sendWhatsApp = (name, phone, balance) => {
@@ -130,10 +130,10 @@ const AllTransaction3 = () => {
                     <table className="w-full table-auto text-sm border">
                         <thead className="bg-green-100 text-green-900">
                             <tr>
-                                <th className="border px-3 py-2 text-left">Customer Name</th>
-                                <th className="border px-3 py-2 text-left">Mobile Number</th>
-                                <th className="border px-3 py-2 text-right">Balance</th>
-                                <th className="border px-3 py-2 text-center">WhatsApp</th>
+                                <th className="border px-3 py-2 text-left">Customer</th>
+                                <th className="border px-3 py-2 text-left">Mobile </th>
+                                <th className="border px-3 py-2 text-right">Amount</th>
+                                <th className="border px-3 py-2 text-center"></th>
                             </tr>
                         </thead>
                         <tbody>
