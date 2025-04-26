@@ -85,10 +85,10 @@ const AllTransaction1 = () => {
                     <table className="w-full table-auto text-sm border">
                         <thead className="bg-green-100 text-green-900">
                             <tr>
-                                <th className="border px-3 py-2 text-left">Customer Name</th>
-                                <th className="border px-3 py-2 text-left">Mobile Number</th>
+                                <th className="border px-3 py-2 text-left">Customer</th>
+                                <th className="border px-3 py-2 text-left">Mobile </th>
                                 <th className="border px-3 py-2 text-right">Balance</th>
-                                <th className="border px-3 py-2 text-center">WhatsApp</th>
+                                <th className="border px-3 py-2 text-center"></th>
                             </tr>
                         </thead>
                         <tbody>
