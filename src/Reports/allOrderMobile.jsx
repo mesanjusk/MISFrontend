@@ -18,6 +18,7 @@ export default function AllOrder() {
     const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [searchOrder, setSearchOrder] = useState("");
+    const [filter, setFilter] = useState("Design");
     const [tasks, setTasks] = useState([]);
     const [showOrderModal, setShowOrderModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -98,7 +99,10 @@ export default function AllOrder() {
                 searchOrder === "" ||
                 order.Customer_name.toLowerCase().includes(searchOrder.toLowerCase());
 
-            return matchesSearch;
+            const matchesFilter =
+                filter === "" || order.highestStatusTask?.Task === filter;
+
+            return matchesSearch && matchesFilter;
         });
 
     const handleEditClick = (order) => {
@@ -120,20 +124,11 @@ export default function AllOrder() {
         { onClick: () => navigate('/addEnquiry'), src: enquiry },
     ];
 
-    // Color scheme based on task group
-    const taskGroupColors = {
-        "Task Group 1": "bg-green-200", // Example: green for Task Group 1
-        "Task Group 2": "bg-blue-200",  // Example: blue for Task Group 2
-        "Task Group 3": "bg-yellow-200",// Example: yellow for Task Group 3
-        "Task Group 4": "bg-purple-200",// Example: purple for Task Group 4
-    };
-
     return (
         <>
             <div className="order-update-content">
                 <TopNavbar />
                 <div className="pt-12 pb-20">
-                    {/* Search Bar */}
                     <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
                         <input
                             type="text"
@@ -144,61 +139,68 @@ export default function AllOrder() {
                         />
                     </div>
 
-                    {/* Main Content: Orders separated by Task Groups */}
+                    <div className="overflow-x-scroll flex space-x-1 py-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+                        <style>{`.overflow-x-scroll::-webkit-scrollbar {display: none;}`}</style>
+                        <SkeletonTheme highlightColor="#b4cf97">
+                            {isLoading
+                                ? Array(3).fill().map((_, index) => (
+                                    <Skeleton key={index} height={40} width={100} style={{ margin: "0 5px" }} />
+                                ))
+                                : taskOptions.map((taskGroup) => (
+                                    <button
+                                        key={taskGroup}
+                                        onClick={() => {
+                                            setFilter(taskGroup);
+                                        }}
+                                        className={`sanju ${filter === taskGroup ? "bg-green-200" : "bg-gray-100"} uppercase rounded-full text-black p-2 text-xs me-1`}
+                                    >
+                                        {taskGroup}
+                                    </button>
+                                ))}
+                        </SkeletonTheme>
+                    </div>
+
                     <main className="flex flex-1 p-2 overflow-y-auto">
-                        <div className="w-full max-w-screen-xl mx-auto">
+                        <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">
                             <SkeletonTheme highlightColor="#b4cf97">
                                 {isLoading
                                     ? Array(5).fill().map((_, index) => (
                                         <Skeleton key={index} height={80} width="100%" style={{ marginBottom: "10px" }} />
                                     ))
-                                    : taskOptions.map((taskGroup) => {
-                                        // Filter orders for the specific task group
-                                        const taskGroupOrders = filteredOrders.filter(order => order.highestStatusTask?.Task === taskGroup);
-
-                                        // Only render task group if there are orders
-                                        if (taskGroupOrders.length === 0) return null;
-
-                                        return (
-                                            <div key={taskGroup} className="task-group-card mb-10">
-                                                {/* Task Group Header */}
-                                                <h3 className="font-bold text-xl mt-4 text-green-600">{taskGroup}</h3>
-
-                                                {/* Cards of Orders for this Task Group */}
-                                                <div className="flex flex-wrap space-x-4 mt-4 pb-4">
-                                                    {taskGroupOrders.map((order) => (
-                                                        <div key={order.Order_uuid}
-                                                            className={`order-card p-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/5 ${taskGroupColors[taskGroup] || 'bg-gray-200'}`}
-                                                        >
-                                                            <div onClick={() => handleEditClick(order)} className="grid grid-cols-5 gap-2 items-center">
-                                                                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                                                                    <strong className="text-l text-gray-500">{order.Order_Number}</strong>
-                                                                </div>
-                                                                <div className="col-span-3">
-                                                                    <strong className="text-lg text-gray-900">{order.Customer_name}</strong>
-                                                                    <label className="text-sm text-gray-600">{order.highestStatusTask?.CreatedAt ? new Date(order.highestStatusTask.CreatedAt).toLocaleDateString() : ''} - {order.Remark}</label>
-                                                                </div>
-                                                                <div className="text-right">
-                                                                    <label className="text-xs">{order.highestStatusTask?.Delivery_Date ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString() : ''}</label>
-                                                                    <br />
-                                                                    <label className="text-sm text-green-500">{order.highestStatusTask?.Assigned}</label>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    ))}
+                                    : filteredOrders.map((order) => (
+                                        <div key={order.Order_uuid || order.Order_Number}>
+                                            <div
+                                                onClick={() => handleEditClick(order)}
+                                                className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer"
+                                                role="button"
+                                                tabIndex={0}
+                                            >
+                                                <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
+                                                    <strong className="text-l text-gray-500">{order.Order_Number}</strong>
+                                                </div>
+                                                <div className="p-2 col-start-2 col-end-8">
+                                                    <strong className="text-l text-gray-900">{order.Customer_name}</strong><br />
+                                                    <label className="text-xs">
+                                                        {order.highestStatusTask?.CreatedAt ? new Date(order.highestStatusTask.CreatedAt).toLocaleDateString() : ''} - {order.Remark}
+                                                    </label>
+                                                </div>
+                                                <div className="items-center justify-center text-right col-end-9 col-span-1">
+                                                    <label className="text-xs pr-2">
+                                                        {order.highestStatusTask?.Delivery_Date ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString() : ''}
+                                                    </label><br />
+                                                    <label className="text-s text-green-500 pr-2">
+                                                        {order.highestStatusTask?.Assigned}
+                                                    </label>
                                                 </div>
                                             </div>
-                                        );
-                                    })}
+                                        </div>
+                                    ))}
                             </SkeletonTheme>
                         </div>
                     </main>
-
-                    {/* Floating Button */}
                     <FloatingButtons buttonType="bars" buttonsList={buttonsList} direction="up" />
                 </div>
 
-                {/* Modals */}
                 <Suspense fallback={<div className="text-center py-4">Loading...</div>}>
                     {showOrderModal && (
                         <div className="modal-overlay">
@@ -220,4 +222,3 @@ export default function AllOrder() {
         </>
     );
 }
-
