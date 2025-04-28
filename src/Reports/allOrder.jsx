@@ -140,7 +140,7 @@ export default function AllOrder() {
                     {/* Main Content */}
                     <main className="flex flex-1 p-2 overflow-y-auto">
                         <div className="w-full max-w-screen-xl mx-auto">
-                            <SkeletonTheme highlightColor="#d4f1c5">
+                            <SkeletonTheme highlightColor="">
                                 {isLoading
                                     ? Array(5).fill().map((_, index) => (
                                         <Skeleton key={index} height={80} width="100%" style={{ marginBottom: "10px" }} />
@@ -151,7 +151,7 @@ export default function AllOrder() {
                                         if (taskGroupOrders.length === 0) return null;
 
                                         return (
-                                            <div key={taskGroup} className="mb-6 p-4 bg-[#f0f2f5] rounded-lg">
+                                            <div key={taskGroup} className="mb-6 p-4 bg-[#e5ddd5] rounded-lg">
                                                 <h3 className="font-semibold text-lg text-green-700 mb-3">{taskGroup}</h3>
 
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
