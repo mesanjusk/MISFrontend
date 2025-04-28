@@ -180,13 +180,12 @@ const buttonsList = [
     <>
       <TopNavbar />
       <br /><br />
-        <div className="pt-12 pb-20">
-              <div className="d-flex justify-content-center align-items-center vh-100 vw-100"> 
-              <div className="top-0 right-0  w-100 h-75 ">
+
               <h1 className="absolute right-10 text-s font-bold mb-6">Welcome, {userName}!</h1><br />
               <button className="absolute right-10 text-s" onClick={handleLogout}>Logout</button><br /><br />
-              <main className="flex flex-1 p-2 overflow-y-auto">
-                        <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">
+
+      <AllOrder />
+                        <div >
                       {isLoading ? (
                                       <Skeleton count={5} height={30} />
                                     ) : (
@@ -211,48 +210,12 @@ const buttonsList = [
                           ))          
                     )}
                     </div>
-                    </main>
-      <br />
-      <div style={{ display: "none"}}>
-      <button onClick={toggleVisibility}>
-          {isHidden ? "Show Attendance" : "Hide Attendance"}
-      </button>
       
-      {!isHidden && (
-          isLoading ? (
-              <Skeleton count={5} height={30} />
-          ) : (
-              attendanceData
-                  .filter(record => new Date(record.Date).toISOString().split("T")[0] === getTodayDate()) 
-                  .map((record, index) => (
-                      <div key={index}>
-                          <div className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer">
-                              <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
-                                  <strong className="text-l text-gray-500">
-                                      {record.Attendance_Record_ID}
-                                  </strong>
-                              </div>
-                              <div className="p-2 col-start-2 col-end-8">
-                                  <strong className="text-l text-gray-900">{record.User_name}</strong><br />
-                                  <label className="text-xs">
-                                      {record.Date}{" "} - {record.Status}
-                                  </label>
-                              </div>
-                              <div className="items-center justify-center text-right col-end-9 col-span-1">
-                                  <label className="text-xs pr-2">{record.Time}</label><br />
-                                  <label className="text-s text-green-500 pr-2">{record.Type}</label>
-                              </div>
-                          </div>
-                      </div>
-                  ))
-          )
-      )}
-        </div>    
+      
+      
               <UserTask onClose={closeUserModal} />
-              </div>
-       </div>
-       </div>
-            <AllOrder />
+              
+            
             <FloatingButtons buttonType="bars" buttonsList={buttonsList} direction="up" />
             {showOrderModal && (
                            <div className="modal-overlay">

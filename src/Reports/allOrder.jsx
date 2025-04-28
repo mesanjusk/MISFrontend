@@ -120,69 +120,61 @@ export default function AllOrder() {
         { onClick: () => navigate('/addEnquiry'), src: enquiry },
     ];
 
-    // Color scheme based on task group
-    const taskGroupColors = {
-        "Task Group 1": "bg-green-200", // Example: green for Task Group 1
-        "Task Group 2": "bg-blue-200",  // Example: blue for Task Group 2
-        "Task Group 3": "bg-yellow-200",// Example: yellow for Task Group 3
-        "Task Group 4": "bg-purple-200",// Example: purple for Task Group 4
-    };
-
     return (
         <>
-            <div className="order-update-content">
+            <div className="order-update-content bg-[#e5ddd5] min-h-screen">
                 <TopNavbar />
                 <div className="pt-12 pb-20">
+
                     {/* Search Bar */}
-                    <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
+                    <div className="flex flex-wrap bg-white w-full max-w-md p-2 mx-auto rounded-full shadow-sm">
                         <input
                             type="text"
                             placeholder="Search by Customer Name"
-                            className="form-control text-black bg-gray-100 rounded-full"
+                            className="form-control text-black bg-transparent rounded-full w-full p-2 focus:outline-none"
                             value={searchOrder}
                             onChange={(e) => setSearchOrder(e.target.value)}
                         />
                     </div>
 
-                    {/* Main Content: Orders separated by Task Groups */}
+                    {/* Main Content */}
                     <main className="flex flex-1 p-2 overflow-y-auto">
                         <div className="w-full max-w-screen-xl mx-auto">
-                            <SkeletonTheme highlightColor="#b4cf97">
+                            <SkeletonTheme highlightColor="#d4f1c5">
                                 {isLoading
                                     ? Array(5).fill().map((_, index) => (
                                         <Skeleton key={index} height={80} width="100%" style={{ marginBottom: "10px" }} />
                                     ))
                                     : taskOptions.map((taskGroup) => {
-                                        // Filter orders for the specific task group
                                         const taskGroupOrders = filteredOrders.filter(order => order.highestStatusTask?.Task === taskGroup);
 
-                                        // Only render task group if there are orders
                                         if (taskGroupOrders.length === 0) return null;
 
                                         return (
-                                            <div key={taskGroup} className="task-group-card mb-10">
-                                                {/* Task Group Header */}
-                                                <h3 className="font-bold text-xl mt-4 text-green-600">{taskGroup}</h3>
+                                            <div key={taskGroup} className="mb-6 p-4 bg-[#f0f2f5] rounded-lg">
+                                                <h3 className="font-semibold text-lg text-green-700 mb-3">{taskGroup}</h3>
 
-                                                {/* Cards of Orders for this Task Group */}
-                                                <div className="flex flex-wrap space-x-4 mt-4 pb-4">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                                     {taskGroupOrders.map((order) => (
-                                                        <div key={order.Order_uuid}
-                                                            className={`order-card p-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 w-full sm:w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/5 ${taskGroupColors[taskGroup] || 'bg-gray-200'}`}
+                                                        <div
+                                                            key={order.Order_uuid}
+                                                            className="bg-white rounded-lg p-4 cursor-pointer hover:bg-green-50 transition-all"
+                                                            onClick={() => handleEditClick(order)}
                                                         >
-                                                            <div onClick={() => handleEditClick(order)} className="grid grid-cols-5 gap-2 items-center">
-                                                                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                                                                    <strong className="text-l text-gray-500">{order.Order_Number}</strong>
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-full text-sm font-bold text-green-800">
+                                                                    {order.Order_Number}
                                                                 </div>
-                                                                <div className="col-span-3">
-                                                                    <strong className="text-lg text-gray-900">{order.Customer_name}</strong>
-                                                                    <label className="text-sm text-gray-600">{order.highestStatusTask?.CreatedAt ? new Date(order.highestStatusTask.CreatedAt).toLocaleDateString() : ''} - {order.Remark}</label>
+                                                                <div className="flex-1">
+                                                                    <div className="font-semibold text-gray-800 truncate">{order.Customer_name}</div>
+                                                                    <div className="text-xs text-gray-500">
+                                                                        {order.highestStatusTask?.CreatedAt ? new Date(order.highestStatusTask.CreatedAt).toLocaleDateString() : ''} • {order.Remark}
+                                                                    </div>
                                                                 </div>
-                                                                <div className="text-right">
-                                                                    <label className="text-xs">{order.highestStatusTask?.Delivery_Date ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString() : ''}</label>
-                                                                    <br />
-                                                                    <label className="text-sm text-green-500">{order.highestStatusTask?.Assigned}</label>
-                                                                </div>
+                                                            </div>
+                                                            <div className="flex justify-between items-center mt-2 text-xs text-gray-600">
+                                                                <span>{order.highestStatusTask?.Delivery_Date ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString() : ''}</span>
+                                                                <span className="text-green-500">{order.highestStatusTask?.Assigned}</span>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -195,22 +187,33 @@ export default function AllOrder() {
                     </main>
 
                     {/* Floating Button */}
-                    <FloatingButtons buttonType="bars" buttonsList={buttonsList} direction="up" />
+                    <FloatingButtons
+                        buttonType="bars"
+                        buttonsList={buttonsList}
+                        direction="up"
+                        buttonClassName="rounded-full bg-green-500 hover:bg-green-600 text-white"
+                    />
                 </div>
 
                 {/* Modals */}
-                <Suspense fallback={<div className="text-center py-4">Loading...</div>}>
+                <Suspense fallback={
+                    <div className="flex justify-center items-center min-h-screen">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
+                    </div>
+                }>
                     {showOrderModal && (
-                        <div className="modal-overlay">
-                            <div className="modal-content">
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                            <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4">
                                 <AddOrder1 closeModal={closeModal} />
                             </div>
                         </div>
                     )}
 
                     {showEditModal && (
-                        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-                            <OrderUpdate order={selectedOrder} onClose={closeEditModal} />
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                            <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4">
+                                <OrderUpdate order={selectedOrder} onClose={closeEditModal} />
+                            </div>
                         </div>
                     )}
                 </Suspense>
@@ -220,4 +223,3 @@ export default function AllOrder() {
         </>
     );
 }
-
