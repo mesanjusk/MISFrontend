@@ -24,11 +24,11 @@ export default function UserTask() {
         console.log(user);
         setUserMobile(usermobile);
         if (user) {
-          setUserName(user);
-          setUserMobile(usermobile);
+            setUserName(user);
+            setUserMobile(usermobile);
             fetchAttendanceData(user);
         } else {
-          navigate("/");
+            navigate("/");
         }
     }, [navigate]);
 
@@ -53,7 +53,7 @@ export default function UserTask() {
                 } else if (type === "Start") {
                     newState = "Out";
                 } else if (type === "Out") {
-                    newState = "In"; 
+                    newState = "In";
                 }
 
                 setAttendanceState(newState);
@@ -68,7 +68,7 @@ export default function UserTask() {
             console.error("Error saving attendance:", error);
         }
     };
-    
+
     const createTransaction = async (userName) => {
         try {
             const userResponse = await axios.get(`/user/getUserByName/${userName}`);
@@ -76,32 +76,32 @@ export default function UserTask() {
                 alert("Failed to fetch user details!");
                 return;
             }
-    
+
             const user = userResponse.data.result;
-            const Amount = Number(user.Amount); 
-            const userGroup = user.User_group; 
-    
+            const Amount = Number(user.Amount);
+            const userGroup = user.User_group;
+
             if (!Amount || !userGroup) {
                 alert("Amount or User Group not found for user!");
                 return;
             }
-   
+
             const userGroupResponse = await axios.get(`/usergroup/getGroup/${userGroup}`);
             if (!userGroupResponse.data.success || !userGroupResponse.data.group) {
                 alert("Failed to fetch user group details!");
                 return;
             }
-    
-            const groupUuid = userGroupResponse.data.group.User_group_uuid; 
-    
+
+            const groupUuid = userGroupResponse.data.group.User_group_uuid;
+
             if (!groupUuid) {
                 alert("User Group UUID not found!");
                 return;
             }
- 
+
             const journal = [
                 {
-                    Account_id: "ceb70e15-d545-4ed2-8c3f-384e4f677d10",  
+                    Account_id: "ceb70e15-d545-4ed2-8c3f-384e4f677d10",
                     Type: "Credit",
                     Amount: Amount
                 },
@@ -111,21 +111,21 @@ export default function UserTask() {
                     Amount: Amount
                 }
             ];
-   
+
             const transactionResponse = await axios.post("/transaction/addTransaction", {
-                Description: "Salary", 
+                Description: "Salary",
                 Transaction_date: new Date().toISOString(),
                 Total_Credit: Amount,
                 Total_Debit: Amount,
-                Payment_mode: user.User_group, 
+                Payment_mode: user.User_group,
                 Journal_entry: journal,
                 Created_by: loggedInUser
             });
-    
+
             if (!transactionResponse.data.success) {
                 alert("Failed to add Transaction.");
             }
-    
+
         } catch (error) {
             console.error("Error creating transaction:", error);
         }
@@ -137,25 +137,25 @@ export default function UserTask() {
         const today = new Date().toISOString().split("T")[0];
 
         if (savedState && lastUpdated === today) {
-            setAttendanceState(savedState);  
+            setAttendanceState(savedState);
         } else {
-            setAttendanceState("In"); 
+            setAttendanceState("In");
         }
     }, []);
 
 
     const fetchLastAttendance = async () => {
         try {
-            const response = await fetch(`https://misbackend-e078.onrender.com/attendance/getTodayAttendance/${userName}`);      
+            const response = await fetch(`https://misbackend-e078.onrender.com/attendance/getTodayAttendance/${userName}`);
             const data = await response.json();
             if (data && data.success) {
-                return data; 
+                return data;
             } else {
-                return null; 
+                return null;
             }
         } catch (error) {
             console.error("Fetch error:", error);
-            return null; 
+            return null;
         }
     };
 
@@ -173,7 +173,7 @@ export default function UserTask() {
                 setAttendanceState(newState);
             }).catch((error) => {
                 console.error("Error fetching last attendance:", error);
-                setAttendanceState("In"); 
+                setAttendanceState("In");
             });
         }
     }, [showButtons]);
@@ -195,33 +195,33 @@ export default function UserTask() {
     const pendingTasks = tasks.filter(task => task.Status === "Pending");
 
     const sendmsg = async (type) => {
-            const res = await fetch('https://misbackend-e078.onrender.com/usertask/send-message', {
-              method: 'POST',
-              headers: {
+        const res = await fetch('https://misbackend-e078.onrender.com/usertask/send-message', {
+            method: 'POST',
+            headers: {
                 'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
+            },
+            body: JSON.stringify({
                 userName,
                 mobile: "9372333633",
                 type
-              }),
-            });
-          
-            const result = await res.json();
-            console.log(result);
-          
-}
-    
-    
+            }),
+        });
+
+        const result = await res.json();
+        console.log(result);
+
+    }
+
+
     const fetchUserNames = async () => {
         try {
             const response = await axios.get('/user/GetUserList');
             const data = response.data;
-    
+
             if (data.success) {
                 const userLookup = {};
                 data.result.forEach(user => {
-                    userLookup[user.User_uuid] = user.User_name.trim(); 
+                    userLookup[user.User_uuid] = user.User_name.trim();
                 });
                 return userLookup;
             } else {
@@ -232,50 +232,50 @@ export default function UserTask() {
             console.error('Error fetching user names:', error);
             return {};
         }
-      };
+    };
 
-      const fetchAttendanceData = async (loggedInUser) => {
+    const fetchAttendanceData = async (loggedInUser) => {
         try {
             const userLookup = await fetchUserNames();
             const attendanceResponse = await axios.get('/attendance/GetAttendanceList');
             const attendanceRecords = attendanceResponse.data.result || [];
-    
+
             const formattedData = processAttendanceData(attendanceRecords, userLookup);
             setAttendance(formattedData);
-    
+
             const filteredAttendance = attendanceRecords.flatMap(record => {
                 const employeeUuid = record.Employee_uuid.trim();
                 const userName = userLookup[employeeUuid] || 'Unknown';
-    
+
                 return record.User.map(user => ({
                     Attendance_Record_ID: record.Attendance_Record_ID,
                     User_name: userName,
-                    Date: new Date(user.CreatedAt).toISOString().split("T")[0], 
+                    Date: new Date(user.CreatedAt).toISOString().split("T")[0],
                     Time: user.CreatedAt ? format(new Date(user.CreatedAt), "hh:mm a") : "No Time",
                     Type: user.Type || 'N/A',
                     Status: record.Status || 'N/A',
                 }));
             }).filter(record => record.User_name === loggedInUser);
-    
+
             setAttendanceData(filteredAttendance);
-    
+
             const todayDate = new Date().toISOString().split("T")[0];
             const attendanceByDate = filteredAttendance.reduce((acc, record) => {
                 acc[record.Date] = acc[record.Date] || [];
                 acc[record.Date].push(record);
                 return acc;
             }, {});
-    
+
             const lastRecordedDate = Object.keys(attendanceByDate).sort().pop();
             const lastDayRecords = attendanceByDate[lastRecordedDate] || [];
             const lastRecord = lastDayRecords.length > 0 ? lastDayRecords[lastDayRecords.length - 1] : null;
-            
+
             if (lastRecordedDate !== todayDate) {
                 setAttendanceState("In");
                 localStorage.setItem("attendanceState", "In");
             } else {
                 let newState = "In";
-            
+
                 if (lastRecord) {
                     if (lastRecord.Type === "In") {
                         newState = "Out_Break";
@@ -287,54 +287,54 @@ export default function UserTask() {
                         newState = "In";
                     }
                 }
-            
+
                 setAttendanceState(newState);
                 localStorage.setItem("attendanceState", newState);
             }
-            
+
         } catch (error) {
             console.error("Error fetching attendance:", error);
         }
-    };    
-    
-      const processAttendanceData = (data, userLookup) => {
+    };
+
+    const processAttendanceData = (data, userLookup) => {
         const groupedData = new Map();
-        const todayDate = new Date().toISOString().split("T")[0]; 
-    
-        data.forEach(({ Date: recordDate, User, Employee_uuid }) => {  
-   
+        const todayDate = new Date().toISOString().split("T")[0];
+
+        data.forEach(({ Date: recordDate, User, Employee_uuid }) => {
+
             if (!recordDate) {
                 console.error("Invalid Date:", recordDate);
                 return;
             }
-    
+
             const parsedDate = new Date(recordDate);
             const dateKey = parsedDate.toISOString().split("T")[0];
-    
-            if (dateKey !== todayDate) return; 
-    
+
+            if (dateKey !== todayDate) return;
+
             const userName = userLookup[Employee_uuid.trim()] || 'Unknown';
             const userDateKey = `${userName}-${dateKey}`;
-    
+
             if (!groupedData.has(userDateKey)) {
-                groupedData.set(userDateKey, { 
-                    Date: dateKey, 
+                groupedData.set(userDateKey, {
+                    Date: dateKey,
                     User_name: userName,
-                    In: "N/A", 
-                    Break: "N/A", 
-                    Start: "N/A", 
-                    Out: "N/A", 
+                    In: "N/A",
+                    Break: "N/A",
+                    Start: "N/A",
+                    Out: "N/A",
                     TotalHours: "N/A"
                 });
             }
-    
-    
+
+
             const record = groupedData.get(userDateKey);
-    
+
             User.forEach(userEntry => {
                 switch (userEntry.Type) {
                     case "In":
-                        record.In = userEntry.Time.trim() || "No Time";  
+                        record.In = userEntry.Time.trim() || "No Time";
                         break;
                     case "Break":
                         record.Break = userEntry.Time.trim() || "No Time";
@@ -352,176 +352,178 @@ export default function UserTask() {
             });
 
         });
-    
+
         return Array.from(groupedData.values()).map((record) => {
             record.TotalHours = calculateWorkingHours(record.In, record.Out, record.Break, record.Start);
             return record;
         });
     };
-    
+
     const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
         if (!inTime || !outTime) {
-            return "N/A"; 
+            return "N/A";
         }
- 
+
         const parseTime = (timeStr) => {
             if (!timeStr || timeStr === "N/A") return null;
-            const [time, period] = timeStr.split(" "); 
+            const [time, period] = timeStr.split(" ");
             const [hours, minutes] = time.split(":").map(Number);
-    
+
             let hours24 = hours;
             if (period === "PM" && hours !== 12) hours24 += 12;
             if (period === "AM" && hours === 12) hours24 = 0;
-    
+
             const now = new Date();
             now.setHours(hours24, minutes, 0, 0);
             return now;
         };
-    
+
         const inDate = parseTime(inTime);
         const outDate = parseTime(outTime);
         const breakDate = parseTime(breakTime) || 0;
         const startDate = parseTime(startTime) || 0;
-    
+
         if (!inDate || !outDate) {
             return "N/A";
         }
-    
-        let workDuration = (outDate - inDate) / 1000; 
-    
+
+        let workDuration = (outDate - inDate) / 1000;
+
         if (breakDate && startDate) {
             const breakDuration = (startDate - breakDate) / 1000;
-            workDuration -= breakDuration; 
+            workDuration -= breakDuration;
         }
-  
+
         const hours = Math.floor(workDuration / 3600);
         const minutes = Math.floor((workDuration % 3600) / 60);
         const seconds = workDuration % 60;
-    
+
         return `${hours}h ${minutes}m ${seconds}s`;
     };
-    
+
     return (
-       
-<div className="d-flex justify-content-center mt-3" >
-      <div className="w-4/4 vh-100 pt-10 flex flex-col">
-                
 
-    <div className="px-1 pt-4 bg-green-200 grid grid-cols-12  items-center h-18" style={{display: 'none'}} >
-    <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center"></div>
-        {pendingTasks.length > 0 ? (
-            pendingTasks
-                .filter(task => task.User === loggedInUser)
-                .map(task => (
-                    <div key={task._id} className="form-check">
-                        <label className="form-check-label">
-                            {task.Usertask_name}
-                        </label>
-                    </div>
-                ))
-        ) : (
-            <p>No tasks available.</p>
-        )}
-        </div>
-        
-        <div className="form-check mt-3">
-                <input
-                    type="checkbox"
-                    id="toggleButtons"
-                    className="form-check-input"
-                    checked={showButtons}
-                    onChange={() => {
-                        setShowButtons((prev) => {
-                            return !prev;
-                        });
-                    }}
-                />
-                <label className="form-check-label" htmlFor="toggleButtons">
-                उपरोक्त सभी टास्क ध्यान से पढ़े और उनका पूरा करे
-                </label>
-            </div>
+        <div  >
+            <div >
 
-            {showButtons && attendanceState && (
-                <div className="text-center mt-3">
-                    
-                    {attendanceState === "In" && (
-                        <button
-                            className="bg-green-500 text-white px-2 py-2 rounded"
-                            onClick={() => {saveAttendance("In"); sendmsg("In")}}
-                        >
-                            In
-                        </button>
+
+                <div className="px-1 pt-4 bg-green-200 grid grid-cols-12  items-center h-18" style={{ display: 'none' }} >
+                    <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center"></div>
+                    {pendingTasks.length > 0 ? (
+                        pendingTasks
+                            .filter(task => task.User === loggedInUser)
+                            .map(task => (
+                                <div key={task._id} className="form-check">
+                                    <label className="form-check-label">
+                                        {task.Usertask_name}
+                                    </label>
+                                </div>
+                            ))
+                    ) : (
+                        <p>No tasks available.</p>
                     )}
+                </div>
 
-                    {attendanceState === "Break" && (
-                        <>
-                            
-                            <button
-                                className="bg-yellow-500 text-white px-2 py-2 rounded"
-                                onClick={() => {saveAttendance("Break"); sendmsg("Break")}}                          
-                            >
-                                Break
-                            </button>
-                        </>
-                    )}
+                <div className="form-check mt-3">
+                    <input
+                        type="checkbox"
+                        id="toggleButtons"
+                        className="form-check-input"
+                        checked={showButtons}
+                        onChange={() => {
+                            setShowButtons((prev) => {
+                                return !prev;
+                            });
+                        }}
+                    />
+                    <label className="form-check-label" htmlFor="toggleButtons">
+                        उपरोक्त सभी टास्क ध्यान से पढ़े और उनका पूरा करे
+                    </label>
+                </div>
 
-                    {attendanceState === "Start" && (
-                        <>
-                            
+                {showButtons && attendanceState && (
+                    <div className="text-center mt-3">
+
+                        {attendanceState === "In" && (
                             <button
                                 className="bg-green-500 text-white px-2 py-2 rounded"
-                                onClick={() => {saveAttendance("Start"); sendmsg("Start")}}
+                                onClick={() => { saveAttendance("In"); sendmsg("In") }}
                             >
-                                Start
+                                In
                             </button>
-                        </>
-                    )}
+                        )}
 
-                    {attendanceState === "Out" && (
-                        <button
-                            className="bg-red-500 text-white px-2 py-2 rounded"
-                            onClick={() => {saveAttendance("Out"); sendmsg("Out")}}
-                        >
-                            Out
-                        </button>
-                    )}
-                </div>
-            )}
+                        {attendanceState === "Break" && (
+                            <>
+
+                                <button
+                                    className="bg-yellow-500 text-white px-2 py-2 rounded"
+                                    onClick={() => { saveAttendance("Break"); sendmsg("Break") }}
+                                >
+                                    Break
+                                </button>
+                            </>
+                        )}
+
+                        {attendanceState === "Start" && (
+                            <>
+
+                                <button
+                                    className="bg-green-500 text-white px-2 py-2 rounded"
+                                    onClick={() => { saveAttendance("Start"); sendmsg("Start") }}
+                                >
+                                    Start
+                                </button>
+                            </>
+                        )}
+
+                        {attendanceState === "Out" && (
+                            <button
+                                className="bg-red-500 text-white px-2 py-2 rounded"
+                                onClick={() => { saveAttendance("Out"); sendmsg("Out") }}
+                            >
+                                Out
+                            </button>
+                        )}
+                    </div>
+                )}
  
-             
-                <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">
-                <table className="min-w-full border border-gray-300 text-sm">
-    <thead>
-        <tr>
-            <th className="border px-2 py-1 text-nowrap">Date</th>
-            <th className="border px-2 py-1 text-nowrap">In</th>
-            <th className="border px-2 py-1 text-nowrap">Break</th>
-            <th className="border px-2 py-1 text-nowrap">Start</th>
-            <th className="border px-2 py-1 text-nowrap">Out</th>
-            <th className="border px-2 py-1 text-nowrap">Total</th>
-        </tr>
-    </thead>
-    <tbody>
-            {attendance
-                .filter(row => row.User_name === loggedInUser) 
-                .map((row, index) => (
-                    <tr key={index}>
-                        <td className="border px-2 py-1">{row.Date}</td>
-                        <td className="border px-2 py-1">{row.In}</td>
-                        <td className="border px-2 py-1">{row.Break}</td>
-                        <td className="border px-2 py-1">{row.Start}</td>
-                        <td className="border px-2 py-1">{row.Out}</td>
-                        <td className="border px-2 py-1">{row.TotalHours}</td>
 
-                    </tr>
-                ))}
-        </tbody>
-</table>
+<div > <table className="min-w-full border border-gray-300 text-sm bg-white rounded-lg overflow-hidden">
+                    <thead>
+                        <tr className="bg-whatsapp-light-green text-whatsapp-dark">
+                            <th className="border px-4 py-2 text-left">Date</th>
+                            <th className="border px-4 py-2 text-left">In</th>
+                            <th className="border px-4 py-2 text-left">Break</th>
+                            <th className="border px-4 py-2 text-left">Start</th>
+                            <th className="border px-4 py-2 text-left">Out</th>
+                            <th className="border px-4 py-2 text-left">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {attendance
+                            .filter(row => row.User_name === loggedInUser)
+                            .map((row, index) => (
+                                <tr key={index} className="hover:bg-whatsapp-light-gray">
+                                    <td className="border px-4 py-2">{row.Date}</td>
+                                    <td className="border px-4 py-2">{row.In}</td>
+                                    <td className="border px-4 py-2">{row.Break}</td>
+                                    <td className="border px-4 py-2">{row.Start}</td>
+                                    <td className="border px-4 py-2">{row.Out}</td>
+                                    <td className="border px-4 py-2">{row.TotalHours}</td>
+                                </tr>
+                            ))}
+                    </tbody>
+                </table></div> <div > </div>
 
-                </div>
+
                 
+
+
             </div>
+
         </div>
-        
+
+
     );
 }

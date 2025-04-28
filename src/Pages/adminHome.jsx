@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
-import TopNavbar from "../Pages/topNavbar";
+import Skeleton from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
+import TopNavbar from "./topNavbar";
 import Footer from './footer';
 import axios from 'axios';
-import { format } from 'date-fns';
 import OrderUpdate from '../Reports/orderUpdate'; 
-import Skeleton from "react-loading-skeleton";
+import AllOrder from "../Reports/allOrder";
 import order from  '../assets/order.svg'
 import enquiry from  '../assets/enquiry.svg'
 import payment from  '../assets/payment.svg'
 import reciept from  '../assets/reciept.svg'
-import usertask from  '../assets/usertask.svg'
 import FloatingButtons from "./floatingButton";
+import UserTask from "./userTask";
+import { format } from 'date-fns';
+import TaskUpdate from "./taskUpdate";
 
 export default function AdminHome() {
   const navigate = useNavigate();
@@ -261,6 +264,7 @@ const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
   return (
     <>
       <TopNavbar />
+      <AllOrder />
       <br /><br />
                  {isLoading ? (
                        <Skeleton count={5} height={30} />

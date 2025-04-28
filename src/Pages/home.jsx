@@ -183,8 +183,10 @@ const buttonsList = [
 
               <h1 className="absolute right-10 text-s mb-6">Welcome, {userName} <button className=" font-bold mb-6 text-s" onClick={handleLogout}>Logout</button></h1> 
               <br /><br />
-
-      <AllOrder />
+              <AllOrder />
+              <UserTask onClose={closeUserModal} />
+    
+      
                         <div >
                       {isLoading ? (
                                       <Skeleton count={5} height={30} />
@@ -213,7 +215,7 @@ const buttonsList = [
       
       
       
-              <UserTask onClose={closeUserModal} />
+             
               
             
             <FloatingButtons buttonType="bars" buttonsList={buttonsList} direction="up" />

@@ -132,8 +132,19 @@ const AllTransaction1 = () => {
             alert("No phone number available for this customer.");
             return;
         }
-        sendMessageToAPI(name, phone, balance);
+    
+        // Confirmation dialog before sending the message
+        const confirmation = window.confirm(
+            `Are you sure you want to send a WhatsApp message to ${name}? \n\nMessage: "Dear ${name}, your balance is ₹${balance}."`
+        );
+    
+        if (confirmation) {
+            sendMessageToAPI(name, phone, balance);
+        } else {
+            console.log("Message sending canceled.");
+        }
     };
+    
 
     const viewTransactions = (customer) => {
         navigate('/allTransaction3', { state: { customer } });
