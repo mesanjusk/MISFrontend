@@ -49,6 +49,7 @@ import AddUsertask from "./Pages/addUsertask";
 import CallLogs from "./Pages/callLogs";
 import AddRecievable from "./Pages/addRecievable";
 import AddPayable from "./Pages/addPayable";
+import SendMessage from "./Pages/SendMessage";
 
 function App() {
     axios.defaults.baseURL = "https://misbackend-e078.onrender.com/";
@@ -103,6 +104,7 @@ function App() {
                     <Route path="/calllogs" element={< CallLogs />} />
                     <Route path="/addRecievable" element={< AddRecievable />} />
                     <Route path="/addPayable" element={< AddPayable />} />
+                    <Route path="/SendMessage" element={< SendMessage />} />
                 </Routes>
             </div>
         </Router>
