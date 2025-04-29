@@ -124,32 +124,41 @@ export default function OrderUpdate({ order, onClose }) {
 
   const handleSaveChanges = (e) => {
     e.preventDefault();
-
-    if (!values.Task || !values.Assigned || !values.Delivery_Date) {
-      alert('All fields are required.');
+  
+    if (!values.Task || !values.Assigned) {
+      alert('Task & Assigned are required.');
       return;
     }
+  
+    const today = new Date().toISOString().split('T')[0];
 
+    const updatedValues = {
+      ...values,
+      CreatedAt: new Date().toISOString(),
+      Delivery_Date: values.Delivery_Date || today, 
+    };
+  
     axios.post('/order/addStatus', {
       orderId: values.id,
       newStatus: {
-        Task: values.Task,
-        Assigned: values.Assigned,
-        Delivery_Date: values.Delivery_Date,
-        CreatedAt: values.CreatedAt,
+        Task: updatedValues.Task,
+        Assigned: updatedValues.Assigned,
+        Delivery_Date: updatedValues.Delivery_Date,
+        CreatedAt: updatedValues.CreatedAt,
       },
     })
       .then(res => {
         if (res.data.success) {
           alert('Order updated successfully!');
-          onClose(); 
-          navigate("/allOrder");  
+          onClose();
+          navigate("/allOrder");
         }
       })
       .catch(err => {
         console.log('Error updating order:', err);
       });
   };
+  
 
   const handleEditClick = (order) => {
     setSelectedOrder(order); 

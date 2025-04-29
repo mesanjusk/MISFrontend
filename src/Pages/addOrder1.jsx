@@ -93,7 +93,70 @@ export default function AddOrder1() {
             console.error("Error adding Order or Transaction:", e);
         }
     };
+  
+    const sendWhatsApp = () => {
+      if (!Customer_name || !Customer_uuid) {
+          alert("Please select a customer first.");
+          return;
+      }
+  
+      const selectedCustomer = customerOptions.find(
+          (option) => option.Customer_name === Customer_name
+      );
+  
+      if (!selectedCustomer || !selectedCustomer.Mobile_number) {
+          alert("No phone number available for this customer.");
+          return;
+      }
+  
+      const phone = selectedCustomer.Mobile_number;
+  
+      const message = `Dear ${Customer_name}, your order is booked.`;
+  
+      const confirmation = window.confirm(
+          `Are you sure you want to send a WhatsApp message to ${Customer_name}?\n\nMessage: "${message}"`
+      );
+  
+      if (confirmation) {
+          sendMessageToAPI(Customer_name, phone, message);
+      } else {
+          console.log("Message sending canceled.");
+      }
+  };  
+  
+  
+  const sendMessageToAPI = async (name, phone, message) => {
+    const payload = {
+        mobile: phone,
+        userName: name,
+        type: 'customer',
+        message: message,
+    };
 
+    try {
+        const res = await fetch('https://misbackend-e078.onrender.com/usertask/send-message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Failed to send message: ${errorText}`);
+        }
+
+        const result = await res.json();
+        if (result.error) {
+            alert("Failed to send: " + result.error);
+        } else {
+            alert("Message sent successfully.");
+        }
+    } catch (error) {
+        console.error("Request failed:", error);
+        alert("Failed to send message: " + error.message);
+    }
+};
+  
     const handleInputChange = (e) => {
         const value = e.target.value;
         setCustomer_Name(value);
@@ -217,13 +280,24 @@ export default function AddOrder1() {
       <button type="submit" className="w-full bg-[#25D366] py-2 rounded-md font-medium text-white hover:bg-[#20c95c]">
         Submit
       </button>
+      
+      
+    <button type="button" onClick={sendWhatsApp} className="w-full bg-[#25D366] py-2 rounded-md font-medium text-white hover:bg-[#20c95c] mt-2">
+        WhatsApp
+    </button>
+
+
       <button type="button" onClick={closeModal} className="w-full mt-2 bg-red-500 py-2 rounded-md text-white font-medium hover:bg-red-600">
         Close
       </button>
     </form>
   </div>
 </div>
-
+ {showCustomerModal && (
+        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
+          <AddCustomer onClose={exitModal} />
+        </div>
+      )}
             
         </>
     );

@@ -12,7 +12,7 @@ const AllTransaction3 = () => {
     const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
 
     const location = useLocation();
-    const { uuid: customerUuid, name: customerName } = location.state?.customer || {}; // 🛠️ fixed
+    const { uuid: customerUuid, name: customerName } = location.state?.customer || {}; 
 
     // Fetch data on component mount
     useEffect(() => {
