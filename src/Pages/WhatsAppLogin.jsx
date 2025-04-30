@@ -31,7 +31,8 @@ export default function WhatsAppLogin() {
         <>
           <p className="text-gray-700 mb-4">Scan this QR with your phone</p>
           {/* Ensure that qrCode is a valid image URL or base64 string */}
-          <img src={`data:image/png;base64,${qrCode}`} alt="WhatsApp QR Code" className="w-64 h-64" />
+         <img src={`data:image/png;base64,${qrCode}`} />
+
         </>
       ) : (
         <p>Waiting for QR code...</p>
