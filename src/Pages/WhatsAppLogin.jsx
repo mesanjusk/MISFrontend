@@ -1,54 +1,48 @@
 import { useEffect, useState } from 'react';
 import io from 'socket.io-client';
 
-// Connect to your backend socket server
-const socket = io('https://whatsappbackapi.onrender.com');  // Update with your backend URL
+// Connect to the backend server using socket.io
+const socket = io('https://whatsappbackapi.onrender.com'); // Replace with your backend URL
 
 export default function WhatsAppLogin() {
-  const [qrCode, setQrCode] = useState(null);
-  const [isReady, setIsReady] = useState(false);
+  const [qrCode, setQrCode] = useState(null); // To store the QR code
+  const [isReady, setIsReady] = useState(false); // To track if WhatsApp is ready
 
   useEffect(() => {
-    // Handle socket connection
-    socket.on('connect', () => {
-      console.log('Connected to backend socket');
-    });
-
-    // Receive QR code from backend
+    // Listen for 'qr' event from backend to get the QR code
     socket.on('qr', (data) => {
-      console.log('QR Code received:', data);  // Debugging log
-      setQrCode(data);
+      setQrCode(data); // Set the received QR code
     });
 
-    // Handle WhatsApp being ready
+    // Listen for 'ready' event to indicate that WhatsApp is ready
     socket.on('ready', () => {
-      console.log('WhatsApp is ready!');
-      setIsReady(true);
+      setIsReady(true); // Set WhatsApp as ready
     });
 
-    // Handle connection errors
-    socket.on('connect_error', (error) => {
-      console.log('Socket connection error:', error);
-    });
-
+    // Clean up the event listeners when the component is unmounted
     return () => {
       socket.off('qr');
       socket.off('ready');
-      socket.off('connect_error');
     };
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen">
+    <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
       {isReady ? (
         <p className="text-green-600 text-xl">✅ WhatsApp is connected!</p>
       ) : qrCode ? (
         <>
-          <p className="text-gray-700 mb-4">Scan this QR with your phone</p>
-          <img src={qrCode} alt="WhatsApp QR Code" className="w-64 h-64" />
+          <p className="text-gray-700 mb-4">Scan this QR code with your phone:</p>
+          <div className="flex items-center justify-center p-4 bg-white rounded-lg shadow-lg">
+            <img
+              src={qrCode} // Display the QR code image
+              alt="WhatsApp QR Code"
+              className="w-72 h-72 rounded-lg border-4 border-gray-400 transition-transform transform hover:scale-110"
+            />
+          </div>
         </>
       ) : (
-        <p>Waiting for QR code...</p>
+        <p className="text-gray-700">Waiting for QR code...</p>
       )}
     </div>
   );
