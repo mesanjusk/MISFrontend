@@ -1,35 +1,36 @@
 import { useEffect, useState } from 'react';
 import io from 'socket.io-client';
 
-const socket = io('https://whatsappbackapi.onrender.com', {
-  transports: ['websocket'], // Ensure websocket transport is used to avoid polling issues
-});
+// Connect to your backend socket server
+const socket = io('https://whatsappbackapi.onrender.com');  // Update with your backend URL
 
 export default function WhatsAppLogin() {
   const [qrCode, setQrCode] = useState(null);
   const [isReady, setIsReady] = useState(false);
-  const [connectionError, setConnectionError] = useState(false); // To handle connection errors
 
   useEffect(() => {
-    // Event listener for the 'qr' event emitted by backend
+    // Handle socket connection
+    socket.on('connect', () => {
+      console.log('Connected to backend socket');
+    });
+
+    // Receive QR code from backend
     socket.on('qr', (data) => {
+      console.log('QR Code received:', data);  // Debugging log
       setQrCode(data);
-      setConnectionError(false); // Clear any previous connection error
     });
 
-    // Event listener for 'ready' event (connected and authenticated)
+    // Handle WhatsApp being ready
     socket.on('ready', () => {
+      console.log('WhatsApp is ready!');
       setIsReady(true);
-      setConnectionError(false); // Clear any previous connection error
     });
 
-    // Event listener for connection error
+    // Handle connection errors
     socket.on('connect_error', (error) => {
-      console.error('Connection error:', error);
-      setConnectionError(true); // Set connection error state
+      console.log('Socket connection error:', error);
     });
 
-    // Clean up the socket events when component is unmounted
     return () => {
       socket.off('qr');
       socket.off('ready');
@@ -39,9 +40,7 @@ export default function WhatsAppLogin() {
 
   return (
     <div className="flex flex-col items-center justify-center h-screen">
-      {connectionError ? (
-        <p className="text-red-600 text-xl">❌ Error connecting to WhatsApp backend.</p>
-      ) : isReady ? (
+      {isReady ? (
         <p className="text-green-600 text-xl">✅ WhatsApp is connected!</p>
       ) : qrCode ? (
         <>
