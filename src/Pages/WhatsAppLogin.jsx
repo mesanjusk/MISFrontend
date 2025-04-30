@@ -11,6 +11,7 @@ export default function WhatsAppLogin() {
   useEffect(() => {
     // Listen for 'qr' event from backend to get the QR code
     socket.on('qr', (data) => {
+      // Assuming `data` contains the QR code in base64 format or a URL
       setQrCode(data); // Set the received QR code
     });
 
@@ -35,7 +36,7 @@ export default function WhatsAppLogin() {
           <p className="text-gray-700 mb-4">Scan this QR code with your phone:</p>
           <div className="flex items-center justify-center p-4 bg-white rounded-lg shadow-lg">
             <img
-              src={qrCode} // Display the QR code image
+              src={`data:image/png;base64,${qrCode}`} // Ensure the QR code is a valid base64 image
               alt="WhatsApp QR Code"
               className="w-72 h-72 rounded-lg border-4 border-gray-400 transition-transform transform hover:scale-110"
             />
