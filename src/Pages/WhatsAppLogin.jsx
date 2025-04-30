@@ -1,47 +1,47 @@
 import { useEffect, useState } from 'react';
 import io from 'socket.io-client';
-import { useNavigate, useLocation } from "react-router-dom";
 
-const socket = io('https://whatsappbackapi.onrender.com'); // Use your deployed backend URL
+const socket = io('https://whatsappbackapi.onrender.com', {
+  transports: ['websocket'], // Ensure websocket transport is used to avoid polling issues
+});
 
 export default function WhatsAppLogin() {
-  const navigate = useNavigate();
-  const location = useLocation();
   const [qrCode, setQrCode] = useState(null);
   const [isReady, setIsReady] = useState(false);
-  const [loggedInUser, setLoggedInUser] = useState(null); 
-  const [userName, setUserName] = useState('');
-
-   useEffect(() => {
-     
-        const userNameFromState = location.state?.id;
-        const user = userNameFromState || localStorage.getItem('User_name');
-        setLoggedInUser(user);
-        if (user) {
-          setUserName(user);
-        } else {
-          navigate("/");
-        }
-    }, [location.state, navigate]);
+  const [connectionError, setConnectionError] = useState(false); // To handle connection errors
 
   useEffect(() => {
+    // Event listener for the 'qr' event emitted by backend
     socket.on('qr', (data) => {
       setQrCode(data);
+      setConnectionError(false); // Clear any previous connection error
     });
 
+    // Event listener for 'ready' event (connected and authenticated)
     socket.on('ready', () => {
       setIsReady(true);
+      setConnectionError(false); // Clear any previous connection error
     });
 
+    // Event listener for connection error
+    socket.on('connect_error', (error) => {
+      console.error('Connection error:', error);
+      setConnectionError(true); // Set connection error state
+    });
+
+    // Clean up the socket events when component is unmounted
     return () => {
       socket.off('qr');
       socket.off('ready');
+      socket.off('connect_error');
     };
   }, []);
 
   return (
     <div className="flex flex-col items-center justify-center h-screen">
-      {isReady ? (
+      {connectionError ? (
+        <p className="text-red-600 text-xl">❌ Error connecting to WhatsApp backend.</p>
+      ) : isReady ? (
         <p className="text-green-600 text-xl">✅ WhatsApp is connected!</p>
       ) : qrCode ? (
         <>
