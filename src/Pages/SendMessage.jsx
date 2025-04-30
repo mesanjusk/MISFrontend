@@ -9,7 +9,7 @@ export default function SendMessage() {
 
   const sendMessage = async () => {
     try {
-      const res = await axios.post('http://localhost:3001/send-message', {
+      const res = await axios.post('https://whatsappbackapi.onrender.com/send-message', {
         number,
         message,
       });
