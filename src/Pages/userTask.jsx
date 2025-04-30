@@ -21,7 +21,6 @@ export default function UserTask() {
         const user = userNameFromState || localStorage.getItem('User_name');
         const usermobile = userNameFromState || localStorage.getItem('Mobile_number');
         setLoggedInUser(user);
-        console.log(user);
         setUserMobile(usermobile);
         if (user) {
             setUserName(user);

@@ -1,11 +1,28 @@
 import { useEffect, useState } from 'react';
 import io from 'socket.io-client';
+import { useNavigate, useLocation } from "react-router-dom";
 
 const socket = io('https://whatsappbackapi.onrender.com'); // Use your deployed backend URL
 
 export default function WhatsAppLogin() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [qrCode, setQrCode] = useState(null);
   const [isReady, setIsReady] = useState(false);
+  const [loggedInUser, setLoggedInUser] = useState(null); 
+  const [userName, setUserName] = useState('');
+
+   useEffect(() => {
+     
+        const userNameFromState = location.state?.id;
+        const user = userNameFromState || localStorage.getItem('User_name');
+        setLoggedInUser(user);
+        if (user) {
+          setUserName(user);
+        } else {
+          navigate("/");
+        }
+    }, [location.state, navigate]);
 
   useEffect(() => {
     socket.on('qr', (data) => {

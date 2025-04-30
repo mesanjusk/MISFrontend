@@ -56,8 +56,36 @@ export default function AddTransaction() {
         navigate("/addCustomer");
     }
 
+    const handleWhatsAppClick = async (e) => {
+        e.preventDefault(); 
+    
+        try {
+            const whatsappInfo = await submit(e);  
+            if (!whatsappInfo) return;
+    
+            const { name, phone, amount, date, mode } = whatsappInfo;
+    
+            if (!phone) {
+                alert("Customer phone number is missing.");
+                return;
+            }
+    
+            const message = `Hello ${name}, we have received your payment of ₹${amount} on ${date} via ${mode}. Thank you!`;
+    
+            const confirmed = window.confirm(`Send WhatsApp message to ${name}?\n\n"${message}"`);
+            if (!confirmed) return;
+    
+            await sendMessageToAPI(name, phone, message);
+    
+            navigate("/home");
+    
+        } catch (error) {
+            console.error("Failed to process WhatsApp order flow:", error);
+        }
+    };
+    
     async function submit(e) {
-        e.preventDefault();
+        e.preventDefault(); 
     
         if (!Amount || isNaN(Amount) || Amount <= 0) {
             alert("Please enter a valid amount.");
@@ -108,6 +136,13 @@ export default function AddTransaction() {
             } else {
                 alert("Failed to add Transaction");
             }
+            return {
+                name: Customer.Customer_name,
+                phone: Customer.Mobile_number,
+                amount: Amount,
+                date: Transaction_date,
+                mode: Group.Customer_name
+            };
         } catch (e) {
             console.error("Error adding Transaction:", e);
             if (e.response) {
@@ -118,7 +153,38 @@ export default function AddTransaction() {
             alert("Error occurred while submitting the form.");
         }
     }
-
+    
+      const sendMessageToAPI = async (name, phone, message) => {
+        const payload = {
+            mobile: phone,
+            userName: name,
+            type: 'customer',
+            message: message,
+        };
+    
+        try {
+            const res = await fetch('https://misbackend-e078.onrender.com/usertask/send-message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+    
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`Failed to send message: ${errorText}`);
+            }
+    
+            const result = await res.json();
+            if (result.error) {
+                alert("Failed to send: " + result.error);
+            } else {
+                alert("Message sent successfully.");
+            }
+        } catch (error) {
+            console.error("Request failed:", error);
+            alert("Failed to send message: " + error.message);
+        }
+    };
     const handleDateCheckboxChange = () => {
         setIsDateChecked(prev => !prev); 
         setTransaction_date(''); 
@@ -261,7 +327,10 @@ export default function AddTransaction() {
                     )}
                     <button type="submit" className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center">
                         Submit
-                    </button>
+                    </button><br />
+                    <button type="button" onClick={handleWhatsAppClick} className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center">
+                     WhatsApp
+                  </button><br />
                     <button type="button" className="w-100 h-10 bg-red-500 text-white shadow-lg flex items-center justify-center" onClick={closeModal}>Close</button>
                 </form>
             </div>

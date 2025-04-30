@@ -52,79 +52,89 @@ export default function AddOrder1() {
         }).catch(err => console.error("Error fetching payment modes:", err));
     }, []);
 
-    const submit = async (e) => {
-        e.preventDefault();
-        try {
-            const customer = customerOptions.find(option => option.Customer_name === Customer_name);
-            const Group = accountCustomerOptions.find(option => option.Customer_uuid === group);
-            if (!customer) return alert("Invalid Customer selection.");
+    const submit = async () => {
+      try {
+          const customer = customerOptions.find(option => option.Customer_name === Customer_name);
+          const Group = accountCustomerOptions.find(option => option.Customer_uuid === group);
+          if (!customer) {
+              alert("Invalid Customer selection.");
+              return null;
+          }
+  
+          const orderResponse = await axios.post("/order/addOrder", {
+              Customer_uuid: customer.Customer_uuid,
+              Remark: Remark,
+          });
+  
+          if (orderResponse.data.success) {
+              if (isAdvanceChecked && Amount && group) {
+                  const journal = [
+                      { Account_id: group, Type: 'Debit', Amount: Number(Amount) },
+                      { Account_id: customer.Customer_uuid, Type: 'Credit', Amount: Number(Amount) }
+                  ];
+  
+                  const transactionResponse = await axios.post("/transaction/addTransaction", {
+                      Description: Remark,
+                      Total_Credit: Number(Amount),
+                      Total_Debit: Number(Amount),
+                      Payment_mode: Group.Customer_name,
+                      Journal_entry: journal,
+                      Created_by: loggedInUser
+                  });
+  
+                  if (!transactionResponse.data.success) {
+                      alert("Failed to add Transaction.");
+                      return null;
+                  }
+              }
+  
+              // return info needed for WhatsApp
+              return {
+                  name: customer.Customer_name,
+                  phone: customer.Mobile_number,
+                  amount: Amount,
+                  remark: Remark
+              };
+  
+          } else {
+              alert("Failed to add Order.");
+              return null;
+          }
+  
+      } catch (e) {
+          console.error("Error adding Order or Transaction:", e);
+          return null;
+      }
+  };
+  
+  const handleWhatsAppClick = async () => {
+    try {
+        const whatsappInfo = await submit();
+        if (!whatsappInfo) return;
 
-            const orderResponse = await axios.post("/order/addOrder", {
-                Customer_uuid: customer.Customer_uuid,
-                Remark: Remark,
-            });
+        const { name, phone, amount, remark } = whatsappInfo;
 
-            if (orderResponse.data.success) {
-                if (isAdvanceChecked && Amount && group) {
-                    const journal = [
-                        { Account_id: group, Type: 'Debit', Amount: Number(Amount) },
-                        { Account_id: customer.Customer_uuid, Type: 'Credit', Amount: Number(Amount) }
-                    ];
-
-                    const transactionResponse = await axios.post("/transaction/addTransaction", {
-                        Description: Remark,
-                        Total_Credit: Number(Amount),
-                        Total_Debit: Number(Amount),
-                        Payment_mode: Group.Customer_name,
-                        Journal_entry: journal,
-                        Created_by: loggedInUser
-                    });
-
-                    if (!transactionResponse.data.success) {
-                        alert("Failed to add Transaction.");
-                    }
-                }
-                alert("Order added successfully!");
-                navigate("/allOrder");
-            } else {
-                alert("Failed to add Order.");
-            }
-        } catch (e) {
-            console.error("Error adding Order or Transaction:", e);
+        if (!phone) {
+            alert("Customer phone number is missing.");
+            return;
         }
-    };
-  
-    const sendWhatsApp = () => {
-      if (!Customer_name || !Customer_uuid) {
-          alert("Please select a customer first.");
-          return;
-      }
-  
-      const selectedCustomer = customerOptions.find(
-          (option) => option.Customer_name === Customer_name
-      );
-  
-      if (!selectedCustomer || !selectedCustomer.Mobile_number) {
-          alert("No phone number available for this customer.");
-          return;
-      }
-  
-      const phone = selectedCustomer.Mobile_number;
-  
-      const message = `Dear ${Customer_name}, your order is booked.`;
-  
-      const confirmation = window.confirm(
-          `Are you sure you want to send a WhatsApp message to ${Customer_name}?\n\nMessage: "${message}"`
-      );
-  
-      if (confirmation) {
-          sendMessageToAPI(Customer_name, phone, message);
-      } else {
-          console.log("Message sending canceled.");
-      }
-  };  
-  
-  
+
+        const message = `Dear ${name}, your order has been booked successfully.`;
+
+        const confirmed = window.confirm(`Send WhatsApp message to ${name}?\n\n"${message}"`);
+        if (!confirmed) return;
+
+        // Call your API to send message
+        await sendMessageToAPI(name, phone, message);
+
+        // Optional: Redirect to order page
+        navigate("/allOrder");
+
+    } catch (error) {
+        console.error("Failed to process WhatsApp order flow:", error);
+    }
+};
+
   const sendMessageToAPI = async (name, phone, message) => {
     const payload = {
         mobile: phone,
@@ -282,7 +292,7 @@ export default function AddOrder1() {
       </button>
       
       
-    <button type="button" onClick={sendWhatsApp} className="w-full bg-[#25D366] py-2 rounded-md font-medium text-white hover:bg-[#20c95c] mt-2">
+    <button type="button" onClick={handleWhatsAppClick} className="w-full bg-[#25D366] py-2 rounded-md font-medium text-white hover:bg-[#20c95c] mt-2">
         WhatsApp
     </button>
 

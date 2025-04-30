@@ -52,7 +52,7 @@ export default function Home() {
         fetchData(user);
         fetchAttendance(user);
       } else {
-        navigate("/login");
+        navigate("/");
       }
     }, 2000);
     setTimeout(() => setIsLoading(false), 2000);
