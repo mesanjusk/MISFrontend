@@ -1,32 +1,16 @@
 import { useEffect, useState } from 'react';
 import io from 'socket.io-client';
-import { useNavigate, useLocation } from "react-router-dom";
 
 const socket = io('https://whatsappbackapi.onrender.com'); // Use your deployed backend URL
 
 export default function WhatsAppLogin() {
-  const navigate = useNavigate();
-  const location = useLocation();
   const [qrCode, setQrCode] = useState(null);
   const [isReady, setIsReady] = useState(false);
-  const [loggedInUser, setLoggedInUser] = useState(null); 
-  const [userName, setUserName] = useState('');
-
-   useEffect(() => {
-     
-        const userNameFromState = location.state?.id;
-        const user = userNameFromState || localStorage.getItem('User_name');
-        setLoggedInUser(user);
-        if (user) {
-          setUserName(user);
-        } else {
-          navigate("/");
-        }
-    }, [location.state, navigate]);
 
   useEffect(() => {
     socket.on('qr', (data) => {
-      setQrCode(data);
+      console.log("QR Code Data:", data);  // Check the received QR code in the console
+      setQrCode(data); // Set the QR code received from the backend
     });
 
     socket.on('ready', () => {
@@ -46,7 +30,9 @@ export default function WhatsAppLogin() {
       ) : qrCode ? (
         <>
           <p className="text-gray-700 mb-4">Scan this QR with your phone</p>
-          <img src={qrCode} alt="WhatsApp QR Code" className="w-64 h-64" />
+          {/* Ensure that qrCode is a valid image URL or base64 string */}
+         <img src={`data:image/png;base64,${qrCode}`} />
+
         </>
       ) : (
         <p>Waiting for QR code...</p>
