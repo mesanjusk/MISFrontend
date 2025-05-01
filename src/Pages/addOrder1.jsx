@@ -52,7 +52,8 @@ export default function AddOrder1() {
         }).catch(err => console.error("Error fetching payment modes:", err));
     }, []);
 
-    const submit = async () => {
+    const submit = async (e) => {
+      e.preventDefault();
       try {
           const customer = customerOptions.find(option => option.Customer_name === Customer_name);
           const Group = accountCustomerOptions.find(option => option.Customer_uuid === group);
@@ -86,9 +87,12 @@ export default function AddOrder1() {
                       alert("Failed to add Transaction.");
                       return null;
                   }
+                  alert("Transaction added successfully!");
+                  navigate("/home");
               }
   
-              // return info needed for WhatsApp
+              alert("Order added successfully!");
+              navigate("/home");
               return {
                   name: customer.Customer_name,
                   phone: customer.Mobile_number,
