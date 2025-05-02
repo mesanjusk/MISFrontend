@@ -11,10 +11,12 @@ export default function AddCustomer() {
         Customer_group: '',
         Status: 'active',
         Tags: [],
-        LastInteraction: ''
+        LastInteraction: '',
+        mobileNumberOptional: false,  // Added toggle state
     });
 
     const [groupOptions, setGroupOptions] = useState([]);
+    const [duplicateNameError, setDuplicateNameError] = useState('');
 
     useEffect(() => {
         axios.get("/customergroup/GetCustomergroupList")
@@ -31,6 +33,24 @@ export default function AddCustomer() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Mobile number validation if required
+        if (!form.mobileNumberOptional && form.Mobile_number && !/^\d{10}$/.test(form.Mobile_number)) {
+            alert("Please enter a valid 10-digit mobile number.");
+            return;
+        }
+
+        // Prevent duplicate customer name
+        try {
+            const duplicateRes = await axios.get(`/customer/checkDuplicateName?name=${form.Customer_name}`);
+            if (!duplicateRes.data.success) {
+                setDuplicateNameError("Customer name already exists.");
+                return;
+            }
+        } catch (error) {
+            console.error("Error checking for duplicate name:", error);
+        }
+
         try {
             const res = await axios.post("/customer/addCustomer", form);
             if (res.data.success) {
@@ -67,18 +87,29 @@ export default function AddCustomer() {
                             className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-green-500"
                             required
                         />
+                        {duplicateNameError && <p className="text-red-500 text-sm">{duplicateNameError}</p>}
                     </div>
 
                     <div>
-                        <label className="block text-gray-700 text-sm mb-1">Mobile Number</label>
+                        <label className="block text-gray-700 text-sm mb-1">Mobile Number (Optional)</label>
                         <input
-                            type="text"
-                            value={form.Mobile_number}
-                            onChange={(e) => handleChange('Mobile_number', e.target.value)}
-                            placeholder="Mobile Number"
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-green-500"
-                            required
+                            type="checkbox"
+                            checked={form.mobileNumberOptional}
+                            onChange={(e) => setForm(prev => ({ ...prev, mobileNumberOptional: e.target.checked }))}
+                            className="mr-2"
                         />
+                        <span>Mobile number optional</span>
+
+                        {!form.mobileNumberOptional && (
+                            <input
+                                type="text"
+                                value={form.Mobile_number}
+                                onChange={(e) => handleChange('Mobile_number', e.target.value)}
+                                placeholder="Mobile Number"
+                                className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-green-500"
+                                required
+                            />
+                        )}
                     </div>
 
                     <div>
