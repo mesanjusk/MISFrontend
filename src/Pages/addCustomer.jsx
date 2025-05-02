@@ -7,12 +7,11 @@ export default function AddCustomer() {
 
     const [form, setForm] = useState({
         Customer_name: '',
-        Mobile_number: '',
+        Mobile_number: '',  // This field is now optional by default
         Customer_group: '',
         Status: 'active',
         Tags: [],
         LastInteraction: '',
-        mobileNumberOptional: false,  // Added toggle state
     });
 
     const [groupOptions, setGroupOptions] = useState([]);
@@ -31,28 +30,51 @@ export default function AddCustomer() {
             });
     }, []);
 
+    const formatDateForInput = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const offset = date.getTimezoneOffset();
+        const localDate = new Date(date.getTime() - offset * 60000);
+        return localDate.toISOString().slice(0, 16);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setDuplicateNameError('');
 
-        // Mobile number validation if required
-        if (!form.mobileNumberOptional && form.Mobile_number && !/^\d{10}$/.test(form.Mobile_number)) {
+        if (!form.Customer_name.trim()) {
+            alert("Customer name is required.");
+            return;
+        }
+
+        // Validate mobile number if it is entered (10 digits only)
+        if (form.Mobile_number && !/^\d{10}$/.test(form.Mobile_number)) {
             alert("Please enter a valid 10-digit mobile number.");
             return;
         }
 
-        // Prevent duplicate customer name
         try {
-            const duplicateRes = await axios.get(`/customer/checkDuplicateName?name=${form.Customer_name}`);
+            // Check for duplicate name
+            const duplicateRes = await axios.get(`/customer/checkDuplicateName?name=${form.Customer_name.trim()}`);
             if (!duplicateRes.data.success) {
                 setDuplicateNameError("Customer name already exists.");
                 return;
             }
         } catch (error) {
             console.error("Error checking for duplicate name:", error);
+            alert("Error checking for duplicate name");
+            return;
         }
 
         try {
-            const res = await axios.post("/customer/addCustomer", form);
+            const payload = { ...form };
+
+            // Clean up payload before sending to the backend
+            payload.Customer_name = form.Customer_name.trim();
+            payload.Tags = form.Tags.filter(tag => tag !== '');
+            if (!form.LastInteraction) delete payload.LastInteraction;
+
+            const res = await axios.post("/customer/addCustomer", payload);
             if (res.data.success) {
                 alert("Customer added successfully");
                 navigate("/home");
@@ -68,7 +90,9 @@ export default function AddCustomer() {
     const handleChange = (field, value) => {
         setForm(prev => ({
             ...prev,
-            [field]: field === "Tags" ? value.split(",").map(tag => tag.trim()) : value
+            [field]: field === "Tags"
+                ? value.split(",").map(tag => tag.trim())
+                : value
         }));
     };
 
@@ -77,6 +101,8 @@ export default function AddCustomer() {
             <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md">
                 <h2 className="text-2xl font-semibold text-green-600 mb-4 text-center">Add Customer</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
+
+                    {/* Customer Name */}
                     <div>
                         <label className="block text-gray-700 text-sm mb-1">Customer Name</label>
                         <input
@@ -90,28 +116,24 @@ export default function AddCustomer() {
                         {duplicateNameError && <p className="text-red-500 text-sm">{duplicateNameError}</p>}
                     </div>
 
+                    {/* Mobile Number */}
                     <div>
-                        <label className="block text-gray-700 text-sm mb-1">Mobile Number (Optional)</label>
+                        <label className="block text-gray-700 text-sm mb-1">Mobile Number</label>
                         <input
-                            type="checkbox"
-                            checked={form.mobileNumberOptional}
-                            onChange={(e) => setForm(prev => ({ ...prev, mobileNumberOptional: e.target.checked }))}
-                            className="mr-2"
+                            type="text"
+                            value={form.Mobile_number}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                if (/^\d{0,10}$/.test(value)) {
+                                    handleChange('Mobile_number', value);
+                                }
+                            }}
+                            placeholder="Mobile Number"
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-green-500"
                         />
-                        <span>Mobile number optional</span>
-
-                        {!form.mobileNumberOptional && (
-                            <input
-                                type="text"
-                                value={form.Mobile_number}
-                                onChange={(e) => handleChange('Mobile_number', e.target.value)}
-                                placeholder="Mobile Number"
-                                className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-green-500"
-                                required
-                            />
-                        )}
                     </div>
 
+                    {/* Customer Group */}
                     <div>
                         <label className="block text-gray-700 text-sm mb-1">Customer Group</label>
                         <select
@@ -127,6 +149,7 @@ export default function AddCustomer() {
                         </select>
                     </div>
 
+                    {/* Status */}
                     <div>
                         <label className="block text-gray-700 text-sm mb-1">Status</label>
                         <select
@@ -139,6 +162,7 @@ export default function AddCustomer() {
                         </select>
                     </div>
 
+                    {/* Tags */}
                     <div>
                         <label className="block text-gray-700 text-sm mb-1">Tags</label>
                         <input
@@ -155,16 +179,18 @@ export default function AddCustomer() {
                         </div>
                     </div>
 
+                    {/* Last Interaction */}
                     <div>
                         <label className="block text-gray-700 text-sm mb-1">Last Interaction</label>
                         <input
                             type="datetime-local"
-                            value={form.LastInteraction ? new Date(form.LastInteraction).toISOString().slice(0, 16) : ''}
+                            value={formatDateForInput(form.LastInteraction)}
                             onChange={(e) => handleChange('LastInteraction', e.target.value)}
                             className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-green-500"
                         />
                     </div>
 
+                    {/* Buttons */}
                     <div className="flex gap-4 mt-6">
                         <button
                             type="submit"
