@@ -72,7 +72,7 @@ export default function EditOrder({order, onClose}) {
            
             if (!customer) return alert("Invalid Customer selection.");
 
-           await axios.put(`/order/update/${order}`, {
+           await axios.put(`/order/update/${order.Order_uuid}`, {
                 Customer_uuid: customer.Customer_uuid,
             })   .then(res => {
               if (res.data.success) {
@@ -155,7 +155,7 @@ export default function EditOrder({order, onClose}) {
            
 
             <div className="pb-14 border-t border-gray-300">
-              <div className="flex items-center">
+              <div className="mb-4 relative">
               <input
           type="text"
           placeholder="Search by Customer Name"
@@ -178,7 +178,7 @@ export default function EditOrder({order, onClose}) {
           </ul>
         )}
    
-
+   <br /><br />
       <button onClick={handleCustomer} type="button" className="text-white p-2 rounded-full bg-green-500 mb-3">
       <svg className="h-8 w-8" width="20" height="20" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none">
                                 <path stroke="none" d="M0 0h24v24H0z"/>  
@@ -187,7 +187,7 @@ export default function EditOrder({order, onClose}) {
                                 <line x1="12" y1="9" x2="12" y2="15" />
                             </svg>
       </button>
-
+<br /><br />
                 <button type="submit" className="ml-2 bg-green-500 text-white p-2 rounded-lg">
                   UPDATE
                 </button>

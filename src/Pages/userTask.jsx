@@ -194,6 +194,7 @@ export default function UserTask() {
     const pendingTasks = tasks.filter(task => task.Status === "Pending");
 
     const sendmsg = async (type) => {
+        const message = `SK ${userName} ${type}`;
         const res = await fetch('https://misbackend-e078.onrender.com/usertask/send-message', {
             method: 'POST',
             headers: {
@@ -201,8 +202,9 @@ export default function UserTask() {
             },
             body: JSON.stringify({
                 userName,
-                mobile: "9372333633",
-                type
+                mobile: "8766637204",
+                type,
+                message
             }),
         });
 
