@@ -9,6 +9,9 @@ export default function EditCustomer({ customerId, closeModal }) {
         Customer_name: '',
         Mobile_number: '',
         Customer_group: '',
+        Status: 'active',
+        Tags: [],
+        LastInteraction: ''
     });
 
     useEffect(() => {
@@ -31,6 +34,9 @@ export default function EditCustomer({ customerId, closeModal }) {
                             Customer_name: customer.Customer_name || '',
                             Mobile_number: customer.Mobile_number || '',
                             Customer_group: customer.Customer_group || '',
+                            Status: customer.Status || 'active',
+                            Tags: customer.Tags || [],
+                            LastInteraction: customer.LastInteraction || ''
                         });
                     }
                 })
@@ -94,6 +100,37 @@ export default function EditCustomer({ customerId, closeModal }) {
                                 <option key={index} value={group}>{group}</option>
                             ))}
                         </select>
+                    </div>
+                    <div>
+                        <label className="block text-gray-700 text-sm mb-1">Status</label>
+                        <select
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                            value={values.Status}
+                            onChange={(e) => setValues({ ...values, Status: e.target.value })}
+                            required
+                        >
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-gray-700 text-sm mb-1">Tags</label>
+                        <input
+                            type="text"
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                            value={values.Tags.join(", ")}
+                            onChange={(e) => setValues({ ...values, Tags: e.target.value.split(",") })}
+                        />
+                        <small className="text-gray-500">Enter tags separated by commas</small>
+                    </div>
+                    <div>
+                        <label className="block text-gray-700 text-sm mb-1">Last Interaction</label>
+                        <input
+                            type="datetime-local"
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                            value={values.LastInteraction}
+                            onChange={(e) => setValues({ ...values, LastInteraction: e.target.value })}
+                        />
                     </div>
                     <div className="flex gap-4 mt-6">
                         <button
