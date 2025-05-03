@@ -40,25 +40,21 @@ export default function UserTask() {
                 Status: "Present",
                 Time: formattedTime
             });
-
+    
             if (response.data.success) {
                 alert(`Attendance saved successfully for ${type}`);
-
+                sendmsg(type); // 👉 Automatically send message on button click
+    
                 let newState = "None";
-                if (type === "In") {
-                    newState = "Break";
-                } else if (type === "Break") {
-                    newState = "Start";
-                } else if (type === "Start") {
-                    newState = "Out";
-                } else if (type === "Out") {
-                    newState = "In";
-                }
-
+                if (type === "In") newState = "Break";
+                else if (type === "Break") newState = "Start";
+                else if (type === "Start") newState = "Out";
+                else if (type === "Out") newState = "In";
+    
                 setAttendanceState(newState);
                 localStorage.setItem("attendanceState", newState);
                 localStorage.setItem("attendanceDate", new Date().toLocaleDateString());
-
+    
                 if (type === "Out") {
                     await createTransaction(userName);
                 }
@@ -67,7 +63,7 @@ export default function UserTask() {
             console.error("Error saving attendance:", error);
         }
     };
-
+    
     const createTransaction = async (userName) => {
         try {
             const userResponse = await axios.get(`/user/getUserByName/${userName}`);
@@ -402,129 +398,58 @@ export default function UserTask() {
         return `${hours}h ${minutes}m ${seconds}s`;
     };
 
-    return (
 
-        <div  >
-            <div >
-
-
-                <div className="px-1 pt-4 bg-green-200 grid grid-cols-12  items-center h-18" style={{ display: 'none' }} >
-                    <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center"></div>
-                    {pendingTasks.length > 0 ? (
-                        pendingTasks
-                            .filter(task => task.User === loggedInUser)
-                            .map(task => (
-                                <div key={task._id} className="form-check">
-                                    <label className="form-check-label">
-                                        {task.Usertask_name}
-                                    </label>
-                                </div>
-                            ))
-                    ) : (
-                        <p>No tasks available.</p>
-                    )}
+        return (
+            <div className="p-4 bg-gray-50 min-h-screen">
+          
+              <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+                <div className="flex items-center space-x-2">
+                  
                 </div>
-
-                <div className="form-check mt-3">
-                    <input
-                        type="checkbox"
-                        id="toggleButtons"
-                        className="form-check-input"
-                        checked={showButtons}
-                        onChange={() => {
-                            setShowButtons((prev) => {
-                                return !prev;
-                            });
-                        }}
-                    />
-                    <label className="form-check-label" htmlFor="toggleButtons">
-                        उपरोक्त सभी टास्क ध्यान से पढ़े और उनका पूरा करे
-                    </label>
-                </div>
-
-                {showButtons && attendanceState && (
-                    <div className="text-center mt-3">
-
-                        {attendanceState === "In" && (
-                            <button
-                                className="bg-green-500 text-white px-2 py-2 rounded"
-                                onClick={() => { saveAttendance("In"); sendmsg("In") }}
-                            >
-                                In
-                            </button>
-                        )}
-
-                        {attendanceState === "Break" && (
-                            <>
-
-                                <button
-                                    className="bg-yellow-500 text-white px-2 py-2 rounded"
-                                    onClick={() => { saveAttendance("Break"); sendmsg("Break") }}
-                                >
-                                    Break
-                                </button>
-                            </>
-                        )}
-
-                        {attendanceState === "Start" && (
-                            <>
-
-                                <button
-                                    className="bg-green-500 text-white px-2 py-2 rounded"
-                                    onClick={() => { saveAttendance("Start"); sendmsg("Start") }}
-                                >
-                                    Start
-                                </button>
-                            </>
-                        )}
-
-                        {attendanceState === "Out" && (
-                            <button
-                                className="bg-red-500 text-white px-2 py-2 rounded"
-                                onClick={() => { saveAttendance("Out"); sendmsg("Out") }}
-                            >
-                                Out
-                            </button>
-                        )}
-                    </div>
+          
+                {attendanceState && (
+                  <div className="mt-4 space-y-2">
+                    <button
+                      onClick={() => saveAttendance(attendanceState.includes('Out_') ? attendanceState.split('_')[1] : attendanceState)}
+                      className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600 transition"
+                    >
+                      Mark {attendanceState.includes('Out_') ? attendanceState.split('_')[1] : attendanceState}
+                    </button>
+                    
+                  </div>
                 )}
- 
-
-<div > <table className="min-w-full border border-gray-300 text-sm bg-white rounded-lg overflow-hidden">
+              </div>
+          
+              <div className="bg-white rounded-lg shadow-md p-4">
+                <h2 className="text-lg font-semibold mb-3">Today's Attendance</h2>
+                <div className="overflow-auto">
+                  <table className="min-w-full text-sm text-left border">
                     <thead>
-                        <tr className="bg-whatsapp-light-green text-whatsapp-dark">
-                            <th className="border px-4 py-2 text-left">Date</th>
-                            <th className="border px-4 py-2 text-left">In</th>
-                            <th className="border px-4 py-2 text-left">Break</th>
-                            <th className="border px-4 py-2 text-left">Start</th>
-                            <th className="border px-4 py-2 text-left">Out</th>
-                            <th className="border px-4 py-2 text-left">Total</th>
-                        </tr>
+                      <tr className="bg-gray-200">
+                        <th className="py-2 px-3 border">Date</th>
+                        <th className="py-2 px-3 border">In</th>
+                        <th className="py-2 px-3 border">Break</th>
+                        <th className="py-2 px-3 border">Start</th>
+                        <th className="py-2 px-3 border">Out</th>
+                        <th className="py-2 px-3 border">Total Hours</th>
+                      </tr>
                     </thead>
                     <tbody>
-                        {attendance
-                            .filter(row => row.User_name === loggedInUser)
-                            .map((row, index) => (
-                                <tr key={index} className="hover:bg-whatsapp-light-gray">
-                                    <td className="border px-4 py-2">{row.Date}</td>
-                                    <td className="border px-4 py-2">{row.In}</td>
-                                    <td className="border px-4 py-2">{row.Break}</td>
-                                    <td className="border px-4 py-2">{row.Start}</td>
-                                    <td className="border px-4 py-2">{row.Out}</td>
-                                    <td className="border px-4 py-2">{row.TotalHours}</td>
-                                </tr>
-                            ))}
+                      {attendance.map((record, index) => (
+                        <tr key={index} className="border-t">
+                          <td className="py-2 px-3">{record.Date}</td>
+                          <td className="py-2 px-3">{record.In}</td>
+                          <td className="py-2 px-3">{record.Break}</td>
+                          <td className="py-2 px-3">{record.Start}</td>
+                          <td className="py-2 px-3">{record.Out}</td>
+                          <td className="py-2 px-3">{record.TotalHours}</td>
+                        </tr>
+                      ))}
                     </tbody>
-                </table></div> <div > </div>
-
-
-                
-
-
+                  </table>
+                </div>
+              </div>
             </div>
-
-        </div>
-
-
-    );
+          );
+          
 }
