@@ -31,6 +31,12 @@ export default function UserTask() {
         }
     }, [navigate]);
 
+    const logout = () => {
+        localStorage.removeItem('User_name');
+        localStorage.removeItem('Mobile_number');
+        navigate('/');
+    };
+
     const saveAttendance = async (type) => {
         try {
             const formattedTime = new Date().toLocaleTimeString();
@@ -40,21 +46,20 @@ export default function UserTask() {
                 Status: "Present",
                 Time: formattedTime
             });
-    
+
             if (response.data.success) {
                 alert(`Attendance saved successfully for ${type}`);
-                sendmsg(type); // 👉 Automatically send message on button click
-    
+                sendmsg(type);
                 let newState = "None";
                 if (type === "In") newState = "Break";
                 else if (type === "Break") newState = "Start";
                 else if (type === "Start") newState = "Out";
                 else if (type === "Out") newState = "In";
-    
+
                 setAttendanceState(newState);
                 localStorage.setItem("attendanceState", newState);
                 localStorage.setItem("attendanceDate", new Date().toLocaleDateString());
-    
+
                 if (type === "Out") {
                     await createTransaction(userName);
                 }
@@ -63,7 +68,7 @@ export default function UserTask() {
             console.error("Error saving attendance:", error);
         }
     };
-    
+
     const createTransaction = async (userName) => {
         try {
             const userResponse = await axios.get(`/user/getUserByName/${userName}`);
@@ -130,7 +135,6 @@ export default function UserTask() {
         const savedState = localStorage.getItem("attendanceState");
         const lastUpdated = localStorage.getItem("attendanceDate");
         const today = new Date().toISOString().split("T")[0];
-
         if (savedState && lastUpdated === today) {
             setAttendanceState(savedState);
         } else {
@@ -138,16 +142,11 @@ export default function UserTask() {
         }
     }, []);
 
-
     const fetchLastAttendance = async () => {
         try {
             const response = await fetch(`https://misbackend-e078.onrender.com/attendance/getTodayAttendance/${userName}`);
             const data = await response.json();
-            if (data && data.success) {
-                return data;
-            } else {
-                return null;
-            }
+            return data && data.success ? data : null;
         } catch (error) {
             console.error("Fetch error:", error);
             return null;
@@ -206,15 +205,12 @@ export default function UserTask() {
 
         const result = await res.json();
         console.log(result);
-
     }
-
 
     const fetchUserNames = async () => {
         try {
             const response = await axios.get('/user/GetUserList');
             const data = response.data;
-
             if (data.success) {
                 const userLookup = {};
                 data.result.forEach(user => {
@@ -236,14 +232,12 @@ export default function UserTask() {
             const userLookup = await fetchUserNames();
             const attendanceResponse = await axios.get('/attendance/GetAttendanceList');
             const attendanceRecords = attendanceResponse.data.result || [];
-
             const formattedData = processAttendanceData(attendanceRecords, userLookup);
             setAttendance(formattedData);
 
             const filteredAttendance = attendanceRecords.flatMap(record => {
                 const employeeUuid = record.Employee_uuid.trim();
                 const userName = userLookup[employeeUuid] || 'Unknown';
-
                 return record.User.map(user => ({
                     Attendance_Record_ID: record.Attendance_Record_ID,
                     User_name: userName,
@@ -255,40 +249,6 @@ export default function UserTask() {
             }).filter(record => record.User_name === loggedInUser);
 
             setAttendanceData(filteredAttendance);
-
-            const todayDate = new Date().toISOString().split("T")[0];
-            const attendanceByDate = filteredAttendance.reduce((acc, record) => {
-                acc[record.Date] = acc[record.Date] || [];
-                acc[record.Date].push(record);
-                return acc;
-            }, {});
-
-            const lastRecordedDate = Object.keys(attendanceByDate).sort().pop();
-            const lastDayRecords = attendanceByDate[lastRecordedDate] || [];
-            const lastRecord = lastDayRecords.length > 0 ? lastDayRecords[lastDayRecords.length - 1] : null;
-
-            if (lastRecordedDate !== todayDate) {
-                setAttendanceState("In");
-                localStorage.setItem("attendanceState", "In");
-            } else {
-                let newState = "In";
-
-                if (lastRecord) {
-                    if (lastRecord.Type === "In") {
-                        newState = "Out_Break";
-                    } else if (lastRecord.Type === "Break") {
-                        newState = "Out_Start";
-                    } else if (lastRecord.Type === "Start") {
-                        newState = "Out";
-                    } else if (lastRecord.Type === "Out") {
-                        newState = "In";
-                    }
-                }
-
-                setAttendanceState(newState);
-                localStorage.setItem("attendanceState", newState);
-            }
-
         } catch (error) {
             console.error("Error fetching attendance:", error);
         }
@@ -297,22 +257,13 @@ export default function UserTask() {
     const processAttendanceData = (data, userLookup) => {
         const groupedData = new Map();
         const todayDate = new Date().toISOString().split("T")[0];
-
         data.forEach(({ Date: recordDate, User, Employee_uuid }) => {
-
-            if (!recordDate) {
-                console.error("Invalid Date:", recordDate);
-                return;
-            }
-
+            if (!recordDate) return;
             const parsedDate = new Date(recordDate);
             const dateKey = parsedDate.toISOString().split("T")[0];
-
             if (dateKey !== todayDate) return;
-
             const userName = userLookup[Employee_uuid.trim()] || 'Unknown';
             const userDateKey = `${userName}-${dateKey}`;
-
             if (!groupedData.has(userDateKey)) {
                 groupedData.set(userDateKey, {
                     Date: dateKey,
@@ -324,30 +275,15 @@ export default function UserTask() {
                     TotalHours: "N/A"
                 });
             }
-
-
             const record = groupedData.get(userDateKey);
-
             User.forEach(userEntry => {
                 switch (userEntry.Type) {
-                    case "In":
-                        record.In = userEntry.Time.trim() || "No Time";
-                        break;
-                    case "Break":
-                        record.Break = userEntry.Time.trim() || "No Time";
-                        break;
-                    case "Start":
-                        record.Start = userEntry.Time.trim() || "No Time";
-                        break;
-                    case "Out":
-                        record.Out = userEntry.Time.trim() || "No Time";
-                        break;
-                    default:
-                        console.warn("Unexpected Type:", userEntry.Type);
-                        break;
+                    case "In": record.In = userEntry.Time.trim(); break;
+                    case "Break": record.Break = userEntry.Time.trim(); break;
+                    case "Start": record.Start = userEntry.Time.trim(); break;
+                    case "Out": record.Out = userEntry.Time.trim(); break;
                 }
             });
-
         });
 
         return Array.from(groupedData.values()).map((record) => {
@@ -357,96 +293,100 @@ export default function UserTask() {
     };
 
     const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
-        if (!inTime || !outTime) {
-            return "N/A";
-        }
-
+        if (!inTime || !outTime) return "N/A";
         const parseTime = (timeStr) => {
             if (!timeStr || timeStr === "N/A") return null;
             const [time, period] = timeStr.split(" ");
             const [hours, minutes] = time.split(":").map(Number);
-
             let hours24 = hours;
             if (period === "PM" && hours !== 12) hours24 += 12;
             if (period === "AM" && hours === 12) hours24 = 0;
-
             const now = new Date();
             now.setHours(hours24, minutes, 0, 0);
             return now;
         };
-
         const inDate = parseTime(inTime);
         const outDate = parseTime(outTime);
         const breakDate = parseTime(breakTime) || 0;
         const startDate = parseTime(startTime) || 0;
-
-        if (!inDate || !outDate) {
-            return "N/A";
-        }
-
+        if (!inDate || !outDate) return "N/A";
         let workDuration = (outDate - inDate) / 1000;
-
         if (breakDate && startDate) {
             const breakDuration = (startDate - breakDate) / 1000;
             workDuration -= breakDuration;
         }
-
         const hours = Math.floor(workDuration / 3600);
         const minutes = Math.floor((workDuration % 3600) / 60);
         const seconds = workDuration % 60;
-
         return `${hours}h ${minutes}m ${seconds}s`;
     };
 
-
-        return (
-            <div>
-          
-              
-                <div className="rounded-lg shadow-md p-4">
-                {attendanceState && (
-                  <div className="mt-4 space-y-2">
-                    <button
-                      onClick={() => saveAttendance(attendanceState.includes('Out_') ? attendanceState.split('_')[1] : attendanceState)}
-                      className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600 transition"
-                    >
-                      {attendanceState.includes('Out_') ? attendanceState.split('_')[1] : attendanceState}
-                    </button>
-                    
-                  </div>
-                )}
-              
-          
-              
-                <h2 className="text-lg font-semibold mb-3">Today's Attendance</h2>
-                <div className="overflow-auto">
-                  <table className="min-w-full text-sm text-left border">
-                    <thead>
-                      <tr className="bg-gray-200">
-                       
-                        <th className="py-2 px-3 border">In</th>
-                        <th className="py-2 px-3 border">Break</th>
-                        <th className="py-2 px-3 border">Start</th>
-                        <th className="py-2 px-3 border">Out</th>
-                        <th className="py-2 px-3 border">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {attendance.map((record, index) => (
-                        <tr key={index} className="border-t">
-                         
-                          <td className="py-2 px-3">{record.In}</td>
-                          <td className="py-2 px-3">{record.Break}</td>
-                          <td className="py-2 px-3">{record.Start}</td>
-                          <td className="py-2 px-3">{record.Out}</td>
-                          <td className="py-2 px-3">{record.TotalHours}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+    return (
+        <div className="p-4 max-w-6xl mx-auto">
+            <div className="flex justify-between items-center mb-4">
+                
+                
+               
             </div>
-          );
+
+           
+
           
+<div className="mt-6">
+    
+    <div className="overflow-x-auto rounded shadow">
+    {attendanceState && (
+                <div className="mb-6">
+                    <button onClick={() => saveAttendance(
+                                attendanceState.includes("Out_")
+                                    ? attendanceState.split("_")[1]
+                                    : attendanceState
+                            )
+                        } 
+                        className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600 transition"
+                    > Click Here  {loggedInUser}_ 
+                        {attendanceState.includes("Out_")
+                            ? attendanceState.split("_")[1]
+                            : attendanceState}
+                    </button>
+                </div>
+            )}
+        <table className="min-w-full bg-white border border-gray-300">
+            <thead className="bg-gray-100">
+            <tr className="px-4 py-2 border"> </tr>
+                <tr>
+                    <th className="px-4 py-2 border">In</th>
+                    <th className="px-4 py-2 border">Break</th>
+                    <th className="px-4 py-2 border">Start</th>
+                    <th className="px-4 py-2 border">Out</th>
+                    
+                   
+                  
+                </tr>
+            </thead>
+            <tbody>
+                {attendance.length === 0 ? (
+                    <tr>
+                        <td colSpan="7" className="text-center py-4 text-gray-500">
+                            No attendance found for today.
+                        </td>
+                    </tr>
+                ) : (
+                    attendance.map((record, index) => (
+                        <tr key={index} className="text-center border-t">
+                            <td className="px-4 py-2 border">{record.In}</td>
+                            <td className="px-4 py-2 border">{record.Break}</td>
+                            <td className="px-4 py-2 border">{record.Start}</td>
+                            <td className="px-4 py-2 border">{record.Out}</td>
+                           
+                        </tr>
+                    ))
+                )}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+        </div>
+    );
 }

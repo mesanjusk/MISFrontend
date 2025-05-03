@@ -179,40 +179,68 @@ const buttonsList = [
   return (
     <>
       <TopNavbar />
-      <br /><br />
-
-              <h1 className="absolute right-10 text-s mb-6">Welcome, {userName} <button className=" font-bold mb-6 text-s" onClick={handleLogout}>Logout</button></h1> 
-              
-              <UserTask onClose={closeUserModal} />
-              <AllOrder />
-
-    
       
-                        <div >
-                      {isLoading ? (
-                                      <Skeleton count={5} height={30} />
-                                    ) : (
-                          pendingTasks.map((task, index) => (
-                            <div key={index}>
-                            <div onClick={() => handleTaskClick(task)} className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer">
-                                <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
-                                    <strong className="text-l text-gray-500">
-                                        {task.Usertask_Number}
-                                    </strong>
-                                </div>
-                                <div className="p-2 col-start-2 col-end-8">
-                                     <strong className="text-l text-gray-900">{task.Usertask_name}</strong><br />
-                                      <label className="text-xs">{new Date(task.Date).toLocaleDateString()}{" "}-{task.Remark}</label>
-                                </div>
-                                <div className="items-center justify-center text-right col-end-9 col-span-1">
-                                      <label className="text-xs pr-2">{new Date(task.Deadline).toLocaleDateString()}</label><br />
-                                      <label className="text-s text-green-500 pr-2">{task.Status}</label></div>
-                                </div>
-                                </div>
-            
-                          ))          
-                    )}
-                    </div>
+      
+
+      <div className=" bg-[#e5ddd5] pt-20 pb-5 px-4 md:px-10">
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    
+    {/* User Task Section */}
+    <div className="">
+           <UserTask onClose={closeUserModal} />
+    </div>
+
+    {/* Pending Task Section */}
+    <div className="">
+     
+      {isLoading ? (
+        <Skeleton count={5} height={30} />
+      ) : (
+        pendingTasks.map((task, index) => (
+          <div
+            key={index}
+            onClick={() => handleTaskClick(task)}
+            className="cursor-pointer mb-2"
+          >
+            <div className="grid grid-cols-12 items-center gap-2 p-3 bg-gray-50 rounded-lg shadow hover:bg-green-50 transition-all">
+              {/* Task Number Avatar */}
+              <div className="col-span-1 flex items-center justify-center bg-gray-100 rounded-full w-10 h-10">
+                <span className="text-sm text-gray-600 font-semibold">{task.Usertask_Number}</span>
+              </div>
+
+              {/* Task Name and Remark */}
+              <div className="col-span-8">
+                <div className="text-black font-semibold text-sm">{task.Usertask_name}</div>
+                <div className="text-xs text-gray-700">
+                  {new Date(task.Date).toLocaleDateString()} – {task.Remark}
+                </div>
+              </div>
+
+              {/* Deadline and Status */}
+              <div className="col-span-3 text-right">
+                <div className="text-xs text-gray-500">{new Date(task.Deadline).toLocaleDateString()}</div>
+                <div
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full inline-block
+                    ${task.Status === 'Completed'
+                      ? 'bg-green-200 text-green-800'
+                      : task.Status === 'Pending'
+                      ? 'bg-yellow-200 text-yellow-800'
+                      : 'bg-red-200 text-red-800'}
+                  `}
+                >
+                  {task.Status}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+</div>
+
+<AllOrder />
+
       
       
       

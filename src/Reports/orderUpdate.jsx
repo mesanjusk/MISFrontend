@@ -302,9 +302,9 @@ export default function OrderUpdate({ order, onClose }) {
   return (
     <>
 
-<div className="vh-100 pt-10 flex flex-col">
+<div className="vh-100 pt-1 flex flex-col">
   {/* HEADER */}
-  <div className="px-4 pt-4 bg-green-200 flex items-center justify-between rounded-b-md shadow-sm">
+  <div className="px-2 pt-2 bg-green-200 flex items-center justify-between rounded-b-md shadow-sm">
     <div className="flex items-center gap-3">
       <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
         <strong className="text-gray-500">{values.Order_Number}</strong>
@@ -318,6 +318,7 @@ export default function OrderUpdate({ order, onClose }) {
               <div key={index}>{note.Note_name}</div>
             ))}
         </div>
+        
       </div>
     </div>
 
@@ -327,14 +328,23 @@ export default function OrderUpdate({ order, onClose }) {
           <path d="M16.5 3.5a2.1 2.1 0 013 3L8.5 17l-4 1 1-4z" />
         </svg>
       </button>
+      <button onClick={() => handlePrintClick(order)} className="p-2 rounded-full bg-white shadow hover:bg-gray-100">
+        Pr
+        
+      </button>
+      <button onClick={() => handleWhatsAppClick(order)} className="p-2 rounded-full bg-white shadow hover:bg-gray-100">
+        WP
+        
+      </button>
+      
       <button onClick={() => handleNoteClick(order)} className="p-2 rounded-full bg-white shadow hover:bg-gray-100">
         <svg className="h-6 w-6 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
           <line x1="9" y1="12" x2="15" y2="12" />
           <line x1="12" y1="9" x2="12" y2="15" />
         </svg>
       </button>
-      <button onClick={() => handleUpdateClick(order)} className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
-        Edit
+      <button onClick={() => handleUpdateClick(order)} className="p-2 rounded-full bg-white shadow hover:bg-gray-100">
+        Ed
       </button>
     </div>
   </div>
@@ -423,12 +433,7 @@ export default function OrderUpdate({ order, onClose }) {
         <button type="button" className="bg-gray-300 text-black px-4 py-2 rounded" onClick={onClose}>
           Cancel
         </button>
-        <button type="button" className="bg-yellow-500 text-white px-4 py-2 rounded" onClick={() => handlePrintClick(order)}>
-          Print
-        </button>
-        <button type="button" className="bg-blue-500 text-white px-4 py-2 rounded" onClick={() => handleWhatsAppClick(order)}>
-          Share
-        </button>
+       
 
         {values.Status?.length > 0 && taskId.length > 0 &&
           values.Status.reduce((acc, status) => {
