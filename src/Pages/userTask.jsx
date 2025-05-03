@@ -322,71 +322,67 @@ export default function UserTask() {
     };
 
     return (
-        <div className="p-4 max-w-6xl mx-auto">
-            <div className="flex justify-between items-center mb-4">
-                
-                
-               
-            </div>
-
-           
-
-          
-<div className="mt-6">
-    
-    <div className="overflow-x-auto rounded shadow">
-    {attendanceState && (
-                <div className="mb-6">
-                    <button onClick={() => saveAttendance(
-                                attendanceState.includes("Out_")
-                                    ? attendanceState.split("_")[1]
-                                    : attendanceState
-                            )
-                        } 
-                        className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600 transition"
-                    > Click Here  {loggedInUser}_ 
-                        {attendanceState.includes("Out_")
-                            ? attendanceState.split("_")[1]
-                            : attendanceState}
-                    </button>
-                </div>
-            )}
-        <table className="min-w-full bg-white border border-gray-300">
-            <thead className="bg-gray-100">
-            <tr className="px-4 py-2 border"> </tr>
-                <tr>
-                    <th className="px-4 py-2 border">In</th>
-                    <th className="px-4 py-2 border">Break</th>
-                    <th className="px-4 py-2 border">Start</th>
-                    <th className="px-4 py-2 border">Out</th>
-                    
-                   
-                  
+        <div className="pt-20 max-w-5xl mx-auto px-4">
+  <div className="bg-white border rounded shadow-lg overflow-hidden">
+    <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 p-4">
+      {/* Table */}
+      <div className="overflow-x-auto w-full md:w-3/4">
+        <table className="min-w-full text-sm text-center border">
+          <thead className="bg-green-100 text-gray-700 uppercase">
+            <tr>
+              <th className="px-4 py-3 border">In</th>
+              <th className="px-4 py-3 border">Break</th>
+              <th className="px-4 py-3 border">Start</th>
+              <th className="px-4 py-3 border">Out</th>
+            </tr>
+          </thead>
+          <tbody>
+            {attendance.length === 0 ? (
+              <tr>
+                <td colSpan="4" className="text-center py-6 text-gray-500">
+                  No attendance found for today.
+                </td>
+              </tr>
+            ) : (
+              attendance.map((record, index) => (
+                <tr key={index} className="hover:bg-gray-50 border-t">
+                  <td className="px-4 py-2 border">{record.In}</td>
+                  <td className="px-4 py-2 border">{record.Break}</td>
+                  <td className="px-4 py-2 border">{record.Start}</td>
+                  <td className="px-4 py-2 border">{record.Out}</td>
                 </tr>
-            </thead>
-            <tbody>
-                {attendance.length === 0 ? (
-                    <tr>
-                        <td colSpan="7" className="text-center py-4 text-gray-500">
-                            No attendance found for today.
-                        </td>
-                    </tr>
-                ) : (
-                    attendance.map((record, index) => (
-                        <tr key={index} className="text-center border-t">
-                            <td className="px-4 py-2 border">{record.In}</td>
-                            <td className="px-4 py-2 border">{record.Break}</td>
-                            <td className="px-4 py-2 border">{record.Start}</td>
-                            <td className="px-4 py-2 border">{record.Out}</td>
-                           
-                        </tr>
-                    ))
-                )}
-            </tbody>
+              ))
+            )}
+          </tbody>
         </table>
+      </div>
+
+      {/* Attendance Button */}
+      {attendanceState && (
+        <div className="w-full md:w-1/4">
+          <button
+            onClick={() =>
+              saveAttendance(
+                attendanceState.includes("Out_")
+                  ? attendanceState.split("_")[1]
+                  : attendanceState
+              )
+            }
+            className="w-full bg-green-500 text-white font-semibold py-3 rounded-md hover:bg-green-600 transition-all"
+          >
+            Click Here {loggedInUser}_{" "}
+            {attendanceState.includes("Out_")
+              ? attendanceState.split("_")[1]
+              : attendanceState}
+          </button>
+        </div>
+      )}
     </div>
+  </div>
 </div>
 
-        </div>
+      
+
+        
     );
 }
