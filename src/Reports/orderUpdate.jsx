@@ -301,222 +301,200 @@ export default function OrderUpdate({ order, onClose }) {
   
   return (
     <>
-<div className=" max-w-lg " >
-      <div className="w-4/4 vh-100 pt-10 flex flex-col">
-        <div className="px-1 pt-4 bg-green-200 grid grid-cols-12  items-center h-18"  >
-          
-          <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
-            <strong className="text-l text-gray-500">{values.Order_Number}</strong>
-          </div>
-          <div>
-            <div className="p-2 col-start-2 col-end-5">
-              <strong className="text-l text-gray-900">{values.Customer_name}</strong>
-              <br />
-            </div>        
-            
-          </div>
-          <div className="p-2 col-start-7 col-end-7"><button onClick={() => handleEditClick(order)} className="btn">
-                <svg className="h-6 w-6 text-blue-500" width="12" height="12" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                  <path stroke="none" d="M0 0h24v24H0z"/>
-                  <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3l-11 11l-4 1l1 -4z"/>
-                </svg>
-              </button> </div>
-            <div className="p-2 col-start-8 col-end-8"> <button onClick={() => handleNoteClick(order)} className="btn">
-                <svg className="h-10 w-10 text-blue-500" width="30" height="30" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">                        
-                  <line x1="9" y1="12" x2="15" y2="12" />
-                  <line x1="12" y1="9" x2="12" y2="15" />
-                </svg>
-              </button></div>
 
-              <div className="p-2 col-start-8 col-end-8"> <button onClick={() => handleUpdateClick(order)} className="btn">
-                Edit
-              </button></div>
-              <div className="p-2 col-start-2 col-end-4">
-              {notes.filter(note => note.Order_uuid === values.Order_uuid).map((note, index) => (
-                <div key={index}>
-                  <strong className="text-sm text-gray-600">{note.Note_name}</strong>
-                </div>
-              ))}
-             </div>     
+<div className="vh-100 pt-10 flex flex-col">
+  {/* HEADER */}
+  <div className="px-4 pt-4 bg-green-200 flex items-center justify-between rounded-b-md shadow-sm">
+    <div className="flex items-center gap-3">
+      <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+        <strong className="text-gray-500">{values.Order_Number}</strong>
+      </div>
+      <div>
+        <strong className="text-lg text-gray-900">{values.Customer_name}</strong>
+        <div className="text-sm text-gray-600">
+          {notes
+            .filter(note => note.Order_uuid === values.Order_uuid)
+            .map((note, index) => (
+              <div key={index}>{note.Note_name}</div>
+            ))}
         </div>
+      </div>
+    </div>
 
-        <div className="flex-1 overflow-y-scroll bg-gray-100 p-4">
-          <div className="bg-green-100 p-3 mb-2 text-right-xs rounded-lg shadow-lg w-3/4 ml-auto">
-            <p className="text-sm text-gray-600">{values.Remark}</p>
+    <div className="flex gap-2">
+      <button onClick={() => handleEditClick(order)} className="p-2 rounded-full bg-white shadow hover:bg-gray-100">
+        <svg className="h-5 w-5 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <path d="M16.5 3.5a2.1 2.1 0 013 3L8.5 17l-4 1 1-4z" />
+        </svg>
+      </button>
+      <button onClick={() => handleNoteClick(order)} className="p-2 rounded-full bg-white shadow hover:bg-gray-100">
+        <svg className="h-6 w-6 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <line x1="9" y1="12" x2="15" y2="12" />
+          <line x1="12" y1="9" x2="12" y2="15" />
+        </svg>
+      </button>
+      <button onClick={() => handleUpdateClick(order)} className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
+        Edit
+      </button>
+    </div>
+  </div>
+
+  {/* MAIN BODY */}
+  <div className="flex-1 overflow-y-scroll bg-gray-100 p-4">
+    {/* Remark Section */}
+    <div className="bg-green-100 p-3 mb-4 rounded-lg shadow w-3/4 ml-auto">
+      <p className="text-sm text-gray-600">{values.Remark}</p>
+    </div>
+
+    {/* Status Updates */}
+    {values.Status?.length > 0 ? (
+      values.Status.map((status, index) => (
+        <div key={index} className="bg-white p-3 mb-3 rounded-lg shadow w-3/4">
+          <div className="text-sm text-gray-700">
+            <div><strong>Date:</strong> {new Date(status.CreatedAt).toLocaleDateString()}</div>
+            <div><strong>Task:</strong> {status.Task}</div>
+            <div><strong>User:</strong> {status.Assigned}</div>
+            <div><strong>Delivery:</strong> {new Date(status.Delivery_Date).toLocaleDateString()}</div>
           </div>
-          <div>
-            {values.Status.length > 0 ? (
-              values.Status.map((status, index) => (
-                <div key={index}>
-                  <div className="bg-white p-3 mb-2 rounded-lg shadow-lg w-3/4">
-                    {new Date(status.CreatedAt).toLocaleDateString()}
-                    <br />
-                    {status.Task}
-                    <br />
-                    {status.Assigned}
-                    <br />
-                    {new Date(status.Delivery_Date).toLocaleDateString()}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div>No status data available</div>
-            )}
-          </div>
+        </div>
+      ))
+    ) : (
+      <div className="text-center text-gray-500">No status data available</div>
+    )}
 
-          <form onSubmit={handleSaveChanges}>
-            <div className="">
-              <div className="flex-grow p-2 border border-gray-300 rounded-lg">
-                Update Job Status
-                <select
-                  className="form-control"
-                  value={values.Task}
-                  onChange={(e) => setValues({ ...values, Task: e.target.value })}
-                >
-                  <option value="">Select Task</option>
-                  {taskOptions.map((option, index) => (
-                    <option key={index} value={option}>{option}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex-grow border border-gray-300 rounded-lg">
-                Update User
-                <select
-                  className="form-control"
-                  value={values.Assigned}
-                  onChange={(e) => setValues({ ...values, Assigned: e.target.value })}
-                >
-                  <option value="">Select User</option>
-                  {userOptions.map((option, index) => (
-                    <option key={index} value={option}>{option}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="pb-14 border-t border-gray-300">
-            <div className="mb-3 ">
-                        <input
-                            type="checkbox"
-                            className="form-check-input"
-                            id="advanceCheckbox"
-                            checked={isAdvanceChecked}
-                            onChange={handleAdvanceCheckboxChange}
-                        />
-                        <label className="form-check-label" htmlFor="advanceCheckbox">
-                            Update Date
-                        </label>
-                    </div>
-                    {isAdvanceChecked && (
-              <div className="flex items-center">
-                <input
-                  type="date"
-                  value={values.Delivery_Date}
-                  onChange={(e) => setValues({ ...values, Delivery_Date: e.target.value })}
-                  placeholder="Delivery Date"
-                  className="flex-grow p-2 border border-gray-300 rounded-lg"
-                />
-                
-              </div>
-               )}
-              <div className="flex items-center">
-            
-              <button type="submit" className="ml-2 bg-green-500 text-white p-2 rounded-lg">
-                  UPDATE
-                </button>
-                <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={onClose}>Cancel</button>
-                <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={() => handlePrintClick(order)}>Print</button>
-                <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={() => handleWhatsAppClick(order)}>Share</button>
-                {values.Status.length > 0 ? (
-  values.Status.reduce((acc, status) => {
-    const matchedTask = taskId.find(task => task.Task_group === status.Task && task.Id === 1);   
-    if (matchedTask && !acc.includes(matchedTask.Task_group)) {
-      acc.push(matchedTask.Task_group);
-    }
-    
-    return acc;
-  }, []).map((taskGroup, index) => {
-    const matchedTask = taskId.find(task => task.Task_group === taskGroup && task.Id === 1);
-
-    if (matchedTask) {
-      return (
-        <div key={index}>
-          <button
-            type="button"
-            className="ml-2 bg-green-500 text-white p-2 rounded-lg"
-            onClick={() => handleVendorClick(order)}
+    {/* Update Form */}
+    <form onSubmit={handleSaveChanges} className="mt-4 space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label className="block mb-1 text-sm font-medium">Update Job Status</label>
+          <select
+            className="w-full border border-gray-300 rounded p-2"
+            value={values.Task}
+            onChange={(e) => setValues({ ...values, Task: e.target.value })}
           >
-           {matchedTask.Task_group} 
-          </button>
+            <option value="">Select Task</option>
+            {taskOptions.map((option, i) => (
+              <option key={i} value={option}>{option}</option>
+            ))}
+          </select>
         </div>
-      );
-    }
-    return null; 
-  })
-) : (
-  <div>No status data available</div>
-)}
 
-                <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={() => handleClick(order)} style={{ display: 'none'}}>Click</button>
-                </div>
-            </div>
-          </form>
+        <div>
+          <label className="block mb-1 text-sm font-medium">Assign User</label>
+          <select
+            className="w-full border border-gray-300 rounded p-2"
+            value={values.Assigned}
+            onChange={(e) => setValues({ ...values, Assigned: e.target.value })}
+          >
+            <option value="">Select User</option>
+            {userOptions.map((option, i) => (
+              <option key={i} value={option}>{option}</option>
+            ))}
+          </select>
         </div>
+
+        <div className="flex items-center mt-6 gap-2">
+          <input
+            type="checkbox"
+            id="advanceCheckbox"
+            checked={isAdvanceChecked}
+            onChange={handleAdvanceCheckboxChange}
+          />
+          <label htmlFor="advanceCheckbox" className="text-sm">Update Date</label>
+        </div>
+
+        {isAdvanceChecked && (
+          <div className="md:col-span-3">
+            <input
+              type="date"
+              className="w-full border border-gray-300 rounded p-2"
+              value={values.Delivery_Date}
+              onChange={(e) => setValues({ ...values, Delivery_Date: e.target.value })}
+            />
+          </div>
+        )}
       </div>
+
+      {/* Buttons */}
+      <div className="flex flex-wrap gap-2 mt-6">
+        <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+          UPDATE
+        </button>
+        <button type="button" className="bg-gray-300 text-black px-4 py-2 rounded" onClick={onClose}>
+          Cancel
+        </button>
+        <button type="button" className="bg-yellow-500 text-white px-4 py-2 rounded" onClick={() => handlePrintClick(order)}>
+          Print
+        </button>
+        <button type="button" className="bg-blue-500 text-white px-4 py-2 rounded" onClick={() => handleWhatsAppClick(order)}>
+          Share
+        </button>
+
+        {values.Status?.length > 0 && taskId.length > 0 &&
+          values.Status.reduce((acc, status) => {
+            const match = taskId.find(task => task.Task_group === status.Task && task.Id === 1);
+            if (match && !acc.includes(match.Task_group)) acc.push(match.Task_group);
+            return acc;
+          }, []).map((group, i) => (
+            <button
+              key={i}
+              type="button"
+              className="bg-indigo-500 text-white px-4 py-2 rounded"
+              onClick={() => handleVendorClick(order)}
+            >
+              {group}
+            </button>
+          ))}
       </div>
-      <div
-  ref={printRef}
-  className="order-print-content"
-  style={{
-    display: "none", 
-    position: "absolute", 
-    left: "-9999px",
-    top: "-9999px",
-  }}
->
-  <OrderPrint 
-    order={order} 
-    latestDeliveryDate={latestDeliveryDate} 
-    customerDetails={customers[order.Customer_uuid]} 
-  />
+    </form>
+  </div>
+
+  {/* HIDDEN PRINT DIV */}
+  <div ref={printRef} style={{ display: "none", position: "absolute", left: "-9999px", top: "-9999px" }}>
+    <OrderPrint order={order} latestDeliveryDate={latestDeliveryDate} customerDetails={customers[order.Customer_uuid]} />
+  </div>
+
+  {/* MODALS */}
+  {showEditModal && (
+    <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
+      <UpdateDelivery order={selectedOrder} onClose={closeEditModal} />
+    </div>
+  )}
+
+  {showNoteModal && (
+    <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
+      <AddNote order={selectedOrder} onClose={closeNoteModal} />
+    </div>
+  )}
+
+  {showUpdateModal && (
+    <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
+      <EditOrder order={selectedOrder} onClose={closeUpdateModal} />
+    </div>
+  )}
+
+  {showPrintModal && (
+    <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
+      <OrderPrint order={selectedOrder} onClose={closePrintModal} />
+    </div>
+  )}
+
+  {showVendorModal && (
+    <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
+      <Vendor order={selectedOrder} onClose={closeVendorModal} />
+    </div>
+  )}
+
+  {showClickModal && (
+    <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
+      <VendorDetails order={selectedOrder} onClose={closeClickModal} />
+    </div>
+  )}
 </div>
 
 
-      {showEditModal && (
-        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-          <UpdateDelivery order={selectedOrder} onClose={closeEditModal} />
-        </div>
-      )}
-
-      {showNoteModal && (
-        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-          <AddNote order={selectedOrder} onClose={closeNoteModal} />
-        </div>
-      )}
-
-{showUpdateModal && (
-        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-          <EditOrder order={selectedOrder} onClose={closeUpdateModal} />
-        </div>
-      )}
-
-      {showPrintModal && (
-        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-          <OrderPrint order={selectedOrder} onClose={closePrintModal}/>
-        </div>
-      )}
-
-{showVendorModal && (
-        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-          <Vendor order={selectedOrder} onClose={closeVendorModal}/>
-        </div>
-      )}
-
-{showClickModal && (
-        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-          <VendorDetails order={selectedOrder} onClose={closeClickModal}/>
-        </div>
-      )}
+      )
+      
 
     </>
   );

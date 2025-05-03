@@ -400,13 +400,10 @@ export default function UserTask() {
 
 
         return (
-            <div className="p-4 bg-gray-50 min-h-screen">
+            <div>
           
-              <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-               
-                  
-                </div>
-                <div className="bg-white rounded-lg shadow-md p-4">
+              
+                <div className="rounded-lg shadow-md p-4">
                 {attendanceState && (
                   <div className="mt-4 space-y-2">
                     <button

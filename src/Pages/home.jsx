@@ -182,9 +182,10 @@ const buttonsList = [
       <br /><br />
 
               <h1 className="absolute right-10 text-s mb-6">Welcome, {userName} <button className=" font-bold mb-6 text-s" onClick={handleLogout}>Logout</button></h1> 
-              <br /><br />
-              <AllOrder />
+              
               <UserTask onClose={closeUserModal} />
+              <AllOrder />
+
     
       
                         <div >
