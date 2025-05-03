@@ -403,30 +403,30 @@ export default function UserTask() {
             <div className="p-4 bg-gray-50 min-h-screen">
           
               <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-                <div className="flex items-center space-x-2">
+               
                   
                 </div>
-          
+                <div className="bg-white rounded-lg shadow-md p-4">
                 {attendanceState && (
                   <div className="mt-4 space-y-2">
                     <button
                       onClick={() => saveAttendance(attendanceState.includes('Out_') ? attendanceState.split('_')[1] : attendanceState)}
                       className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600 transition"
                     >
-                      Mark {attendanceState.includes('Out_') ? attendanceState.split('_')[1] : attendanceState}
+                      {attendanceState.includes('Out_') ? attendanceState.split('_')[1] : attendanceState}
                     </button>
                     
                   </div>
                 )}
-              </div>
+              
           
-              <div className="bg-white rounded-lg shadow-md p-4">
+              
                 <h2 className="text-lg font-semibold mb-3">Today's Attendance</h2>
                 <div className="overflow-auto">
                   <table className="min-w-full text-sm text-left border">
                     <thead>
                       <tr className="bg-gray-200">
-                        <th className="py-2 px-3 border">Date</th>
+                       
                         <th className="py-2 px-3 border">In</th>
                         <th className="py-2 px-3 border">Break</th>
                         <th className="py-2 px-3 border">Start</th>
@@ -437,7 +437,7 @@ export default function UserTask() {
                     <tbody>
                       {attendance.map((record, index) => (
                         <tr key={index} className="border-t">
-                          <td className="py-2 px-3">{record.Date}</td>
+                         
                           <td className="py-2 px-3">{record.In}</td>
                           <td className="py-2 px-3">{record.Break}</td>
                           <td className="py-2 px-3">{record.Start}</td>
