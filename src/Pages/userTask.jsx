@@ -428,7 +428,7 @@ export default function UserTask() {
                         <th className="py-2 px-3 border">Break</th>
                         <th className="py-2 px-3 border">Start</th>
                         <th className="py-2 px-3 border">Out</th>
-                        <th className="py-2 px-3 border">Total Hours</th>
+                        <th className="py-2 px-3 border">Total</th>
                       </tr>
                     </thead>
                     <tbody>
