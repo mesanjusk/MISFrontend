@@ -1,27 +1,21 @@
-// src/components/PendingTasks.js
-
 import React, { useEffect, useState } from 'react';
 
-export default function PendingTasks({ isLoading, onTaskClick }) {
+export default function PendingTasks({ onTaskClick }) {
   const [tasks, setTasks] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch pending tasks from the backend
   useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        const response = await fetch('/api/GetTaskList');
-        const data = await response.json();
-        console.log(data);  // Log the response to verify the structure
+    fetch("https://your-backend-url.com/GetTaskList") // 👈 Replace this with actual backend API
+      .then(res => res.json())
+      .then(data => {
         if (data.success) {
-          setTasks(data.result);  // Assuming you're setting tasks in state here
+          setTasks(data.result);
         } else {
-          console.log("No tasks found");
+          console.error("Failed to fetch tasks");
         }
-      } catch (error) {
-        console.error("Error fetching tasks:", error);
-      }
-    };
-    fetchTasks();
+      })
+      .catch(err => console.error("Error fetching tasks:", err))
+      .finally(() => setIsLoading(false));
   }, []);
 
   const pendingTasks = tasks.filter(task => task.Status === "Pending");
@@ -44,7 +38,7 @@ export default function PendingTasks({ isLoading, onTaskClick }) {
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="bg-gray-100 text-gray-600 text-sm font-semibold w-8 h-8 flex items-center justify-center rounded-full">
-                  {task.Task_uuid}
+                  {task.Usertask_Number}
                 </div>
                 <div
                   className={`text-xs font-medium px-2 py-0.5 rounded-full
@@ -52,12 +46,13 @@ export default function PendingTasks({ isLoading, onTaskClick }) {
                       ? 'bg-green-100 text-green-700'
                       : task.Status === 'Pending'
                       ? 'bg-yellow-100 text-yellow-700'
-                      : 'bg-red-100 text-red-700'}`}
+                      : 'bg-red-100 text-red-700'}
+                  `}
                 >
                   {task.Status}
                 </div>
               </div>
-              <div className="text-black font-semibold text-sm">{task.Task_name}</div>
+              <div className="text-black font-semibold text-sm">{task.Usertask_name}</div>
               <div className="text-xs text-gray-500 mt-1">
                 {new Date(task.Date).toLocaleDateString()} – {task.Remark}
               </div>
