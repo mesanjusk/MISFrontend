@@ -51,7 +51,8 @@ import AddRecievable from "./Pages/addRecievable";
 import AddPayable from "./Pages/addPayable";
 import SendMessage from "./Pages/SendMessage";
 import WhatsAppLogin from "./Pages/WhatsAppLogin";
-import Pendingtasks from "./Pages/PendingTasks";
+import PendingTasks from './Pages/PendingTasks';
+
 
 
 
@@ -111,7 +112,7 @@ function App() {
                     <Route path="/addPayable" element={< AddPayable />} />
                     <Route path="/SendMessage" element={< SendMessage />} />
                     <Route path="/WhatsAppLogin" element={< WhatsAppLogin />} />
-                    <Route path="/PendingTasks" element={< Pendingtasks />} />
+                    <Route path="/PendingTasks" element={< PendingTasks />} />
                     
                 </Routes>
             </div>
