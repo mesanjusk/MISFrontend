@@ -167,7 +167,7 @@ const AllTransaction = () => {
             <div className="no-print">
                 <TopNavbar />
             </div>
-            <div className="pt-12 pb-20">
+            <div className="min-w-xl pt-12 pb-20">
                 <div className="flex flex-wrap bg-white p-4 space-x-4">
                     <label className="flex flex-col">
                         Start :
@@ -189,7 +189,7 @@ const AllTransaction = () => {
                     </label>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-4 min-w-xl flex flex-wrap gap-2">
   {customers
     .filter((c) => c.Customer_group === 'Bank and Account')
     .map((customer) => (
@@ -239,7 +239,7 @@ const AllTransaction = () => {
                 </div>
 
                 <main className="overflow-x-auto mt-6">
-                    <div className="w-full overflow-x-scroll">
+                    <div className="w-full min-w-xl overflow-x-scroll">
                         {filteredEntries.length > 0 ? (
                             <table className="min-w-full table-auto border-collapse">
                                 <thead className="bg-gray-100">
