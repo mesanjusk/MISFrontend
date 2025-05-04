@@ -37,6 +37,36 @@ export default function UserTask() {
         navigate('/');
     };
 
+
+    const initAttendanceState = async (userName) => {
+        if (!userName) return;
+    
+        try {
+            const response = await axios.get(`/attendance/getTodayAttendance/${userName}`);
+            const data = response.data;
+    
+            if (!data.success || !Array.isArray(data.flow)) {
+                setAttendanceState("In");
+                return;
+            }
+    
+            const flow = data.flow;
+            const sequence = ["In", "Break", "Start", "Out"];
+            const nextStep = sequence.find(step => !flow.includes(step));
+    
+            setAttendanceState(nextStep || "In");
+        } catch (error) {
+            console.error("Failed to fetch attendance state:", error);
+            setAttendanceState("In");
+        } finally {
+            setShowButtons(true);
+        }
+    };
+    useEffect(() => {
+        if (userName) {
+            initAttendanceState(userName);
+        }
+    }, [userName]);
     const saveAttendance = async (type) => {
         try {
             const formattedTime = new Date().toLocaleTimeString();
@@ -50,7 +80,7 @@ export default function UserTask() {
             if (response.data.success) {
                 alert(`Attendance saved successfully for ${type}`);
                 sendmsg(type);
-                await initAttendanceState(); // Fetch updated flow from DB
+                await initAttendanceState(userName); // Fetch updated flow from DB
 
                 
                 let newState = "None";
@@ -115,7 +145,7 @@ export default function UserTask() {
 
             const transactionResponse = await axios.post("/transaction/addTransaction", {
                 Description: "Salary",
-                Transaction_date: new Date().toISOString(),
+                Transaction_date: new Date().toISOString().split("T")[0],
                 Total_Credit: Amount,
                 Total_Debit: Amount,
                 Payment_mode: user.User_group,
@@ -132,37 +162,7 @@ export default function UserTask() {
         }
     };
 
-    useEffect(() => {
-        const initAttendanceState = async () => {
-            if (!userName) return;
-          
-            try {
-              const response = await axios.get(`/attendance/getTodayAttendance/${userName}`);
-              const data = response.data;
-          
-              if (!data.success || !Array.isArray(data.flow)) {
-                setAttendanceState("In");
-                return;
-              }
-          
-              const flow = data.flow;
-              const sequence = ["In", "Break", "Start", "Out"];
-              const nextStep = sequence.find(step => !flow.includes(step));
-          
-              setAttendanceState(nextStep || null); // null = All done
-            } catch (error) {
-              console.error("Failed to fetch attendance state:", error);
-              setAttendanceState("In");
-            } finally {
-              setShowButtons(true);
-            }
-          };
-          
-        
-    
-        initAttendanceState();
-    }, [userName]);
-    
+  
     
 
     const fetchLastAttendance = async () => {
