@@ -127,7 +127,7 @@ export default function AllOrder() {
                 <div className="pt-5 pb-5">
 
                     {/* Search Bar */}
-                    <div className="flex flex-wrap bg-white w-full max-w-md p-2 mx-auto rounded-full shadow-sm">
+                    <div className="flex flex-wrap bg-white w-full max-w-xl p-2 mx-auto rounded-full shadow-sm">
                         <input
                             type="text"
                             placeholder="Search by Customer Name"
@@ -139,7 +139,7 @@ export default function AllOrder() {
 
                     {/* Main Content */}
                     <main className="flex flex-1 p-2 overflow-y-auto">
-                        <div className="w-full max-w-screen-xl mx-auto">
+                        <div className="w-full mx-auto">
                             <SkeletonTheme>
                                 {isLoading
                                     ? Array(5).fill().map((_, index) => (
@@ -154,7 +154,7 @@ export default function AllOrder() {
                                             <div key={taskGroup} className="mb-6 p-4 bg-[#e5ddd5] rounded-lg">
                                                 <h3 className="font-semibold text-lg text-green-700 mb-3">{taskGroup}</h3>
 
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
                                                     {taskGroupOrders.map((order) => {
                                                         const latestStatusDateRaw = order.highestStatusTask?.CreatedAt;
                                                         const latestStatusDate = latestStatusDateRaw ? new Date(latestStatusDateRaw) : null;
