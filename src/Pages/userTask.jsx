@@ -50,6 +50,9 @@ export default function UserTask() {
             if (response.data.success) {
                 alert(`Attendance saved successfully for ${type}`);
                 sendmsg(type);
+                await initAttendanceState(); // Fetch updated flow from DB
+
+                
                 let newState = "None";
                 if (type === "In") newState = "Break";
                 else if (type === "Break") newState = "Start";
@@ -57,9 +60,7 @@ export default function UserTask() {
                 else if (type === "Out") newState = "In";
 
                 setAttendanceState(newState);
-                localStorage.setItem("attendanceState", newState);
-                localStorage.setItem("attendanceDate", new Date().toLocaleDateString());
-
+               
                 if (type === "Out") {
                     await createTransaction(userName);
                 }
@@ -132,15 +133,37 @@ export default function UserTask() {
     };
 
     useEffect(() => {
-        const savedState = localStorage.getItem("attendanceState");
-        const lastUpdated = localStorage.getItem("attendanceDate");
-        const today = new Date().toISOString().split("T")[0];
-        if (savedState && lastUpdated === today) {
-            setAttendanceState(savedState);
-        } else {
-            setAttendanceState("In");
-        }
-    }, []);
+        const initAttendanceState = async () => {
+            if (!userName) return;
+          
+            try {
+              const response = await axios.get(`/attendance/getTodayAttendance/${userName}`);
+              const data = response.data;
+          
+              if (!data.success || !Array.isArray(data.flow)) {
+                setAttendanceState("In");
+                return;
+              }
+          
+              const flow = data.flow;
+              const sequence = ["In", "Break", "Start", "Out"];
+              const nextStep = sequence.find(step => !flow.includes(step));
+          
+              setAttendanceState(nextStep || null); // null = All done
+            } catch (error) {
+              console.error("Failed to fetch attendance state:", error);
+              setAttendanceState("In");
+            } finally {
+              setShowButtons(true);
+            }
+          };
+          
+        
+    
+        initAttendanceState();
+    }, [userName]);
+    
+    
 
     const fetchLastAttendance = async () => {
         try {
@@ -152,25 +175,7 @@ export default function UserTask() {
             return null;
         }
     };
-
-    useEffect(() => {
-        if (showButtons) {
-            fetchLastAttendance().then((lastAttendance) => {
-                let newState = "In";
-                if (lastAttendance && lastAttendance.success) {
-                    const lastType = lastAttendance.lastState;
-                    if (lastType === "In") newState = "Break";
-                    else if (lastType === "Break") newState = "Start";
-                    else if (lastType === "Start") newState = "Out";
-                    else if (lastType === "Out") newState = "In";
-                }
-                setAttendanceState(newState);
-            }).catch((error) => {
-                console.error("Error fetching last attendance:", error);
-                setAttendanceState("In");
-            });
-        }
-    }, [showButtons]);
+    
 
     useEffect(() => {
         axios.get("/usertask/GetUsertaskList")
@@ -192,20 +197,13 @@ export default function UserTask() {
         const message = `SK ${userName} ${type}`;
         const res = await fetch('https://misbackend-e078.onrender.com/usertask/send-message', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                userName,
-                mobile: "9372333633",
-                type,
-                message
-            }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userName, mobile: "9372333633", type, message }),
         });
 
         const result = await res.json();
         console.log(result);
-    }
+    };
 
     const fetchUserNames = async () => {
         try {
@@ -323,64 +321,67 @@ export default function UserTask() {
 
     return (
         <div className="bg-[#e5ddd5] pt-5 max-w-8xl mx-auto px-2">
-  <div className="  shadow-lg overflow-hidden">
-    <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 p-2">
-      {/* Table */}
-      <div className="bg-white overflow-x-auto w-full md:w-3/4">
-        <table className="min-w-full text-sm text-center border">
-         
-            
-{attendance.length === 0 ? (
-              <tr>
-                
-              </tr>
-            ) : (
-              attendance.map((record, index) => (
-                <tr key={index} className="hover:bg-gray-50 border-t">
-                 In Time  <td className="px-4 py-2 border">{record.In}</td>
-                  Break Time <td className="px-4 py-2 border">{record.Break}</td>
-                 Start Time  <td className="px-4 py-2 border">{record.Start}</td>
-                  End Time <td className="px-4 py-2 border">{record.Out}</td>
-                </tr>
-              ))
-            )}
+            <div className="shadow-lg overflow-hidden">
+                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 p-2">
+                    <div className="bg-white overflow-x-auto w-full md:w-3/4">
+                        <table className="min-w-full text-sm text-center border">
+                            <thead className="bg-gray-100">
+                                <tr>
+                                    <th className="px-4 py-2 border">Date</th>
+                                    <th className="px-4 py-2 border">In</th>
+                                    <th className="px-4 py-2 border">Break</th>
+                                    <th className="px-4 py-2 border">Start</th>
+                                    <th className="px-4 py-2 border">Out</th>
+                                    <th className="px-4 py-2 border">Total Hours</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {attendance.length === 0 ? (
+                                    <tr>
+                                        <td className="px-4 py-2 border" colSpan="6">No attendance records found.</td>
+                                    </tr>
+                                ) : (
+                                    attendance
+                                        .filter(record => record.User_name === loggedInUser)
+                                        .map((record, index) => (
+                                            <tr key={index} className="hover:bg-gray-50 border-t">
+                                                <td className="px-4 py-2 border">{record.Date}</td>
+                                                <td className="px-4 py-2 border">{record.In}</td>
+                                                <td className="px-4 py-2 border">{record.Break}</td>
+                                                <td className="px-4 py-2 border">{record.Start}</td>
+                                                <td className="px-4 py-2 border">{record.Out}</td>
+                                                <td className="px-4 py-2 border">{record.TotalHours}</td>
+                                            </tr>
+                                        ))
+                                )}
+                            </tbody>
+                        </table>
 
-              
+                    </div>
 
+                    {attendanceState && (
+    <div className="w-full md:w-1/4">
+       <button
+    onClick={async () => {
+        setShowButtons(false); // disable button
+        await saveAttendance(attendanceState);
+        setShowButtons(true); // re-enable after save
+    }}
+    className={`w-full text-white font-semibold py-3 rounded-md transition-all ${
+        showButtons
+            ? "bg-green-500 hover:bg-green-600 cursor-pointer"
+            : "bg-gray-400 cursor-not-allowed"
+    }`}
+    disabled={!showButtons}
+>
+    {showButtons ? `Mark ${attendanceState} Attendance` : "Saving..."}
+</button>
 
-              
-         
-           
-          
-        </table>
-      </div>
-
-      {/* Attendance Button */}
-      {attendanceState && (
-        <div className="w-full md:w-1/4">
-          <button
-            onClick={() =>
-              saveAttendance(
-                attendanceState.includes("Out_")
-                  ? attendanceState.split("_")[1]
-                  : attendanceState
-              )
-            }
-            className="w-full bg-green-500 text-white font-semibold py-3 rounded-md hover:bg-green-600 transition-all"
-          >
-            Click Here {loggedInUser}_{" "} for___ 
-            {attendanceState.includes("Out_")
-              ? attendanceState.split("_")[1]
-              : attendanceState}
-          </button>
-        </div>
-      )}
     </div>
-  </div>
-</div>
+)}
 
-      
-
-        
+                </div>
+            </div>
+        </div>
     );
 }
