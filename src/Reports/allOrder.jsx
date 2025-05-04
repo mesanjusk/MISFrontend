@@ -122,9 +122,9 @@ export default function AllOrder() {
 
     return (
         <>
-            <div className="order-update-content bg-[#e5ddd5] min-h-screen">
+            <div className="order-update-content bg-[#e5ddd5] ">
                 <TopNavbar />
-                <div className="pt-12 pb-20">
+                <div className="pt-5 pb-5">
 
                     {/* Search Bar */}
                     <div className="flex flex-wrap bg-white w-full max-w-md p-2 mx-auto rounded-full shadow-sm">

@@ -322,38 +322,36 @@ export default function UserTask() {
     };
 
     return (
-        <div className="pt-20 max-w-5xl mx-auto px-4">
-  <div className="bg-white border rounded shadow-lg overflow-hidden">
-    <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 p-4">
+        <div className="bg-[#e5ddd5] pt-5 max-w-8xl mx-auto px-2">
+  <div className="  shadow-lg overflow-hidden">
+    <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 p-2">
       {/* Table */}
-      <div className="overflow-x-auto w-full md:w-3/4">
+      <div className="bg-white overflow-x-auto w-full md:w-3/4">
         <table className="min-w-full text-sm text-center border">
-          <thead className="bg-green-100 text-gray-700 uppercase">
-            <tr>
-              <th className="px-4 py-3 border">In</th>
-              <th className="px-4 py-3 border">Break</th>
-              <th className="px-4 py-3 border">Start</th>
-              <th className="px-4 py-3 border">Out</th>
-            </tr>
-          </thead>
-          <tbody>
-            {attendance.length === 0 ? (
+         
+            
+{attendance.length === 0 ? (
               <tr>
-                <td colSpan="4" className="text-center py-6 text-gray-500">
-                  No attendance found for today.
-                </td>
+                
               </tr>
             ) : (
               attendance.map((record, index) => (
                 <tr key={index} className="hover:bg-gray-50 border-t">
-                  <td className="px-4 py-2 border">{record.In}</td>
-                  <td className="px-4 py-2 border">{record.Break}</td>
-                  <td className="px-4 py-2 border">{record.Start}</td>
-                  <td className="px-4 py-2 border">{record.Out}</td>
+                 In Time  <td className="px-4 py-2 border">{record.In}</td>
+                  Break Time <td className="px-4 py-2 border">{record.Break}</td>
+                 Start Time  <td className="px-4 py-2 border">{record.Start}</td>
+                  End Time <td className="px-4 py-2 border">{record.Out}</td>
                 </tr>
               ))
             )}
-          </tbody>
+
+              
+
+
+              
+         
+           
+          
         </table>
       </div>
 
