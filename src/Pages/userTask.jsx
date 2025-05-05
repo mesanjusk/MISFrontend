@@ -327,12 +327,12 @@ export default function UserTask() {
                         <table className="min-w-full text-sm text-center border">
                             <thead className="bg-gray-100">
                                 <tr>
-                                    <th className="px-4 py-2 border">Date</th>
+                                 
                                     <th className="px-4 py-2 border">In</th>
                                     <th className="px-4 py-2 border">Break</th>
                                     <th className="px-4 py-2 border">Start</th>
                                     <th className="px-4 py-2 border">Out</th>
-                                    <th className="px-4 py-2 border">Total Hours</th>
+                                 
                                 </tr>
                             </thead>
                             <tbody>
@@ -345,12 +345,12 @@ export default function UserTask() {
                                         .filter(record => record.User_name === loggedInUser)
                                         .map((record, index) => (
                                             <tr key={index} className="hover:bg-gray-50 border-t">
-                                                <td className="px-4 py-2 border">{record.Date}</td>
+                                               
                                                 <td className="px-4 py-2 border">{record.In}</td>
                                                 <td className="px-4 py-2 border">{record.Break}</td>
                                                 <td className="px-4 py-2 border">{record.Start}</td>
                                                 <td className="px-4 py-2 border">{record.Out}</td>
-                                                <td className="px-4 py-2 border">{record.TotalHours}</td>
+                                              
                                             </tr>
                                         ))
                                 )}
@@ -374,7 +374,19 @@ export default function UserTask() {
     }`}
     disabled={!showButtons}
 >
-    {showButtons ? `Mark ${attendanceState} Attendance` : "Saving..."}
+   {showButtons ? (
+  <>
+    {userName}
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    {attendanceState}
+    &nbsp;&nbsp;&nbsp;
+    
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    {new Date().toLocaleDateString()}
+  </>
+) : (
+  "Saving..."
+)}
 </button>
 
     </div>
