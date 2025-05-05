@@ -76,21 +76,13 @@ export default function UserTask() {
                 Status: "Present",
                 Time: formattedTime
             });
-
+    
             if (response.data.success) {
                 alert(`Attendance saved successfully for ${type}`);
                 sendmsg(type);
-                await initAttendanceState(userName); // Fetch updated flow from DB
-
-                
-                let newState = "None";
-                if (type === "In") newState = "Break";
-                else if (type === "Break") newState = "Start";
-                else if (type === "Start") newState = "Out";
-                else if (type === "Out") newState = "In";
-
-                setAttendanceState(newState);
-               
+    
+                await initAttendanceState(userName); // This sets the next state based on DB flow
+    
                 if (type === "Out") {
                     await createTransaction(userName);
                 }
@@ -99,6 +91,7 @@ export default function UserTask() {
             console.error("Error saving attendance:", error);
         }
     };
+    
 
     const createTransaction = async (userName) => {
         try {
