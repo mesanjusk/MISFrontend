@@ -138,7 +138,7 @@ export default function AddTransaction() {
         if (userGroup === "Office User") {
             navigate("/home");
         } else if (userGroup === "Admin User") {
-            navigate("/adminHome");
+            navigate("/home");
         }
     };
     

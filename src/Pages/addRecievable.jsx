@@ -136,7 +136,7 @@ export default function AddRecievable() {
         if (userGroup === "Office User") {
             navigate("/home");
         } else if (userGroup === "Admin User") {
-            navigate("/adminHome");
+            navigate("/home");
         }
     };   
 

@@ -63,7 +63,7 @@ export default function AddCategory() {
         if (userGroup === "Office User") {
             navigate("/home");
         } else if (userGroup === "Admin User") {
-            navigate("/adminHome");
+            navigate("/home");
         }
     };
 

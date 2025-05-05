@@ -48,7 +48,7 @@ export default function Login() {
             if (userGroup === "Office User") {
                 navigate("/home", { state: { id: User_name } });
             } else if (userGroup === "Admin User") {
-                navigate("/adminHome", { state: { id: User_name } });
+                navigate("/home", { state: { id: User_name } });
             } else if (userGroup === "Vendor") {
                 navigate("/vendorHome", { state: { id: User_name } });
             } else {
