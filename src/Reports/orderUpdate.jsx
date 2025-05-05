@@ -151,7 +151,7 @@ export default function OrderUpdate({ order, onClose }) {
         if (res.data.success) {
           alert('Order updated successfully!');
           onClose();
-          navigate("/allOrder");
+          navigate("/home");
         }
       })
       .catch(err => {
