@@ -367,16 +367,27 @@ export default function UserTask() {
                     </div>
 
                     {showButtons && attendanceState && (
-    <div className="w-full md:w-1/4">
-       <button
-    onClick={() => saveAttendance(attendanceState)}
-    className="w-full text-white font-semibold py-3 rounded-md bg-green-500 hover:bg-green-600 cursor-pointer"
-  >
-    {attendanceState}
-  </button>
-
-    </div>
+  <div className="w-full md:w-1/4">
+    <button
+      onClick={async () => {
+        setShowButtons(false); // disable during save
+        await saveAttendance(attendanceState);
+        setShowButtons(true);  // re-enable after save
+      }}
+      disabled={!showButtons}
+      className={`w-full text-white font-semibold py-3 rounded-md transition-all ${
+        showButtons
+          ? "bg-green-500 hover:bg-green-600 cursor-pointer"
+          : "bg-gray-400 cursor-not-allowed"
+      }`}
+    >
+      {showButtons
+        ? `${userName}   ${attendanceState}   -   ${new Date().toLocaleDateString()}`
+        : "Saving..."}
+    </button>
+  </div>
 )}
+
 
                 </div>
             </div>
