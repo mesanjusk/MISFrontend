@@ -38,6 +38,8 @@ export default function UserTask() {
     };
 
 
+    const sequence = ["In", "Break", "Start", "Out"];
+
     const initAttendanceState = async (userName) => {
         if (!userName) return;
     
@@ -54,7 +56,11 @@ export default function UserTask() {
             const sequence = ["In", "Break", "Start", "Out"];
             const nextStep = sequence.find(step => !flow.includes(step));
     
-            setAttendanceState(nextStep || "In");
+            if (flow.includes("Out")) {
+                setAttendanceState(null); // Hide button
+            } else {
+                setAttendanceState(nextStep || null); // null if flow complete
+            }
         } catch (error) {
             console.error("Failed to fetch attendance state:", error);
             setAttendanceState("In");
@@ -62,14 +68,18 @@ export default function UserTask() {
             setShowButtons(true);
         }
     };
+    
     useEffect(() => {
         if (userName) {
             initAttendanceState(userName);
         }
     }, [userName]);
     const saveAttendance = async (type) => {
+        if (!userName || !type) return;
+    
         try {
             const formattedTime = new Date().toLocaleTimeString();
+    
             const response = await axios.post("/attendance/addAttendance", {
                 User_name: userName,
                 Type: type,
@@ -81,17 +91,21 @@ export default function UserTask() {
                 alert(`Attendance saved successfully for ${type}`);
                 sendmsg(type);
     
-                await initAttendanceState(userName); // This sets the next state based on DB flow
-    
                 if (type === "Out") {
                     await createTransaction(userName);
                 }
+    
+                // Recalculate next attendance state
+                await initAttendanceState(userName);
+            } else {
+                alert("Failed to save attendance.");
             }
         } catch (error) {
             console.error("Error saving attendance:", error);
         }
     };
     
+
 
     const createTransaction = async (userName) => {
         try {
@@ -352,35 +366,14 @@ export default function UserTask() {
 
                     </div>
 
-                    {attendanceState && (
+                    {showButtons && attendanceState && (
     <div className="w-full md:w-1/4">
        <button
-    onClick={async () => {
-        setShowButtons(false); // disable button
-        await saveAttendance(attendanceState);
-        setShowButtons(true); // re-enable after save
-    }}
-    className={`w-full text-white font-semibold py-3 rounded-md transition-all ${
-        showButtons
-            ? "bg-green-500 hover:bg-green-600 cursor-pointer"
-            : "bg-gray-400 cursor-not-allowed"
-    }`}
-    disabled={!showButtons}
->
-   {showButtons ? (
-  <>
-    {userName}
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    onClick={() => saveAttendance(attendanceState)}
+    className="w-full text-white font-semibold py-3 rounded-md bg-green-500 hover:bg-green-600 cursor-pointer"
+  >
     {attendanceState}
-    &nbsp;&nbsp;&nbsp;
-    
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    {new Date().toLocaleDateString()}
-  </>
-) : (
-  "Saving..."
-)}
-</button>
+  </button>
 
     </div>
 )}
