@@ -1,4 +1,3 @@
-// SendMessage.js
 import React, { useState } from 'react';
 import axios from 'axios';
 
@@ -9,13 +8,22 @@ export default function SendMessage() {
 
   const sendMessage = async () => {
     try {
-      const res = await axios.post('https://whatsappbackapi.onrender.com/send-message', {
+      const res = await axios.post('https://misbackend-e078.onrender.com/send-message', {
         number,
         message,
       });
-      setStatus(res.data.message);
+
+      // Check if there's a message in the response
+      setStatus(res.data.message || 'Message sent successfully');
     } catch (err) {
-      setStatus('Error sending message');
+      console.error('Error sending message:', err.response ? err.response.data : err.message);
+      
+      // Show specific error messages based on error type
+      if (err.response && err.response.data.error === 'WhatsApp client is not ready') {
+        setStatus('WhatsApp client is not ready. Please try again later.');
+      } else {
+        setStatus('Error sending message. Please try again.');
+      }
     }
   };
 
