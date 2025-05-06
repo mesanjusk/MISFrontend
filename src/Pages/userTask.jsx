@@ -382,7 +382,7 @@ export default function UserTask() {
       }`}
     >
       {showButtons
-        ? `${userName}   ${attendanceState}   -   ${format(new Date(), 'dd MM yyyy')}`
+        ? `${userName}   ${attendanceState}   -   ${format(new Date(), 'dd MMMM yyyy')}`
         : "Saving..."}
     </button>
   </div>
