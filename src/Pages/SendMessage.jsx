@@ -41,12 +41,17 @@ export default function WhatsAppMessenger() {
       setClientStatus('Disconnected from WhatsApp');
     });
 
+    socket.on('status', (statusMessage) => {
+      setStatus(statusMessage);
+    });
+
     return () => {
       socket.off('qr');
       socket.off('ready');
       socket.off('authenticated');
       socket.off('auth_failure');
       socket.off('disconnected');
+      socket.off('status');
     };
   }, []);
 
