@@ -1,10 +1,8 @@
-// Frontend: WhatsAppMessenger.js
-
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 
-const socket = io('https://misbackend-e078.onrender.com');
+const socket = io('https://misbackend-e078.onrender.com'); // Your backend URL
 
 export default function WhatsAppMessenger() {
   const [number, setNumber] = useState('');
@@ -16,8 +14,9 @@ export default function WhatsAppMessenger() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // Listen for various events from the backend
     socket.on('qr', (data) => {
-      setQrCode(data);
+      setQrCode(data); // Set the QR code to display
       setIsModalOpen(true);
       setClientStatus('Scan the QR code with your WhatsApp');
     });
@@ -25,7 +24,7 @@ export default function WhatsAppMessenger() {
     socket.on('ready', () => {
       setClientStatus('WhatsApp Client is ready!');
       setQrCode(null);
-      setIsModalOpen(false);
+      setIsModalOpen(false); // Close the modal once ready
     });
 
     socket.on('authenticated', () => {
@@ -65,6 +64,7 @@ export default function WhatsAppMessenger() {
   };
 
   const closeModal = () => setIsModalOpen(false);
+
   const retryConnection = () => {
     setError(null);
     socket.connect();
@@ -126,6 +126,12 @@ export default function WhatsAppMessenger() {
 
       <p className="text-sm text-gray-700 mt-2">Status: {clientStatus}</p>
       {status && <p className="text-sm text-blue-600">{status}</p>}
+
+      {/* Display connection status */}
+      <div className="mt-4 text-center">
+        <p className="text-lg">Connection Status:</p>
+        <p className="font-semibold text-xl text-green-500">{clientStatus}</p>
+      </div>
     </div>
   );
 }
