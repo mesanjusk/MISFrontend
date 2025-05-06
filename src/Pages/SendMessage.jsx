@@ -4,16 +4,26 @@ import io from 'socket.io-client';
 
 const socket = io('https://misbackend-e078.onrender.com');
 
-export default function SendMessage() {
+export default function WhatsAppMessenger() {
   const [number, setNumber] = useState('');
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState('');
-  const [clientStatus, setClientStatus] = useState('Loading...');
+  const [clientStatus, setClientStatus] = useState('Waiting for WhatsApp...');
+  const [qrCode, setQrCode] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Listen for WhatsApp client status updates
+    socket.on('qr', (data) => {
+      setQrCode(data);
+      setIsModalOpen(true);
+      setClientStatus('Scan the QR code with your WhatsApp');
+    });
+
     socket.on('ready', () => {
       setClientStatus('WhatsApp Client is ready!');
+      setQrCode(null);
+      setIsModalOpen(false);
     });
 
     socket.on('authenticated', () => {
@@ -21,24 +31,21 @@ export default function SendMessage() {
     });
 
     socket.on('auth_failure', (msg) => {
-      setClientStatus(`Authentication failed: ${msg}`);
+      setError(`Auth Failed: ${msg}`);
+      setClientStatus('Authentication failed');
     });
 
     socket.on('disconnected', (reason) => {
-      setClientStatus(`Disconnected: ${reason}`);
-    });
-
-    socket.on('qr', (qrData) => {
-      // Show QR code image to user for scanning
-      setStatus('Scan the QR code with WhatsApp');
+      setError(`Disconnected: ${reason}`);
+      setClientStatus('Disconnected from WhatsApp');
     });
 
     return () => {
+      socket.off('qr');
       socket.off('ready');
       socket.off('authenticated');
       socket.off('auth_failure');
       socket.off('disconnected');
-      socket.off('qr');
     };
   }, []);
 
@@ -55,31 +62,68 @@ export default function SendMessage() {
     }
   };
 
+  const closeModal = () => setIsModalOpen(false);
+  const retryConnection = () => {
+    setError(null);
+    socket.connect();
+  };
+
   return (
-    <div className="p-6 max-w-md mx-auto bg-white rounded-xl shadow-md space-y-4">
-      <h2 className="text-xl font-semibold">Send WhatsApp Message</h2>
-      <input
-        type="text"
-        placeholder="Phone number (e.g., 919876543210)"
-        value={number}
-        onChange={(e) => setNumber(e.target.value)}
-        className="w-full border p-2 rounded"
-      />
-      <textarea
-        placeholder="Message"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        className="w-full border p-2 rounded"
-      />
+    <div className="p-6 max-w-md mx-auto bg-white rounded-xl shadow-md space-y-4 relative">
+      <h2 className="text-xl font-semibold text-center">WhatsApp Messenger</h2>
+
+      {error && (
+        <div className="bg-red-500 text-white p-3 rounded">
+          <p>{error}</p>
+          <button onClick={retryConnection} className="mt-2 bg-blue-600 text-white px-3 py-1 rounded">
+            Retry
+          </button>
+        </div>
+      )}
+
+      {qrCode && isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+            <h2 className="text-lg font-bold mb-3">Scan this QR Code</h2>
+            <img src={qrCode} alt="WhatsApp QR Code" className="mb-4" />
+            <button onClick={closeModal} className="bg-blue-500 text-white px-4 py-2 rounded">
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div>
+        <label className="block mb-1">Phone Number</label>
+        <input
+          type="text"
+          placeholder="e.g. 919876543210"
+          value={number}
+          onChange={(e) => setNumber(e.target.value)}
+          className="w-full border p-2 rounded"
+        />
+      </div>
+
+      <div>
+        <label className="block mb-1">Message</label>
+        <textarea
+          placeholder="Your message..."
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          className="w-full border p-2 rounded"
+        />
+      </div>
+
       <button
         onClick={sendMessage}
-        className="bg-green-500 text-white px-4 py-2 rounded"
+        className="bg-green-500 text-white px-4 py-2 rounded w-full"
         disabled={clientStatus !== 'WhatsApp Client is ready!'}
       >
-        Send
+        Send Message
       </button>
-      <p className="text-sm text-gray-700">{clientStatus}</p>
-      {status && <p className="text-sm text-gray-700">{status}</p>}
+
+      <p className="text-sm text-gray-700 mt-2">Status: {clientStatus}</p>
+      {status && <p className="text-sm text-blue-600">{status}</p>}
     </div>
   );
 }
