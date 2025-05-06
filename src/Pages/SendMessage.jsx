@@ -1,10 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import io from 'socket.io-client';
+
+const socket = io('https://misbackend-e078.onrender.com');
 
 export default function SendMessage() {
   const [number, setNumber] = useState('');
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState('');
+  const [clientStatus, setClientStatus] = useState('Loading...');
+
+  useEffect(() => {
+    // Listen for WhatsApp client status updates
+    socket.on('ready', () => {
+      setClientStatus('WhatsApp Client is ready!');
+    });
+
+    socket.on('authenticated', () => {
+      setClientStatus('WhatsApp authenticated!');
+    });
+
+    socket.on('auth_failure', (msg) => {
+      setClientStatus(`Authentication failed: ${msg}`);
+    });
+
+    socket.on('disconnected', (reason) => {
+      setClientStatus(`Disconnected: ${reason}`);
+    });
+
+    socket.on('qr', (qrData) => {
+      // Show QR code image to user for scanning
+      setStatus('Scan the QR code with WhatsApp');
+    });
+
+    return () => {
+      socket.off('ready');
+      socket.off('authenticated');
+      socket.off('auth_failure');
+      socket.off('disconnected');
+      socket.off('qr');
+    };
+  }, []);
 
   const sendMessage = async () => {
     try {
@@ -12,18 +48,10 @@ export default function SendMessage() {
         number,
         message,
       });
-
-      // Check if there's a message in the response
       setStatus(res.data.message || 'Message sent successfully');
     } catch (err) {
       console.error('Error sending message:', err.response ? err.response.data : err.message);
-      
-      // Show specific error messages based on error type
-      if (err.response && err.response.data.error === 'WhatsApp client is not ready') {
-        setStatus('WhatsApp client is not ready. Please try again later.');
-      } else {
-        setStatus('Error sending message. Please try again.');
-      }
+      setStatus('Error sending message');
     }
   };
 
@@ -46,9 +74,11 @@ export default function SendMessage() {
       <button
         onClick={sendMessage}
         className="bg-green-500 text-white px-4 py-2 rounded"
+        disabled={clientStatus !== 'WhatsApp Client is ready!'}
       >
         Send
       </button>
+      <p className="text-sm text-gray-700">{clientStatus}</p>
       {status && <p className="text-sm text-gray-700">{status}</p>}
     </div>
   );
