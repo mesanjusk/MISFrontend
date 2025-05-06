@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 
-const socket = io('https://misbackend-e078.onrender.com');
+const socket = io('https://misbackend-e078.onrender.com'); // Replace with your backend URL
 
 export default function WhatsAppMessenger() {
   const [number, setNumber] = useState('');
@@ -10,6 +10,7 @@ export default function WhatsAppMessenger() {
   const [status, setStatus] = useState('');
   const [clientStatus, setClientStatus] = useState('Waiting for WhatsApp...');
   const [qrCode, setQrCode] = useState(null);
+  const [qrSessionId, setQrSessionId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState(null);
 
@@ -18,6 +19,7 @@ export default function WhatsAppMessenger() {
       setQrCode(data);
       setIsModalOpen(true);
       setClientStatus('Scan the QR code with your WhatsApp');
+      setQrSessionId(data.sessionId); // Assuming the sessionId is sent with the QR data
     });
 
     socket.on('ready', () => {
@@ -51,6 +53,7 @@ export default function WhatsAppMessenger() {
 
   const sendMessage = async () => {
     try {
+      // Send the message and save it to MongoDB via backend
       const res = await axios.post('https://misbackend-e078.onrender.com/send-message', {
         number,
         message,
@@ -59,6 +62,19 @@ export default function WhatsAppMessenger() {
     } catch (err) {
       console.error('Error sending message:', err.response ? err.response.data : err.message);
       setStatus('Error sending message');
+    }
+  };
+
+  const saveQrSession = async () => {
+    try {
+      // Save the QR session to MongoDB via backend
+      const res = await axios.post('https://misbackend-e078.onrender.com/save-qr-session', {
+        qrSessionId,
+      });
+      setStatus(res.data.message || 'QR session saved successfully');
+    } catch (err) {
+      console.error('Error saving QR session:', err.response ? err.response.data : err.message);
+      setStatus('Error saving QR session');
     }
   };
 
@@ -88,6 +104,9 @@ export default function WhatsAppMessenger() {
             <img src={qrCode} alt="WhatsApp QR Code" className="mb-4" />
             <button onClick={closeModal} className="bg-blue-500 text-white px-4 py-2 rounded">
               Close
+            </button>
+            <button onClick={saveQrSession} className="bg-green-500 text-white px-4 py-2 rounded mt-2">
+              Save QR Session
             </button>
           </div>
         </div>
