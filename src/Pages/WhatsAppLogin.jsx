@@ -68,11 +68,8 @@ export default function WhatsAppLogin() {
             <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
               <div className="bg-white p-6 rounded-lg shadow-lg">
                 <h2 className="text-xl font-bold mb-4">Scan the QR Code</h2>
-                <img
-                  src={`data:image/png;base64,${qrCode}`}
-                  alt="QR Code"
-                  className="w-64 h-64 mb-4"
-                />
+                <img src={qrCode} />
+
                 <button
                   className="bg-blue-500 text-white py-2 px-4 rounded"
                   onClick={closeModal}
