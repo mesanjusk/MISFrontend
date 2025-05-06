@@ -336,7 +336,7 @@ export default function UserTask() {
                                 <tr>
                                  
                                     <th className="px-4 py-2 border">In</th>
-                                    <th className="px-4 py-2 border">Break</th>
+                                    <th className="px-4 py-2 border">Lunch</th>
                                     <th className="px-4 py-2 border">Start</th>
                                     <th className="px-4 py-2 border">Out</th>
                                  
@@ -366,7 +366,7 @@ export default function UserTask() {
 
                     </div>
 
-                    {showButtons && attendanceState && (
+                   {showButtons && attendanceState && (
   <div className="w-full md:w-1/4">
     <button
       onClick={async () => {
@@ -382,11 +382,12 @@ export default function UserTask() {
       }`}
     >
       {showButtons
-        ? `${userName}   ${attendanceState}   -   ${new Date().toLocaleDateString()}`
+        ? `${userName}   ${attendanceState}   -   ${format(new Date(), 'dd MM yyyy')}`
         : "Saving..."}
     </button>
   </div>
 )}
+
 
 
                 </div>
