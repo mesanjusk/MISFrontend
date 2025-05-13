@@ -178,7 +178,16 @@ export default function Home() {
         <div className="modal-overlay">
           <div className="modal-content">
             <AddOrder1 closeModal={closeModal} />
-          </div>
+          </div><PendingTasks
+  tasks={
+    userGroup === "Admin User"
+      ? task
+      : task.filter(t => t.User === loggedInUser)
+  }
+  isLoading={isLoading}
+  onTaskClick={handleTaskClick}
+/>
+
         </div>
       )}
 
