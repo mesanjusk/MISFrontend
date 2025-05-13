@@ -216,7 +216,7 @@ export default function AllAttandance() {
                                         
                                         .map((record, index) => (
                                             <tr key={index} className="hover:bg-gray-50 border-t">
-                                                <td className="px-4 py-2 border">{}</td>
+                                                <td className="px-4 py-2 border">{record.User_name}</td>
                                                 <td className="px-4 py-2 border">{record.In}</td>
                                                 <td className="px-4 py-2 border">{record.Break}</td>
                                                 <td className="px-4 py-2 border">{record.Start}</td>
