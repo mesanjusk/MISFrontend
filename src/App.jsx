@@ -52,6 +52,7 @@ import AddPayable from "./Pages/addPayable";
 import SendMessage from "./Pages/SendMessage";
 import WhatsAppLogin from "./Pages/WhatsAppLogin";
 import PendingTasks from './Pages/PendingTasks';
+import AllAttandance from './Pages/AllAttandance';
 
 
 
@@ -113,6 +114,7 @@ function App() {
                     <Route path="/SendMessage" element={< SendMessage />} />
                     <Route path="/WhatsAppLogin" element={< WhatsAppLogin />} />
                     <Route path="/PendingTasks" element={< PendingTasks />} />
+                    <Route path="/AllAttandance" element={< AllAttandance />} />
                     
                 </Routes>
             </div>

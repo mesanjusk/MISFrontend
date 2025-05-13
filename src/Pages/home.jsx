@@ -15,7 +15,8 @@ import FloatingButtons from "./floatingButton";
 import UserTask from "./userTask";
 import { format } from 'date-fns';
 import TaskUpdate from "./taskUpdate";
-import PendingTasks from './PendingTasks'; // ✅ Imported reusable component
+import PendingTasks from './PendingTasks';
+import AllAttandance from "./AllAttandance";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -170,7 +171,7 @@ export default function Home() {
       <PendingTasks tasks={task.filter(t => t.User === loggedInUser)} isLoading={isLoading} onTaskClick={handleTaskClick} />
 
       <AllOrder />
-
+<AllAttandance />
       <FloatingButtons buttonType="bars" buttonsList={buttonsList} direction="up" />
 
       {showOrderModal && (
