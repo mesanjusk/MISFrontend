@@ -5,6 +5,8 @@ import TopNavbar from '../Pages/topNavbar';
 import Footer from '../Pages/footer';
 import AddOrder1 from "../Pages/addOrder1";
 import { FaWhatsapp, FaSortUp, FaSortDown } from 'react-icons/fa';
+import * as XLSX from 'xlsx';
+import { jsPDF } from "jspdf";
 
 const AllTransaction1 = () => {
     const [transactions, setTransactions] = useState([]);
@@ -12,7 +14,7 @@ const AllTransaction1 = () => {
     const [outstandingReport, setOutstandingReport] = useState([]);
     const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
     const [searchQuery, setSearchQuery] = useState('');
-    const [filterType, setFilterType] = useState('all'); // 'all' | 'receivable' | 'payable'
+    const [filterType, setFilterType] = useState('all'); // 'all' | 'receivable' | 'payable' | 'zero'
     const [showOrderModal, setShowOrderModal] = useState(false);
     const [showCustomerTransactions, setShowCustomerTransactions] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -69,7 +71,7 @@ const AllTransaction1 = () => {
                 credit,
                 balance: credit - debit
             };
-        }).filter(r => (r.debit !== 0 || r.credit !== 0) && r.balance !== 0);
+        });
 
         setOutstandingReport(report);
     };
@@ -78,6 +80,7 @@ const AllTransaction1 = () => {
         .filter(item => {
             if (filterType === 'receivable') return item.balance > 0;
             if (filterType === 'payable') return item.balance < 0;
+            if (filterType === 'zero') return item.balance === 0 && (item.debit !== 0 || item.credit !== 0);
             return true;
         })
         .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -98,7 +101,6 @@ const AllTransaction1 = () => {
     const sendMessageToAPI = async (name, phone, balance) => {
         const today = new Date().toLocaleDateString('en-IN');
         const senderName = "S.K.Digital";
-
         const message = `Dear ${name}, your balance is ₹${balance} as of ${today}. Please clear it soon. - ${senderName}`;
 
         const payload = {
@@ -132,35 +134,40 @@ const AllTransaction1 = () => {
             alert("No phone number available for this customer.");
             return;
         }
-    
-        // Confirmation dialog before sending the message
+
         const confirmation = window.confirm(
-            `Are you sure you want to send a WhatsApp message to ${name}? \n\nMessage: "Dear ${name}, your balance is ₹${balance}."`
+            `Are you sure you want to send a WhatsApp message to ${name}?\n\nMessage: "Dear ${name}, your balance is ₹${balance}."`
         );
-    
+
         if (confirmation) {
             sendMessageToAPI(name, phone, balance);
         } else {
             console.log("Message sending canceled.");
         }
     };
-    
 
     const viewTransactions = (customer) => {
         navigate('/allTransaction3', { state: { customer } });
     };
-    
-    
 
-    const closeTransactionModal = () => {
-        setShowCustomerTransactions(false);
-        setSelectedCustomer(null);
+    // Export to Excel
+    const exportToExcel = () => {
+        const ws = XLSX.utils.json_to_sheet(sortedReport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Outstanding Report');
+        XLSX.writeFile(wb, 'outstanding_report.xlsx');
     };
 
-    // Helper function to check if the date is valid
-    const isValidDate = (date) => {
-        const parsedDate = new Date(date);
-        return !isNaN(parsedDate.getTime());
+    // Export to PDF
+    const exportToPDF = () => {
+        const doc = new jsPDF();
+        doc.text('Outstanding Report', 14, 10);
+        doc.autoTable({
+            head: [['Customer', 'Mobile', 'Amount']],
+            body: sortedReport.map(item => [item.name, item.mobile, `₹${item.balance}`]),
+            startY: 20,
+        });
+        doc.save('outstanding_report.pdf');
     };
 
     return (
@@ -182,7 +189,7 @@ const AllTransaction1 = () => {
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
 
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                             <button
                                 onClick={() => setFilterType('receivable')}
                                 className={`px-4 py-2 rounded ${filterType === 'receivable' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-700'} hover:bg-green-200`}
@@ -196,12 +203,34 @@ const AllTransaction1 = () => {
                                 Payable
                             </button>
                             <button
+                                onClick={() => setFilterType('zero')}
+                                className={`px-4 py-2 rounded ${filterType === 'zero' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700'} hover:bg-blue-200`}
+                            >
+                                Zero Balance
+                            </button>
+                            <button
                                 onClick={() => setFilterType('all')}
                                 className={`px-4 py-2 rounded ${filterType === 'all' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-700'} hover:bg-gray-200`}
                             >
                                 Show All
                             </button>
                         </div>
+                    </div>
+
+                    {/* Export Buttons */}
+                    <div className="mb-4 flex gap-2">
+                        <button
+                            onClick={exportToExcel}
+                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                        >
+                            Export to Excel
+                        </button>
+                        <button
+                            onClick={exportToPDF}
+                            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                        >
+                            Export to PDF
+                        </button>
                     </div>
 
                     {/* Table */}
@@ -232,7 +261,7 @@ const AllTransaction1 = () => {
                                     <tr key={index} className="border-t hover:bg-gray-50">
                                         <td
                                             className="px-3 py-2 cursor-pointer text-green-600"
-                                            onClick={() => viewTransactions(item)} // Make name clickable
+                                            onClick={() => viewTransactions(item)}
                                         >
                                             {item.name}
                                         </td>
@@ -252,63 +281,6 @@ const AllTransaction1 = () => {
                             )}
                         </tbody>
                     </table>
-                </div>
-
-                {/* Customer Transaction Modal */}
-                {showCustomerTransactions && (
-                    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
-                            <h3 className="text-xl font-semibold mb-4">{selectedCustomer.name}'s Transactions</h3>
-                            <table className="w-full table-auto text-sm border">
-                                <thead className="bg-gray-100 text-gray-900">
-                                    <tr>
-                                        <th className="border px-3 py-2 text-left">Date</th>
-                                        <th className="border px-3 py-2 text-left">Description</th>
-                                        <th className="border px-3 py-2 text-right">Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {transactions
-                                        .filter(tx => tx.Journal_entry.some(entry => entry.Account_id === selectedCustomer.uuid)) // Filter by selected customer
-                                        .map((tx, idx) => (
-                                            <tr key={idx} className="border-t hover:bg-gray-50">
-                                                <td className="px-3 py-2">
-                                                    {isValidDate(tx.Date) ? new Date(tx.Date).toLocaleDateString() : 'Invalid Date'}
-                                                </td>
-                                                <td className="px-3 py-2">{tx.Description || 'No Description'}</td>
-                                                <td className="px-3 py-2 text-right">
-                                                    {tx.Journal_entry.map(entry => {
-                                                        if (entry.Account_id === selectedCustomer.uuid) {
-                                                            return entry.Amount ? `₹${entry.Amount.toFixed(2)}` : 'No Amount';
-                                                        }
-                                                        return null;
-                                                    }).join(', ')}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                </tbody>
-                            </table>
-                            <button
-                                onClick={closeTransactionModal}
-                                className="mt-4 bg-gray-600 text-white px-4 py-2 rounded"
-                            >
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Order Modal */}
-                {showOrderModal && (
-                    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
-                            <AddOrder1 closeModal={() => setShowOrderModal(false)} />
-                        </div>
-                    </div>
-                )}
-
-                <div className="no-print">
-                    <Footer />
                 </div>
             </div>
         </>

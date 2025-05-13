@@ -65,28 +65,42 @@ const CustomerReport = () => {
     });
 
     const handleDeleteConfirm = async () => {
-        if (!selectedCustomer || !selectedCustomer._id) return;
-        try {
-            const [orderResponse, transactionResponse] = await Promise.all([
-                axios.get(`/order/CheckCustomer/${selectedCustomer._id}`),
-                axios.get(`/transaction/CheckCustomer/${selectedCustomer._id}`)
-            ]);
+    if (!selectedCustomer || !selectedCustomer._id) return;
 
-            if (orderResponse.data.exists || transactionResponse.data.exists) {
-                setDeleteErrorMessage("This customer cannot be deleted due to linked records.");
-                return;
-            }
+    try {
+        const [orderResponse, transactionResponse] = await Promise.all([
+            axios.get(`/order/CheckCustomer/${selectedCustomer._id}`),
+            axios.get(`/transaction/CheckCustomer/${selectedCustomer._id}`)
+        ]);
 
-            const deleteResponse = await axios.delete(`/customer/DeleteCustomer/${selectedCustomer._id}`);
-            if (deleteResponse.data.success) {
-                setCustomers(prev => prev.filter(c => c._id !== selectedCustomer._id));
-            }
-        } catch (err) {
-            console.error("Error deleting customer:", err);
-            setDeleteErrorMessage("An error occurred while deleting the customer.");
+        if (transactionResponse.data.exists) {
+            alert("❌ Cannot delete this customer. There are associated transactions.");
+            setDeleteErrorMessage("This customer cannot be deleted due to existing transactions.");
+            return;
         }
-        setShowDeleteModal(false);
-    };
+
+        if (orderResponse.data.exists) {
+            alert("❌ Cannot delete this customer. There are associated orders.");
+            setDeleteErrorMessage("This customer cannot be deleted due to existing orders.");
+            return;
+        }
+
+        const deleteResponse = await axios.delete(`/customer/DeleteCustomer/${selectedCustomer._id}`);
+        if (deleteResponse.data.success) {
+            setCustomers(prev => prev.filter(c => c._id !== selectedCustomer._id));
+            alert("✅ Customer deleted successfully.");
+        } else {
+            alert("❌ Failed to delete customer. Please try again.");
+        }
+    } catch (err) {
+        console.error("Error deleting customer:", err);
+        alert("❌ An error occurred while deleting the customer.");
+        setDeleteErrorMessage("An error occurred while deleting the customer.");
+    }
+
+    setShowDeleteModal(false);
+};
+
 
     return (
         <div className="min-h-screen bg-[#f0f2f5] text-[#111b21]">
