@@ -53,7 +53,7 @@ import SendMessage from "./Pages/SendMessage";
 import WhatsAppLogin from "./Pages/WhatsAppLogin";
 import PendingTasks from './Pages/PendingTasks';
 import AllAttandance from './Pages/AllAttandance';
-
+import CashLedger from "./Pages/CashLedger";
 
 
 
@@ -115,6 +115,9 @@ function App() {
                     <Route path="/WhatsAppLogin" element={< WhatsAppLogin />} />
                     <Route path="/PendingTasks" element={< PendingTasks />} />
                     <Route path="/AllAttandance" element={< AllAttandance />} />
+                    <Route path="/CashLedger" element={< CashLedger />} />
+
+                    
                     
                 </Routes>
             </div>
