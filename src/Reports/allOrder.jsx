@@ -200,7 +200,7 @@ export default function AllOrder() {
                                                                                     ? 'Today'
                                                                                     : timeDifference === 1
                                                                                         ? '1 day '
-                                                                                        : `${timeDifference} days delay`}
+                                                                                        : `${timeDifference} days`}
                                                                             </div>
                                                                         </div>
                                                                         <div className="text-xs text-gray-500">
