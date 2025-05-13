@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import TopNavbar from './topNavbar';
-import Footer from './footer';
 import * as XLSX from 'xlsx';
 
 const CashLedger = () => {
@@ -10,7 +8,7 @@ const CashLedger = () => {
     const [closingBalance, setClosingBalance] = useState(0);
     const [filteredEntries, setFilteredEntries] = useState([]);
     const [accountOptions, setAccountOptions] = useState([]);
-    const [selectedAccount, setSelectedAccount] = useState('All');
+    const [selectedAccount, setSelectedAccount] = useState('Cash');
 
     const [totalCredit, setTotalCredit] = useState(0);
     const [totalDebit, setTotalDebit] = useState(0);
@@ -26,8 +24,8 @@ const CashLedger = () => {
                 if (response.data.success) {
                     const all = response.data.result;
                     setTransactions(all);
-                    processBalances(all, startDate, endDate, selectedAccount);
                     extractAccountOptions(all);
+                    processBalances(all, startDate, endDate, selectedAccount);
                 }
             } catch (error) {
                 console.error('Error fetching transactions:', error);
@@ -107,99 +105,95 @@ const CashLedger = () => {
     const handlePrint = () => window.print();
 
     return (
-        <>
-            <TopNavbar />
-            <div className="p-4 print:p-0">
-                <h2 className="text-2xl font-bold mb-4 print:text-xl">Cash Ledger</h2>
+        <div className="p-4 print:p-0">
+            <h2 className="text-2xl font-bold mb-4 print:text-xl">Cash Ledger</h2>
 
-                <div className="bg-white shadow p-4 rounded mb-6 print:shadow-none print:border print:rounded-none">
-                    {/* Filters */}
-                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
-                        <div>
-                            <label className="block font-semibold mb-1">Start Date</label>
-                            <input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                max={todayStr}
-                                className="border p-2 rounded w-full"
-                            />
-                        </div>
-                        <div>
-                            <label className="block font-semibold mb-1">End Date</label>
-                            <input
-                                type="date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                max={todayStr}
-                                min={startDate}
-                                className="border p-2 rounded w-full"
-                            />
-                        </div>
-                        <div>
-                            <label className="block font-semibold mb-1">Account</label>
-                            <select
-                                value={selectedAccount}
-                                onChange={(e) => setSelectedAccount(e.target.value)}
-                                className="border p-2 rounded w-full"
-                            >
-                                <option>All</option>
-                                {accountOptions.map((acc, idx) => (
-                                    <option key={idx} value={acc}>{acc}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="flex items-end gap-2">
-                            <button onClick={exportToExcel} className="bg-green-600 text-white px-4 py-2 rounded">Export</button>
-                            <button onClick={handlePrint} className="bg-blue-600 text-white px-4 py-2 rounded">Print</button>
-                        </div>
+            <div className="bg-white shadow p-4 rounded mb-6 print:shadow-none print:border print:rounded-none">
+                {/* Filters */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label className="block font-semibold mb-1">Start Date</label>
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            max={todayStr}
+                            className="border p-2 rounded w-full"
+                        />
                     </div>
-
-                    {/* Balances */}
-                    <div className="mb-4 space-y-1 print:text-sm">
-                        <p><strong>Opening Balance:</strong> ₹{openingBalance}</p>
-                        <p><strong>Total Credit:</strong> ₹{totalCredit}</p>
-                        <p><strong>Total Debit:</strong> ₹{totalDebit}</p>
-                        <p><strong>Closing Balance:</strong> ₹{closingBalance}</p>
+                    <div>
+                        <label className="block font-semibold mb-1">End Date</label>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            max={todayStr}
+                            min={startDate}
+                            className="border p-2 rounded w-full"
+                        />
                     </div>
-
-                    {/* Table */}
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full table-auto border-collapse border border-gray-300 print:text-xs">
-                            <thead className="bg-gray-100">
-                                <tr>
-                                    <th className="border px-4 py-2">Date</th>
-                                    <th className="border px-4 py-2">Description</th>
-                                    <th className="border px-4 py-2">Account</th>
-                                    <th className="border px-4 py-2">Credit</th>
-                                    <th className="border px-4 py-2">Debit</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredEntries.length > 0 ? filteredEntries.map((entry, idx) => (
-                                    <tr key={idx} className="border hover:bg-gray-50">
-                                        <td className="border px-4 py-2">{new Date(entry.Transaction_date).toLocaleDateString()}</td>
-                                        <td className="border px-4 py-2">{entry.Description}</td>
-                                        <td className="border px-4 py-2">{entry.Account}</td>
-                                        <td className="border px-4 py-2 text-green-600">
-                                            {entry.Type === 'Credit' ? entry.Amount : ''}
-                                        </td>
-                                        <td className="border px-4 py-2 text-red-600">
-                                            {entry.Type === 'Debit' ? entry.Amount : ''}
-                                        </td>
-                                    </tr>
-                                )) : (
-                                    <tr>
-                                        <td colSpan="5" className="text-center py-4 text-gray-600">No transactions found.</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                    <div>
+                        <label className="block font-semibold mb-1">Account</label>
+                        <select
+                            value={selectedAccount}
+                            onChange={(e) => setSelectedAccount(e.target.value)}
+                            className="border p-2 rounded w-full"
+                        >
+                            <option value="All">All</option>
+                            {accountOptions.map((acc, idx) => (
+                                <option key={idx} value={acc}>{acc}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="flex items-end gap-2">
+                        <button onClick={exportToExcel} className="bg-green-600 text-white px-4 py-2 rounded">Export</button>
+                        <button onClick={handlePrint} className="bg-blue-600 text-white px-4 py-2 rounded">Print</button>
                     </div>
                 </div>
+
+                {/* Balances */}
+                <div className="mb-4 space-y-1 print:text-sm">
+                    <p><strong>Opening Balance:</strong> ₹{openingBalance}</p>
+                    <p><strong>Total Credit:</strong> ₹{totalCredit}</p>
+                    <p><strong>Total Debit:</strong> ₹{totalDebit}</p>
+                    <p><strong>Closing Balance:</strong> ₹{closingBalance}</p>
+                </div>
+
+                {/* Table */}
+                <div className="overflow-x-auto">
+                    <table className="min-w-full table-auto border-collapse border border-gray-300 print:text-xs">
+                        <thead className="bg-gray-100">
+                            <tr>
+                                <th className="border px-4 py-2">Date</th>
+                                <th className="border px-4 py-2">Description</th>
+                                <th className="border px-4 py-2">Account</th>
+                                <th className="border px-4 py-2">Credit</th>
+                                <th className="border px-4 py-2">Debit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredEntries.length > 0 ? filteredEntries.map((entry, idx) => (
+                                <tr key={idx} className="border hover:bg-gray-50">
+                                    <td className="border px-4 py-2">{new Date(entry.Transaction_date).toLocaleDateString()}</td>
+                                    <td className="border px-4 py-2">{entry.Description}</td>
+                                    <td className="border px-4 py-2">{entry.Account}</td>
+                                    <td className="border px-4 py-2 text-green-600">
+                                        {entry.Type === 'Credit' ? entry.Amount : ''}
+                                    </td>
+                                    <td className="border px-4 py-2 text-red-600">
+                                        {entry.Type === 'Debit' ? entry.Amount : ''}
+                                    </td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan="5" className="text-center py-4 text-gray-600">No transactions found.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <Footer />
-        </>
+        </div>
     );
 };
 
