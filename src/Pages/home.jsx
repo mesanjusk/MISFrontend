@@ -166,10 +166,12 @@ export default function Home() {
   return (
     <>
       <TopNavbar />
-      <UserTask onClose={closeUserModal} />
-      <PendingTasks tasks={task.filter(t => t.User === loggedInUser)} isLoading={isLoading} onTaskClick={handleTaskClick} />
-      <AllOrder />
       {userGroup === "Admin User" && <AllAttandance />} 
+      {userGroup === "Office User" && <UserTask onClose={closeUserModal} />}
+      <PendingTasks tasks={task.filter(t => t.User === loggedInUser)} isLoading={isLoading} onTaskClick={handleTaskClick} />
+      
+      <AllOrder />
+      
       <FloatingButtons buttonType="bars" buttonsList={buttonsList} direction="up" />
 
       {showOrderModal && (

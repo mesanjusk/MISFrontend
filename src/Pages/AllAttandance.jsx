@@ -201,7 +201,7 @@ export default function AllAttandance() {
 
     return (
         
-             <div className="bg-[#e5ddd5] min-h-screen pb-12">
+             <div className="bg-[#e5ddd5]">
                 <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 p-2">
                     <div className="bg-white overflow-x-auto w-full ">
                         <table className="min-w-full text-sm text-center border">
