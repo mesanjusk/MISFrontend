@@ -199,7 +199,7 @@ export default function AllOrder() {
                                                                                 {timeDifference === 0
                                                                                     ? 'Today'
                                                                                     : timeDifference === 1
-                                                                                        ? '1 day delay'
+                                                                                        ? '1 day '
                                                                                         : `${timeDifference} days delay`}
                                                                             </div>
                                                                         </div>
