@@ -168,7 +168,7 @@ export default function Home() {
       <TopNavbar />
       {userGroup === "Admin User" && <AllAttandance />} 
       {userGroup === "Office User" && <UserTask onClose={closeUserModal} />}
-      <PendingTasks tasks={task.filter(t => t.User === loggedInUser)} isLoading={isLoading} onTaskClick={handleTaskClick} />
+      <PendingTasks tasks={  userGroup === "Admin User" ? task  : task.filter(t => t.User === loggedInUser) } isLoading={isLoading} onTaskClick={handleTaskClick} />
       
       <AllOrder />
       
@@ -178,16 +178,7 @@ export default function Home() {
         <div className="modal-overlay">
           <div className="modal-content">
             <AddOrder1 closeModal={closeModal} />
-          </div><PendingTasks
-  tasks={
-    userGroup === "Admin User"
-      ? task
-      : task.filter(t => t.User === loggedInUser)
-  }
-  isLoading={isLoading}
-  onTaskClick={handleTaskClick}
-/>
-
+          </div>
         </div>
       )}
 
