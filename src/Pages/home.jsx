@@ -167,11 +167,9 @@ export default function Home() {
     <>
       <TopNavbar />
       <UserTask onClose={closeUserModal} />
-
       <PendingTasks tasks={task.filter(t => t.User === loggedInUser)} isLoading={isLoading} onTaskClick={handleTaskClick} />
-
       <AllOrder />
-<AllAttandance />
+      <AllAttandance />
       <FloatingButtons buttonType="bars" buttonsList={buttonsList} direction="up" />
 
       {showOrderModal && (

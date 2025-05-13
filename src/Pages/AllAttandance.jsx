@@ -200,10 +200,10 @@ export default function AllAttandance() {
     };
 
     return (
-        <div className="bg-[#e5ddd5] pt-5 max-w-8xl mx-auto px-2">
-            <div className="shadow-lg overflow-hidden">
+        
+            <div className=" bg-[#e5ddd5] ">
                 <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 p-2">
-                    <div className="bg-white overflow-x-auto w-full md:w-3/4">
+                    <div className="bg-white overflow-x-auto w-full ">
                         <table className="min-w-full text-sm text-center border">
                             
                             <tbody>
@@ -216,7 +216,7 @@ export default function AllAttandance() {
                                         
                                         .map((record, index) => (
                                             <tr key={index} className="hover:bg-gray-50 border-t">
-                                               
+                                                <td className="px-4 py-2 border">{}</td>
                                                 <td className="px-4 py-2 border">{record.In}</td>
                                                 <td className="px-4 py-2 border">{record.Break}</td>
                                                 <td className="px-4 py-2 border">{record.Start}</td>
@@ -236,6 +236,6 @@ export default function AllAttandance() {
 
                 </div>
             </div>
-        </div>
+        
     );
 }
