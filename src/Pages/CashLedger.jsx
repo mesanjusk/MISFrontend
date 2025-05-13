@@ -6,14 +6,14 @@ import * as XLSX from 'xlsx';
 
 const CashLedger = () => {
     const [transactions, setTransactions] = useState([]);
-    const [openingBalance, setOpeningBalance] = useState(0);
-    const [closingBalance, setClosingBalance] = useState(0);
     const [filteredEntries, setFilteredEntries] = useState([]);
     const [accountOptions, setAccountOptions] = useState([]);
     const [selectedAccount, setSelectedAccount] = useState('All');
-
+    const [openingBalance, setOpeningBalance] = useState(0);
+    const [closingBalance, setClosingBalance] = useState(0);
     const [totalCredit, setTotalCredit] = useState(0);
     const [totalDebit, setTotalDebit] = useState(0);
+    const [loading, setLoading] = useState(true);
 
     const todayStr = new Date().toISOString().split('T')[0];
     const [startDate, setStartDate] = useState(todayStr);
@@ -24,28 +24,43 @@ const CashLedger = () => {
             try {
                 const response = await axios.get('/transaction/GetFilteredTransactions');
                 if (response.data.success) {
-                    const all = response.data.result;
-                    setTransactions(all);
-                    processBalances(all, startDate, endDate, selectedAccount);
-                    extractAccountOptions(all);
+                    const allTransactions = response.data.result || [];
+                    const safeTransactions = allTransactions.filter(txn => Array.isArray(txn.Journal_entry));
+                    setTransactions(safeTransactions);
+                    extractAccountOptions(safeTransactions);
                 }
             } catch (error) {
                 console.error('Error fetching transactions:', error);
+            } finally {
+                setLoading(false);
             }
         };
 
         fetchTransactions();
-    }, [startDate, endDate, selectedAccount]);
+    }, []);
+
+    useEffect(() => {
+        processBalances(transactions, startDate, endDate, selectedAccount);
+    }, [transactions, startDate, endDate, selectedAccount]);
 
     const extractAccountOptions = (data) => {
-        const flat = data.flatMap(txn => txn.Journal_entry.map(entry => entry.Account || ''));
+        const flat = data.flatMap(txn =>
+            (txn.Journal_entry || []).map(entry => entry.Account || '')
+        );
         const unique = Array.from(new Set(flat)).filter(Boolean);
         setAccountOptions(unique);
     };
 
+    const toFixed = (num) => Number((num || 0).toFixed(2));
+
+    const isInRange = (d, start, end) => {
+        const date = new Date(d);
+        return date >= new Date(start) && date <= new Date(end);
+    };
+
     const processBalances = (all, startStr, endStr, account) => {
         const flatEntries = all.flatMap(txn =>
-            txn.Journal_entry.map(entry => ({
+            (txn.Journal_entry || []).map(entry => ({
                 ...entry,
                 Transaction_date: txn.Transaction_date,
                 Description: txn.Description
@@ -60,44 +75,46 @@ const CashLedger = () => {
         const end = new Date(endStr);
         const dayBeforeStart = new Date(start);
         dayBeforeStart.setDate(dayBeforeStart.getDate() - 1);
-        const dayBeforeStartStr = dayBeforeStart.toISOString().split('T')[0];
 
         let prevCredits = 0, prevDebits = 0, rangeCredits = 0, rangeDebits = 0;
         const entriesInRange = [];
 
         filteredByAccount.forEach(entry => {
-            const dateStr = new Date(entry.Transaction_date).toISOString().split('T')[0];
+            const date = new Date(entry.Transaction_date);
 
-            if (dateStr <= dayBeforeStartStr) {
+            if (date <= dayBeforeStart) {
                 if (entry.Type === 'Credit') prevCredits += entry.Amount || 0;
                 if (entry.Type === 'Debit') prevDebits += entry.Amount || 0;
             }
 
-            if (dateStr >= startStr && dateStr <= endStr) {
+            if (isInRange(date, start, end)) {
                 if (entry.Type === 'Credit') rangeCredits += entry.Amount || 0;
                 if (entry.Type === 'Debit') rangeDebits += entry.Amount || 0;
                 entriesInRange.push(entry);
             }
         });
 
-        const opening = prevCredits - prevDebits;
-        const closing = opening + (rangeCredits - rangeDebits);
+        const opening = toFixed(prevCredits - prevDebits);
+        const closing = toFixed(opening + (rangeCredits - rangeDebits));
 
         setOpeningBalance(opening);
         setClosingBalance(closing);
         setFilteredEntries(entriesInRange);
-        setTotalCredit(rangeCredits);
-        setTotalDebit(rangeDebits);
+        setTotalCredit(toFixed(rangeCredits));
+        setTotalDebit(toFixed(rangeDebits));
     };
 
     const exportToExcel = () => {
-        const worksheet = XLSX.utils.json_to_sheet(filteredEntries.map(entry => ({
-            Date: new Date(entry.Transaction_date).toLocaleDateString(),
-            Description: entry.Description,
-            Account: entry.Account,
-            Credit: entry.Type === 'Credit' ? entry.Amount : '',
-            Debit: entry.Type === 'Debit' ? entry.Amount : ''
-        })));
+        const worksheet = XLSX.utils.json_to_sheet([
+            { Header: 'Cash Ledger Export', Date: '', Description: '', Account: '', Credit: '', Debit: '' },
+            ...filteredEntries.map(entry => ({
+                Date: new Date(entry.Transaction_date).toLocaleDateString(),
+                Description: entry.Description,
+                Account: entry.Account,
+                Credit: entry.Type === 'Credit' ? entry.Amount : '',
+                Debit: entry.Type === 'Debit' ? entry.Amount : ''
+            }))
+        ]);
 
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, worksheet, 'Cash Ledger');
@@ -106,6 +123,12 @@ const CashLedger = () => {
 
     const handlePrint = () => window.print();
 
+    const resetFilters = () => {
+        setStartDate(todayStr);
+        setEndDate(todayStr);
+        setSelectedAccount('All');
+    };
+
     return (
         <>
             <TopNavbar />
@@ -113,7 +136,6 @@ const CashLedger = () => {
                 <h2 className="text-2xl font-bold mb-4 print:text-xl">Cash Ledger</h2>
 
                 <div className="bg-white shadow p-4 rounded mb-6 print:shadow-none print:border print:rounded-none">
-                    {/* Filters */}
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
                         <div>
                             <label className="block font-semibold mb-1">Start Date</label>
@@ -152,50 +174,56 @@ const CashLedger = () => {
                         <div className="flex items-end gap-2">
                             <button onClick={exportToExcel} className="bg-green-600 text-white px-4 py-2 rounded">Export</button>
                             <button onClick={handlePrint} className="bg-blue-600 text-white px-4 py-2 rounded">Print</button>
+                            <button onClick={resetFilters} className="bg-gray-600 text-white px-4 py-2 rounded">Reset</button>
                         </div>
                     </div>
 
-                    {/* Balances */}
-                    <div className="mb-4 space-y-1 print:text-sm">
-                        <p><strong>Opening Balance:</strong> ₹{openingBalance}</p>
-                        <p><strong>Total Credit:</strong> ₹{totalCredit}</p>
-                        <p><strong>Total Debit:</strong> ₹{totalDebit}</p>
-                        <p><strong>Closing Balance:</strong> ₹{closingBalance}</p>
-                    </div>
+                    {loading ? (
+                        <p className="text-gray-500 text-center py-10">Loading transactions...</p>
+                    ) : (
+                        <>
+                            <div className="mb-4 space-y-1 print:text-sm">
+                                <p><strong>Opening Balance:</strong> ₹{openingBalance}</p>
+                                <p><strong>Total Credit:</strong> ₹{totalCredit}</p>
+                                <p><strong>Total Debit:</strong> ₹{totalDebit}</p>
+                                <p><strong>Closing Balance:</strong> ₹{closingBalance}</p>
+                                <p className="text-sm text-gray-500">Showing {filteredEntries.length} entries</p>
+                            </div>
 
-                    {/* Table */}
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full table-auto border-collapse border border-gray-300 print:text-xs">
-                            <thead className="bg-gray-100">
-                                <tr>
-                                    <th className="border px-4 py-2">Date</th>
-                                    <th className="border px-4 py-2">Description</th>
-                                    <th className="border px-4 py-2">Account</th>
-                                    <th className="border px-4 py-2">Credit</th>
-                                    <th className="border px-4 py-2">Debit</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredEntries.length > 0 ? filteredEntries.map((entry, idx) => (
-                                    <tr key={idx} className="border hover:bg-gray-50">
-                                        <td className="border px-4 py-2">{new Date(entry.Transaction_date).toLocaleDateString()}</td>
-                                        <td className="border px-4 py-2">{entry.Description}</td>
-                                        <td className="border px-4 py-2">{entry.Account}</td>
-                                        <td className="border px-4 py-2 text-green-600">
-                                            {entry.Type === 'Credit' ? entry.Amount : ''}
-                                        </td>
-                                        <td className="border px-4 py-2 text-red-600">
-                                            {entry.Type === 'Debit' ? entry.Amount : ''}
-                                        </td>
-                                    </tr>
-                                )) : (
-                                    <tr>
-                                        <td colSpan="5" className="text-center py-4 text-gray-600">No transactions found.</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full table-auto border-collapse border border-gray-300 print:text-xs">
+                                    <thead className="bg-gray-100">
+                                        <tr>
+                                            <th className="border px-4 py-2">Date</th>
+                                            <th className="border px-4 py-2">Description</th>
+                                            <th className="border px-4 py-2">Account</th>
+                                            <th className="border px-4 py-2">Credit</th>
+                                            <th className="border px-4 py-2">Debit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredEntries.length > 0 ? filteredEntries.map((entry, idx) => (
+                                            <tr key={idx} className="border hover:bg-gray-50">
+                                                <td className="border px-4 py-2">{new Date(entry.Transaction_date).toLocaleDateString()}</td>
+                                                <td className="border px-4 py-2">{entry.Description}</td>
+                                                <td className="border px-4 py-2">{entry.Account}</td>
+                                                <td className="border px-4 py-2 text-green-600">
+                                                    {entry.Type === 'Credit' ? entry.Amount : ''}
+                                                </td>
+                                                <td className="border px-4 py-2 text-red-600">
+                                                    {entry.Type === 'Debit' ? entry.Amount : ''}
+                                                </td>
+                                            </tr>
+                                        )) : (
+                                            <tr>
+                                                <td colSpan="5" className="text-center py-4 text-gray-600">No transactions found.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
             <Footer />

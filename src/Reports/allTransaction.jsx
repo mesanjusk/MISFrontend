@@ -15,6 +15,8 @@ const AllTransaction = () => {
     const [endDate, setEndDate] = useState('');
     const [showOrderModal, setShowOrderModal] = useState(false);
     const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
+    const [openingBalance, setOpeningBalance] = useState(0);
+    const [closingBalance, setClosingBalance] = useState(0);
 
     useEffect(() => {
         const fetchTransactions = async () => {
@@ -71,10 +73,16 @@ const AllTransaction = () => {
     const handleSearch = () => {
         if (!selectedCustomer) {
             setFilteredEntries([]);
+            setOpeningBalance(0);
+            setClosingBalance(0);
             return;
         }
 
         const customerUUID = selectedCustomer.Customer_uuid;
+        let runningDebit = 0;
+        let runningCredit = 0;
+        let openingBalanceTemp = 0;
+        let closingBalanceTemp = 0;
 
         const filtered = transactions.flatMap(transaction => {
             const isWithinDateRange = (!startDate || new Date(transaction.Transaction_date) >= new Date(startDate)) &&
@@ -95,9 +103,6 @@ const AllTransaction = () => {
             return [];
         });
 
-        let runningDebit = 0;
-        let runningCredit = 0;
-
         const updatedEntries = filtered.map(entry => {
             if (entry.Type === 'Debit') {
                 runningDebit += entry.Amount || 0;
@@ -105,12 +110,45 @@ const AllTransaction = () => {
                 runningCredit += entry.Amount || 0;
             }
 
+            closingBalanceTemp = runningCredit - runningDebit;
+
             return {
                 ...entry,
-                Balance: runningCredit - runningDebit,
+                Balance: closingBalanceTemp,
             };
         });
 
+        // Calculate opening balance (just before start date)
+        const openingEntries = transactions.flatMap(transaction => {
+            if (startDate && new Date(transaction.Transaction_date) < new Date(startDate)) {
+                const customerEntries = transaction.Journal_entry.filter(entry => entry.Account_id === customerUUID);
+                return customerEntries.length > 0
+                    ? transaction.Journal_entry.filter(entry => entry.Account_id !== customerUUID).map(entry => ({
+                        ...entry,
+                        Transaction_id: transaction.Transaction_id,
+                        Transaction_date: transaction.Transaction_date,
+                        Description: transaction.Description,
+                    }))
+                    : [];
+            }
+            return [];
+        });
+
+        let runningOpeningDebit = 0;
+        let runningOpeningCredit = 0;
+
+        openingEntries.forEach(entry => {
+            if (entry.Type === 'Debit') {
+                runningOpeningDebit += entry.Amount || 0;
+            } else if (entry.Type === 'Credit') {
+                runningOpeningCredit += entry.Amount || 0;
+            }
+        });
+
+        openingBalanceTemp = runningOpeningCredit - runningOpeningDebit;
+
+        setOpeningBalance(openingBalanceTemp);
+        setClosingBalance(closingBalanceTemp);
         setFilteredEntries(updatedEntries);
     };
 
@@ -161,6 +199,13 @@ const AllTransaction = () => {
 
         setFilteredEntries(sortedEntries);
     };
+    const formatDate = (date) => {
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+};
 
     return (
         <>
@@ -190,22 +235,21 @@ const AllTransaction = () => {
                 </div>
 
                 <div className="mt-4 min-w-xl flex flex-wrap gap-2">
-  {customers
-    .filter((c) => c.Customer_group === 'Bank and Account')
-    .map((customer) => (
-      <button
-        key={customer.Customer_uuid}
-        onClick={() => {
-          handleCustomerSelect(customer);
-          setTimeout(handleSearch, 0); // Ensure selectedCustomer updates first
-        }}
-        className="px-4 py-2 bg-green-500 text-white rounded-md shadow hover:bg-green-600"
-      >
-        {customer.Customer_name}
-      </button>
-    ))}
-</div>
-
+                    {customers
+                        .filter((c) => c.Customer_group === 'Bank and Account')
+                        .map((customer) => (
+                            <button
+                                key={customer.Customer_uuid}
+                                onClick={() => {
+                                    handleCustomerSelect(customer);
+                                    setTimeout(handleSearch, 0); // Ensure selectedCustomer updates first
+                                }}
+                                className="px-4 py-2 bg-green-500 text-white rounded-md shadow hover:bg-green-600"
+                            >
+                                {customer.Customer_name}
+                            </button>
+                        ))}
+                </div>
 
                 <div className="mt-4 text-center">
                     <input
@@ -289,65 +333,49 @@ const AllTransaction = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredEntries.map((entry, id) => {
-                                        const customerName = customerMap[entry.Account_id] || 'Unknown';
-                                        return (
-                                            <tr key={id} className="border-t hover:bg-gray-50">
-                                                <td className="py-2 px-4">{entry.Transaction_id}</td>
-                                                <td className="py-2 px-4">{new Date(entry.Transaction_date).toLocaleDateString()}</td>
-                                                <td className="py-2 px-4">{customerName}</td>
-                                                <td className="py-2 px-4">{entry.Description}</td>
-                                                <td className="py-2 px-4">{entry.Type === 'Debit' ? entry.Amount : '0'}</td>
-                                                <td className="py-2 px-4">{entry.Type === 'Credit' ? entry.Amount : '0'}</td>
-                                                <td className="py-2 px-4">{entry.Balance}</td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                                <tfoot>
-                                    <tr className="bg-gray-100">
-                                        <td colSpan="6" className="py-2 px-4 text-right font-semibold">Total</td>
-                                        <td className="py-2 px-4 font-semibold">{totals.total}</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        ) : (
-                            <p className="text-center text-gray-600">No transactions found.</p>
-                        )}
-                    </div>
-                </main>
+                                    {filteredEntries.map((entry, index) => (
+                                        <tr key={index} className="border-t">
+                                            <td className="py-2 px-4">{entry.Transaction_id}</td>
+                                            <td className="py-2 px-4">{formatDate(entry.Transaction_date)}</td>
 
-                <div className="fixed bottom-6 right-6">
-                    <button
-                        onClick={handleOrder}
-                        className="w-14 h-14 bg-green-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-green-700"
-                    >
-                        <svg
-                            className="h-8 w-8"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v14m7-7H5" />
-                        </svg>
-                    </button>
+<td className="py-2 px-4">
+{customerMap[entry.Account_id]}
+</td>
+<td className="py-2 px-4">{entry.Description}</td>
+<td className="py-2 px-4">
+{entry.Type === 'Credit' ? entry.Amount : '-'}
+</td>
+<td className="py-2 px-4">
+{entry.Type === 'Debit' ? entry.Amount : '-'}
+</td>
+<td className="py-2 px-4">{entry.Balance}</td>
+</tr>
+))}
+</tbody>
+</table>
+) : (
+<p>No transactions found.</p>
+)}
+</div>
+</main>
+            
+
+                <div className="flex items-center space-x-4">
+                    <div>
+                        <p>Opening Balance: {openingBalance}</p>
+                    </div>
+                    <div>
+                        <p>Closing Balance: {closingBalance}</p>
+                    </div>
                 </div>
             </div>
 
-            {showOrderModal && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
-                        <AddOrder1 closeModal={closeModal} />
-                    </div>
-                </div>
-            )}
-
-            <div className="no-print">
-                <Footer />
-            </div>
-        </>
-    );
+      
+        <div className="no-print">
+            <Footer />
+        </div>
+    </>
+);
 };
 
 export default AllTransaction;
