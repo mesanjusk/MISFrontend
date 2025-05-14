@@ -112,7 +112,7 @@ const TopNavbar = () => {
   const toggleSidebar = () => setIsOpen(!isOpen);
   const toggleVisibility = () => setIsHidden(prev => !prev);
   const home = () => {
-    if (userGroup === "Admin User") navigate('/adminHome');
+    if (userGroup === "Admin User") navigate('/Home');
     else if (userGroup === "Vendor") navigate('/vendorHome');
     else navigate('/');
   };

@@ -116,7 +116,7 @@ export default function EditOrder({order, onClose}) {
 
     const closeModal = () => {
         if (userGroup === "Office User") navigate("/home");
-        else if (userGroup === "Admin User") navigate("/adminHome");
+        else if (userGroup === "Admin User") navigate("/home");
     };
 
     return (

@@ -2,30 +2,26 @@ import React, { useRef, useState, useEffect } from "react";
 import { useReactToPrint } from "react-to-print";
 import axios from "axios";
 
-const OrderPrint = ({order, onClose}) => {
+
+
+const OrderPrint = ({ order, onClose }) => {
   const [customers, setCustomers] = useState({});
   const [latestDeliveryDate, setLatestDeliveryDate] = useState("");
   const componentRef = useRef();
 
   useEffect(() => {
-    axios.get("/customer/GetCustomersList")
-      .then(res => {
-        if (res.data.success) {
-          const customerMap = res.data.result.reduce((acc, customer) => {
-            if (customer.Customer_uuid && customer.Customer_name && customer.Mobile_number) {
-              acc[customer.Customer_uuid] = {
-                Customer_name: customer.Customer_name,
-                Mobile_number: customer.Mobile_number,
-              };
-            }
-            return acc;
-          }, {});
-          setCustomers(customerMap);
-        } else {
-          setCustomers({});
-        }
-      })
-      .catch(err => console.log('Error fetching customers list:', err));
+    axios.get("/customer/GetCustomersList").then((res) => {
+      if (res.data.success) {
+        const customerMap = res.data.result.reduce((acc, customer) => {
+          acc[customer.Customer_uuid] = {
+            Customer_name: customer.Customer_name,
+            Mobile_number: customer.Mobile_number,
+          };
+          return acc;
+        }, {});
+        setCustomers(customerMap);
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -37,135 +33,95 @@ const OrderPrint = ({order, onClose}) => {
     }
   }, [order]);
 
-  const handlePrint = useReactToPrint({
-    contentRef: componentRef,
-  });
+  const handlePrint = useReactToPrint({ contentRef: componentRef });
+
+  const handleDownloadPDF = () => {
+    const element = componentRef.current;
+    const opt = {
+      margin: 0.3,
+      filename: `invoice-${order.Order_Number}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
+    };
+    html2pdf().set(opt).from(element).save();
+  };
 
   const customerDetails = customers[order?.Customer_uuid] || {};
 
-  return (
-    
-    <div className="text-center p-4">
-      <button onClick={handlePrint} className="bg-green-500 text-white px-4 py-2 rounded-lg mb-4 hover:bg-green-600"> 
-		Print
-		</button>
-    <button className="bg-red-500 text-white px-4 py-2 rounded-lg mb-4 hover:bg-green-600" onClick={onClose}>Cancel</button> 
-         <div
-			ref={componentRef}
-			
-		
-		>  
-   
-<table class="w-full bg-white text-left">	
-	
+  const logoUrl = "https://res.cloudinary.com/dadcprflr/image/upload/v1746623937/mern-images/yecehdut0oz4fnieubyx.jpg";
+  const qrCodeUrl = "https://res.cloudinary.com/dadcprflr/image/upload/v1746623937/mern-images/yecehdut0oz4fnieubyx.jpg"; // Replace with actual QR later
 
-		<th class="px-3	 py-1 w-full text-xl text-gray-700 uppercase ">	
-		<td class="px-3 py-1 ">S.K. DIGITAL 		</td>
-		</th>
-		
-		
-		<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-		<td class="px-3 py-1 ">
-		In Front of Santoshi Mata Mandir,  Krishnapura Ward, Gondia Email: skgondia@gmail.com Mob:9372633633
-		
-		</td>
-		
-		</tr>
-                  
-        <tr class="bg-white  dark:bg-gray-800 dark:border-gray-700">  <td class="px-4 py-1">Party : {customerDetails.Customer_name} </td>  
-		<td class="px-1 py-1"></td>	   
-		<td class="px-1 py-1">Bill No.: </td> 
-		<td>{order.Order_Number}</td>
-		</tr>
-                  
-		<tr class="bg-white  dark:bg-gray-800 dark:border-gray-700">  <td class="px-4 py-1">Mobile : {customerDetails.Mobile_number} </td> 
-		
-		<td class="px-1 py-1"> </td>
-		<td class="px-1 py-1">Date: </td>
-		<td>{new Date(order.createdAt).toLocaleDateString()}</td>
-		
-		</tr>
-									
-		<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-			<td></td>			
-			<td></td>						
-			<td class="px-1 py-1">Delivery </td>
-			<td>{new Date(latestDeliveryDate).toLocaleDateString()}</td>
-									</tr>
-				
-				
-		 
-		 
-       
-            <tr class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400" >
-                <th scope="col" class="px-6 py-2">
-                    Item
-                </th>
-				<th scope="col" class="px-6 py-2">
-                   
-                </th>
-                <th scope="col" class="px-6 py-2">
-                    Qty
-                </th>
-                <th scope="col" class="px-6 py-2">
-                    Rate
-                </th>
-                <th scope="col" class="px-6 py-2">
-                    Amount
-                </th>
-            </tr>
-        
-        <tbody>
-            
-			<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-			<td class="px-6 py-2">{order?.Item}</td>
-			<td class="px-6 py-2"></td>
-			<td class="px-6 py-2">{order?.Quantity}</td>
-			<td class="px-6 py-2">{order?.Rate}</td>
-			<td class="px-6 py-2">{order?.Amount}</td>
-						</tr>
-						<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-               
-                <td class="px-2 py-1">
-                   
-                </td>
-				<td class="px-4 py-1"></td>
-				<td class="px-4 py-1"></td>
-                <td class="px-4 py-1">
-                   Total
-                </td>
-                <td class="px-4 py-1">
-                    {order?.Amount}
-                </td>
-            </tr>
-            <tr> <td class="px-3 py-1">UPI </td>  </tr>
-			<tr> <td class="px-3 py-1">SBI </td>  </tr>
-			<tr> <td class="px-3 py-1">GPAY </td>  </tr>
-        </tbody>
-    </table>
-		</div>
-		{order.items?.map((item) => {
-				
-				return (
-					<tr  >
-						<td>
-							{item.item_title}
-						</td>
-						
-						<td>
-							{item.units}
-						</td>
-						<td>
-							{item.price}
-						</td>
-						<td>
-							{item.item_total}
-						</td>
-					</tr>
-				)
-			})}
+  return (
+    <div className="p-4 text-center">
+      <div className="flex flex-wrap justify-center gap-3 mb-4">
+        <button onClick={handlePrint} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Print</button>
+        <button onClick={handleDownloadPDF} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Download PDF</button>
+        <button onClick={onClose} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Cancel</button>
+      </div>
+
+      <div ref={componentRef} className="bg-white p-4 max-w-3xl mx-auto shadow-md rounded-md text-sm md:text-base">
+        <div className="flex items-center justify-between mb-4 border-b pb-2">
+          <div>
+            <img src={logoUrl} alt="Company Logo" className="h-14 rounded-md" />
+          </div>
+          <div className="text-right">
+            <h1 className="text-xl font-bold">S.K. DIGITAL</h1>
+            <p className="text-xs md:text-sm">
+              In Front of Santoshi Mata Mandir, Krishnapura Ward, Gondia<br />
+              Email: skgondia@gmail.com | Mob: 9372633633
+            </p>
+          </div>
         </div>
-   
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <p><strong>Party:</strong> {customerDetails.Customer_name}</p>
+            <p><strong>Mobile:</strong> {customerDetails.Mobile_number}</p>
+          </div>
+          <div className="text-right">
+            <p><strong>Bill No.:</strong> {order.Order_Number}</p>
+            <p><strong>Date:</strong> {new Date(order.createdAt).toLocaleDateString()}</p>
+            <p><strong>Delivery:</strong> {new Date(latestDeliveryDate).toLocaleDateString()}</p>
+          </div>
+        </div>
+
+        <table className="w-full border text-left text-xs md:text-sm">
+          <thead className="bg-gray-200 text-gray-700 uppercase">
+            <tr>
+              <th className="px-3 py-2">Item</th>
+              <th className="px-3 py-2">Qty</th>
+              <th className="px-3 py-2">Rate</th>
+              <th className="px-3 py-2">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {order.items?.map((item, index) => (
+              <tr key={index} className="border-b">
+                <td className="px-3 py-1">{item.item_title}</td>
+                <td className="px-3 py-1">{item.units}</td>
+                <td className="px-3 py-1">{item.price}</td>
+                <td className="px-3 py-1">{item.item_total}</td>
+              </tr>
+            ))}
+            <tr>
+              <td colSpan="3" className="px-3 py-1 text-right font-semibold">Total</td>
+              <td className="px-3 py-1 font-semibold">{order?.Amount}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div className="mt-4 text-sm">
+          <p className="font-medium">UPI: sbi@ybl</p>
+          <p className="font-medium">GPAY: 9372633633</p>
+        </div>
+
+        <div className="mt-4">
+          <img src={qrCodeUrl} alt="QR Code" className="h-32 mx-auto" />
+          <p className="text-center text-xs mt-2">Scan to Pay</p>
+        </div>
+      </div>
+    </div>
   );
 };
 
