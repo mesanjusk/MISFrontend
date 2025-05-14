@@ -17,6 +17,7 @@ const CustomerReport = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [userGroup, setUserGroup] = useState('');
     const [deleteErrorMessage, setDeleteErrorMessage] = useState('');
+    const [linkedCustomerIds, setLinkedCustomerIds] = useState([]);
 
     useEffect(() => {
         const fetchUserGroup = () => {
@@ -33,6 +34,14 @@ const CustomerReport = () => {
                 }
             })
             .catch(err => console.log('Error fetching customer list:', err));
+
+        axios.get('/customer/GetLinkedCustomerIds')
+            .then(res => {
+                if (res.data.success) {
+                    setLinkedCustomerIds(res.data.linkedCustomerIds || []);
+                }
+            })
+            .catch(err => console.error("Error fetching linked customer IDs:", err));
     }, []);
 
     const handleSort = (field) => {
@@ -65,42 +74,24 @@ const CustomerReport = () => {
     });
 
     const handleDeleteConfirm = async () => {
-    if (!selectedCustomer || !selectedCustomer._id) return;
+        if (!selectedCustomer || !selectedCustomer._id) return;
 
-    try {
-        const [orderResponse, transactionResponse] = await Promise.all([
-            axios.get(`/order/CheckCustomer/${selectedCustomer._id}`),
-            axios.get(`/transaction/CheckCustomer/${selectedCustomer._id}`)
-        ]);
-
-        if (transactionResponse.data.exists) {
-            alert("❌ Cannot delete this customer. There are associated transactions.");
-            setDeleteErrorMessage("This customer cannot be deleted due to existing transactions.");
-            return;
+        try {
+            const deleteResponse = await axios.delete(`/customer/DeleteCustomer/${selectedCustomer._id}`);
+            if (deleteResponse.data.success) {
+                setCustomers(prev => prev.filter(c => c._id !== selectedCustomer._id));
+                alert("✅ Customer deleted successfully.");
+            } else {
+                alert("❌ Failed to delete customer. Please try again.");
+            }
+        } catch (err) {
+            console.error("Error deleting customer:", err);
+            alert("❌ An error occurred while deleting the customer.");
+            setDeleteErrorMessage("An error occurred while deleting the customer.");
         }
 
-        if (orderResponse.data.exists) {
-            alert("❌ Cannot delete this customer. There are associated orders.");
-            setDeleteErrorMessage("This customer cannot be deleted due to existing orders.");
-            return;
-        }
-
-        const deleteResponse = await axios.delete(`/customer/DeleteCustomer/${selectedCustomer._id}`);
-        if (deleteResponse.data.success) {
-            setCustomers(prev => prev.filter(c => c._id !== selectedCustomer._id));
-            alert("✅ Customer deleted successfully.");
-        } else {
-            alert("❌ Failed to delete customer. Please try again.");
-        }
-    } catch (err) {
-        console.error("Error deleting customer:", err);
-        alert("❌ An error occurred while deleting the customer.");
-        setDeleteErrorMessage("An error occurred while deleting the customer.");
-    }
-
-    setShowDeleteModal(false);
-};
-
+        setShowDeleteModal(false);
+    };
 
     return (
         <div className="min-h-screen bg-[#f0f2f5] text-[#111b21]">
@@ -141,28 +132,36 @@ const CustomerReport = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredCustomers.map(c => (
-                                <tr key={c._id} className="hover:bg-[#f0f2f5]">
-                                    <td className="px-4 py-2 cursor-pointer" onClick={() => { setSelectedCustomerId(c._id); setShowEditModal(true); }}>{c.Customer_name}</td>
-                                    <td className="px-4 py-2 cursor-pointer">{c.Mobile_number}</td>
-                                    <td className="px-4 py-2">{c.Customer_group}</td>
-                                    <td className="px-4 py-2">{c.Status}</td>
-                                    <td className="px-4 py-2">{new Date(c.LastInteraction).toLocaleDateString()}</td>
-                                    <td className="px-4 py-2">{c.Tags.join(', ')}</td>
-                                    {userGroup === "Admin User" && (
-                                        <td className="px-4 py-2">
-                                            <button onClick={() => { setSelectedCustomer({ ...c }); setShowDeleteModal(true); }} className="text-red-500 hover:text-red-600">🗑️</button>
-                                        </td>
-                                    )}
-                                </tr>
-                            ))}
+                            {filteredCustomers.map(c => {
+                                const isLinked = linkedCustomerIds.includes(c._id);
+                                return (
+                                    <tr key={c._id} className="hover:bg-[#f0f2f5]">
+                                        <td className="px-4 py-2 cursor-pointer" onClick={() => { setSelectedCustomerId(c._id); setShowEditModal(true); }}>{c.Customer_name}</td>
+                                        <td className="px-4 py-2">{c.Mobile_number}</td>
+                                        <td className="px-4 py-2">{c.Customer_group}</td>
+                                        <td className="px-4 py-2">{c.Status}</td>
+                                        <td className="px-4 py-2">{new Date(c.LastInteraction).toLocaleDateString()}</td>
+                                        <td className="px-4 py-2">{c.Tags.join(', ')}</td>
+                                  {userGroup === "Admin User" && (
+    <td className="px-4 py-2">
+        {isLinked ? (
+            <span title="Cannot delete - linked to transactions/orders" className="text-gray-400 cursor-not-allowed">🔒</span>
+        ) : (
+            <button onClick={() => { setSelectedCustomer({ ...c }); setShowDeleteModal(true); }} className="text-red-500 hover:text-red-600">🗑️</button>
+        )}
+    </td>
+)}
+
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                     {filteredCustomers.length === 0 && <p className="text-center text-gray-500 py-4">No matching customers found.</p>}
                 </div>
             </div>
 
-            {/* Modals */}
+            {/* Edit Modal */}
             {showEditModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-6 shadow-lg">
@@ -170,6 +169,8 @@ const CustomerReport = () => {
                     </div>
                 </div>
             )}
+
+            {/* Delete Modal */}
             {showDeleteModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-6 shadow-lg">
@@ -182,6 +183,8 @@ const CustomerReport = () => {
                     </div>
                 </div>
             )}
+
+            {/* Add Modal */}
             {showAddModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-6 shadow-lg">
