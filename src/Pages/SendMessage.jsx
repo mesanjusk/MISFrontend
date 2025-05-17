@@ -1,48 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import io from 'socket.io-client';
+import { io } from "socket.io-client";
 
-const socket = io('https://misbackend-e078.onrender.com'); // Your backend URL
+const socket = io("https://whatsappbackapi.onrender.com", {
+  transports: ['websocket', 'polling'],
+  withCredentials: true,
+});
 
-export default function WhatsAppMessenger() {
+
+export default function WhatsAppClient() {
+  const [qr, setQr] = useState(null);
+  const [status, setStatus] = useState('Loading...');
   const [number, setNumber] = useState('');
   const [message, setMessage] = useState('');
-  const [status, setStatus] = useState('');
-  const [clientStatus, setClientStatus] = useState('Waiting for WhatsApp...');
-  const [qrCode, setQrCode] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [error, setError] = useState(null);
+  const [sending, setSending] = useState(false);
+  const [sendResult, setSendResult] = useState(null);
 
   useEffect(() => {
-    // Listen for various events from the backend
-    socket.on('qr', (data) => {
-      setQrCode(data); // Set the QR code to display
-      setIsModalOpen(true);
-      setClientStatus('Scan the QR code with your WhatsApp');
+    socket.on('qr', (qrCode) => {
+      setQr(qrCode);
+      setStatus('Please scan the QR code');
     });
 
     socket.on('ready', () => {
-      setClientStatus('WhatsApp Client is ready!');
-      setQrCode(null);
-      setIsModalOpen(false); // Close the modal once ready
+      setQr(null);
+      setStatus('WhatsApp is ready');
     });
 
     socket.on('authenticated', () => {
-      setClientStatus('WhatsApp authenticated!');
+      setStatus('Authenticated!');
     });
 
-    socket.on('auth_failure', (msg) => {
-      setError(`Auth Failed: ${msg}`);
-      setClientStatus('Authentication failed');
+    socket.on('auth_failure', () => {
+      setStatus('Authentication failed, please restart the app.');
     });
 
-    socket.on('disconnected', (reason) => {
-      setError(`Disconnected: ${reason}`);
-      setClientStatus('Disconnected from WhatsApp');
-    });
-
-    socket.on('status', (statusMessage) => {
-      setStatus(statusMessage);
+    socket.on('disconnect', () => {
+      setStatus('Disconnected');
+      setQr(null);
     });
 
     return () => {
@@ -50,93 +44,106 @@ export default function WhatsAppMessenger() {
       socket.off('ready');
       socket.off('authenticated');
       socket.off('auth_failure');
-      socket.off('disconnected');
-      socket.off('status');
+      socket.off('disconnect');
     };
   }, []);
 
-  const sendMessage = async () => {
-    try {
-      const res = await axios.post('https://misbackend-e078.onrender.com/send-message', {
-        number,
-        message,
-      });
-      setStatus(res.data.message || 'Message sent successfully');
-    } catch (err) {
-      console.error('Error sending message:', err.response ? err.response.data : err.message);
-      setStatus('Error sending message');
+  // Helper: Convert QR string to Data URL
+  const qrCodeToDataURL = (qrString) => {
+    // QR code is a plain string. Usually you generate QR code from it.
+    // Let's generate a QR code image using Google Chart API for simplicity:
+    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrString)}`;
+  };
+
+  async function sendMessage() {
+    if (!number || !message) {
+      alert('Please enter both number and message');
+      return;
     }
-  };
+    setSending(true);
+    setSendResult(null);
 
-  const closeModal = () => setIsModalOpen(false);
-
-  const retryConnection = () => {
-    setError(null);
-    socket.connect();
-  };
+    try {
+      const res = await fetch('https://whatsappbackapi.onrender.com/send-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number, message }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSendResult('Message sent successfully!');
+      } else {
+        setSendResult('Error: ' + (data.error || 'Failed to send message'));
+      }
+    } catch (err) {
+      setSendResult('Network error: ' + err.message);
+    }
+    setSending(false);
+  }
 
   return (
-    <div className="p-6 max-w-md mx-auto bg-white rounded-xl shadow-md space-y-4 relative">
-      <h2 className="text-xl font-semibold text-center">WhatsApp Messenger</h2>
+    <div style={{ maxWidth: 400, margin: 'auto', fontFamily: 'Arial, sans-serif' }}>
+      <h2>WhatsApp Web.js Client</h2>
 
-      {error && (
-        <div className="bg-red-500 text-white p-3 rounded">
-          <p>{error}</p>
-          <button onClick={retryConnection} className="mt-2 bg-blue-600 text-white px-3 py-1 rounded">
-            Retry
-          </button>
+      <p>Status: <b>{status}</b></p>
+
+      {qr && (
+        <div>
+          <p>Scan this QR code with your WhatsApp mobile app:</p>
+          <img src={qrCodeToDataURL(qr)} alt="WhatsApp QR Code" style={{ width: 200, height: 200 }} />
         </div>
       )}
 
-      {qrCode && isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-            <h2 className="text-lg font-bold mb-3">Scan this QR Code</h2>
-            <img src={qrCode} alt="WhatsApp QR Code" className="mb-4" />
-            <button onClick={closeModal} className="bg-blue-500 text-white px-4 py-2 rounded">
-              Close
-            </button>
+      {status === 'WhatsApp is ready' && (
+        <>
+          <div style={{ marginTop: 20 }}>
+            <label>
+              Phone number (with country code, e.g. 15551234567):<br />
+              <input
+                type="text"
+                value={number}
+                onChange={e => setNumber(e.target.value)}
+                placeholder="Enter phone number"
+                style={{ width: '100%', padding: 8, marginTop: 4 }}
+              />
+            </label>
           </div>
-        </div>
+
+          <div style={{ marginTop: 10 }}>
+            <label>
+              Message:<br />
+              <textarea
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                placeholder="Enter your message"
+                rows={4}
+                style={{ width: '100%', padding: 8, marginTop: 4 }}
+              />
+            </label>
+          </div>
+
+          <button
+            onClick={sendMessage}
+            disabled={sending}
+            style={{
+              marginTop: 15,
+              padding: '10px 20px',
+              backgroundColor: sending ? '#999' : '#25D366',
+              color: 'white',
+              border: 'none',
+              cursor: sending ? 'not-allowed' : 'pointer',
+              fontWeight: 'bold',
+              borderRadius: 4,
+            }}
+          >
+            {sending ? 'Sending...' : 'Send Message'}
+          </button>
+
+          {sendResult && (
+            <p style={{ marginTop: 15 }}>{sendResult}</p>
+          )}
+        </>
       )}
-
-      <div>
-        <label className="block mb-1">Phone Number</label>
-        <input
-          type="text"
-          placeholder="e.g. 919876543210"
-          value={number}
-          onChange={(e) => setNumber(e.target.value)}
-          className="w-full border p-2 rounded"
-        />
-      </div>
-
-      <div>
-        <label className="block mb-1">Message</label>
-        <textarea
-          placeholder="Your message..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          className="w-full border p-2 rounded"
-        />
-      </div>
-
-      <button
-        onClick={sendMessage}
-        className="bg-green-500 text-white px-4 py-2 rounded w-full"
-        disabled={clientStatus !== 'WhatsApp Client is ready!'}
-      >
-        Send Message
-      </button>
-
-      <p className="text-sm text-gray-700 mt-2">Status: {clientStatus}</p>
-      {status && <p className="text-sm text-blue-600">{status}</p>}
-
-      {/* Display connection status */}
-      <div className="mt-4 text-center">
-        <p className="text-lg">Connection Status:</p>
-        <p className="font-semibold text-xl text-green-500">{clientStatus}</p>
-      </div>
     </div>
   );
 }
