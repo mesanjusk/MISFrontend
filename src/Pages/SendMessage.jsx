@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { io } from "socket.io-client";
 
-const socket = io("https://whatsappbackapi.onrender.com", {
+const socket = io("https://whatsappbackapi-production.up.railway.app", {
+
   transports: ['websocket', 'polling'],
   withCredentials: true,
 });
@@ -64,7 +65,8 @@ export default function WhatsAppClient() {
     setSendResult(null);
 
     try {
-      const res = await fetch('https://whatsappbackapi.onrender.com/send-message', {
+      const res = await fetch('https://whatsappbackapi-production.up.railway.app/send-message', {
+
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ number, message }),
