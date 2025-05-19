@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 
 const socket = io('https://whatsappbackapi-production.up.railway.app', {
-  transports: ['polling', 'websocket'], // Ensure polling is first for fallback
-  withCredentials: true,
+  transports: ['websocket'], // no polling to avoid timeout
 });
 
 export default function WhatsAppClient() {
