@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 
-const socket = io('https://whatsappbackapi-production.up.railway.app', {
-  transports: ['websocket'], // no polling to avoid timeout
-});
+const SESSION_ID = 'user123'; // generate or get this per user/session dynamically
 
 export default function WhatsAppClient() {
   const [qr, setQr] = useState(null);
@@ -13,88 +11,75 @@ export default function WhatsAppClient() {
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState(null);
 
+  // Connect socket with sessionId query param
+  const socket = React.useMemo(() => io('https://whatsappbackapi-production.up.railway.app', {
+    query: { sessionId: SESSION_ID },
+    transports: ['websocket'],
+  }), []);
+
   useEffect(() => {
-    // DEBUG logs
     socket.on('connect', () => {
-      console.log('✅ Connected:', socket.id);
       setStatus('Connected, waiting for QR...');
     });
 
-    socket.on('connect_error', (err) => {
-      console.error('❌ Connection error:', err.message);
-      setStatus('Connection error. Retrying...');
-    });
-
     socket.on('qr', (qrCode) => {
-      console.log('📸 QR received');
       setQr(qrCode);
       setStatus('Please scan the QR code');
     });
 
     socket.on('ready', () => {
-      console.log('✅ WhatsApp ready');
       setQr(null);
       setStatus('WhatsApp is ready');
     });
 
     socket.on('authenticated', () => {
-      console.log('🔐 Authenticated');
       setStatus('Authenticated!');
     });
 
     socket.on('auth_failure', () => {
-      console.log('❌ Auth failure');
       setStatus('Authentication failed, please restart.');
     });
 
-    socket.on('disconnect', () => {
-      console.log('🔌 Disconnected');
+    socket.on('disconnected', () => {
       setStatus('Disconnected');
       setQr(null);
     });
 
+    socket.on('message-sent', ({ success, error }) => {
+      if (success) {
+        setSendResult('✅ Message sent successfully!');
+      } else {
+        setSendResult(`❌ Error sending message: ${error}`);
+      }
+      setSending(false);
+    });
+
+    socket.on('logged-out', () => {
+      setStatus('Logged out, please refresh to reconnect.');
+      setQr(null);
+    });
+
     return () => {
-      socket.off('connect');
-      socket.off('connect_error');
-      socket.off('qr');
-      socket.off('ready');
-      socket.off('authenticated');
-      socket.off('auth_failure');
-      socket.off('disconnect');
+      socket.disconnect();
     };
-  }, []);
+  }, [socket]);
 
   const qrCodeToDataURL = (qrString) =>
     `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrString)}`;
 
-  async function sendMessage() {
+  const sendMessage = () => {
     if (!number || !message) {
       alert('Please enter both number and message');
       return;
     }
-
     setSending(true);
     setSendResult(null);
+    socket.emit('send-message', { number, message });
+  };
 
-    try {
-      const res = await fetch('https://whatsappbackapi-production.up.railway.app/send-message', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ number, message }),
-      });
-      const data = await res.json();
-
-      if (res.ok) {
-        setSendResult('✅ Message sent successfully!');
-      } else {
-        setSendResult('❌ Error: ' + (data.error || 'Failed to send message'));
-      }
-    } catch (err) {
-      setSendResult('❌ Network error: ' + err.message);
-    }
-
-    setSending(false);
-  }
+  const logout = () => {
+    socket.emit('logout');
+  };
 
   return (
     <div style={{ maxWidth: 400, margin: 'auto', fontFamily: 'Arial, sans-serif' }}>
@@ -152,6 +137,23 @@ export default function WhatsAppClient() {
             }}
           >
             {sending ? 'Sending...' : 'Send Message'}
+          </button>
+
+          <button
+            onClick={logout}
+            style={{
+              marginTop: 10,
+              padding: '8px 15px',
+              backgroundColor: '#f44336',
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              borderRadius: 4,
+              float: 'right',
+            }}
+          >
+            Logout
           </button>
 
           {sendResult && (
