@@ -1,73 +1,79 @@
 import React, { useState, useEffect } from 'react';
-import { io } from "socket.io-client";
+import { io } from 'socket.io-client';
 
-const socket = io("https://whatsappbackapi-production.up.railway.app", {
-  transports: ['websocket', 'polling'],
+const socket = io('https://whatsappbackapi-production.up.railway.app', {
+  transports: ['polling', 'websocket'], // Ensure polling is first for fallback
   withCredentials: true,
 });
 
 export default function WhatsAppClient() {
   const [qr, setQr] = useState(null);
   const [status, setStatus] = useState('Connecting...');
-  const [fallbackUsed, setFallbackUsed] = useState(false);
   const [number, setNumber] = useState('');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState(null);
 
   useEffect(() => {
+    // DEBUG logs
+    socket.on('connect', () => {
+      console.log('✅ Connected:', socket.id);
+      setStatus('Connected, waiting for QR...');
+    });
+
+    socket.on('connect_error', (err) => {
+      console.error('❌ Connection error:', err.message);
+      setStatus('Connection error. Retrying...');
+    });
+
     socket.on('qr', (qrCode) => {
+      console.log('📸 QR received');
       setQr(qrCode);
       setStatus('Please scan the QR code');
     });
 
     socket.on('ready', () => {
+      console.log('✅ WhatsApp ready');
       setQr(null);
-      setStatus('✅ WhatsApp is ready');
+      setStatus('WhatsApp is ready');
     });
 
     socket.on('authenticated', () => {
-      setStatus('🔒 Authenticated!');
+      console.log('🔐 Authenticated');
+      setStatus('Authenticated!');
     });
 
     socket.on('auth_failure', () => {
-      setStatus('❌ Authentication failed, please restart the app.');
+      console.log('❌ Auth failure');
+      setStatus('Authentication failed, please restart.');
     });
 
     socket.on('disconnect', () => {
-      setStatus('🔌 Disconnected');
+      console.log('🔌 Disconnected');
+      setStatus('Disconnected');
       setQr(null);
     });
 
-    socket.io.on('upgradeError', () => {
-      setFallbackUsed(true);
-      console.warn('⚠️ WebSocket upgrade failed. Using polling fallback.');
-    });
-
-    socket.on('connect_error', (err) => {
-      console.error('Socket connection error:', err.message);
-    });
-
     return () => {
+      socket.off('connect');
+      socket.off('connect_error');
       socket.off('qr');
       socket.off('ready');
       socket.off('authenticated');
       socket.off('auth_failure');
       socket.off('disconnect');
-      socket.io.off('upgradeError');
-      socket.off('connect_error');
     };
   }, []);
 
-  const qrCodeToDataURL = (qrString) => {
-    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrString)}`;
-  };
+  const qrCodeToDataURL = (qrString) =>
+    `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrString)}`;
 
   async function sendMessage() {
     if (!number || !message) {
       alert('Please enter both number and message');
       return;
     }
+
     setSending(true);
     setSendResult(null);
 
@@ -78,14 +84,16 @@ export default function WhatsAppClient() {
         body: JSON.stringify({ number, message }),
       });
       const data = await res.json();
+
       if (res.ok) {
         setSendResult('✅ Message sent successfully!');
       } else {
         setSendResult('❌ Error: ' + (data.error || 'Failed to send message'));
       }
     } catch (err) {
-      setSendResult('🌐 Network error: ' + err.message);
+      setSendResult('❌ Network error: ' + err.message);
     }
+
     setSending(false);
   }
 
@@ -94,29 +102,24 @@ export default function WhatsAppClient() {
       <h2>WhatsApp Web.js Client</h2>
 
       <p>Status: <b>{status}</b></p>
-      {fallbackUsed && (
-        <p style={{ color: 'orange' }}>
-          ⚠️ WebSocket not available, using polling fallback.
-        </p>
-      )}
 
       {qr && (
         <div>
-          <p>Scan this QR code with your WhatsApp mobile app:</p>
-          <img src={qrCodeToDataURL(qr)} alt="WhatsApp QR Code" style={{ width: 200, height: 200 }} />
+          <p>Scan this QR code with your WhatsApp:</p>
+          <img src={qrCodeToDataURL(qr)} alt="QR Code" style={{ width: 200, height: 200 }} />
         </div>
       )}
 
-      {status === '✅ WhatsApp is ready' && (
+      {status === 'WhatsApp is ready' && (
         <>
           <div style={{ marginTop: 20 }}>
             <label>
-              Phone number (with country code, e.g. 15551234567):<br />
+              Phone number (with country code):<br />
               <input
                 type="text"
                 value={number}
-                onChange={e => setNumber(e.target.value)}
-                placeholder="Enter phone number"
+                onChange={(e) => setNumber(e.target.value)}
+                placeholder="e.g. 919876543210"
                 style={{ width: '100%', padding: 8, marginTop: 4 }}
               />
             </label>
@@ -127,9 +130,9 @@ export default function WhatsAppClient() {
               Message:<br />
               <textarea
                 value={message}
-                onChange={e => setMessage(e.target.value)}
-                placeholder="Enter your message"
+                onChange={(e) => setMessage(e.target.value)}
                 rows={4}
+                placeholder="Type your message"
                 style={{ width: '100%', padding: 8, marginTop: 4 }}
               />
             </label>
