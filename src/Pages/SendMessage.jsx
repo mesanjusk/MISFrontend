@@ -2,15 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { io } from "socket.io-client";
 
 const socket = io("https://whatsappbackapi-production.up.railway.app", {
-
   transports: ['websocket', 'polling'],
   withCredentials: true,
 });
 
-
 export default function WhatsAppClient() {
   const [qr, setQr] = useState(null);
-  const [status, setStatus] = useState('Loading...');
+  const [status, setStatus] = useState('Connecting...');
+  const [fallbackUsed, setFallbackUsed] = useState(false);
   const [number, setNumber] = useState('');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
@@ -24,20 +23,29 @@ export default function WhatsAppClient() {
 
     socket.on('ready', () => {
       setQr(null);
-      setStatus('WhatsApp is ready');
+      setStatus('✅ WhatsApp is ready');
     });
 
     socket.on('authenticated', () => {
-      setStatus('Authenticated!');
+      setStatus('🔒 Authenticated!');
     });
 
     socket.on('auth_failure', () => {
-      setStatus('Authentication failed, please restart the app.');
+      setStatus('❌ Authentication failed, please restart the app.');
     });
 
     socket.on('disconnect', () => {
-      setStatus('Disconnected');
+      setStatus('🔌 Disconnected');
       setQr(null);
+    });
+
+    socket.io.on('upgradeError', () => {
+      setFallbackUsed(true);
+      console.warn('⚠️ WebSocket upgrade failed. Using polling fallback.');
+    });
+
+    socket.on('connect_error', (err) => {
+      console.error('Socket connection error:', err.message);
     });
 
     return () => {
@@ -46,13 +54,12 @@ export default function WhatsAppClient() {
       socket.off('authenticated');
       socket.off('auth_failure');
       socket.off('disconnect');
+      socket.io.off('upgradeError');
+      socket.off('connect_error');
     };
   }, []);
 
-  // Helper: Convert QR string to Data URL
   const qrCodeToDataURL = (qrString) => {
-    // QR code is a plain string. Usually you generate QR code from it.
-    // Let's generate a QR code image using Google Chart API for simplicity:
     return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrString)}`;
   };
 
@@ -66,19 +73,18 @@ export default function WhatsAppClient() {
 
     try {
       const res = await fetch('https://whatsappbackapi-production.up.railway.app/send-message', {
-
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ number, message }),
       });
       const data = await res.json();
       if (res.ok) {
-        setSendResult('Message sent successfully!');
+        setSendResult('✅ Message sent successfully!');
       } else {
-        setSendResult('Error: ' + (data.error || 'Failed to send message'));
+        setSendResult('❌ Error: ' + (data.error || 'Failed to send message'));
       }
     } catch (err) {
-      setSendResult('Network error: ' + err.message);
+      setSendResult('🌐 Network error: ' + err.message);
     }
     setSending(false);
   }
@@ -88,6 +94,11 @@ export default function WhatsAppClient() {
       <h2>WhatsApp Web.js Client</h2>
 
       <p>Status: <b>{status}</b></p>
+      {fallbackUsed && (
+        <p style={{ color: 'orange' }}>
+          ⚠️ WebSocket not available, using polling fallback.
+        </p>
+      )}
 
       {qr && (
         <div>
@@ -96,7 +107,7 @@ export default function WhatsAppClient() {
         </div>
       )}
 
-      {status === 'WhatsApp is ready' && (
+      {status === '✅ WhatsApp is ready' && (
         <>
           <div style={{ marginTop: 20 }}>
             <label>
