@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy, useMemo, useCallback } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import axios from "axios";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
@@ -10,10 +10,6 @@ import payment from '../assets/payment.svg';
 import reciept from '../assets/reciept.svg';
 import FloatingButtons from "../Pages/floatingButton";
 import order from '../assets/order.svg';
-
-import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
 
 const AddOrder1 = lazy(() => import("../Pages/addOrder1"));
 const OrderUpdate = lazy(() => import("./orderUpdate"));
@@ -80,86 +76,42 @@ export default function AllOrder() {
         fetchTasks();
     }, []);
 
-    // Memoize task options to avoid recomputation
-    const taskOptions = useMemo(() => [...new Set(tasks.map(task => task.Task_group.trim()))], [tasks]);
+    const taskOptions = [...new Set(tasks.map((task) => task.Task_group.trim()))];
 
-    // Memoize processed and filtered orders with customer names and highestStatusTask
-    const filteredOrders = useMemo(() => {
-        return orders
-            .map(order => {
-                const highestStatusTask = (order.Status && order.Status.length > 0)
-                    ? order.Status.reduce((prev, current) =>
-                        prev.Status_number > current.Status_number ? prev : current
-                    ) : {};
+    const filteredOrders = orders
+        .map((order) => {
+            const highestStatusTask = (order.Status && order.Status.length > 0)
+                ? order.Status.reduce((prev, current) =>
+                    prev.Status_number > current.Status_number ? prev : current
+                ) : {};
 
-                const customerName = customers[order.Customer_uuid] || "Unknown";
+            const customerName = customers[order.Customer_uuid] || "Unknown";
 
-                return {
-                    ...order,
-                    highestStatusTask,
-                    Customer_name: customerName,
-                };
-            })
-            .filter(order => {
-                if (!searchOrder) return true;
-                return order.Customer_name.toLowerCase().includes(searchOrder.toLowerCase());
-            });
-    }, [orders, customers, searchOrder]);
+            return {
+                ...order,
+                highestStatusTask,
+                Customer_name: customerName,
+            };
+        })
+        .filter((order) => {
+            const matchesSearch =
+                searchOrder === "" ||
+                order.Customer_name.toLowerCase().includes(searchOrder.toLowerCase());
 
-    const handleEditClick = useCallback((order) => {
+            return matchesSearch;
+        });
+
+    const handleEditClick = (order) => {
         setSelectedOrder(order);
         setShowEditModal(true);
-    }, []);
+    };
 
-    const handleOrder = useCallback(() => setShowOrderModal(true), []);
-    const closeModal = useCallback(() => setShowOrderModal(false), []);
-    const closeEditModal = useCallback(() => {
+    const handleOrder = () => setShowOrderModal(true);
+    const closeModal = () => setShowOrderModal(false);
+    const closeEditModal = () => {
         setShowEditModal(false);
         setSelectedOrder(null);
-    }, []);
-
-    // Download Excel file for all orders
-    const downloadExcel = useCallback(() => {
-        const data = filteredOrders.map(order => ({
-            "Order Number": order.Order_Number,
-            "Customer Name": order.Customer_name,
-            "Latest Status": order.highestStatusTask?.Task || "",
-            "Status Date": order.highestStatusTask?.CreatedAt ? new Date(order.highestStatusTask.CreatedAt).toLocaleDateString() : "",
-            "Delivery Date": order.highestStatusTask?.Delivery_Date ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString() : "",
-            "Assigned To": order.highestStatusTask?.Assigned || "",
-            "Remark": order.Remark || "",
-        }));
-
-        const worksheet = XLSX.utils.json_to_sheet(data);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
-        XLSX.writeFile(workbook, "Orders_Report.xlsx");
-    }, [filteredOrders]);
-
-    // Download PDF file for all orders
-    const downloadPDF = useCallback(() => {
-        const doc = new jsPDF();
-        const tableColumn = ["Order Number", "Customer Name", "Latest Status", "Status Date", "Delivery Date", "Assigned To", "Remark"];
-        const tableRows = filteredOrders.map(order => [
-            order.Order_Number,
-            order.Customer_name,
-            order.highestStatusTask?.Task || "",
-            order.highestStatusTask?.CreatedAt ? new Date(order.highestStatusTask.CreatedAt).toLocaleDateString() : "",
-            order.highestStatusTask?.Delivery_Date ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString() : "",
-            order.highestStatusTask?.Assigned || "",
-            order.Remark || "",
-        ]);
-
-        doc.text("Orders Report", 14, 15);
-        doc.autoTable({
-            head: [tableColumn],
-            body: tableRows,
-            startY: 20,
-            styles: { fontSize: 8 },
-            headStyles: { fillColor: [46, 204, 113] }, // green header
-        });
-        doc.save("Orders_Report.pdf");
-    }, [filteredOrders]);
+    };
 
     const buttonsList = [
         { onClick: () => navigate('/addTransaction'), src: reciept },
@@ -172,10 +124,10 @@ export default function AllOrder() {
         <>
             <div className="order-update-content bg-[#e5ddd5] ">
                 <TopNavbar />
-                <div className="pt-5 pb-5 max-w-8xl mx-auto px-4">
+                <div className="pt-5 pb-5">
 
-                    {/* Search Bar and Export Buttons */}
-                    <div className="flex flex-wrap items-center justify-between bg-white p-2 rounded-full shadow-sm mb-4 max-w-xl mx-auto">
+                    {/* Search Bar */}
+                    <div className="flex flex-wrap bg-white w-full max-w-xl p-2 mx-auto rounded-full shadow-sm">
                         <input
                             type="text"
                             placeholder="Search by Customer Name"
@@ -183,7 +135,6 @@ export default function AllOrder() {
                             value={searchOrder}
                             onChange={(e) => setSearchOrder(e.target.value)}
                         />
-
                     </div>
 
                     {/* Main Content */}
@@ -248,7 +199,7 @@ export default function AllOrder() {
                                                                                 {timeDifference === 0
                                                                                     ? 'Today'
                                                                                     : timeDifference === 1
-                                                                                        ? '1 day'
+                                                                                        ? '1 day '
                                                                                         : `${timeDifference} days`}
                                                                             </div>
                                                                         </div>
@@ -269,22 +220,7 @@ export default function AllOrder() {
                                         );
                                     })}
                             </SkeletonTheme>
-                            <button
-                                onClick={downloadExcel}
-                                className="px-3 py-1 rounded-full bg-green-600 hover:bg-green-700 text-white text-sm"
-                                title="Download Excel Report"
-                            >
-                                Export Excel
-                            </button>
-                            <button
-                                onClick={downloadPDF}
-                                className="px-3 py-1 rounded-full bg-green-600 hover:bg-green-700 text-white text-sm"
-                                title="Download PDF Report"
-                            >
-                                Export PDF
-                            </button>
                         </div>
-
                     </main>
 
                     <FloatingButtons
@@ -298,16 +234,23 @@ export default function AllOrder() {
                 {/* Modals */}
                 <Suspense fallback={
                     <div className="flex justify-center items-center min-h-screen">
-                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
                     </div>
                 }>
-                    {showOrderModal && <AddOrder1 onClose={closeModal} />}
-                    {showEditModal && selectedOrder && (
-                        <OrderUpdate
-                            show={showEditModal}
-                            onHide={closeEditModal}
-                            orderData={selectedOrder}
-                        />
+                    {showOrderModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                            <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4">
+                                <AddOrder1 closeModal={closeModal} />
+                            </div>
+                        </div>
+                    )}
+
+                    {showEditModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                            <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4">
+                                <OrderUpdate order={selectedOrder} onClose={closeEditModal} />
+                            </div>
+                        </div>
                     )}
                 </Suspense>
 

@@ -207,7 +207,7 @@ export default function AddOrder1() {
         <>
             <div className="flex justify-center items-center bg-[#f0f2f5] min-h-screen text-[#111b21] px-4">
   <div className="bg-white w-full max-w-2xl rounded-xl shadow-xl p-6">
-    <h2 className="text-xl font-semibold mb-4 text-center">Add Order</h2>
+    <h2 className="text-xl font-semibold mb-4 text-center">New Order</h2>
 
     <form onSubmit={submit}>
       <div className="mb-4 relative">
