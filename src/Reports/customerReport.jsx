@@ -19,6 +19,7 @@ const CustomerReport = () => {
     const [deleteErrorMessage, setDeleteErrorMessage] = useState('');
     const [linkedCustomerIds, setLinkedCustomerIds] = useState([]);
 
+
     useEffect(() => {
         const fetchUserGroup = () => {
             const group = localStorage.getItem("User_group");
@@ -133,7 +134,7 @@ const CustomerReport = () => {
                         </thead>
                         <tbody>
                             {filteredCustomers.map(c => {
-                                const isLinked = linkedCustomerIds.includes(c._id);
+                               const isLinked = linkedCustomerIds.includes(c.Customer_uuid?.toString());
                                 return (
                                     <tr key={c._id} className="hover:bg-[#f0f2f5]">
                                         <td className="px-4 py-2 cursor-pointer" onClick={() => { setSelectedCustomerId(c._id); setShowEditModal(true); }}>{c.Customer_name}</td>
@@ -141,7 +142,7 @@ const CustomerReport = () => {
                                         <td className="px-4 py-2">{c.Customer_group}</td>
                                         <td className="px-4 py-2">{c.Status}</td>
                                         <td className="px-4 py-2">{new Date(c.LastInteraction).toLocaleDateString()}</td>
-                                        <td className="px-4 py-2">{c.Tags.join(', ')}</td>
+                                        <td className="px-4 py-2">{Array.isArray(c.Tags) ? c.Tags.join(', ') : ''}</td>
                                   {userGroup === "Admin User" && (
     <td className="px-4 py-2">
         {isLinked ? (
