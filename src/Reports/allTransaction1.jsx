@@ -176,7 +176,20 @@ const AllTransaction1 = () => {
                 <TopNavbar />
             </div>
             <div className="pt-12 pb-20">
-                <div className="mt-6 max-w-4xl mx-auto bg-white p-4 rounded shadow">
+                <div className="mt-6 max-w-4xl mx-auto bg-white p-4 rounded shadow"><div className="mb-4 flex gap-2">
+                    <button
+                        onClick={exportToExcel}
+                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
+                        Excel
+                    </button>
+                    <button
+                        onClick={exportToPDF}
+                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                    >
+                        PDF
+                    </button>
+                </div>
                     <h2 className="text-lg font-semibold mb-4 text-center text-green-700">Outstanding Report</h2>
 
                     {/* Search and Filter Buttons */}
@@ -208,30 +221,12 @@ const AllTransaction1 = () => {
                             >
                                 Zero Balance
                             </button>
-                            <button
-                                onClick={() => setFilterType('all')}
-                                className={`px-4 py-2 rounded ${filterType === 'all' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-700'} hover:bg-gray-200`}
-                            >
-                                Show All
-                            </button>
+
                         </div>
                     </div>
 
                     {/* Export Buttons */}
-                    <div className="mb-4 flex gap-2">
-                        <button
-                            onClick={exportToExcel}
-                            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                        >
-                            Export to Excel
-                        </button>
-                        <button
-                            onClick={exportToPDF}
-                            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-                        >
-                            Export to PDF
-                        </button>
-                    </div>
+
 
                     {/* Table */}
                     <table className="w-full table-auto text-sm border">

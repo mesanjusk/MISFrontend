@@ -23,31 +23,37 @@ const AllTransaction3 = () => {
     const { uuid: customerUuid, name: customerName } = location.state?.customer || {};
 
     useEffect(() => {
-        if (!customerUuid || !customerName) {
-            alert("Customer not found. Redirecting...");
-            navigate("/allTransaction1");
-            return;
+    if (!customerUuid || !customerName) {
+        alert("Customer not found. Redirecting...");
+        navigate("/allTransaction1");
+        return;
+    }
+
+    // Dynamically set April 1st of current or previous year depending on today's date
+    const today = new Date();
+    const currentYear = today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
+    setStartDate(`${currentYear}-04-01`);
+
+    const fetchData = async () => {
+        try {
+            setLoading(true);
+            const [transRes, custRes] = await Promise.all([
+                axios.get('/transaction/GetFilteredTransactions'),
+                axios.get('/customer/GetCustomersList')
+            ]);
+
+            if (transRes.data.success) setTransactions(transRes.data.result);
+            if (custRes.data.success) setCustomers(custRes.data.result);
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        } finally {
+            setLoading(false);
         }
+    };
 
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                const [transRes, custRes] = await Promise.all([
-                    axios.get('/transaction/GetFilteredTransactions'),
-                    axios.get('/customer/GetCustomersList')
-                ]);
+    fetchData();
+}, [customerUuid, customerName, navigate]);
 
-                if (transRes.data.success) setTransactions(transRes.data.result);
-                if (custRes.data.success) setCustomers(custRes.data.result);
-            } catch (error) {
-                console.error("Error fetching data:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, [customerUuid, customerName, navigate]);
 
     const customerMap = customers.reduce((acc, customer) => {
         acc[customer.Customer_uuid] = customer.Customer_name;
@@ -166,7 +172,12 @@ const AllTransaction3 = () => {
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h2 className="text-xl font-bold">Transactions for <span className="text-blue-600">{customerName}</span></h2>
-                        <p>Total Credit: ₹ | Total Debit: ₹ | Closing Balance: ₹{totals.total.toFixed(2)}</p>
+                       <p>
+  Total Credit: ₹{totals.credit.toFixed(2)} | 
+  Total Debit: ₹{totals.debit.toFixed(2)} | 
+  Closing Balance: ₹{totals.total.toFixed(2)}
+</p>
+
                     </div>
                     <div className="space-x-2">
                         <button onClick={handleExportPDF} className="px-4 py-1 bg-red-500 text-white rounded">Export PDF</button>
