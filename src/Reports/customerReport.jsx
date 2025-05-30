@@ -36,13 +36,6 @@ const CustomerReport = () => {
             })
             .catch(err => console.log('Error fetching customer list:', err));
 
-        axios.get('/customer/GetLinkedCustomerIds')
-            .then(res => {
-                if (res.data.success) {
-                    setLinkedCustomerIds(res.data.linkedCustomerIds || []);
-                }
-            })
-            .catch(err => console.error("Error fetching linked customer IDs:", err));
     }, []);
 
     const handleSort = (field) => {
@@ -134,7 +127,7 @@ const CustomerReport = () => {
                         </thead>
                         <tbody>
                             {filteredCustomers.map(c => {
-                               const isLinked = linkedCustomerIds.includes(c.Customer_uuid?.toString());
+                              
                                 return (
                                     <tr key={c._id} className="hover:bg-[#f0f2f5]">
                                         <td className="px-4 py-2 cursor-pointer" onClick={() => { setSelectedCustomerId(c._id); setShowEditModal(true); }}>{c.Customer_name}</td>
@@ -145,11 +138,12 @@ const CustomerReport = () => {
                                         <td className="px-4 py-2">{Array.isArray(c.Tags) ? c.Tags.join(', ') : ''}</td>
                                   {userGroup === "Admin User" && (
     <td className="px-4 py-2">
-        {isLinked ? (
-            <span title="Cannot delete - linked to transactions/orders" className="text-gray-400 cursor-not-allowed">🔒</span>
-        ) : (
-            <button onClick={() => { setSelectedCustomer({ ...c }); setShowDeleteModal(true); }} className="text-red-500 hover:text-red-600">🗑️</button>
-        )}
+       {c.isUsed ? (
+    <span title="Cannot delete - linked to transactions/orders" className="text-gray-400 cursor-not-allowed">🔒</span>
+) : (
+    <button onClick={() => { setSelectedCustomer({ ...c }); setShowDeleteModal(true); }} className="text-red-500 hover:text-red-600">🗑️</button>
+)}
+
     </td>
 )}
 
