@@ -176,7 +176,7 @@ const AllTransaction1 = () => {
                 <TopNavbar />
             </div>
             <div className="pt-12 pb-20">
-                <div className="mt-6 max-w-4xl mx-auto bg-white p-4 rounded shadow"><div className="mb-4 flex gap-2">
+                <div className="mt-6 max-w-7xl mx-auto  p-4  "><div className="mb-4 flex gap-2">
                     <button
                         onClick={exportToExcel}
                         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -219,7 +219,7 @@ const AllTransaction1 = () => {
                                 onClick={() => setFilterType('zero')}
                                 className={`px-4 py-2 rounded ${filterType === 'zero' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700'} hover:bg-blue-200`}
                             >
-                                Zero Balance
+                                Zero 
                             </button>
 
                         </div>

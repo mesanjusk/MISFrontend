@@ -171,17 +171,13 @@ const AllTransaction3 = () => {
             <div className="pt-16 pb-24 px-4">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h2 className="text-xl font-bold">Transactions for <span className="text-blue-600">{customerName}</span></h2>
-                       <p>
-  Total Credit: ₹{totals.credit.toFixed(2)} | 
-  Total Debit: ₹{totals.debit.toFixed(2)} | 
-  Closing Balance: ₹{totals.total.toFixed(2)}
-</p>
+                        <h2 className="text-xl font-bold"><span className="text-blue-600">{customerName}</span></h2>
+                       
 
                     </div>
                     <div className="space-x-2">
-                        <button onClick={handleExportPDF} className="px-4 py-1 bg-red-500 text-white rounded">Export PDF</button>
-                        <button onClick={handleExportExcel} className="px-4 py-1 bg-green-600 text-white rounded">Export Excel</button>
+                        <button onClick={handleExportPDF} className="px-4 py-1 bg-red-500 text-white rounded">PDF</button>
+                        <button onClick={handleExportExcel} className="px-4 py-1 bg-green-600 text-white rounded">Excel</button>
                     </div>
                 </div>
 
@@ -203,7 +199,11 @@ const AllTransaction3 = () => {
                         </select>
                     </div>
                 </div>
-
+<p>
+  Total Credit: ₹{totals.credit.toFixed(2)} | 
+  Total Debit: ₹{totals.debit.toFixed(2)} | 
+  Closing Balance: ₹{totals.total.toFixed(2)}
+</p>
                 {loading ? (
                     <div className="text-center py-12 text-lg">Loading transactions...</div>
                 ) : (
