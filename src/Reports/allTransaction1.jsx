@@ -241,7 +241,7 @@ const AllTransaction1 = () => {
                                 <th onClick={() => handleSort('balance')} className="border px-3 py-2 cursor-pointer text-right">
                                     Amount {sortConfig.key === 'balance' && (sortConfig.direction === 'asc' ? <FaSortUp className="inline ml-1" /> : <FaSortDown className="inline ml-1" />)}
                                 </th>
-                                <th className="border px-3 py-2 text-center">Send</th>
+                                <th className="border px-3 py-2 text-center"></th>
                             </tr>
                         </thead>
                         <tbody>
