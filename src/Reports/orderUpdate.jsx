@@ -1,29 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import UpdateDelivery from '../Pages/updateDelivery';
-import AddNote from "../Pages/addNote";
-import OrderPrint from "../Pages/orderPrint";
 import Vendor from '../Pages/vendor';
 import VendorDetails from '../Pages/vendorDetails';
-import EditOrder from './editOrder';
+import EditOrder from '../Components/editOrder';
+import Print from '../Components/print';
+import WhatsApp from '../Components/whatsApp';
+import Note from '../Components/note';
+import EditCustomer from '../Components/editCustomer';
 
 export default function OrderUpdate({ order, onClose }) {
   const navigate = useNavigate();
-  const printRef = useRef();
   const [orders, setOrders] = useState([]);
   const [notes, setNotes] = useState([]);
   const [customers, setCustomers] = useState({});
   const [taskOptions, setTaskOptions] = useState([]);
   const [taskId, setTaskId] = useState([]);
   const [userOptions, setUserOptions] = useState([]);
-  const [showEditModal, setShowEditModal] = useState(false); 
-  const [showNoteModal, setShowNoteModal] = useState(false);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [showPrintModal, setShowPrintModal] = useState(false);
   const [showVendorModal, setShowVendorModal] = useState(false);
   const [showClickModal, setShowClickModal] = useState(false);
-  const [latestDeliveryDate, setLatestDeliveryDate] = useState(""); 
    const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);  
   const [values, setValues] = useState({
@@ -158,37 +153,12 @@ export default function OrderUpdate({ order, onClose }) {
         console.log('Error updating order:', err);
       });
   };
-  
-
-  const handleEditClick = (order) => {
-    setSelectedOrder(order); 
-    setShowEditModal(true);  
-  }
-
-  const handleNoteClick = (order) => {
-    setSelectedOrder(order); 
-    setShowNoteModal(true);  
-  }
-
-  const handleUpdateClick = (order) => {
-    setSelectedOrder(order); 
-    setShowUpdateModal(true);  
-  }
-
-  const handlePrintClick = (order) => {
-    setSelectedOrder(order); 
-    setShowPrintModal(true);  
-  };
 
   const handleVendorClick = (order) => {
     setSelectedOrder(order); 
     setShowVendorModal(true);  
   };
 
-  const handleClick = (order) => {
-    setSelectedOrder(order); 
-    setShowClickModal(true);  
-  };
   
   const handleAdvanceCheckboxChange = () => {
     setIsAdvanceChecked(prev => {
@@ -203,36 +173,6 @@ export default function OrderUpdate({ order, onClose }) {
     });
 };
 
-
-  useEffect(() => {
-    if (order?.Status?.length) {
-      const maxDeliveryDate = order.Status.reduce((latest, current) => {
-        return new Date(current.Delivery_Date) > new Date(latest.Delivery_Date) ? current : latest;
-      }, order.Status[0]);
-      setLatestDeliveryDate(maxDeliveryDate.Delivery_Date);
-    }
-  }, [order]);
-
-  const closeEditModal = () => {
-    setShowEditModal(false); 
-    setSelectedOrder(null);  
-  };
-
-  const closeNoteModal = () => {
-    setShowNoteModal(false); 
-    setSelectedOrder(null);  
-  };
-
-  const closeUpdateModal = () => {
-    setShowUpdateModal(false); 
-    setSelectedOrder(null);  
-  };
-
-  const closePrintModal = () => {
-    setShowPrintModal(false); 
-    setSelectedOrder(null); 
-  };
-
   const closeVendorModal = () => {
     setShowVendorModal(false); 
     setSelectedOrder(null); 
@@ -244,61 +184,6 @@ export default function OrderUpdate({ order, onClose }) {
   };
 
 
-  const handleWhatsAppClick = async (order) => {
-    const customerUUID = order.Customer_uuid;
-    const customer = customers[customerUUID];
-  
-    if (!customer) {
-      alert("Customer information not found.");
-      return;
-    }
-  
-    const customerName = customer.Customer_name?.trim() || "Customer";
-    let phoneNumber = customer.Mobile_number?.toString().trim() || "";
-  
-    if (!phoneNumber) {
-      alert("Phone number is missing.");
-      return;
-    }
-  
-    phoneNumber = phoneNumber.replace(/\D/g, "");
-  
-    if (phoneNumber.length !== 10) {
-      alert("Phone number must be 10 digits.");
-      return;
-    }
-  
-    const payload = {
-      userName: customerName,
-      mobile: phoneNumber,
-      type: "order_update",
-    };
-  
-    console.log("Sending payload:", payload); 
-  
-    try {
-      const res = await fetch('https://misbackend-e078.onrender.com/usertask/send-message', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-  
-      const result = await res.json();
-      console.log("Message sent:", result);
-  
-      if (result.error) {
-        alert("Failed to send: " + result.error);
-      } else {
-        alert("Message sent successfully.");
-      }
-    } catch (error) {
-      console.error("Request failed:", error);
-      alert("Failed to send message.");
-    }
-  };  
-  
   return (
     <>
 
@@ -323,29 +208,11 @@ export default function OrderUpdate({ order, onClose }) {
     </div>
 
     <div className="flex gap-2">
-      <button onClick={() => handleEditClick(order)} className="p-2 rounded-full bg-white shadow hover:bg-gray-100">
-        <svg className="h-5 w-5 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <path d="M16.5 3.5a2.1 2.1 0 013 3L8.5 17l-4 1 1-4z" />
-        </svg>
-      </button>
-      <button onClick={() => handlePrintClick(order)} className="p-2 rounded-full bg-white shadow hover:bg-gray-100">
-        Pr
-        
-      </button>
-      <button onClick={() => handleWhatsAppClick(order)} className="p-2 rounded-full bg-white shadow hover:bg-gray-100">
-        WP
-        
-      </button>
-      
-      <button onClick={() => handleNoteClick(order)} className="p-2 rounded-full bg-white shadow hover:bg-gray-100">
-        <svg className="h-6 w-6 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <line x1="9" y1="12" x2="15" y2="12" />
-          <line x1="12" y1="9" x2="12" y2="15" />
-        </svg>
-      </button>
-      <button onClick={() => handleUpdateClick(order)} className="p-2 rounded-full bg-white shadow hover:bg-gray-100">
-        Ed
-      </button>
+      <EditOrder order={order} />
+      <Print order={order} />
+      <WhatsApp  order={order} />    
+     <Note order={order} />
+      <EditCustomer order={order} />
     </div>
   </div>
 
@@ -454,36 +321,6 @@ export default function OrderUpdate({ order, onClose }) {
     </form>
   </div>
 
-  {/* HIDDEN PRINT DIV */}
-  <div ref={printRef} style={{ display: "none", position: "absolute", left: "-9999px", top: "-9999px" }}>
-    <OrderPrint order={order} latestDeliveryDate={latestDeliveryDate} customerDetails={customers[order.Customer_uuid]} />
-  </div>
-
-  {/* MODALS */}
-  {showEditModal && (
-    <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-      <UpdateDelivery order={selectedOrder} onClose={closeEditModal} />
-    </div>
-  )}
-
-  {showNoteModal && (
-    <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-      <AddNote order={selectedOrder} onClose={closeNoteModal} />
-    </div>
-  )}
-
-  {showUpdateModal && (
-    <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-      <EditOrder order={selectedOrder} onClose={closeUpdateModal} />
-    </div>
-  )}
-
-  {showPrintModal && (
-    <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-      <OrderPrint order={selectedOrder} onClose={closePrintModal} />
-    </div>
-  )}
-
   {showVendorModal && (
     <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
       <Vendor order={selectedOrder} onClose={closeVendorModal} />
@@ -496,9 +333,6 @@ export default function OrderUpdate({ order, onClose }) {
     </div>
   )}
 </div>
-
-
-      )
       
 
     </>

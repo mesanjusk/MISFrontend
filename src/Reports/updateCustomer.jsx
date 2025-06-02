@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import AddCustomer from '../Pages/addCustomer';
 
-export default function EditOrder({order, onClose}) {
+export default function UpdateCustomer({order, onClose}) {
     const navigate = useNavigate();
 
     const [Customer_name, setCustomer_Name] = useState('');

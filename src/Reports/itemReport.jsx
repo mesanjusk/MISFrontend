@@ -25,14 +25,15 @@ const ItemReport = () => {
 
         fetchUserGroup();
 
-        axios.get("item/GetItemList")
+        axios.get("/item/GetItemList")
             .then(res => {
                 if (res.data.success) {
                     const itemMap = res.data.result.reduce((acc, item) => {
                         if (item.Item_name) {
                             acc[item._id] = {
                                 name: item.Item_name,
-                                group: item.Item_group
+                                group: item.Item_group,
+                                isUsed: item.isUsed || false,
                             };
                         }
                         return acc;
@@ -49,11 +50,6 @@ const ItemReport = () => {
     const handleEdit = (itemId) => {
         setSelectedItemId(itemId);
         setShowEditModal(true);
-    };
-
-    const handleDeleteClick = (itemId) => {
-        setSelectedItem({ ...item[itemId], _id: itemId });
-        setShowDeleteModal(true);
     };
 
     const handleDeleteConfirm = (itemId) => {
@@ -144,20 +140,16 @@ const ItemReport = () => {
                                                     <td onClick={() => handleEdit(id)} style={{ cursor: 'pointer' }}>
                                                         {item.group}
                                                     </td>
-                                                    {userGroup === "Admin User" && (
-                                                        <td>
-                                                            <button onClick={() => handleDeleteClick(id)} className="btn">
-                                                                <svg className="h-6 w-6 text-red-500" width="12" height="12" viewBox="0 0 22 22" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                                                                    <path stroke="none" d="M0 0h24v24H0z" />
-                                                                    <line x1="4" y1="7" x2="20" y2="7" />
-                                                                    <line x1="10" y1="11" x2="10" y2="17" />
-                                                                    <line x1="14" y1="11" x2="14" y2="17" />
-                                                                    <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
-                                                                    <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
-                                                                </svg>
-                                                            </button>
-                                                        </td>
-                                                    )}
+                                                     {userGroup === "Admin User" && (
+    <td className="px-4 py-2">
+       {item.isUsed ? (
+    <span title="Cannot delete - linked to transactions/orders" className="text-gray-400 cursor-not-allowed">🔒</span>
+) : (
+    <button onClick={() => { setSelectedItem({ ...item }); setShowDeleteModal(true); }} className="text-red-500 hover:text-red-600">🗑️</button>
+)}
+
+    </td>
+)}
                                                 </tr>
                                             ))}
                                     </tbody>
