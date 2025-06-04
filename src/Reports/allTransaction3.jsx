@@ -23,36 +23,36 @@ const AllTransaction3 = () => {
     const { uuid: customerUuid, name: customerName } = location.state?.customer || {};
 
     useEffect(() => {
-    if (!customerUuid || !customerName) {
-        alert("Customer not found. Redirecting...");
-        navigate("/allTransaction1");
-        return;
-    }
-
-    // Dynamically set April 1st of current or previous year depending on today's date
-    const today = new Date();
-    const currentYear = today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
-    setStartDate(`${currentYear}-04-01`);
-
-    const fetchData = async () => {
-        try {
-            setLoading(true);
-            const [transRes, custRes] = await Promise.all([
-                axios.get('/transaction/GetFilteredTransactions'),
-                axios.get('/customer/GetCustomersList')
-            ]);
-
-            if (transRes.data.success) setTransactions(transRes.data.result);
-            if (custRes.data.success) setCustomers(custRes.data.result);
-        } catch (error) {
-            console.error("Error fetching data:", error);
-        } finally {
-            setLoading(false);
+        if (!customerUuid || !customerName) {
+            alert("Customer not found. Redirecting...");
+            navigate("/allTransaction1");
+            return;
         }
-    };
 
-    fetchData();
-}, [customerUuid, customerName, navigate]);
+        // Dynamically set April 1st of current or previous year depending on today's date
+        const today = new Date();
+        const currentYear = today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
+        setStartDate(`${currentYear}-04-01`);
+
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const [transRes, custRes] = await Promise.all([
+                    axios.get('/transaction/GetFilteredTransactions'),
+                    axios.get('/customer/GetCustomersList')
+                ]);
+
+                if (transRes.data.success) setTransactions(transRes.data.result);
+                if (custRes.data.success) setCustomers(custRes.data.result);
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [customerUuid, customerName, navigate]);
 
 
     const customerMap = customers.reduce((acc, customer) => {
@@ -92,12 +92,30 @@ const AllTransaction3 = () => {
     });
 
     const sortedCustomerTransactions = [...filteredTransactions].sort((a, b) => {
-        const { key, direction } = sortConfig;
-        if (!key) return 0;
-        const aVal = a[key] || '';
-        const bVal = b[key] || '';
-        return direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-    });
+    const { key, direction } = sortConfig;
+    if (!key) return 0;
+
+    let aVal = '', bVal = '';
+
+    if (key === "Name") {
+        const aName = a.Journal_entry.find(e => e.Account_id !== customerUuid)?.Account_id;
+        const bName = b.Journal_entry.find(e => e.Account_id !== customerUuid)?.Account_id;
+        aVal = customerMap[aName] || "";
+        bVal = customerMap[bName] || "";
+    } else if (key === "Transaction_date") {
+        aVal = new Date(a.Transaction_date);
+        bVal = new Date(b.Transaction_date);
+    } else {
+        aVal = a[key] || '';
+        bVal = b[key] || '';
+    }
+
+    if (typeof aVal === "string") {
+        return direction === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    }
+    return direction === "asc" ? aVal - bVal : bVal - aVal;
+});
+
 
     const calculateTotals = () => {
         const totals = filteredTransactions.reduce(
@@ -172,7 +190,7 @@ const AllTransaction3 = () => {
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h2 className="text-xl font-bold"><span className="text-blue-600">{customerName}</span></h2>
-                       
+
 
                     </div>
                     <div className="space-x-2">
@@ -199,11 +217,11 @@ const AllTransaction3 = () => {
                         </select>
                     </div>
                 </div>
-<p>
-  Total Credit: ₹{totals.credit.toFixed(2)} | 
-  Total Debit: ₹{totals.debit.toFixed(2)} | 
-  Closing Balance: ₹{totals.total.toFixed(2)}
-</p>
+                <p>
+                    Total Credit: ₹{totals.credit.toFixed(2)} |
+                    Total Debit: ₹{totals.debit.toFixed(2)} |
+                    Closing Balance: ₹{totals.total.toFixed(2)}
+                </p>
                 {loading ? (
                     <div className="text-center py-12 text-lg">Loading transactions...</div>
                 ) : (
@@ -212,18 +230,25 @@ const AllTransaction3 = () => {
                             <thead className="bg-gray-200">
                                 <tr>
                                     <th className="py-2 px-4">No</th>
-                                    <th className="py-2 px-4">Date</th>
-                                    <th className="py-2 px-4">Name</th>
-                                    <th className="py-2 px-4">Description</th>
+                                    <th className="py-2 px-4 cursor-pointer" onClick={() => sortTable("Transaction_date")}>
+                                        Date {sortConfig.key === "Transaction_date" && (sortConfig.direction === "asc" ? "▲" : "▼")}
+                                    </th>
+                                    <th className="py-2 px-4 cursor-pointer" onClick={() => sortTable("Name")}>
+                                        Name {sortConfig.key === "Name" && (sortConfig.direction === "asc" ? "▲" : "▼")}
+                                    </th>
+                                    <th className="py-2 px-4 cursor-pointer" onClick={() => sortTable("Description")}>
+                                        Description {sortConfig.key === "Description" && (sortConfig.direction === "asc" ? "▲" : "▼")}
+                                    </th>
                                     <th className="py-2 px-4">Debit</th>
                                     <th className="py-2 px-4">Credit</th>
                                     <th className="py-2 px-4">Balance</th>
                                 </tr>
                             </thead>
+
                             <tbody>
                                 <tr className="bg-yellow-100 font-semibold">
-                                     <td className="py-2 px-4" ></td>
-                                <td className="py-2 px-4" ></td>
+                                    <td className="py-2 px-4" ></td>
+                                    <td className="py-2 px-4" ></td>
                                     <td className="py-2 px-4" colSpan={1}>Opening Balance</td>
                                     <td className="py-2 px-4" ></td>
                                     <td className="py-2 px-4" ></td>
@@ -257,10 +282,10 @@ const AllTransaction3 = () => {
                                             })
                                     );
                                 })()}
-                                <tr 
-                                className="bg-green-100 font-semibold">
-                                <td className="py-2 px-4" ></td>
-                                <td className="py-2 px-4" ></td>
+                                <tr
+                                    className="bg-green-100 font-semibold">
+                                    <td className="py-2 px-4" ></td>
+                                    <td className="py-2 px-4" ></td>
                                     <td className="py-2 px-4" colSpan={1}>Closing Balance</td>
                                     <td className="py-2 px-4" ></td>
                                     <td className="py-2 px-4" >{totals.debit.toFixed(2)}</td>
