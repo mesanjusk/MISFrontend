@@ -25,6 +25,7 @@ import AddPayment from "./Pages/addPayment";
 import AddTransaction from "./Pages/addTransaction";
 import AllTransaction from "./Reports/allTransaction";
 import AllTransaction1 from "./Reports/allTransaction1";
+import AllTransaction4D from "./Reports/allTransaction4D";
 import CustomerReport from "./Reports/customerReport";
 import EditCustomer from "./Reports/editCustomer";
 import AdminHome from "./Pages/adminHome";
@@ -96,6 +97,7 @@ function App() {
                     <Route path="/allTransaction1" element={<AllTransaction1 />} />
                     <Route path="/allTransaction2" element={<AllTransaction2 />} />
                     <Route path="/allTransaction3" element={<AllTransaction3 />} />
+                    <Route path="/allTransaction4D" element={<AllTransaction4D />} />
                     <Route path="/orderUpdate/:id" element={<OrderUpdate />} />
                     <Route path="/updateDelivery/:id" element={<UpdateDelivery />} />
                     <Route path="/editCustomer/:id" element={<EditCustomer />} />

@@ -3,6 +3,8 @@ import axios from 'axios';
 import TopNavbar from '../Pages/topNavbar';
 import Footer from '../Pages/footer';
 import AddOrder1 from "../Pages/addOrder1";
+import { FaTrash } from "react-icons/fa";
+
 
 const AllTransaction = () => {
     const [transactions, setTransactions] = useState([]);
@@ -17,6 +19,8 @@ const AllTransaction = () => {
     const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
     const [openingBalance, setOpeningBalance] = useState(0);
     const [closingBalance, setClosingBalance] = useState(0);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [entryToDelete, setEntryToDelete] = useState(null);
 
     useEffect(() => {
         const fetchTransactions = async () => {
@@ -330,7 +334,7 @@ const AllTransaction = () => {
                                         >
                                             Balance
                                         </th>
-                                        
+                                        <th className="py-2 px-4">Actions</th>
 
                                     </tr>
                                 </thead>
@@ -351,13 +355,65 @@ const AllTransaction = () => {
 {entry.Type === 'Debit' ? entry.Amount : '-'}
 </td>
 <td className="py-2 px-4">{entry.Balance}</td>
+<td className="py-2 px-4 text-center">
+    <button
+        onClick={() => {
+            setEntryToDelete(entry);
+            setShowDeleteModal(true);
+        }}
+        className="text-red-600 hover:text-red-800"
+    >
+        <FaTrash />
+    </button>
+</td>
+
 </tr>
 ))}
 </tbody>
 </table>
+
 ) : (
 <p>No transactions found.</p>
 )}
+{showDeleteModal && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+        <div className="bg-white p-6 rounded-lg w-80 text-center">
+            <h2 className="text-lg font-semibold mb-4">Confirm Delete</h2>
+            <p>Are you sure you want to delete this transaction entry?</p>
+            <div className="mt-4 flex justify-center gap-4">
+                <button
+                    onClick={() => setShowDeleteModal(false)}
+                    className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                >
+                    Cancel
+                </button>
+                <button
+                    onClick={async () => {
+                        try {
+                            await axios.delete(`/transaction/deleteEntry/${entryToDelete.Transaction_id}/${entryToDelete.Account_id}`);
+                            // Re-fetch transactions or manually remove the entry from state
+                            setFilteredEntries(prev =>
+                                prev.filter(e =>
+                                    !(
+                                        e.Transaction_id === entryToDelete.Transaction_id &&
+                                        e.Account_id === entryToDelete.Account_id
+                                    )
+                                )
+                            );
+                            setShowDeleteModal(false);
+                        } catch (error) {
+                            console.error("Delete failed", error);
+                        }
+                    }}
+                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                >
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+)}
+
 </div>
 </main>
             
