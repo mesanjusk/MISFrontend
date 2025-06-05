@@ -7,7 +7,6 @@ export default function AddTransaction() {
 
     const [Description, setDescription] = useState('');
     const [Amount, setAmount] = useState('');
-    const [Transaction_date, setTransaction_date] = useState('');
     const [Total_Debit, setTotal_Debit] = useState('');
     const [Total_Credit, setTotal_Credit] = useState('');
      const [userGroup, setUserGroup] = useState("");
@@ -19,7 +18,7 @@ export default function AddTransaction() {
     const [showOptions, setShowOptions] = useState(false);
     const [filteredOptions, setFilteredOptions] = useState([]);
     const [Customer_name, setCustomer_Name] = useState('');
-    const [isDateChecked, setIsDateChecked] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
     useEffect(() => {
         const userNameFromState = location.state?.id;
@@ -36,6 +35,10 @@ export default function AddTransaction() {
         const group = localStorage.getItem("User_group");
         setUserGroup(group);
       }, []);
+
+      const handleFileChange = (e) => {
+  setSelectedImage(e.target.files[0]);
+};
 
     useEffect(() => {
         axios.get("/customer/GetCustomersList")
@@ -78,16 +81,23 @@ export default function AddTransaction() {
                     Amount: Number(Amount),
                 }
             ];
-    
-            const response = await axios.post("/transaction/addTransaction", {
-                Description,
-                Total_Credit: Number(Amount),
-                Total_Debit: Number(Amount),
-                Payment_mode: "Opening Balance",  
-                Journal_entry: journal,
-                Created_by: loggedInUser,
-                Transaction_date: "01-04-2025",
-            });
+
+            const formData = new FormData();
+             formData.append("Description", Description);
+            formData.append("Total_Credit", Number(Amount));
+             formData.append("Total_Debit", Number(Amount));
+     formData.append("Payment_mode", "Opening Balance");
+    formData.append("Transaction_date", "01-04-2025");
+    formData.append("Created_by", loggedInUser);
+    formData.append("Journal_entry", JSON.stringify(journal));
+    if (selectedImage) {
+      formData.append("image", selectedImage);
+    }
+          const response = await axios.post("/transaction/addTransaction", formData, {
+                headers: {
+                  "Content-Type": "multipart/form-data",
+                },
+              });
     
             if (response.data.success) {
                 alert(response.data.message);
@@ -97,11 +107,6 @@ export default function AddTransaction() {
             }
         } catch (e) {
             console.error("Error adding Transaction:", e);
-            if (e.response) {
-                console.error("Response data:", e.response.data);
-                console.error("Response status:", e.response.status);
-                console.error("Response headers:", e.response.headers);
-            }
             alert("Error occurred while submitting the form.");
         }
     }
@@ -199,7 +204,12 @@ export default function AddTransaction() {
                             className="form-control rounded-0"
                         />
                     </div>
-                 
+         <input
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          className="w-full p-2 border border-gray-300 rounded-md"
+        />
                        
                     <button type="submit" className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center">
                         Submit

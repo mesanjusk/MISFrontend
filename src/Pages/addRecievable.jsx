@@ -8,7 +8,6 @@ export default function AddRecievable() {
     const [Description, setDescription] = useState('');
     const [Amount, setAmount] = useState('');
     const [Total_Debit, setTotal_Debit] = useState('');
-     const [Transaction_date, setTransaction_date] = useState('');
     const [userGroup, setUserGroup] = useState("");
     const [Total_Credit, setTotal_Credit] = useState('');
     const [CreditCustomer, setCreditCustomer] = useState(''); 
@@ -19,7 +18,7 @@ export default function AddRecievable() {
     const [showOptions, setShowOptions] = useState(false);
     const [filteredOptions, setFilteredOptions] = useState([]);
     const [Customer_name, setCustomer_Name] = useState('');
-    const [isDateChecked, setIsDateChecked] = useState(false);
+    const [selectedImage, setSelectedImage] = useState(null);
 
     useEffect(() => {
         const userNameFromState = location.state?.id;
@@ -37,7 +36,9 @@ export default function AddRecievable() {
             setUserGroup(group);
           }, []);
     
-
+const handleFileChange = (e) => {
+  setSelectedImage(e.target.files[0]);
+};
     useEffect(() => {
         axios.get("/customer/GetCustomersList")
             .then(res => {
@@ -57,52 +58,61 @@ export default function AddRecievable() {
         navigate("/addCustomer");
     }
 
-    async function submit(e) {
-        e.preventDefault();
+   async function submit(e) {
+  e.preventDefault();
 
-        if (!Amount || isNaN(Amount) || Amount <= 0) {
-            alert("Please enter a valid amount.");
-            return;
-        }
+  if (!Amount || isNaN(Amount) || Amount <= 0) {
+    alert("Please enter a valid amount.");
+    return;
+  }
 
-        try {
-            const creditCustomer = allCustomerOptions.find(option => option.Customer_uuid === CreditCustomer);
-            const debitCustomer = accountCustomerOptions.find(option => option.Customer_uuid === DebitCustomer);
+  try {
+    const creditCustomer = allCustomerOptions.find(option => option.Customer_uuid === CreditCustomer);
+    const debitCustomer = accountCustomerOptions.find(option => option.Customer_uuid === DebitCustomer);
 
-            const journal = [
-                {
-                    Account_id: "81f36451-41f2-402d-9dd3-cc11af039142",  
-                    Type: 'Debit',
-                    Amount: Number(Amount),
-                },
-                {
-                    Account_id: creditCustomer.Customer_uuid,  
-                    Type: 'Credit',
-                    Amount: Number(Amount),
-                }
-            ];
+    const journal = [
+      {
+        Account_id: "81f36451-41f2-402d-9dd3-cc11af039142",
+        Type: 'Debit',
+        Amount: Number(Amount),
+      },
+      {
+        Account_id: creditCustomer.Customer_uuid,
+        Type: 'Credit',
+        Amount: Number(Amount),
+      }
+    ];
 
-            const response = await axios.post("/transaction/addTransaction", {
-                Description,
-                Total_Credit: Number(Amount),
-                Total_Debit: Number(Amount),
-                Payment_mode: "Opening Balance",  
-                Journal_entry: journal,
-                Created_by: loggedInUser,
-                Transaction_date: "01-04-2025",
-            });
-
-            if (response.data.success) {
-                alert(response.data.message);
-                navigate("/allOrder");
-            } else {
-                alert("Failed to add Transaction");
-            }
-        } catch (e) {
-            console.error("Error adding Transaction:", e);
-            alert("Error occurred while submitting the form.");
-        }
+    const formData = new FormData();
+    formData.append("Description", Description);
+    formData.append("Total_Credit", Number(Amount));
+    formData.append("Total_Debit", Number(Amount));
+    formData.append("Payment_mode", "Opening Balance");
+    formData.append("Transaction_date", "01-04-2025");
+    formData.append("Created_by", loggedInUser);
+    formData.append("Journal_entry", JSON.stringify(journal));
+    if (selectedImage) {
+      formData.append("image", selectedImage);
     }
+
+    const response = await axios.post("/transaction/addTransaction", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    if (response.data.success) {
+      alert(response.data.message);
+      navigate("/allOrder");
+    } else {
+      alert("Failed to add Transaction");
+    }
+
+  } catch (e) {
+    console.error("Error adding Transaction:", e);
+    alert("Error occurred while submitting the form.");
+  }
+}
 
     const handleAmountChange = (e) => {
         const value = e.target.value;
@@ -197,8 +207,12 @@ export default function AddRecievable() {
                             className="form-control rounded-0"
                         />
                     </div>
-
-                    
+         <input
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          className="w-full p-2 border border-gray-300 rounded-md"
+        />
                     <button type="submit" className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center">
                         Submit
                     </button>

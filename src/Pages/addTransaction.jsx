@@ -20,6 +20,7 @@ export default function AddTransaction() {
     const [filteredOptions, setFilteredOptions] = useState([]);
     const [Customer_name, setCustomer_Name] = useState('');
     const [isDateChecked, setIsDateChecked] = useState(false);
+    const [selectedImage, setSelectedImage] = useState(null);
 
     useEffect(() => {
         const userNameFromState = location.state?.id;
@@ -37,6 +38,9 @@ export default function AddTransaction() {
         setUserGroup(group);
       }, []);
 
+const handleFileChange = (e) => {
+  setSelectedImage(e.target.files[0]);
+};
     useEffect(() => {
         axios.get("/customer/GetCustomersList")
             .then(res => {
@@ -119,20 +123,30 @@ export default function AddTransaction() {
                     Amount: Number(Amount),
                 }
             ];
+
+             const formData = new FormData();
+    formData.append('Description', Description);
+    formData.append('Total_Credit', Number(Amount));
+    formData.append('Total_Debit', Number(Amount));
+    formData.append('Payment_mode', Group.Customer_name);
+    formData.append('Created_by', loggedInUser);
+    formData.append('Transaction_date', Transaction_date || todayDate);
+    formData.append('Journal_entry', JSON.stringify(journal));
+
+    if (selectedImage) {
+        formData.append('image', selectedImage);
+    }
+
     
-            const response = await axios.post("/transaction/addTransaction", {
-                Description,
-                Total_Credit: Number(Amount),
-                Total_Debit: Number(Amount),
-                Payment_mode: Group.Customer_name,  
-                Journal_entry: journal,
-                Created_by: loggedInUser,
-                Transaction_date: Transaction_date || todayDate,
-            });
+            const response = await axios.post("/transaction/addTransaction", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
     
             if (response.data.success) {
                 alert(response.data.message);
-                navigate("/allOrder");
+                navigate("/home");
             } else {
                 alert("Failed to add Transaction");
             }
@@ -300,6 +314,12 @@ export default function AddTransaction() {
                             ))}
                         </select>
                     </div>
+                     <input
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          className="w-full p-2 border border-gray-300 rounded-md"
+        />
                     <div className="mb-3 ">
                         <input
                             type="checkbox"
