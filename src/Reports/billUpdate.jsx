@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import UpdateDelivery from '../Pages/updateDelivery';
+import EditOrder from '../Components/editOrder';
+import Print from '../Components/print';
+import EditCustomer from '../Components/editCustomer';
 
 export default function BillUpdate({ order, onClose }) {
   const navigate = useNavigate();
@@ -108,16 +111,6 @@ export default function BillUpdate({ order, onClose }) {
       });
   };
 
-  const handleEditClick = (order) => {
-    setSelectedOrder(order); 
-    setShowEditModal(true);  
-  }
-
-  const closeEditModal = () => {
-    setShowEditModal(false); 
-    setSelectedOrder(null);  
-  };
-
   return (
     <>
       <div className="w-4/4 h-full pt-10 flex flex-col">
@@ -133,13 +126,10 @@ export default function BillUpdate({ order, onClose }) {
             </div>        
           </div>
           <div>
-            <div className="p-2 row-start-2 row-end-4">
-              <button onClick={() => handleEditClick(order)} className="btn">
-                <svg className="h-6 w-6 text-blue-500" width="12" height="12" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                  <path stroke="none" d="M0 0h24v24H0z"/>
-                  <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3l-11 11l-4 1l1 -4z"/>
-                </svg>
-              </button>
+            <div className="flex gap-2">
+              <EditOrder order={order} />
+               <Print order={order} />
+              <EditCustomer order={order} />
               <br />
             </div>       
           </div>
@@ -171,11 +161,6 @@ export default function BillUpdate({ order, onClose }) {
         </div>
       </div>
 
-      {showEditModal && (
-        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-          <UpdateDelivery order={selectedOrder} onClose={closeEditModal} />
-        </div>
-      )}
     </>
   );
 }
