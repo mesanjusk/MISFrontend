@@ -4,14 +4,12 @@ import { io } from 'socket.io-client';
 const SESSION_ID = 'user123'; // generate or get this per user/session dynamically
 
 export default function WhatsAppClient() {
-  const [qr, setQr] = useState(null);
   const [status, setStatus] = useState('Connecting...');
   const [number, setNumber] = useState('');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState(null);
 
-  // Connect socket with sessionId query param
   const socket = React.useMemo(() => io('https://whatsappbackapi-production.up.railway.app', {
     query: { sessionId: SESSION_ID },
     transports: ['websocket'],
@@ -19,53 +17,42 @@ export default function WhatsAppClient() {
 
   useEffect(() => {
     socket.on('connect', () => {
-      setStatus('Connected, waiting for QR...');
-    });
-
-    socket.on('qr', (qrCode) => {
-      setQr(qrCode);
-      setStatus('Please scan the QR code');
+      setStatus('Connected to WhatsApp service');
     });
 
     socket.on('ready', () => {
-      setQr(null);
-      setStatus('WhatsApp is ready');
+      setStatus('✅ WhatsApp is ready');
     });
 
     socket.on('authenticated', () => {
-      setStatus('Authenticated!');
+      setStatus('🔐 Authenticated');
     });
 
     socket.on('auth_failure', () => {
-      setStatus('Authentication failed, please restart.');
+      setStatus('❌ Authentication failed');
     });
 
     socket.on('disconnected', () => {
-      setStatus('Disconnected');
-      setQr(null);
+      setStatus('⚠️ Disconnected');
     });
 
     socket.on('message-sent', ({ success, error }) => {
       if (success) {
         setSendResult('✅ Message sent successfully!');
       } else {
-        setSendResult(`❌ Error sending message: ${error}`);
+        setSendResult(`❌ Error: ${error}`);
       }
       setSending(false);
     });
 
     socket.on('logged-out', () => {
-      setStatus('Logged out, please refresh to reconnect.');
-      setQr(null);
+      setStatus('🚪 Logged out');
     });
 
     return () => {
       socket.disconnect();
     };
   }, [socket]);
-
-  const qrCodeToDataURL = (qrString) =>
-    `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrString)}`;
 
   const sendMessage = () => {
     if (!number || !message) {
@@ -87,14 +74,7 @@ export default function WhatsAppClient() {
 
       <p>Status: <b>{status}</b></p>
 
-      {qr && (
-        <div>
-          <p>Scan this QR code with your WhatsApp:</p>
-          <img src={qrCodeToDataURL(qr)} alt="QR Code" style={{ width: 200, height: 200 }} />
-        </div>
-      )}
-
-      {status === 'WhatsApp is ready' && (
+      {status.includes('ready') && (
         <>
           <div style={{ marginTop: 20 }}>
             <label>
