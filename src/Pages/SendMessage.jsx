@@ -1,18 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 
-const SESSION_ID = 'user123'; // Set dynamically if needed
-
 export default function WhatsAppClient() {
   const [status, setStatus] = useState('Connecting...');
-  const [ready, setReady] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const [number, setNumber] = useState('');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState(null);
 
   const socket = React.useMemo(() => io('https://misbackend-e078.onrender.com', {
-    query: { sessionId: SESSION_ID },
     transports: ['websocket'],
   }), []);
 
@@ -21,37 +18,24 @@ export default function WhatsAppClient() {
       setStatus('Connected to WhatsApp service');
     });
 
-    socket.on('ready', () => {
-      setStatus('✅ WhatsApp is ready');
-      setReady(true);
+    socket.on('authenticated', () => {
+      setStatus('🔐 WhatsApp authenticated');
+      setIsReady(true);
     });
 
-    socket.on('authenticated', () => {
-      setStatus('🔐 Authenticated');
+    socket.on('ready', () => {
+      setStatus('✅ WhatsApp is ready');
+      setIsReady(true);
     });
 
     socket.on('auth_failure', () => {
       setStatus('❌ Authentication failed');
-      setReady(false);
+      setIsReady(false);
     });
 
     socket.on('disconnected', () => {
       setStatus('⚠️ Disconnected');
-      setReady(false);
-    });
-
-    socket.on('logged-out', () => {
-      setStatus('🚪 Logged out');
-      setReady(false);
-    });
-
-    socket.on('message-sent', ({ success, error }) => {
-      if (success) {
-        setSendResult('✅ Message sent successfully!');
-      } else {
-        setSendResult(`❌ Error: ${error}`);
-      }
-      setSending(false);
+      setIsReady(false);
     });
 
     return () => {
@@ -59,23 +43,38 @@ export default function WhatsAppClient() {
     };
   }, [socket]);
 
-  const sendMessage = () => {
-    if (!ready) {
-      alert('Please scan the QR code first from backend to authenticate WhatsApp.');
-      return;
-    }
+  const sendMessage = async () => {
     if (!number || !message) {
       alert('Please enter both number and message');
       return;
     }
+
+    if (!isReady) {
+      alert('Please scan the QR code first from backend to authenticate WhatsApp.');
+      return;
+    }
+
     setSending(true);
     setSendResult(null);
-    socket.emit('send-message', { number, message });
-  };
 
-  const logout = () => {
-    socket.emit('logout');
-    setReady(false);
+    try {
+      const res = await fetch('https://misbackend-e078.onrender.com/send-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number, message }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setSendResult('✅ Message sent successfully!');
+      } else {
+        setSendResult(`❌ Error: ${data.error}`);
+      }
+    } catch (error) {
+      setSendResult(`❌ Network error: ${error.message}`);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -83,68 +82,55 @@ export default function WhatsAppClient() {
       <h2>WhatsApp Web.js Client</h2>
       <p>Status: <b>{status}</b></p>
 
-      <div style={{ marginTop: 20 }}>
-        <label>
-          Phone number (with country code):<br />
-          <input
-            type="text"
-            value={number}
-            onChange={(e) => setNumber(e.target.value)}
-            placeholder="e.g. 919876543210"
-            style={{ width: '100%', padding: 8, marginTop: 4 }}
-          />
-        </label>
-      </div>
+      {isReady && (
+        <>
+          <div style={{ marginTop: 20 }}>
+            <label>
+              Phone number (with country code):<br />
+              <input
+                type="text"
+                value={number}
+                onChange={(e) => setNumber(e.target.value)}
+                placeholder="e.g. 919876543210"
+                style={{ width: '100%', padding: 8, marginTop: 4 }}
+              />
+            </label>
+          </div>
 
-      <div style={{ marginTop: 10 }}>
-        <label>
-          Message:<br />
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            rows={4}
-            placeholder="Type your message"
-            style={{ width: '100%', padding: 8, marginTop: 4 }}
-          />
-        </label>
-      </div>
+          <div style={{ marginTop: 10 }}>
+            <label>
+              Message:<br />
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={4}
+                placeholder="Type your message"
+                style={{ width: '100%', padding: 8, marginTop: 4 }}
+              />
+            </label>
+          </div>
 
-      <button
-        onClick={sendMessage}
-        disabled={sending}
-        style={{
-          marginTop: 15,
-          padding: '10px 20px',
-          backgroundColor: sending ? '#999' : '#25D366',
-          color: 'white',
-          border: 'none',
-          cursor: sending ? 'not-allowed' : 'pointer',
-          fontWeight: 'bold',
-          borderRadius: 4,
-        }}
-      >
-        {sending ? 'Sending...' : 'Send Message'}
-      </button>
+          <button
+            onClick={sendMessage}
+            disabled={sending}
+            style={{
+              marginTop: 15,
+              padding: '10px 20px',
+              backgroundColor: sending ? '#999' : '#25D366',
+              color: 'white',
+              border: 'none',
+              cursor: sending ? 'not-allowed' : 'pointer',
+              fontWeight: 'bold',
+              borderRadius: 4,
+            }}
+          >
+            {sending ? 'Sending...' : 'Send Message'}
+          </button>
 
-      <button
-        onClick={logout}
-        style={{
-          marginTop: 10,
-          padding: '8px 15px',
-          backgroundColor: '#f44336',
-          color: 'white',
-          border: 'none',
-          cursor: 'pointer',
-          fontWeight: 'bold',
-          borderRadius: 4,
-          float: 'right',
-        }}
-      >
-        Logout
-      </button>
-
-      {sendResult && (
-        <p style={{ marginTop: 15 }}>{sendResult}</p>
+          {sendResult && (
+            <p style={{ marginTop: 15 }}>{sendResult}</p>
+          )}
+        </>
       )}
     </div>
   );
