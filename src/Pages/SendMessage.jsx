@@ -9,19 +9,23 @@ export default function WhatsAppClient() {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState(null);
+  const [showQR, setShowQR] = useState(false);
 
-  const socket = React.useMemo(() => io('https://whatsappbackapi-production.up.railway.app', {
-    query: { sessionId: SESSION_ID },
-    transports: ['websocket'],
-  }), []);
+  const socket = React.useMemo(() =>
+    io('https://misbackend-e078.onrender.com', {
+      query: { sessionId: SESSION_ID },
+      transports: ['websocket'],
+    }), []);
 
   useEffect(() => {
     socket.on('connect', () => {
       setStatus('Connected to WhatsApp service');
+      setShowQR(true);
     });
 
     socket.on('ready', () => {
       setStatus('✅ WhatsApp is ready');
+      setShowQR(false);
     });
 
     socket.on('authenticated', () => {
@@ -30,10 +34,12 @@ export default function WhatsAppClient() {
 
     socket.on('auth_failure', () => {
       setStatus('❌ Authentication failed');
+      setShowQR(true);
     });
 
     socket.on('disconnected', () => {
       setStatus('⚠️ Disconnected');
+      setShowQR(true);
     });
 
     socket.on('message-sent', ({ success, error }) => {
@@ -47,6 +53,7 @@ export default function WhatsAppClient() {
 
     socket.on('logged-out', () => {
       setStatus('🚪 Logged out');
+      setShowQR(true);
     });
 
     return () => {
@@ -74,6 +81,20 @@ export default function WhatsAppClient() {
 
       <p>Status: <b>{status}</b></p>
 
+      {/* Show QR Code if not authenticated */}
+      {showQR && (
+  <div style={{ marginTop: 20 }}>
+    <p>Scan QR to authenticate:</p>
+    <img
+      src="https://misbackend-e078.onrender.com/qr"
+      alt="QR Code"
+      style={{ width: 200, height: 200 }}
+    />
+  </div>
+)}
+
+
+      {/* Show message form when ready */}
       {status.includes('ready') && (
         <>
           <div style={{ marginTop: 20 }}>
