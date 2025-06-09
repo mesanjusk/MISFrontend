@@ -9,11 +9,10 @@ export default function WhatsAppClient() {
   const [customers, setCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [search, setSearch] = useState('');
-  const [selectedNumbers, setSelectedNumbers] = useState([]);
+  const [selectedNumber, setSelectedNumber] = useState(null);
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState(null);
-  const [selectAll, setSelectAll] = useState(false);
 
   const socket = React.useMemo(() => io('https://misbackend-e078.onrender.com', {
     transports: ['websocket'],
@@ -74,36 +73,15 @@ export default function WhatsAppClient() {
     );
   }, [search, customers]);
 
-  const toggleSelectNumber = (mobile) => {
-    const norm = normalizeWhatsAppNumber(mobile);
-    setSelectedNumbers(prev =>
-      prev.includes(norm) ? prev.filter(n => n !== norm) : [...prev, norm]
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (!selectAll) {
-      const all = filteredCustomers.map(c => normalizeWhatsAppNumber(c.Mobile_number));
-      setSelectedNumbers(all);
-    } else {
-      setSelectedNumbers([]);
-    }
-    setSelectAll(!selectAll);
-  };
-
   const generatePreview = () => {
-    return filteredCustomers
-      .filter(c => selectedNumbers.includes(normalizeWhatsAppNumber(c.Mobile_number)))
-      .map(c => {
-        const msg = message.replace(/\{name\}/gi, c.Customer_name || '');
-        return `\u2022 ${c.Customer_name} (${c.Mobile_number}): ${msg}`;
-      })
-      .join('\n');
+    const customer = filteredCustomers.find(c => normalizeWhatsAppNumber(c.Mobile_number) === selectedNumber);
+    if (!customer) return '';
+    return message.replace(/{name}/gi, customer.Customer_name || '');
   };
 
   const sendMessage = async () => {
-    if (!selectedNumbers.length || !message) {
-      alert('Please select at least one customer and enter a message.');
+    if (!selectedNumber || !message) {
+      alert('Please select a customer and enter a message.');
       return;
     }
 
@@ -112,28 +90,23 @@ export default function WhatsAppClient() {
       return;
     }
 
-    const personalizedMessages = filteredCustomers
-      .filter(c => selectedNumbers.includes(normalizeWhatsAppNumber(c.Mobile_number)))
-      .map(c => ({
-        number: normalizeWhatsAppNumber(c.Mobile_number),
-        message: message.replace(/\{name\}/gi, c.Customer_name || '')
-      }));
+    const customer = filteredCustomers.find(c => normalizeWhatsAppNumber(c.Mobile_number) === selectedNumber);
+    const personalizedMessage = message.replace(/{name}/gi, customer?.Customer_name || '');
 
     setSending(true);
     setSendResult(null);
 
     try {
-      const res = await fetch('https://misbackend-e078.onrender.com/send-bulk-message', {
+      const res = await fetch('https://misbackend-e078.onrender.com/send-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: personalizedMessages }),
+        body: JSON.stringify({ number: selectedNumber, message: personalizedMessage }),
       });
 
       const data = await res.json();
       if (data.success) {
-        setSendResult('✅ Message sent to all selected contacts!');
-        setSelectedNumbers([]);
-        setSelectAll(false);
+        setSendResult('✅ Message sent successfully!');
+        setSelectedNumber(null);
       } else {
         setSendResult(`❌ Error: ${data.error}`);
       }
@@ -159,16 +132,6 @@ export default function WhatsAppClient() {
             className="w-full p-2 mb-4 border border-gray-300 rounded-md"
           />
 
-          <div className="flex items-center mb-2">
-            <input
-              type="checkbox"
-              checked={selectAll}
-              onChange={handleSelectAll}
-              className="mr-2"
-            />
-            <label>Select All</label>
-          </div>
-
           <div className="max-h-64 overflow-y-auto border rounded-md mb-4">
             <table className="w-full text-sm">
               <thead className="bg-gray-100">
@@ -185,9 +148,10 @@ export default function WhatsAppClient() {
                     <tr key={c._id} className="hover:bg-gray-50">
                       <td className="p-2">
                         <input
-                          type="checkbox"
-                          checked={selectedNumbers.includes(norm)}
-                          onChange={() => toggleSelectNumber(c.Mobile_number)}
+                          type="radio"
+                          name="selectedCustomer"
+                          checked={selectedNumber === norm}
+                          onChange={() => setSelectedNumber(norm)}
                         />
                       </td>
                       <td className="p-2">{c.Customer_name}</td>
@@ -217,7 +181,7 @@ export default function WhatsAppClient() {
             disabled={sending}
             className={`mt-4 w-full py-2 font-bold rounded-md text-white ${sending ? 'bg-gray-400' : 'bg-green-500 hover:bg-green-600'}`}
           >
-            {sending ? 'Sending...' : `Send to ${selectedNumbers.length} Contact(s)`}
+            {sending ? 'Sending...' : 'Send Message'}
           </button>
 
           {sendResult && (
