@@ -14,34 +14,44 @@ export default function WhatsAppClient() {
   }), []);
 
   useEffect(() => {
-    socket.on('connect', () => {
-      setStatus('Connected to WhatsApp service');
+  // Realtime socket updates
+  socket.on('connect', () => setStatus('Connected to WhatsApp service'));
+  socket.on('authenticated', () => {
+    setStatus('🔐 WhatsApp authenticated');
+    setIsReady(true);
+  });
+  socket.on('ready', () => {
+    setStatus('✅ WhatsApp is ready');
+    setIsReady(true);
+  });
+  socket.on('auth_failure', () => {
+    setStatus('❌ Authentication failed');
+    setIsReady(false);
+  });
+  socket.on('disconnected', () => {
+    setStatus('⚠️ Disconnected');
+    setIsReady(false);
+  });
+
+  // Fallback check using REST API
+  fetch('https://misbackend-e078.onrender.com/whatsapp-status')
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'connected') {
+        setStatus('✅ WhatsApp is ready');
+        setIsReady(true);
+      } else {
+        setStatus('🕓 Waiting for QR scan');
+        setIsReady(false);
+      }
+    })
+    .catch(() => {
+      setStatus('❌ Failed to fetch status');
     });
 
-    socket.on('authenticated', () => {
-      setStatus('🔐 WhatsApp authenticated');
-      setIsReady(true);
-    });
+  return () => socket.disconnect();
+}, [socket]);
 
-    socket.on('ready', () => {
-      setStatus('✅ WhatsApp is ready');
-      setIsReady(true);
-    });
-
-    socket.on('auth_failure', () => {
-      setStatus('❌ Authentication failed');
-      setIsReady(false);
-    });
-
-    socket.on('disconnected', () => {
-      setStatus('⚠️ Disconnected');
-      setIsReady(false);
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [socket]);
 
   const sendMessage = async () => {
     if (!number || !message) {
