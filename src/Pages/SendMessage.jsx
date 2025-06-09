@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from "react-router-dom";
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import normalizeWhatsAppNumber from '../utils/normalizeNumber';
 
 export default function WhatsAppClient() {
+  const navigate = useNavigate();
   const [status, setStatus] = useState('Connecting...');
   const [isReady, setIsReady] = useState(false);
   const [customers, setCustomers] = useState([]);
@@ -13,6 +15,17 @@ export default function WhatsAppClient() {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState(null);
+  const [loggedInUser, setLoggedInUser] = useState(null); 
+
+   useEffect(() => {
+      const userNameFromState = location.state?.id;
+      const user = userNameFromState || localStorage.getItem('User_name');
+      if (user) {
+       setLoggedInUser(user);
+      } else {
+        navigate("/");
+      }
+  }, [location.state, navigate]);
 
   const socket = React.useMemo(() => io('https://misbackend-e078.onrender.com', {
     transports: ['websocket'],

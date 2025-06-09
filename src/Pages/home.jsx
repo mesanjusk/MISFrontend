@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
-import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import TopNavbar from "./topNavbar";
 import Footer from './footer';
@@ -23,13 +22,10 @@ export default function Home() {
   const location = useLocation();
   const [userName, setUserName] = useState('');
   const [userGroup, setUserGroup] = useState("");
-  const [orders, setOrders] = useState([]); 
-  const [userData, setUserData] = useState([]); 
   const [loggedInUser, setLoggedInUser] = useState(null); 
   const [selectedOrderId, setSelectedOrderId] = useState(null); 
   const [showEditModal, setShowEditModal] = useState(false); 
   const [showOrderModal, setShowOrderModal] = useState(false);
-  const [customers, setCustomers] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [showUserModel, setShowUserModel] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
