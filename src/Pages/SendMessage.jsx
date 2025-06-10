@@ -4,7 +4,9 @@ import { io } from 'socket.io-client';
 import axios from 'axios';
 import normalizeWhatsAppNumber from '../utils/normalizeNumber';
 
-axios.defaults.baseURL = 'https://misbackend-e078.onrender.com';
+const BASE_URL = 'https://misbackend-e078.onrender.com';
+
+axios.defaults.baseURL = BASE_URL;
 
 export default function WhatsAppClient() {
   const navigate = useNavigate();
@@ -14,15 +16,16 @@ export default function WhatsAppClient() {
   const [darkMode, setDarkMode] = useState(false);
   const [status, setStatus] = useState('🕓 Checking WhatsApp status...');
   const [isReady, setIsReady] = useState(false);
-  const [chatList, setChatList] = useState([]);
+  const [recentChats, setRecentChats] = useState([]);
   const [contactList, setContactList] = useState([]);
   const [search, setSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [messages, setMessages] = useState([]);
+  const [lastMessageMap, setLastMessageMap] = useState({});
 
-  const socket = useMemo(() => io('https://misbackend-e078.onrender.com', { transports: ['websocket', 'polling'] }), []);
+  const socket = useMemo(() => io(BASE_URL, { transports: ['websocket', 'polling'] }), []);
 
   useEffect(() => {
     const user = location.state?.id || localStorage.getItem('User_name');
@@ -35,28 +38,33 @@ export default function WhatsAppClient() {
       setIsReady(true);
     };
 
-    const handleIncomingMessage = (data) => {
-      const fromNumber = data.number;
+    const handleIncomingMessage = async (data) => {
+      const senderNumber = normalizeWhatsAppNumber(data.number || '');
       const currentNumber = selectedCustomer ? normalizeWhatsAppNumber(selectedCustomer.Mobile_number) : null;
 
-      if (fromNumber === currentNumber) {
+      if (senderNumber === currentNumber) {
         setMessages(prev => [...prev, { from: 'them', text: data.message, time: new Date(data.time) }]);
-      } else {
-        axios.get(`/customer/by-number/${fromNumber}`).then(res => {
-          if (res.data.success) {
-            setChatList(prev => {
-              const exists = prev.some(c => c.Mobile_number === fromNumber);
-              return exists ? prev : [...prev, res.data.customer];
-            });
-          }
-        });
+      }
+
+      try {
+        const res = await axios.get(`/customer/by-number/${senderNumber}`);
+        if (res.data.success) {
+          const customer = res.data.customer;
+          setRecentChats(prev => {
+            const exists = prev.find(c => c.Mobile_number === customer.Mobile_number);
+            return exists ? prev : [...prev, customer];
+          });
+          setLastMessageMap(prev => ({ ...prev, [customer._id]: Date.now() }));
+        }
+      } catch (err) {
+        console.error('Incoming message lookup failed:', err);
       }
     };
 
     socket.on('ready', handleReady);
     socket.on('message', handleIncomingMessage);
 
-    fetch('https://misbackend-e078.onrender.com/whatsapp-status')
+    fetch(`${BASE_URL}/whatsapp-status`)
       .then(res => res.json())
       .then(data => {
         setStatus(data.status === 'connected' ? '✅ WhatsApp is ready' : '🕓 Waiting for QR');
@@ -73,8 +81,9 @@ export default function WhatsAppClient() {
 
   useEffect(() => {
     axios.get('/chatlist').then(res => {
-      if (res.data.success) setChatList(res.data.list);
+      if (res.data.success) setRecentChats(res.data.list);
     });
+
     axios.get('/customer/GetCustomersList').then(res => {
       if (res.data.success) setContactList(res.data.result);
     });
@@ -82,9 +91,16 @@ export default function WhatsAppClient() {
 
   const openChat = async (customer) => {
     setSelectedCustomer(customer);
+    setMessages([]);
     const number = normalizeWhatsAppNumber(customer.Mobile_number);
     const res = await axios.get(`/messages/${number}`);
-    if (res.data.success) setMessages(res.data.messages);
+    if (res.data.success) {
+      setMessages(res.data.messages.map(m => ({
+        from: m.from,
+        text: m.text,
+        time: new Date(m.time)
+      })));
+    }
   };
 
   const sendMessage = async () => {
@@ -98,6 +114,7 @@ export default function WhatsAppClient() {
       const res = await axios.post('/send-message', { number: norm, message: personalized });
       if (res.data.success) {
         setMessages(prev => [...prev, msgObj]);
+        setLastMessageMap(prev => ({ ...prev, [selectedCustomer._id]: Date.now() }));
         setMessage('');
       }
     } catch (err) {
@@ -111,25 +128,27 @@ export default function WhatsAppClient() {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [messages]);
 
-  const filteredList = [...new Set([
-    ...chatList,
-    ...contactList.filter(c =>
-      c.Customer_name?.toLowerCase().includes(search.toLowerCase()) ||
-      c.Mobile_number?.includes(search)
-    )
-  ])];
+  const filteredSearchResults = contactList.filter(c =>
+    c.Customer_name?.toLowerCase().includes(search.toLowerCase()) ||
+    c.Mobile_number?.includes(search)
+  );
 
   const handleSearchNumber = () => {
-    if (search && !filteredList.find(c => c.Mobile_number === search)) {
+    if (search && !filteredSearchResults.find(c => c.Mobile_number === search)) {
       const normalized = normalizeWhatsAppNumber(search);
-      setSelectedCustomer({
+      const newCustomer = {
         _id: 'custom-number',
         Customer_name: `+${normalized}`,
         Mobile_number: normalized
-      });
+      };
+      setSelectedCustomer(newCustomer);
       setMessages([]);
     }
   };
+
+  const sortedChats = [...recentChats].sort(
+    (a, b) => (lastMessageMap[b._id] || 0) - (lastMessageMap[a._id] || 0)
+  );
 
   return (
     <div className={`flex h-screen ${darkMode ? 'bg-[#111b21]' : 'bg-gray-100'} transition-colors flex-col md:flex-row`}>
@@ -155,7 +174,7 @@ export default function WhatsAppClient() {
           </button>
         </div>
         <div className="overflow-y-auto flex-1">
-          {filteredList.map(c => (
+          {(search ? filteredSearchResults : sortedChats).map(c => (
             <div
               key={c._id}
               onClick={() => openChat(c)}
