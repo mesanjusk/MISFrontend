@@ -1,10 +1,13 @@
+
+
+// Redesigned WhatsApp Web-like UI using Tailwind CSS
+// Includes: avatars, pinned chats placeholder, dark/light mode toggle (simple state-based), responsive design
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import normalizeWhatsAppNumber from '../utils/normalizeNumber';
-
-axios.defaults.baseURL = 'https://misbackend-e078.onrender.com';
 
 export default function WhatsAppClient() {
   const navigate = useNavigate();
@@ -14,15 +17,17 @@ export default function WhatsAppClient() {
   const [darkMode, setDarkMode] = useState(false);
   const [status, setStatus] = useState('🕓 Checking WhatsApp status...');
   const [isReady, setIsReady] = useState(false);
-  const [chatList, setChatList] = useState([]);
-  const [contactList, setContactList] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [messages, setMessages] = useState([]);
+  const [lastMessageMap, setLastMessageMap] = useState({});
 
-  const socket = useMemo(() => io('https://misbackend-e078.onrender.com', { transports: ['websocket'] }), []);
+  const socket = useMemo(() => io('https://misbackend-e078.onrender.com', {
+    transports: ['websocket'],
+  }), []);
 
   useEffect(() => {
     const user = location.state?.id || localStorage.getItem('User_name');
@@ -35,28 +40,22 @@ export default function WhatsAppClient() {
       setIsReady(true);
     };
 
-    const handleIncomingMessage = (data) => {
-      const fromNumber = data.number;
-      const currentNumber = selectedCustomer ? normalizeWhatsAppNumber(selectedCustomer.Mobile_number) : null;
-
-      if (fromNumber === currentNumber) {
-        setMessages(prev => [...prev, { from: 'them', text: data.message, time: new Date(data.time) }]);
-      } else {
-        axios.get(`/customer/by-number/${fromNumber}`).then(res => {
-          if (res.data.success) {
-            setChatList(prev => {
-              const exists = prev.some(c => c.Mobile_number === fromNumber);
-              return exists ? prev : [...prev, res.data.customer];
-            });
-          }
-        });
+    const handleMessage = (data) => {
+      const normalized = normalizeWhatsAppNumber(selectedCustomer?.Mobile_number);
+      if (data.number === normalized) {
+        const newMsg = { from: 'them', text: data.message, time: new Date() };
+        setMessages(prev => [...prev, newMsg]);
+        setLastMessageMap(prev => ({
+          ...prev,
+          [selectedCustomer._id]: Date.now()
+        }));
       }
     };
 
     socket.on('ready', handleReady);
-    socket.on('message', handleIncomingMessage);
+    socket.on('message', handleMessage);
 
-    fetch('/whatsapp-status')
+    fetch('https://misbackend-e078.onrender.com/whatsapp-status')
       .then(res => res.json())
       .then(data => {
         setStatus(data.status === 'connected' ? '✅ WhatsApp is ready' : '🕓 Waiting for QR');
@@ -66,38 +65,52 @@ export default function WhatsAppClient() {
 
     return () => {
       socket.off('ready', handleReady);
-      socket.off('message', handleIncomingMessage);
+      socket.off('message', handleMessage);
       socket.disconnect();
     };
   }, [socket, selectedCustomer]);
 
   useEffect(() => {
-    axios.get('/chatlist').then(res => {
-      if (res.data.success) setChatList(res.data.list);
-    });
     axios.get('/customer/GetCustomersList').then(res => {
-      if (res.data.success) setContactList(res.data.result);
+      if (res.data.success) {
+        setCustomers(res.data.result);
+      }
     });
   }, []);
 
-  const openChat = async (customer) => {
-    setSelectedCustomer(customer);
-    const number = normalizeWhatsAppNumber(customer.Mobile_number);
-    const res = await axios.get(`/messages/${number}`);
-    if (res.data.success) setMessages(res.data.messages);
-  };
+  const filteredCustomers = customers
+    .filter(c =>
+      c.Customer_name?.toLowerCase().includes(search.toLowerCase()) ||
+      c.Mobile_number?.toString().includes(search)
+    )
+    .sort((a, b) => {
+      const t1 = lastMessageMap[b._id] || 0;
+      const t2 = lastMessageMap[a._id] || 0;
+      return t1 - t2;
+    });
 
   const sendMessage = async () => {
     if (!selectedCustomer || !message || !isReady) return;
+
     const norm = normalizeWhatsAppNumber(selectedCustomer.Mobile_number);
-    const personalized = message.replace(/{name}/gi, selectedCustomer.Customer_name || norm);
+    const personalized = message.replace(/{name}/gi, selectedCustomer.Customer_name);
     const msgObj = { from: 'me', text: personalized, time: new Date() };
 
     setSending(true);
     try {
-      const res = await axios.post('/send-message', { number: norm, message: personalized });
-      if (res.data.success) {
+      const res = await fetch('https://misbackend-e078.onrender.com/send-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number: norm, message: personalized }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
         setMessages(prev => [...prev, msgObj]);
+        setLastMessageMap(prev => ({
+          ...prev,
+          [selectedCustomer._id]: Date.now()
+        }));
         setMessage('');
       }
     } catch (err) {
@@ -108,56 +121,42 @@ export default function WhatsAppClient() {
   };
 
   useEffect(() => {
-    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    if (chatRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    }
   }, [messages]);
 
-  const filteredList = [...new Set([
-    ...chatList,
-    ...contactList.filter(c =>
-      c.Customer_name?.toLowerCase().includes(search.toLowerCase()) ||
-      c.Mobile_number?.includes(search)
-    )
-  ])];
-
-  const handleSearchNumber = () => {
-    if (search && !filteredList.find(c => c.Mobile_number === search)) {
-      const number = normalizeWhatsAppNumber(search);
-      setSelectedCustomer({
-        _id: 'custom-number',
-        Customer_name: `+${number}`,
-        Mobile_number: number
-      });
-      setMessages([]);
-    }
-  };
-
   return (
-    <div className={`flex h-screen ${darkMode ? 'bg-[#111b21]' : 'bg-gray-100'} transition-colors flex-col md:flex-row`}>
+    <div className={`flex h-screen ${darkMode ? 'bg-[#111b21]' : 'bg-gray-100'} transition-colors`}>
       {/* Sidebar */}
-      <div className={`${darkMode ? 'bg-[#202c33]' : 'bg-white'} md:w-80 w-full md:border-r border-b md:border-b-0 flex flex-col`}>
+      <div className={`${darkMode ? 'bg-[#202c33]' : 'bg-white'} w-80 border-r flex flex-col`}>
         <div className="p-4 flex justify-between items-center border-b">
           <div className="text-lg font-bold text-green-600">WhatsApp</div>
           <button onClick={() => setDarkMode(!darkMode)} className="text-sm text-gray-500">{darkMode ? '🌞' : '🌙'}</button>
         </div>
-        <div className="p-2 flex gap-2">
+        <div className="p-2">
           <input
             type="text"
             className="w-full px-3 py-2 border rounded-md text-sm"
-            placeholder="Search chat or number"
+            placeholder="Search or start new chat"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
-          <button onClick={handleSearchNumber} className="px-2 text-sm bg-green-600 text-white rounded">Go</button>
         </div>
         <div className="overflow-y-auto flex-1">
-          {filteredList.map(c => (
+          {filteredCustomers.map(c => (
             <div
               key={c._id}
-              onClick={() => openChat(c)}
+              onClick={() => {
+                setSelectedCustomer(c);
+                axios.get(`/messages/${normalizeWhatsAppNumber(c.Mobile_number)}`).then(res => {
+                  if (res.data.success) setMessages(res.data.messages);
+                });
+              }}
               className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${selectedCustomer?._id === c._id ? 'bg-gray-200' : ''}`}
             >
               <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">
-                {c.Customer_name?.[0] || '+'}
+                {c.Customer_name[0]}
               </div>
               <div className="ml-3">
                 <div className="font-semibold text-sm">{c.Customer_name}</div>
