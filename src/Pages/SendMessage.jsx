@@ -5,7 +5,6 @@ import axios from 'axios';
 import normalizeWhatsAppNumber from '../utils/normalizeNumber';
 
 const BASE_URL = 'https://misbackend-e078.onrender.com';
-
 axios.defaults.baseURL = BASE_URL;
 
 export default function WhatsAppClient() {
@@ -42,22 +41,36 @@ export default function WhatsAppClient() {
       const senderNumber = normalizeWhatsAppNumber(data.number || '');
       const currentNumber = selectedCustomer ? normalizeWhatsAppNumber(selectedCustomer.Mobile_number) : null;
 
-      if (senderNumber === currentNumber) {
-        setMessages(prev => [...prev, { from: 'them', text: data.message, time: new Date(data.time) }]);
+      // Update open chat if it's the current chat
+      if (selectedCustomer && senderNumber === currentNumber) {
+        setMessages(prev => [...prev, {
+          from: 'them',
+          text: data.message,
+          time: new Date(data.time || Date.now())
+        }]);
       }
 
+      // Add to recent chats
       try {
         const res = await axios.get(`/customer/by-number/${senderNumber}`);
         if (res.data.success) {
           const customer = res.data.customer;
+
           setRecentChats(prev => {
             const exists = prev.find(c => c.Mobile_number === customer.Mobile_number);
-            return exists ? prev : [...prev, customer];
+            if (exists) {
+              return [customer, ...prev.filter(c => c.Mobile_number !== customer.Mobile_number)];
+            }
+            return [customer, ...prev];
           });
-          setLastMessageMap(prev => ({ ...prev, [customer._id]: Date.now() }));
+
+          setLastMessageMap(prev => ({
+            ...prev,
+            [customer._id]: Date.now()
+          }));
         }
       } catch (err) {
-        console.error('Incoming message lookup failed:', err);
+        console.error('Incoming message fetch failed:', err);
       }
     };
 
@@ -114,7 +127,10 @@ export default function WhatsAppClient() {
       const res = await axios.post('/send-message', { number: norm, message: personalized });
       if (res.data.success) {
         setMessages(prev => [...prev, msgObj]);
-        setLastMessageMap(prev => ({ ...prev, [selectedCustomer._id]: Date.now() }));
+        setLastMessageMap(prev => ({
+          ...prev,
+          [selectedCustomer._id]: Date.now()
+        }));
         setMessage('');
       }
     } catch (err) {
@@ -128,13 +144,17 @@ export default function WhatsAppClient() {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [messages]);
 
-  const filteredSearchResults = contactList.filter(c =>
-    c.Customer_name?.toLowerCase().includes(search.toLowerCase()) ||
-    c.Mobile_number?.includes(search)
-  );
+  const filteredList = search
+    ? contactList.filter(c =>
+        c.Customer_name?.toLowerCase().includes(search.toLowerCase()) ||
+        c.Mobile_number?.includes(search)
+      )
+    : [...recentChats].sort(
+        (a, b) => (lastMessageMap[b._id] || 0) - (lastMessageMap[a._id] || 0)
+      );
 
   const handleSearchNumber = () => {
-    if (search && !filteredSearchResults.find(c => c.Mobile_number === search)) {
+    if (search && !filteredList.find(c => c.Mobile_number === search)) {
       const normalized = normalizeWhatsAppNumber(search);
       const newCustomer = {
         _id: 'custom-number',
@@ -145,10 +165,6 @@ export default function WhatsAppClient() {
       setMessages([]);
     }
   };
-
-  const sortedChats = [...recentChats].sort(
-    (a, b) => (lastMessageMap[b._id] || 0) - (lastMessageMap[a._id] || 0)
-  );
 
   return (
     <div className={`flex h-screen ${darkMode ? 'bg-[#111b21]' : 'bg-gray-100'} transition-colors flex-col md:flex-row`}>
@@ -174,7 +190,7 @@ export default function WhatsAppClient() {
           </button>
         </div>
         <div className="overflow-y-auto flex-1">
-          {(search ? filteredSearchResults : sortedChats).map(c => (
+          {filteredList.map(c => (
             <div
               key={c._id}
               onClick={() => openChat(c)}
