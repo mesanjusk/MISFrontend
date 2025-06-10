@@ -56,7 +56,7 @@ export default function WhatsAppClient() {
     socket.on('ready', handleReady);
     socket.on('message', handleIncomingMessage);
 
-    fetch('/whatsapp-status')
+    fetch('https://misbackend-e078.onrender.com/whatsapp-status')
       .then(res => res.json())
       .then(data => {
         setStatus(data.status === 'connected' ? '✅ WhatsApp is ready' : '🕓 Waiting for QR');
