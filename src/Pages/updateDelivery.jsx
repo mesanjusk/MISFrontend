@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import axios from "axios";
 import AddItem from "./addItem";
+import EditOrder from '../Components/editOrder';
+import Print from '../Components/print';
+import EditCustomer from '../Components/editCustomer';
 
 export default function UpdateDelivery({ onClose, order }) {
     const navigate = useNavigate();
@@ -162,7 +165,11 @@ export default function UpdateDelivery({ onClose, order }) {
         <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
             <div className="bg-white p-3 rounded w-90">
                 <button type="button" onClick={onClose}>X</button>
-                <h2>Update Order</h2>
+                <h2>Update Order</h2> 
+                <EditOrder order={order} />
+                    <Print order={order} />
+                 <EditCustomer order={order} />
+                             
                 <form onSubmit={submit}>
 
                     <div className="mb-3">
