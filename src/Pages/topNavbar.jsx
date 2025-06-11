@@ -133,7 +133,7 @@ const TopNavbar = () => {
     <>
       <div className="fixed top-0 w-full bg-white text-green-600 pr-14 pl-4 pt-2 pb-2 flex z-50 items-center shadow-md">
         <button onClick={home}>
-          <h1 className="text-xl font-bold uppercase">s k digital</h1>
+          <h1 className="text-xl font-bold uppercase">DREAMTECH</h1>
         </button>
 
         <div className="ml-auto flex items-center gap-4">
