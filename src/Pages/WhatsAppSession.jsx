@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import QRCode from 'qrcode.react';
+import QRCode from 'react-qr-code'; // ✅ Safe for Vite/Vercel
 
+const socket = io('https://misbackend-e078.onrender.com'); // ✅ Your backend URL
 
-const socket = io('https://misbackend-e078.onrender.com'); // Updated to your backend URL
-
-export default function WhatsAppClient() {
-  const [sessions, setSessions] = useState({});
+export default function WhatsAppSession() {
   const [selectedSession, setSelectedSession] = useState('default');
   const [qr, setQr] = useState(null);
   const [status, setStatus] = useState('Connecting...');
@@ -14,7 +12,6 @@ export default function WhatsAppClient() {
 
   useEffect(() => {
     socket.on('connect', () => {
-      console.log('✅ Connected to WhatsApp backend');
       setStatus('Connected. Waiting for QR...');
     });
 
@@ -90,8 +87,7 @@ export default function WhatsAppClient() {
       </div>
 
       {qr && (
-        <div className="mb-4">
-          <p className="text-sm text-gray-500">Scan this QR with WhatsApp Web:</p>
+        <div className="mb-4 flex justify-center bg-white p-4 rounded shadow">
           <QRCode value={qr} size={256} />
         </div>
       )}
