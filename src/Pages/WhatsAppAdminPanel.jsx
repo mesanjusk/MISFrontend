@@ -23,7 +23,7 @@ export default function WhatsAppAdminPanel() {
         setLastUpdatedMap(prev => ({ ...prev, ...updated }));
       }
     } catch (err) {
-      console.error('Failed to fetch sessions:', err);
+      console.error('❌ Failed to fetch sessions:', err);
     }
   };
 
@@ -35,18 +35,25 @@ export default function WhatsAppAdminPanel() {
       fetchSessions();
     } catch (err) {
       alert(`❌ Failed to reset session ${sessionId}`);
+      console.error(err);
     }
   };
 
   const startSession = async (sessionId) => {
-    if (!sessionId) return;
+    if (!sessionId || sessionId.trim() === '') {
+      alert('❌ Session ID is required.');
+      return;
+    }
+
     setLoading(true);
     try {
-      await axios.post(`${BASE_URL}/whatsapp/start-session`, { sessionId });
+      await axios.post(`${BASE_URL}/whatsapp/start-session`, { sessionId: sessionId.trim() });
       alert(`✅ Session ${sessionId} started.`);
+      setNewSessionId('');
       fetchSessions();
     } catch (err) {
       alert(`❌ Failed to start session ${sessionId}`);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -69,7 +76,7 @@ export default function WhatsAppAdminPanel() {
 
   useEffect(() => {
     fetchSessions();
-    const interval = setInterval(fetchSessions, 30000); // Refresh session list every 30s
+    const interval = setInterval(fetchSessions, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -78,12 +85,6 @@ export default function WhatsAppAdminPanel() {
     const interval = setInterval(() => fetchQR(qrSession), 10000);
     return () => clearInterval(interval);
   }, [qrSession, qrStatus]);
-
-  const handleAddSession = async () => {
-    if (!newSessionId.trim()) return;
-    await startSession(newSessionId.trim());
-    setNewSessionId('');
-  };
 
   const minutesAgo = (ts) => {
     const mins = Math.floor((Date.now() - ts) / 60000);
@@ -104,7 +105,8 @@ export default function WhatsAppAdminPanel() {
         />
         <button
           className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
-          onClick={handleAddSession}
+          onClick={() => startSession(newSessionId)}
+          disabled={loading}
         >
           + Add
         </button>
