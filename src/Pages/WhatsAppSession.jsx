@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import { QRCode } from 'qrcode.react'; // ✅ Corrected import
+import QRCode from 'qrcode.react';
+
 
 const socket = io('https://misbackend-e078.onrender.com'); // Updated to your backend URL
 
