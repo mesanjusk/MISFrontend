@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { io } from 'socket.io-client';
 
 const BASE_URL = 'https://misbackend-e078.onrender.com';
-const socket = io(BASE_URL);
 
 export default function WhatsAppAdminPanel() {
   const [sessions, setSessions] = useState([]);
@@ -11,23 +9,13 @@ export default function WhatsAppAdminPanel() {
   const [qrSession, setQrSession] = useState(null);
   const [qrImage, setQrImage] = useState(null);
   const [qrStatus, setQrStatus] = useState('pending');
-  const [lastUpdatedMap, setLastUpdatedMap] = useState({});
   const [newSessionId, setNewSessionId] = useState('');
-  const [editSessionId, setEditSessionId] = useState(null);
-  const [editedSessionId, setEditedSessionId] = useState('');
-  const [messageCounts, setMessageCounts] = useState({});
-
-  const defaultSessions = ['default', 'admin', 'staff1'];
 
   const fetchSessions = async () => {
     try {
       const res = await axios.get(`${BASE_URL}/whatsapp/sessions`);
       if (res.data.success) {
         setSessions(res.data.sessions);
-        const now = Date.now();
-        const updated = {};
-        res.data.sessions.forEach(s => updated[s.sessionId] = now);
-        setLastUpdatedMap(prev => ({ ...prev, ...updated }));
       }
     } catch (err) {
       console.error('Failed to fetch sessions:', err);
@@ -38,35 +26,9 @@ export default function WhatsAppAdminPanel() {
     if (!window.confirm(`Reset session ${sessionId}? This will force QR login again.`)) return;
     try {
       await axios.post(`${BASE_URL}/whatsapp/reset-session`, { sessionId });
-      alert(`✅ Session ${sessionId} reset.`);
       fetchSessions();
     } catch (err) {
       alert(`❌ Failed to reset session ${sessionId}`);
-    }
-  };
-
-  const deleteSession = async (sessionId) => {
-    if (!window.confirm(`Are you sure you want to delete session ${sessionId}?`)) return;
-    try {
-      await axios.post(`${BASE_URL}/whatsapp/delete-session`, { sessionId });
-      alert(`✅ Session ${sessionId} deleted.`);
-      fetchSessions();
-    } catch (err) {
-      alert(`❌ Failed to delete session ${sessionId}`);
-    }
-  };
-
-  const renameSession = async () => {
-    try {
-      await axios.post(`${BASE_URL}/whatsapp/rename-session`, {
-        oldSessionId: editSessionId,
-        newSessionId: editedSessionId.trim(),
-      });
-      setEditSessionId(null);
-      setEditedSessionId('');
-      fetchSessions();
-    } catch (err) {
-      alert('❌ Failed to rename session');
     }
   };
 
@@ -97,21 +59,6 @@ export default function WhatsAppAdminPanel() {
     }
   };
 
-  const addNewSession = async () => {
-    if (!newSessionId.trim()) return;
-    await startSession(newSessionId.trim());
-    setNewSessionId('');
-  };
-
-  const minutesAgo = (ts) => {
-    const mins = Math.floor((Date.now() - ts) / 60000);
-    return mins <= 0 ? 'Just now' : `${mins} min ago`;
-  };
-
-  useEffect(() => {
-    defaultSessions.forEach(startSession);
-  }, []);
-
   useEffect(() => {
     fetchSessions();
     const interval = setInterval(fetchSessions, 30000);
@@ -124,19 +71,29 @@ export default function WhatsAppAdminPanel() {
     return () => clearInterval(interval);
   }, [qrSession, qrStatus]);
 
-  useEffect(() => {
-    socket.on('session-updated', fetchSessions);
-    socket.on('message-count', ({ sessionId, count }) => {
-      setMessageCounts(prev => ({ ...prev, [sessionId]: count }));
-    });
-    return () => {
-      socket.off('session-updated');
-      socket.off('message-count');
-    };
-  }, []);
+  const addNewSession = async () => {
+    if (!newSessionId) return;
+    await startSession(newSessionId);
+    setNewSessionId('');
+  };
+
+  const minutesAgo = (ts) => {
+    const mins = Math.floor((Date.now() - new Date(ts)) / 60000);
+    return mins <= 0 ? 'Just now' : `${mins} min ago`;
+  };
+
+  const isStuck = (s) => {
+    const now = Date.now();
+    return !s.ready && s.lastQRTime && (now - new Date(s.lastQRTime)) > 10 * 60 * 1000;
+  };
+
+  const isIdle = (s) => {
+    const now = Date.now();
+    return s.lastMessageTime && (now - new Date(s.lastMessageTime)) > 60 * 60 * 1000;
+  };
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto p-6">
       <h2 className="text-2xl font-bold mb-4">🛠️ WhatsApp Session Admin</h2>
 
       <div className="flex gap-2 mb-4">
@@ -160,8 +117,7 @@ export default function WhatsAppAdminPanel() {
           <tr className="bg-gray-100">
             <th className="p-2 border">Session ID</th>
             <th className="p-2 border">Status</th>
-            <th className="p-2 border">Messages</th>
-            <th className="p-2 border">Last Seen</th>
+            <th className="p-2 border">Last Times</th>
             <th className="p-2 border">Actions</th>
             <th className="p-2 border">QR</th>
           </tr>
@@ -169,76 +125,50 @@ export default function WhatsAppAdminPanel() {
         <tbody>
           {sessions.map((s) => (
             <tr key={s.sessionId} className="text-center">
-              <td className="p-2 border">
-                {editSessionId === s.sessionId ? (
-                  <div className="flex gap-1 justify-center">
-                    <input
-                      type="text"
-                      className="border px-1 text-xs w-24"
-                      value={editedSessionId}
-                      onChange={e => setEditedSessionId(e.target.value)}
-                    />
-                    <button className="text-green-600 text-xs" onClick={renameSession}>✔</button>
-                    <button className="text-red-500 text-xs" onClick={() => setEditSessionId(null)}>✖</button>
-                  </div>
-                ) : (
-                  <span>{s.sessionId}</span>
-                )}
-              </td>
+              <td className="p-2 border">{s.sessionId}</td>
               <td className="p-2 border">
                 {s.ready ? (
                   <span className="text-green-600 font-medium">✅ Ready</span>
                 ) : (
                   <span className="text-yellow-600 font-medium">🕓 Not Ready</span>
                 )}
-                {!s.ready && lastUpdatedMap[s.sessionId] &&
-                  Date.now() - lastUpdatedMap[s.sessionId] > 5 * 60 * 1000 && (
-                    <span className="ml-1 text-red-600">⚠️</span>
-                  )}
+                {isStuck(s) && <span className="ml-1 text-red-600">⚠️ Stuck</span>}
+                {isIdle(s) && <span className="ml-1 text-gray-500">💤 Idle</span>}
               </td>
-              <td className="p-2 border text-xs">{messageCounts[s.sessionId] || 0}</td>
               <td className="p-2 border text-xs text-gray-500">
-                {lastUpdatedMap[s.sessionId] ? minutesAgo(lastUpdatedMap[s.sessionId]) : 'Unknown'}
+                {s.lastQRTime && `QR: ${minutesAgo(s.lastQRTime)}`}<br />
+                {s.lastMessageTime && `Msg: ${minutesAgo(s.lastMessageTime)}`}
               </td>
-              <td className="p-2 border space-y-1">
+              <td className="p-2 border space-x-2">
                 <button
                   onClick={() => startSession(s.sessionId)}
                   className="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600"
                   disabled={loading}
-                >Start</button>
+                >
+                  Start
+                </button>
                 <button
                   onClick={() => resetSession(s.sessionId)}
-                  className="bg-orange-500 text-white px-3 py-1 rounded text-xs hover:bg-orange-600"
-                >Reset</button>
-                <button
-                  onClick={() => {
-                    setEditSessionId(s.sessionId);
-                    setEditedSessionId(s.sessionId);
-                  }}
-                  className="text-indigo-600 text-xs block"
-                >Edit</button>
-                <button
-                  onClick={() => deleteSession(s.sessionId)}
-                  className="text-red-600 text-xs block"
-                >Delete</button>
+                  className="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600"
+                >
+                  Reset
+                </button>
               </td>
-              <td className="p-2 border space-y-1">
+              <td className="p-2 border">
                 <button
                   onClick={() => openQR(s.sessionId)}
-                  className="text-blue-500 underline text-xs block"
-                >Show QR</button>
-                <a
-                  href={`${BASE_URL}/whatsapp/session/${s.sessionId}/qr-image`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-indigo-500 underline text-xs block"
-                >Open QR Page</a>
+                  className="text-blue-500 underline text-xs"
+                >
+                  Show QR
+                </button>
               </td>
             </tr>
           ))}
           {!sessions.length && (
             <tr>
-              <td colSpan="6" className="p-4 text-center text-gray-500">No sessions found.</td>
+              <td colSpan="5" className="p-4 text-center text-gray-500">
+                No sessions found.
+              </td>
             </tr>
           )}
         </tbody>
