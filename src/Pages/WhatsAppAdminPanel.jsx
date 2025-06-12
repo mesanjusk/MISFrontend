@@ -6,13 +6,21 @@ const BASE_URL = 'https://misbackend-e078.onrender.com';
 export default function WhatsAppAdminPanel() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [qrModal, setQrModal] = useState({ open: false, sessionId: '', qrImage: '' });
+  const [qrSession, setQrSession] = useState(null);
+  const [qrImage, setQrImage] = useState(null);
+  const [qrStatus, setQrStatus] = useState('pending');
+  const [lastUpdatedMap, setLastUpdatedMap] = useState({});
+  const [newSessionId, setNewSessionId] = useState('');
 
   const fetchSessions = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/sessions`);
+      const res = await axios.get(`${BASE_URL}/whatsapp/sessions`);
       if (res.data.success) {
         setSessions(res.data.sessions);
+        const now = Date.now();
+        const updated = {};
+        res.data.sessions.forEach(s => updated[s.sessionId] = now);
+        setLastUpdatedMap(prev => ({ ...prev, ...updated }));
       }
     } catch (err) {
       console.error('Failed to fetch sessions:', err);
@@ -22,8 +30,8 @@ export default function WhatsAppAdminPanel() {
   const resetSession = async (sessionId) => {
     if (!window.confirm(`Reset session ${sessionId}? This will force QR login again.`)) return;
     try {
-      await axios.post(`${BASE_URL}/reset-session`, { sessionId });
-      alert(`✅ Session ${sessionId} reset. Restart backend to re-init.`);
+      await axios.delete(`${BASE_URL}/whatsapp/session/${sessionId}`);
+      alert(`✅ Session ${sessionId} reset.`);
       fetchSessions();
     } catch (err) {
       alert(`❌ Failed to reset session ${sessionId}`);
@@ -33,7 +41,7 @@ export default function WhatsAppAdminPanel() {
   const startSession = async (sessionId) => {
     setLoading(true);
     try {
-      await axios.post(`${BASE_URL}/start-session`, { sessionId });
+      await axios.post(`${BASE_URL}/whatsapp/session/${sessionId}/init`);
       alert(`✅ Session ${sessionId} started.`);
       fetchSessions();
     } catch (err) {
@@ -43,35 +51,70 @@ export default function WhatsAppAdminPanel() {
     }
   };
 
-  const openQrModal = async (sessionId) => {
-    try {
-      const res = await axios.get(`${BASE_URL}/whatsapp/session/${sessionId}/qr`);
-      if (res.data.status === 'ready') {
-        setQrModal({ open: true, sessionId, qrImage: res.data.qrImage });
-      } else {
-        alert(res.data.message || 'QR not ready yet. Try again shortly.');
-      }
-    } catch (err) {
-      alert('❌ Failed to load QR image');
-    }
+  const openQR = async (sessionId) => {
+    setQrSession(sessionId);
+    await fetchQR(sessionId);
   };
 
-  const closeQrModal = () => {
-    setQrModal({ open: false, sessionId: '', qrImage: '' });
+  const fetchQR = async (sessionId) => {
+    try {
+      const res = await axios.get(`${BASE_URL}/whatsapp/session/${sessionId}/qr`);
+      setQrStatus(res.data.status);
+      if (res.data.qrImage) setQrImage(res.data.qrImage);
+    } catch (err) {
+      setQrStatus('error');
+    }
   };
 
   useEffect(() => {
     fetchSessions();
+    const interval = setInterval(fetchSessions, 30000); // Refresh session list every 30s
+    return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (!qrSession || qrStatus === 'ready') return;
+    const interval = setInterval(() => fetchQR(qrSession), 10000);
+    return () => clearInterval(interval);
+  }, [qrSession, qrStatus]);
+
+  const addNewSession = async () => {
+    if (!newSessionId) return;
+    await startSession(newSessionId);
+    setNewSessionId('');
+  };
+
+  const minutesAgo = (ts) => {
+    const mins = Math.floor((Date.now() - ts) / 60000);
+    return mins <= 0 ? 'Just now' : `${mins} min ago`;
+  };
+
   return (
-    <div className="max-w-3xl mx-auto p-6 relative">
+    <div className="max-w-3xl mx-auto p-6">
       <h2 className="text-2xl font-bold mb-4">🛠️ WhatsApp Session Admin</h2>
+
+      <div className="flex gap-2 mb-4">
+        <input
+          type="text"
+          placeholder="New session ID"
+          className="border px-3 py-2 text-sm rounded w-full"
+          value={newSessionId}
+          onChange={(e) => setNewSessionId(e.target.value)}
+        />
+        <button
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
+          onClick={addNewSession}
+        >
+          + Add
+        </button>
+      </div>
+
       <table className="w-full text-sm border">
         <thead>
           <tr className="bg-gray-100">
             <th className="p-2 border">Session ID</th>
             <th className="p-2 border">Status</th>
+            <th className="p-2 border">Last Seen</th>
             <th className="p-2 border">Actions</th>
             <th className="p-2 border">QR</th>
           </tr>
@@ -86,6 +129,13 @@ export default function WhatsAppAdminPanel() {
                 ) : (
                   <span className="text-yellow-600 font-medium">🕓 Not Ready</span>
                 )}
+                {!s.ready && lastUpdatedMap[s.sessionId] &&
+                  Date.now() - lastUpdatedMap[s.sessionId] > 5 * 60 * 1000 && (
+                    <span className="ml-1 text-red-600">⚠️</span>
+                  )}
+              </td>
+              <td className="p-2 border text-xs text-gray-500">
+                {lastUpdatedMap[s.sessionId] ? minutesAgo(lastUpdatedMap[s.sessionId]) : 'Unknown'}
               </td>
               <td className="p-2 border space-x-2">
                 <button
@@ -104,17 +154,17 @@ export default function WhatsAppAdminPanel() {
               </td>
               <td className="p-2 border">
                 <button
-                  onClick={() => openQrModal(s.sessionId)}
-                  className="text-blue-600 hover:underline text-xs"
+                  onClick={() => openQR(s.sessionId)}
+                  className="text-blue-500 underline text-xs"
                 >
-                  View QR
+                  Show QR
                 </button>
               </td>
             </tr>
           ))}
           {!sessions.length && (
             <tr>
-              <td colSpan="4" className="p-4 text-center text-gray-500">
+              <td colSpan="5" className="p-4 text-center text-gray-500">
                 No sessions found.
               </td>
             </tr>
@@ -123,17 +173,20 @@ export default function WhatsAppAdminPanel() {
       </table>
 
       {/* QR Modal */}
-      {qrModal.open && (
+      {qrSession && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg text-center relative">
-            <h3 className="text-lg font-bold mb-2">Scan QR - {qrModal.sessionId}</h3>
-            <img src={qrModal.qrImage} alt="QR Code" className="mx-auto mb-4" />
-            <button
-              onClick={closeQrModal}
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
-            >
-              ✕
-            </button>
+          <div className="bg-white rounded-lg p-6 shadow-xl w-[300px]">
+            <h3 className="font-bold text-lg mb-2">Scan QR - {qrSession}</h3>
+            {qrStatus === 'ready' && qrImage ? (
+              <img src={qrImage} alt="QR Code" className="w-full" />
+            ) : qrStatus === 'pending' ? (
+              <p className="text-sm text-gray-500">QR code not ready yet...</p>
+            ) : (
+              <p className="text-sm text-red-500">Failed to load QR.</p>
+            )}
+            <div className="text-right mt-4">
+              <button onClick={() => setQrSession(null)} className="text-sm text-blue-500">Close</button>
+            </div>
           </div>
         </div>
       )}
