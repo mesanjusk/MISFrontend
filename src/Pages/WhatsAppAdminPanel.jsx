@@ -6,6 +6,7 @@ const BASE_URL = 'https://misbackend-e078.onrender.com';
 export default function WhatsAppAdminPanel() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [qrModal, setQrModal] = useState({ open: false, sessionId: '', qrImage: '' });
 
   const fetchSessions = async () => {
     try {
@@ -42,12 +43,29 @@ export default function WhatsAppAdminPanel() {
     }
   };
 
+  const openQrModal = async (sessionId) => {
+    try {
+      const res = await axios.get(`${BASE_URL}/whatsapp/session/${sessionId}/qr`);
+      if (res.data.status === 'ready') {
+        setQrModal({ open: true, sessionId, qrImage: res.data.qrImage });
+      } else {
+        alert(res.data.message || 'QR not ready yet. Try again shortly.');
+      }
+    } catch (err) {
+      alert('❌ Failed to load QR image');
+    }
+  };
+
+  const closeQrModal = () => {
+    setQrModal({ open: false, sessionId: '', qrImage: '' });
+  };
+
   useEffect(() => {
     fetchSessions();
   }, []);
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
+    <div className="max-w-3xl mx-auto p-6 relative">
       <h2 className="text-2xl font-bold mb-4">🛠️ WhatsApp Session Admin</h2>
       <table className="w-full text-sm border">
         <thead>
@@ -55,7 +73,7 @@ export default function WhatsAppAdminPanel() {
             <th className="p-2 border">Session ID</th>
             <th className="p-2 border">Status</th>
             <th className="p-2 border">Actions</th>
-            <th className="p-2 border">QR Page</th>
+            <th className="p-2 border">QR</th>
           </tr>
         </thead>
         <tbody>
@@ -85,14 +103,12 @@ export default function WhatsAppAdminPanel() {
                 </button>
               </td>
               <td className="p-2 border">
-                <a
-                  href={`/qr/${s.sessionId}`}
-                  className="text-blue-500 underline text-xs"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => openQrModal(s.sessionId)}
+                  className="text-blue-600 hover:underline text-xs"
                 >
-                  Open QR
-                </a>
+                  View QR
+                </button>
               </td>
             </tr>
           ))}
@@ -105,6 +121,22 @@ export default function WhatsAppAdminPanel() {
           )}
         </tbody>
       </table>
+
+      {/* QR Modal */}
+      {qrModal.open && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg text-center relative">
+            <h3 className="text-lg font-bold mb-2">Scan QR - {qrModal.sessionId}</h3>
+            <img src={qrModal.qrImage} alt="QR Code" className="mx-auto mb-4" />
+            <button
+              onClick={closeQrModal}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
