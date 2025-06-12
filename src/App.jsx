@@ -53,6 +53,7 @@ import AddPayable from "./Pages/addPayable";
 import SendMessage from "./Pages/SendMessage";
 import SendMessageAll from "./Pages/SendMessageAll";
 import WhatsAppLogin from "./Pages/WhatsAppLogin";
+import WhatsAppSession from "./Pages/WhatsAppSession";
 import PendingTasks from './Pages/PendingTasks';
 import AllAttandance from './Pages/AllAttandance';
 import CashLedger from "./Pages/CashLedger";
@@ -117,6 +118,7 @@ function App() {
                     <Route path="/SendMessage" element={< SendMessage />} />
                     <Route path="/SendMessageAll" element={< SendMessageAll />} />
                     <Route path="/WhatsAppLogin" element={< WhatsAppLogin />} />
+                    <Route path="/WhatsAppSession" element={< WhatsAppSession />} />
                     <Route path="/PendingTasks" element={< PendingTasks />} />
                     <Route path="/AllAttandance" element={< AllAttandance />} />
                     <Route path="/CashLedger" element={< CashLedger />} />
