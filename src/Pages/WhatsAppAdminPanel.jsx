@@ -9,6 +9,7 @@ export default function WhatsAppAdminPanel() {
   const [qrSession, setQrSession] = useState(null);
   const [qrImage, setQrImage] = useState(null);
   const [qrStatus, setQrStatus] = useState('pending');
+  const [lastUpdatedMap, setLastUpdatedMap] = useState({});
   const [newSessionId, setNewSessionId] = useState('');
 
   const fetchSessions = async () => {
@@ -16,6 +17,10 @@ export default function WhatsAppAdminPanel() {
       const res = await axios.get(`${BASE_URL}/whatsapp/sessions`);
       if (res.data.success) {
         setSessions(res.data.sessions);
+        const now = Date.now();
+        const updated = {};
+        res.data.sessions.forEach(s => updated[s.sessionId] = now);
+        setLastUpdatedMap(prev => ({ ...prev, ...updated }));
       }
     } catch (err) {
       console.error('Failed to fetch sessions:', err);
@@ -23,9 +28,10 @@ export default function WhatsAppAdminPanel() {
   };
 
   const resetSession = async (sessionId) => {
-    if (!window.confirm(`Reset session ${sessionId}? This will force QR login again.`)) return;
+    if (!window.confirm(`Reset session ${sessionId}?`)) return;
     try {
       await axios.post(`${BASE_URL}/whatsapp/reset-session`, { sessionId });
+      alert(`✅ Session ${sessionId} reset.`);
       fetchSessions();
     } catch (err) {
       alert(`❌ Failed to reset session ${sessionId}`);
@@ -33,9 +39,11 @@ export default function WhatsAppAdminPanel() {
   };
 
   const startSession = async (sessionId) => {
+    if (!sessionId) return;
     setLoading(true);
     try {
       await axios.post(`${BASE_URL}/whatsapp/start-session`, { sessionId });
+      alert(`✅ Session ${sessionId} started.`);
       fetchSessions();
     } catch (err) {
       alert(`❌ Failed to start session ${sessionId}`);
@@ -61,7 +69,7 @@ export default function WhatsAppAdminPanel() {
 
   useEffect(() => {
     fetchSessions();
-    const interval = setInterval(fetchSessions, 30000);
+    const interval = setInterval(fetchSessions, 30000); // Refresh session list every 30s
     return () => clearInterval(interval);
   }, []);
 
@@ -71,29 +79,19 @@ export default function WhatsAppAdminPanel() {
     return () => clearInterval(interval);
   }, [qrSession, qrStatus]);
 
-  const addNewSession = async () => {
-    if (!newSessionId) return;
-    await startSession(newSessionId);
+  const handleAddSession = async () => {
+    if (!newSessionId.trim()) return;
+    await startSession(newSessionId.trim());
     setNewSessionId('');
   };
 
   const minutesAgo = (ts) => {
-    const mins = Math.floor((Date.now() - new Date(ts)) / 60000);
+    const mins = Math.floor((Date.now() - ts) / 60000);
     return mins <= 0 ? 'Just now' : `${mins} min ago`;
   };
 
-  const isStuck = (s) => {
-    const now = Date.now();
-    return !s.ready && s.lastQRTime && (now - new Date(s.lastQRTime)) > 10 * 60 * 1000;
-  };
-
-  const isIdle = (s) => {
-    const now = Date.now();
-    return s.lastMessageTime && (now - new Date(s.lastMessageTime)) > 60 * 60 * 1000;
-  };
-
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-3xl mx-auto p-6">
       <h2 className="text-2xl font-bold mb-4">🛠️ WhatsApp Session Admin</h2>
 
       <div className="flex gap-2 mb-4">
@@ -106,7 +104,7 @@ export default function WhatsAppAdminPanel() {
         />
         <button
           className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
-          onClick={addNewSession}
+          onClick={handleAddSession}
         >
           + Add
         </button>
@@ -117,7 +115,7 @@ export default function WhatsAppAdminPanel() {
           <tr className="bg-gray-100">
             <th className="p-2 border">Session ID</th>
             <th className="p-2 border">Status</th>
-            <th className="p-2 border">Last Times</th>
+            <th className="p-2 border">Last Seen</th>
             <th className="p-2 border">Actions</th>
             <th className="p-2 border">QR</th>
           </tr>
@@ -132,12 +130,13 @@ export default function WhatsAppAdminPanel() {
                 ) : (
                   <span className="text-yellow-600 font-medium">🕓 Not Ready</span>
                 )}
-                {isStuck(s) && <span className="ml-1 text-red-600">⚠️ Stuck</span>}
-                {isIdle(s) && <span className="ml-1 text-gray-500">💤 Idle</span>}
+                {!s.ready && lastUpdatedMap[s.sessionId] &&
+                  Date.now() - lastUpdatedMap[s.sessionId] > 5 * 60 * 1000 && (
+                    <span className="ml-1 text-red-600">⚠️</span>
+                  )}
               </td>
               <td className="p-2 border text-xs text-gray-500">
-                {s.lastQRTime && `QR: ${minutesAgo(s.lastQRTime)}`}<br />
-                {s.lastMessageTime && `Msg: ${minutesAgo(s.lastMessageTime)}`}
+                {lastUpdatedMap[s.sessionId] ? minutesAgo(lastUpdatedMap[s.sessionId]) : 'Unknown'}
               </td>
               <td className="p-2 border space-x-2">
                 <button
@@ -174,6 +173,7 @@ export default function WhatsAppAdminPanel() {
         </tbody>
       </table>
 
+      {/* QR Modal */}
       {qrSession && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 shadow-xl w-[300px]">
