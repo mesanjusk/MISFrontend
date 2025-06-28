@@ -1,5 +1,7 @@
 export default async function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) return;
+  if (!('serviceWorker' in navigator) || import.meta.env.DEV) {
+    return;
+  }
 
   try {
     const registration = await navigator.serviceWorker.register('/sw.js');
@@ -18,6 +20,8 @@ export default async function registerServiceWorker() {
               applicationServerKey: convertedKey,
             });
             console.log('Push subscription', JSON.stringify(subscription));
+          } else {
+            console.warn('VAPID key not configured; skipping push subscription');
           }
         }
       }
