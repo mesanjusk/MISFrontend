@@ -1,5 +1,8 @@
 import axios from 'axios';
 
+// Track all Axios requests and toggle the disabled state of
+// every form submit button while requests are in-flight.
+
 let activeRequests = 0;
 
 function toggleSubmitButtons(disabled) {
@@ -37,4 +40,3 @@ axios.interceptors.response.use(response => {
   return Promise.reject(error);
 });
 
-export {};
