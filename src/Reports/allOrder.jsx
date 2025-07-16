@@ -25,8 +25,10 @@ export default function AllOrder() {
     const [customers, setCustomers] = useState({});
     const [isLoading, setIsLoading] = useState(true);
 
+    // Fetch orders and customers on mount
     useEffect(() => {
         const fetchData = async () => {
+            setIsLoading(true);
             try {
                 const [ordersRes, customersRes] = await Promise.all([
                     axios.get("/order/GetOrderList"),
@@ -47,7 +49,9 @@ export default function AllOrder() {
                     setCustomers({});
                 }
             } catch (err) {
-                console.error("Error fetching data:", err);
+                alert("Failed to fetch orders or customers.");
+                setOrders([]);
+                setCustomers({});
             } finally {
                 setIsLoading(false);
             }
@@ -56,6 +60,7 @@ export default function AllOrder() {
         fetchData();
     }, []);
 
+    // Fetch tasks on mount
     useEffect(() => {
         const fetchTasks = async () => {
             try {
@@ -69,15 +74,18 @@ export default function AllOrder() {
                     setTasks([]);
                 }
             } catch (err) {
-                console.error("Error fetching tasks:", err);
+                // Optional: Add alert or toast
+                setTasks([]);
             }
         };
 
         fetchTasks();
     }, []);
 
+    // Unique task group names
     const taskOptions = [...new Set(tasks.map((task) => task.Task_group.trim()))];
 
+    // Map and filter orders based on search
     const filteredOrders = orders
         .map((order) => {
             const highestStatusTask = (order.Status && order.Status.length > 0)
@@ -101,11 +109,11 @@ export default function AllOrder() {
             return matchesSearch;
         });
 
+    // Modal Handlers
     const handleEditClick = (order) => {
         setSelectedOrder(order);
         setShowEditModal(true);
     };
-
     const handleOrder = () => setShowOrderModal(true);
     const closeModal = () => setShowOrderModal(false);
     const closeEditModal = () => {
@@ -113,6 +121,7 @@ export default function AllOrder() {
         setSelectedOrder(null);
     };
 
+    // Floating action buttons
     const buttonsList = [
         { onClick: () => navigate('/addTransaction'), src: reciept },
         { onClick: () => navigate('/addTransaction1'), src: payment },
@@ -122,10 +131,9 @@ export default function AllOrder() {
 
     return (
         <>
-            <div className="order-update-content bg-[#e5ddd5] ">
+            <div className="order-update-content bg-[#e5ddd5] min-h-screen">
                 <TopNavbar />
-                <div className="pt-5 pb-5">
-
+                <div className="pt-2 pb-2">
                     {/* Search Bar */}
                     <div className="flex flex-wrap bg-white w-full max-w-xl p-2 mx-auto rounded-full shadow-sm">
                         <input
@@ -145,80 +153,80 @@ export default function AllOrder() {
                                     ? Array(5).fill().map((_, index) => (
                                         <Skeleton key={index} height={80} width="100%" style={{ marginBottom: "10px" }} />
                                     ))
-                                    : taskOptions.map((taskGroup) => {
-                                        const taskGroupOrders = filteredOrders.filter(order => order.highestStatusTask?.Task === taskGroup);
+                                    : taskOptions.length === 0 ? (
+                                        <div className="text-center text-gray-400 py-20">No tasks found.</div>
+                                    ) : (
+                                        taskOptions.map((taskGroup) => {
+                                            const taskGroupOrders = filteredOrders.filter(order => order.highestStatusTask?.Task === taskGroup);
 
-                                        if (taskGroupOrders.length === 0) return null;
+                                            if (taskGroupOrders.length === 0) return null;
 
-                                        return (
-                                            <div key={taskGroup} className="mb-6 p-4 bg-[#e5ddd5] rounded-lg">
-                                                <h3 className="font-semibold text-lg text-green-700 mb-3">{taskGroup}</h3>
+                                            return (
+                                                <div key={taskGroup} className="mb-6 p-4 bg-[#e5ddd5] rounded-lg">
+                                                    <h3 className="font-semibold text-lg text-green-700 mb-3">{taskGroup}</h3>
+                                                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-2">
+                                                        {taskGroupOrders.map((order) => {
+                                                            // Date logic: don't mutate original dates!
+                                                            let latestStatusDate = order.highestStatusTask?.CreatedAt
+                                                                ? new Date(order.highestStatusTask.CreatedAt)
+                                                                : null;
+                                                            let timeDifference = 0;
+                                                            if (latestStatusDate) {
+                                                                const today = new Date();
+                                                                today.setHours(0, 0, 0, 0);
+                                                                const latest = new Date(latestStatusDate); // clone!
+                                                                latest.setHours(0, 0, 0, 0);
+                                                                const diffTime = today - latest;
+                                                                timeDifference = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                                                            }
+                                                            let cardClass = "bg-white";
+                                                            if (timeDifference === 0) cardClass = "bg-green-100";
+                                                            else if (timeDifference === 1) cardClass = "bg-yellow-100";
+                                                            else if (timeDifference >= 2) cardClass = "bg-red-100";
 
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-                                                    {taskGroupOrders.map((order) => {
-                                                        const latestStatusDateRaw = order.highestStatusTask?.CreatedAt;
-                                                        const latestStatusDate = latestStatusDateRaw ? new Date(latestStatusDateRaw) : null;
-                                                        const currentDate = new Date();
-
-                                                        let timeDifference = 0;
-                                                        if (latestStatusDate) {
-                                                            const current = new Date(currentDate.setHours(0, 0, 0, 0));
-                                                            const latest = new Date(latestStatusDate.setHours(0, 0, 0, 0));
-                                                            const diffTime = current - latest;
-                                                            timeDifference = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                                                        }
-
-                                                        let cardClass = "bg-white";
-                                                        if (timeDifference === 0) {
-                                                            cardClass = "bg-green-100";
-                                                        } else if (timeDifference === 1) {
-                                                            cardClass = "bg-yellow-100";
-                                                        } else if (timeDifference >= 2) {
-                                                            cardClass = "bg-red-100";
-                                                        }
-
-                                                        return (
-                                                            <div
-                                                                key={order.Order_uuid}
-                                                                className={`${cardClass} rounded-lg p-4 cursor-pointer hover:bg-green-50 transition-all`}
-                                                                onClick={() => handleEditClick(order)}
-                                                            >
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-full text-sm font-bold text-green-800">
-                                                                        {order.Order_Number}
-                                                                    </div>
-                                                                    <div className="flex-1">
-                                                                        <div className="flex justify-between items-center">
-                                                                            <div className="font-semibold text-gray-800 truncate">{order.Customer_name}</div>
-                                                                            <div className={`text-xs font-medium px-2 py-0.5 rounded-full
-                                                                                ${timeDifference === 0
-                                                                                    ? 'bg-green-200 text-green-800'
-                                                                                    : timeDifference === 1
-                                                                                        ? 'bg-yellow-200 text-yellow-800'
-                                                                                        : 'bg-red-200 text-red-800'}`}>
-                                                                                {timeDifference === 0
-                                                                                    ? 'Today'
-                                                                                    : timeDifference === 1
-                                                                                        ? '1 day '
-                                                                                        : `${timeDifference} days`}
+                                                            return (
+                                                                <div
+                                                                    key={order.Order_uuid}
+                                                                    className={`${cardClass} rounded-lg p-2 cursor-pointer hover:bg-green-50 transition-all`}
+                                                                    onClick={() => handleEditClick(order)}
+                                                                >
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-full text-sm font-bold text-green-800">
+                                                                            {order.Order_Number}
+                                                                        </div>
+                                                                        <div className="flex-1">
+                                                                            <div className="flex justify-between items-center">
+                                                                                <div className="font-semibold text-gray-800 truncate">{order.Customer_name}</div>
+                                                                                <div className={`text-xs font-medium px-1 py-0.5 rounded-full
+                                                                                    ${timeDifference === 0
+                                                                                        ? 'bg-green-200 text-green-800'
+                                                                                        : timeDifference === 1
+                                                                                            ? 'bg-yellow-200 text-yellow-800'
+                                                                                            : 'bg-red-200 text-red-800'}`}>
+                                                                                    {timeDifference === 0
+                                                                                        ? 'Today'
+                                                                                        : timeDifference === 1
+                                                                                            ? '1 day'
+                                                                                            : `${timeDifference} days`}
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="text-xs text-gray-500">
+                                                                                {order.highestStatusTask?.CreatedAt ? new Date(order.highestStatusTask.CreatedAt).toLocaleDateString() : ''} • {order.Remark}
                                                                             </div>
                                                                         </div>
-                                                                        <div className="text-xs text-gray-500">
-                                                                            {latestStatusDateRaw ? new Date(latestStatusDateRaw).toLocaleDateString() : ''} • {order.Remark}
-                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center mt-2 text-xs text-gray-600">
+                                                                        <span>{order.highestStatusTask?.Delivery_Date ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString() : ''}</span>
+                                                                        <span className="text-green-500">{order.highestStatusTask?.Assigned}</span>
                                                                     </div>
                                                                 </div>
-                                                                <div className="flex justify-between items-center mt-2 text-xs text-gray-600">
-                                                                    <span>{order.highestStatusTask?.Delivery_Date ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString() : ''}</span>
-                                                                    <span className="text-green-500">{order.highestStatusTask?.Assigned}</span>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        })
+                                    )}
                             </SkeletonTheme>
                         </div>
                     </main>
@@ -233,29 +241,49 @@ export default function AllOrder() {
 
                 {/* Modals */}
                 <Suspense fallback={
-                    <div className="flex justify-center items-center min-h-screen">
+                    <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-30 z-50">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
                     </div>
                 }>
                     {showOrderModal && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-                            <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4">
-                                <AddOrder1 closeModal={closeModal} />
-                            </div>
-                        </div>
+                        <Modal onClose={closeModal}>
+                            <AddOrder1 closeModal={closeModal} />
+                        </Modal>
                     )}
-
                     {showEditModal && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-                            <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4">
-                                <OrderUpdate order={selectedOrder} onClose={closeEditModal} />
-                            </div>
-                        </div>
+                        <Modal onClose={closeEditModal}>
+                            <OrderUpdate order={selectedOrder} onClose={closeEditModal} />
+                        </Modal>
                     )}
                 </Suspense>
-
                 <Footer />
             </div>
         </>
+    );
+}
+
+// --- Modal wrapper for DRYness and accessibility ---
+function Modal({ onClose, children }) {
+    // Close on overlay click
+    return (
+        <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
+            aria-modal="true"
+            role="dialog"
+            onClick={(e) => {
+                if (e.target === e.currentTarget) onClose();
+            }}
+        >
+            <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 relative">
+                {/* Optional: Close button at top right */}
+                <button
+                    className="absolute right-2 top-2 text-xl text-gray-400 hover:text-green-500"
+                    onClick={onClose}
+                    aria-label="Close"
+                    type="button"
+                >×</button>
+                {children}
+            </div>
+        </div>
     );
 }

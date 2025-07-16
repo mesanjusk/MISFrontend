@@ -1,9 +1,19 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import 'bootstrap/dist/css/bootstrap.min.css';
+import axios from 'axios';
+
+// New pages from first snippet
+import Login from "./Pages/Login";          // Make sure case matches your file/folder
+import Register from "./Pages/Register";
+import Planner from "./Pages/Planner";
+import Review from "./Pages/Review";
+import Team from "./Pages/Team";
+
+// Existing pages
 import Home from './Pages/home';
 import AddCustomer from "./Pages/addCustomer";
 import AddCustGroup from "./Pages/addCustomergroup";
-import 'bootstrap/dist//css/bootstrap.min.css'
 import AddUser from "./Pages/addUser";
 import AddUserGroup from "./Pages/addUsergroup"; 
 import AddItem from "./Pages/addItem";
@@ -15,12 +25,10 @@ import AddOrder from "./Pages/addOrder";
 import AddOrder1 from "./Pages/addOrder1";
 import AllOrder from "./Reports/allOrder";
 import AllDelivery from "./Reports/allDelivery";
-import Login from "./Pages/login";
 import OrderUpdate from "./Reports/orderUpdate";
 import Footer from "./Pages/footer";
 import TopNavbar from "./Pages/topNavbar";
 import AddEnquiry from "./Pages/addEnquiry";
-import axios from 'axios';
 import AddPayment from "./Pages/addPayment";
 import AddTransaction from "./Pages/addTransaction";
 import AllTransaction from "./Reports/allTransaction";
@@ -59,16 +67,20 @@ import PendingTasks from './Pages/PendingTasks';
 import AllAttandance from './Pages/AllAttandance';
 import CashLedger from "./Pages/CashLedger";
 
-
-
-
 function App() {
     axios.defaults.baseURL = "https://misbackend-e078.onrender.com/";
     return (
         <Router>
             <div>
                 <Routes>
-                    <Route path="/" element={<Login/>}/>
+                    {/* New auth/planner pages */}
+                    <Route path="/" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/planner" element={<Planner />} />
+                    <Route path="/review" element={<Review />} />
+                    <Route path="/team" element={<Team />} />
+
+                    {/* ERP/Admin routes */}
                     <Route path="/home" element={<Home />} />
                     <Route path="/adminHome" element={<AdminHome />} />
                     <Route path="/vendorHome" element={<VendorHome />} />
@@ -109,24 +121,21 @@ function App() {
                     <Route path="/editUser/:id" element={<EditUser />} />
                     <Route path="/editPayment/:id" element={<EditPayment />} />
                     <Route path="/editPriority/:id" element={<EditPriority />} />
-                    <Route path="/footer" element={< Footer /> } />
-                    <Route path="/header" element={< TopNavbar />} />
-                    <Route path="/customerMobile" element={< SearchMobile />} />
-                    <Route path="/addUsertask" element={< AddUsertask />} />
-                    <Route path="/calllogs" element={< CallLogs />} />
-                    <Route path="/addRecievable" element={< AddRecievable />} />
-                    <Route path="/addPayable" element={< AddPayable />} />
-                    <Route path="/SendMessage" element={< SendMessage />} />
-                    <Route path="/SendMessageAll" element={< SendMessageAll />} />
-                    <Route path="/WhatsAppLogin" element={< WhatsAppLogin />} />
-                    <Route path="/WhatsAppAdminPanel" element={< WhatsAppAdminPanel />} />
-                    <Route path="/WhatsAppSession" element={< WhatsAppSession />} />
-                    <Route path="/PendingTasks" element={< PendingTasks />} />
-                    <Route path="/AllAttandance" element={< AllAttandance />} />
-                    <Route path="/CashLedger" element={< CashLedger />} />
-
-                    
-                    
+                    <Route path="/footer" element={<Footer />} />
+                    <Route path="/header" element={<TopNavbar />} />
+                    <Route path="/customerMobile" element={<SearchMobile />} />
+                    <Route path="/addUsertask" element={<AddUsertask />} />
+                    <Route path="/calllogs" element={<CallLogs />} />
+                    <Route path="/addRecievable" element={<AddRecievable />} />
+                    <Route path="/addPayable" element={<AddPayable />} />
+                    <Route path="/SendMessage" element={<SendMessage />} />
+                    <Route path="/SendMessageAll" element={<SendMessageAll />} />
+                    <Route path="/WhatsAppLogin" element={<WhatsAppLogin />} />
+                    <Route path="/WhatsAppAdminPanel" element={<WhatsAppAdminPanel />} />
+                    <Route path="/WhatsAppSession" element={<WhatsAppSession />} />
+                    <Route path="/PendingTasks" element={<PendingTasks />} />
+                    <Route path="/AllAttandance" element={<AllAttandance />} />
+                    <Route path="/CashLedger" element={<CashLedger />} />
                 </Routes>
             </div>
         </Router>
