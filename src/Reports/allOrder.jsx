@@ -74,7 +74,6 @@ export default function AllOrder() {
                     setTasks([]);
                 }
             } catch (err) {
-                // Optional: Add alert or toast
                 setTasks([]);
             }
         };
@@ -151,10 +150,10 @@ export default function AllOrder() {
                             <SkeletonTheme>
                                 {isLoading
                                     ? Array(5).fill().map((_, index) => (
-                                        <Skeleton key={index} height={80} width="100%" style={{ marginBottom: "10px" }} />
+                                        <Skeleton key={index} height={80} width="100%" style={{ marginBottom: "5px" }} />
                                     ))
                                     : taskOptions.length === 0 ? (
-                                        <div className="text-center text-gray-400 py-20">No tasks found.</div>
+                                        <div className="text-center text-gray-400 py-10">No tasks found.</div>
                                     ) : (
                                         taskOptions.map((taskGroup) => {
                                             const taskGroupOrders = filteredOrders.filter(order => order.highestStatusTask?.Task === taskGroup);
@@ -162,22 +161,25 @@ export default function AllOrder() {
                                             if (taskGroupOrders.length === 0) return null;
 
                                             return (
-                                                <div key={taskGroup} className="mb-6 p-4 bg-[#e5ddd5] rounded-lg">
+                                                <div key={taskGroup} className="mb-2 p-2 bg-[#e5ddd5] rounded-lg">
                                                     <h3 className="font-semibold text-lg text-green-700 mb-3">{taskGroup}</h3>
                                                     <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-2">
+                                                        {/* --- Updated order card --- */}
                                                         {taskGroupOrders.map((order) => {
-                                                            // Date logic: don't mutate original dates!
+                                                            // Date logic for delay days
                                                             let latestStatusDate = order.highestStatusTask?.CreatedAt
                                                                 ? new Date(order.highestStatusTask.CreatedAt)
                                                                 : null;
                                                             let timeDifference = 0;
+                                                            let formattedDate = '';
                                                             if (latestStatusDate) {
                                                                 const today = new Date();
                                                                 today.setHours(0, 0, 0, 0);
-                                                                const latest = new Date(latestStatusDate); // clone!
+                                                                const latest = new Date(latestStatusDate);
                                                                 latest.setHours(0, 0, 0, 0);
                                                                 const diffTime = today - latest;
                                                                 timeDifference = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                                                                formattedDate = latestStatusDate.toLocaleDateString();
                                                             }
                                                             let cardClass = "bg-white";
                                                             if (timeDifference === 0) cardClass = "bg-green-100";
@@ -190,38 +192,35 @@ export default function AllOrder() {
                                                                     className={`${cardClass} rounded-lg p-2 cursor-pointer hover:bg-green-50 transition-all`}
                                                                     onClick={() => handleEditClick(order)}
                                                                 >
-                                                                    <div className="flex items-center gap-2">
-                                                                        <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-full text-sm font-bold text-green-800">
-                                                                            {order.Order_Number}
-                                                                        </div>
-                                                                        <div className="flex-1">
-                                                                            <div className="flex justify-between items-center">
-                                                                                <div className="font-semibold text-gray-800 truncate">{order.Customer_name}</div>
-                                                                                <div className={`text-xs font-medium px-1 py-0.5 rounded-full
-                                                                                    ${timeDifference === 0
-                                                                                        ? 'bg-green-200 text-green-800'
-                                                                                        : timeDifference === 1
-                                                                                            ? 'bg-yellow-200 text-yellow-800'
-                                                                                            : 'bg-red-200 text-red-800'}`}>
-                                                                                    {timeDifference === 0
-                                                                                        ? 'Today'
-                                                                                        : timeDifference === 1
-                                                                                            ? '1 day'
-                                                                                            : `${timeDifference} days`}
-                                                                                </div>
-                                                                            </div>
-                                                                            <div className="text-xs text-gray-500">
-                                                                                {order.highestStatusTask?.CreatedAt ? new Date(order.highestStatusTask.CreatedAt).toLocaleDateString() : ''} • {order.Remark}
-                                                                            </div>
-                                                                        </div>
+                                                                    <div className="font-medium text-gray-800 truncate">
+                                                                        {order.Customer_name}
                                                                     </div>
-                                                                    <div className="flex justify-between items-center mt-2 text-xs text-gray-600">
-                                                                        <span>{order.highestStatusTask?.Delivery_Date ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString() : ''}</span>
-                                                                        <span className="text-green-500">{order.highestStatusTask?.Assigned}</span>
+
+                                                                    {/* Row 1: Order number, delay days, latest update date */}
+                                                                    <div className="flex items-center justify-between mb-2">
+                                                                        <span className="font-bold text-green-700 text-lg">{order.Order_Number}</span>
+                                                                        <span className={
+                                                                            `text-xs font-semibold px-2 py-1 rounded-full
+                                                                            ${timeDifference === 0
+                                                                                ? 'bg-green-200 text-green-800'
+                                                                                : timeDifference === 1
+                                                                                    ? 'bg-yellow-200 text-yellow-800'
+                                                                                    : 'bg-red-200 text-red-800'}`
+                                                                        }>
+                                                                            {timeDifference === 0
+                                                                                ? 'Today'
+                                                                                : timeDifference === 1
+                                                                                    ? '1 day'
+                                                                                    : `${timeDifference} days`}
+                                                                        </span>
+                                                                        <span className="text-xs text-gray-500">{formattedDate}</span>
                                                                     </div>
+                                                                    {/* Row 2: Customer name */}
+                                                                    
                                                                 </div>
                                                             );
                                                         })}
+                                                        {/* --- End updated order card --- */}
                                                     </div>
                                                 </div>
                                             );
@@ -264,7 +263,6 @@ export default function AllOrder() {
 
 // --- Modal wrapper for DRYness and accessibility ---
 function Modal({ onClose, children }) {
-    // Close on overlay click
     return (
         <div
             className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
@@ -275,7 +273,6 @@ function Modal({ onClose, children }) {
             }}
         >
             <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 relative">
-                {/* Optional: Close button at top right */}
                 <button
                     className="absolute right-2 top-2 text-xl text-gray-400 hover:text-green-500"
                     onClick={onClose}
