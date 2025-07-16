@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import axios from 'axios';
 
 // New pages from first snippet
-import Login from "./Pages/Login";          // Make sure case matches your file/folder
+import Login from "./Pages/login";          // Make sure case matches your file/folder
 import Register from "./Pages/Register";
 import Planner from "./Pages/Planner";
 import Review from "./Pages/Review";
