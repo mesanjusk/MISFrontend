@@ -19,8 +19,8 @@ export default function OrderUpdate({ order, onClose }) {
   const [userOptions, setUserOptions] = useState([]);
   const [showVendorModal, setShowVendorModal] = useState(false);
   const [showClickModal, setShowClickModal] = useState(false);
-   const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState(null);  
+  const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const [values, setValues] = useState({
     id: order?._id || '',
     Customer_name: order?.Customer_name || '',
@@ -39,7 +39,7 @@ export default function OrderUpdate({ order, onClose }) {
     axios.get("/taskgroup/GetTaskgroupList")
       .then(res => {
         if (res.data.success) {
-          const filteredData = res.data.result.filter(item => item.Id === 1); 
+          const filteredData = res.data.result.filter(item => item.Id === 1);
           const options = res.data.result.map(item => item.Task_group);
           setTaskOptions(options);
           setTaskId(filteredData);
@@ -95,44 +95,38 @@ export default function OrderUpdate({ order, onClose }) {
       })
       .catch(err => console.log('Error fetching customers list:', err));
   }, []);
-  
- 
+
   useEffect(() => {
     if (values.Order_uuid) {
       axios.get(`/note/${values.Order_uuid}`)
-      .then(res => {
-        if (res.data.success) {
-          setNotes(res.data.result);
-        } else {
+        .then(res => {
+          if (res.data.success) {
+            setNotes(res.data.result);
+          } else {
+            setNotes([]);
+          }
+        })
+        .catch(err => {
           setNotes([]);
-        }
-      })
-      .catch(err => {
-        setNotes([]);
-      });
+        });
     } else {
       console.warn("No Order_uuid provided, skipping notes fetch.");
     }
   }, [values.Order_uuid]);
-  
-  
 
   const handleSaveChanges = (e) => {
     e.preventDefault();
-  
     if (!values.Task || !values.Assigned) {
       alert('Task & Assigned are required.');
       return;
     }
-  
     const today = new Date().toISOString().split('T')[0];
-
     const updatedValues = {
       ...values,
       CreatedAt: new Date().toISOString(),
-      Delivery_Date: values.Delivery_Date || today, 
+      Delivery_Date: values.Delivery_Date || today,
     };
-  
+
     axios.post('/order/addStatus', {
       orderId: values.id,
       newStatus: {
@@ -155,153 +149,157 @@ export default function OrderUpdate({ order, onClose }) {
   };
 
   const handleVendorClick = (order) => {
-    setSelectedOrder(order); 
-    setShowVendorModal(true);  
+    setSelectedOrder(order);
+    setShowVendorModal(true);
   };
 
-  
   const handleAdvanceCheckboxChange = () => {
     setIsAdvanceChecked(prev => {
-        const newCheckedState = !prev;
-
-        setValues(values => ({
-            ...values,
-            Delivery_Date: newCheckedState ? '' : new Date().toISOString().split('T')[0], 
-        }));
-
-        return newCheckedState;
+      const newCheckedState = !prev;
+      setValues(values => ({
+        ...values,
+        Delivery_Date: newCheckedState ? '' : new Date().toISOString().split('T')[0],
+      }));
+      return newCheckedState;
     });
-};
+  };
 
   const closeVendorModal = () => {
-    setShowVendorModal(false); 
-    setSelectedOrder(null); 
+    setShowVendorModal(false);
+    setSelectedOrder(null);
   };
 
   const closeClickModal = () => {
-    setShowClickModal(false); 
-    setSelectedOrder(null); 
+    setShowClickModal(false);
+    setSelectedOrder(null);
   };
 
-
   return (
-    <>
-
-<div className="vh-100 pt-1 flex flex-col">
-  {/* HEADER */}
-  <div className="px-2 pt-2 bg-green-200 flex items-center justify-between rounded-b-md shadow-sm">
-    <div className="flex items-center gap-3">
-      <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+    <div className="min-h-screen bg-[#f0f2f5] flex justify-center items-center px-4">
+  <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-6">
+    {/* Header Info */}
+    <div className="flex items-center gap-3 mb-2">
+      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-base">
         <strong className="text-gray-500">{values.Order_Number}</strong>
       </div>
       <div>
         <strong className="text-lg text-gray-900">{values.Customer_name}</strong>
-        <div className="text-sm text-gray-600">
+        {values.Remark && (
+          <div className="text-xs text-gray-500 mt-0.5">{values.Remark}</div>
+        )}
+        <div className="text-xs text-gray-600">
           {notes
             .filter(note => note.Order_uuid === values.Order_uuid)
             .map((note, index) => (
               <div key={index}>{note.Note_name}</div>
             ))}
         </div>
-        
       </div>
     </div>
 
-    <div className="flex gap-2">
+    {/* Action Buttons Row */}
+    <div className="flex flex-wrap gap-2 my-3">
       <EditOrder order={order} />
       <Print order={order} />
-      <WhatsApp  order={order} />    
-     <Note order={order} />
+      <WhatsApp order={order} />
+      <Note order={order} />
       <EditCustomer order={order} />
     </div>
-  </div>
 
-  {/* MAIN BODY */}
-  <div className="flex-1 overflow-y-scroll bg-gray-100 p-4">
-    {/* Remark Section */}
-    <div className="bg-green-100 p-3 mb-4 rounded-lg shadow w-3/4 ml-auto">
-      <p className="text-sm text-gray-600">{values.Remark}</p>
-    </div>
-
-    {/* Status Updates */}
+    {/* Status Table */}
     {values.Status?.length > 0 ? (
-      values.Status.map((status, index) => (
-        <div key={index} className="bg-white p-3 mb-3 rounded-lg shadow w-3/4">
-          <div className="text-sm text-gray-700">
-            <div><strong>Date:</strong> {new Date(status.CreatedAt).toLocaleDateString()}</div>
-            <div><strong>Task:</strong> {status.Task}</div>
-            <div><strong>User:</strong> {status.Assigned}</div>
-            <div><strong>Delivery:</strong> {new Date(status.Delivery_Date).toLocaleDateString()}</div>
-          </div>
-        </div>
-      ))
+      <div className="overflow-x-auto mb-6">
+        <table className="min-w-full w-full bg-white rounded-lg shadow border text-xs">
+          <thead>
+            <tr>
+              <th className="px-2 py-2 text-left font-bold text-gray-700">#</th>
+              <th className="px-2 py-2 text-left font-bold text-gray-700">Date</th>
+              <th className="px-2 py-2 text-left font-bold text-gray-700">Task</th>
+              <th className="px-2 py-2 text-left font-bold text-gray-700">User</th>
+              <th className="px-2 py-2 text-left font-bold text-gray-700">Delivery</th>
+            </tr>
+          </thead>
+          <tbody>
+            {values.Status.map((status, idx) => (
+              <tr key={idx} className="border-t">
+                <td className="px-2 py-2">{idx + 1}</td>
+                <td className="px-2 py-2">{status.CreatedAt ? new Date(status.CreatedAt).toLocaleDateString() : "-"}</td>
+                <td className="px-2 py-2">{status.Task || "-"}</td>
+                <td className="px-2 py-2">{status.Assigned || "-"}</td>
+                <td className="px-2 py-2">{status.Delivery_Date ? new Date(status.Delivery_Date).toLocaleDateString() : "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     ) : (
-      <div className="text-center text-gray-500">No status data available</div>
+      <div className="text-center text-gray-500 mb-6 text-sm">No status data available</div>
     )}
 
     {/* Update Form */}
-    <form onSubmit={handleSaveChanges} className="mt-4 space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="block mb-1 text-sm font-medium">Update Job Status</label>
-          <select
-            className="w-full border border-gray-300 rounded p-2"
-            value={values.Task}
-            onChange={(e) => setValues({ ...values, Task: e.target.value })}
-          >
-            <option value="">Select Task</option>
-            {taskOptions.map((option, i) => (
-              <option key={i} value={option}>{option}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block mb-1 text-sm font-medium">Assign User</label>
-          <select
-            className="w-full border border-gray-300 rounded p-2"
-            value={values.Assigned}
-            onChange={(e) => setValues({ ...values, Assigned: e.target.value })}
-          >
-            <option value="">Select User</option>
-            {userOptions.map((option, i) => (
-              <option key={i} value={option}>{option}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex items-center mt-6 gap-2">
-          <input
-            type="checkbox"
-            id="advanceCheckbox"
-            checked={isAdvanceChecked}
-            onChange={handleAdvanceCheckboxChange}
-          />
-          <label htmlFor="advanceCheckbox" className="text-sm">Update Date</label>
-        </div>
-
-        {isAdvanceChecked && (
-          <div className="md:col-span-3">
-            <input
-              type="date"
-              className="w-full border border-gray-300 rounded p-2"
-              value={values.Delivery_Date}
-              onChange={(e) => setValues({ ...values, Delivery_Date: e.target.value })}
-            />
-          </div>
-        )}
+    <form onSubmit={handleSaveChanges} className="space-y-4">
+      <div>
+        <label className="block font-medium text-gray-700 mb-1">Update Job Status</label>
+        <select
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
+          value={values.Task}
+          onChange={(e) => setValues({ ...values, Task: e.target.value })}
+        >
+          <option value="">Select Task</option>
+          {taskOptions.map((option, i) => (
+            <option key={i} value={option}>{option}</option>
+          ))}
+        </select>
       </div>
-
-      {/* Buttons */}
-      <div className="flex flex-wrap gap-2 mt-6">
-        <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-          UPDATE
+      <div>
+        <label className="block font-medium text-gray-700 mb-1">Assign User</label>
+        <select
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
+          value={values.Assigned}
+          onChange={(e) => setValues({ ...values, Assigned: e.target.value })}
+        >
+          <option value="">Select User</option>
+          {userOptions.map((option, i) => (
+            <option key={i} value={option}>{option}</option>
+          ))}
+        </select>
+      </div>
+      <div className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          id="advanceCheckbox"
+          checked={isAdvanceChecked}
+          onChange={handleAdvanceCheckboxChange}
+          className="h-4 w-4 text-[#25d366] focus:ring-[#25d366] border-gray-300 rounded"
+        />
+        <label htmlFor="advanceCheckbox" className="text-gray-700">Update Date</label>
+      </div>
+      {isAdvanceChecked && (
+        <div>
+          <label className="block font-medium text-gray-700 mb-1">Delivery Date</label>
+          <input
+            type="date"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
+            value={values.Delivery_Date}
+            onChange={(e) => setValues({ ...values, Delivery_Date: e.target.value })}
+          />
+        </div>
+      )}
+      <div className="flex flex-col space-y-2">
+        <button
+          type="submit"
+          className="bg-[#25d366] hover:bg-[#128c7e] text-white font-medium py-2 rounded-lg transition"
+        >
+          Update
         </button>
-        <button type="button" className="bg-gray-300 text-black px-4 py-2 rounded" onClick={onClose}>
+        <button
+          type="button"
+          className="bg-gray-400 hover:bg-gray-600 text-white font-medium py-2 rounded-lg transition"
+          onClick={onClose}
+        >
           Cancel
         </button>
-       
-
+        {/* Vendor group buttons */}
         {values.Status?.length > 0 && taskId.length > 0 &&
           values.Status.reduce((acc, status) => {
             const match = taskId.find(task => task.Task_group === status.Task && task.Id === 1);
@@ -311,7 +309,7 @@ export default function OrderUpdate({ order, onClose }) {
             <button
               key={i}
               type="button"
-              className="bg-indigo-500 text-white px-4 py-2 rounded"
+              className="bg-indigo-500 text-white font-medium py-2 rounded-lg transition"
               onClick={() => handleVendorClick(order)}
             >
               {group}
@@ -319,22 +317,21 @@ export default function OrderUpdate({ order, onClose }) {
           ))}
       </div>
     </form>
+
+    {/* Modals */}
+    {showVendorModal && (
+      <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <Vendor order={selectedOrder} onClose={closeVendorModal} />
+      </div>
+    )}
+    {showClickModal && (
+      <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <VendorDetails order={selectedOrder} onClose={closeClickModal} />
+      </div>
+    )}
   </div>
-
-  {showVendorModal && (
-    <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-      <Vendor order={selectedOrder} onClose={closeVendorModal} />
-    </div>
-  )}
-
-  {showClickModal && (
-    <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-      <VendorDetails order={selectedOrder} onClose={closeClickModal} />
-    </div>
-  )}
 </div>
-      
 
-    </>
+
   );
 }
