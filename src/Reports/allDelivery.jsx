@@ -168,19 +168,19 @@ export default function AllDelivery() {
   return (
     <>
       <TopNavbar />
-      <div className="pt-12 pb-20  max-w-7xl mx-auto px-4">
-        <div className="flex flex-wrap bg-white w-full p-2 mb-4 rounded-lg shadow">
+      <div className="pt-12 pb-20  max-w-8xl mx-auto px-2">
+        <div className="flex flex-wrap bg-white w-full p-2 mb-2 rounded-lg shadow">
           <input
             type="text"
             placeholder="Search by Customer Name"
-            className="form-control text-black bg-gray-100 rounded-full flex-grow px-4 py-2"
+            className="form-control text-black bg-gray-100 rounded-full flex-grow px-2 py-2"
             value={searchOrder}
             onChange={(e) => setSearchOrder(e.target.value)}
           />
           
         </div>
-      <main className="flex-1 overflow-y-auto w-full px-2 md:px-4 lg:px-6">
-  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 w-full">
+      <main className="flex-1 overflow-y-auto w-full px-1 md:px-2 lg:px-4">
+  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-2 w-full">
     {filteredOrders.length > 0 ? (
       filteredOrders.map((order, index) => (
         <div

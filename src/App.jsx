@@ -22,6 +22,7 @@ import AddTask from "./Pages/addTask";
 import AddTaskGroup from "./Pages/addTaskgroup"; 
 import AddPriority from "./Pages/addPriority";
 import AddOrder from "./Pages/addOrder";
+import AllOrderTableView from "./Reports/AllOrderTableView"; 
 import AddOrder1 from "./Pages/addOrder1";
 import AllOrder from "./Reports/allOrder";
 import AllDelivery from "./Reports/allDelivery";
@@ -99,6 +100,7 @@ function App() {
                     <Route path="/addTransaction" element={<AddTransaction />} />
                     <Route path="/addTransaction1" element={<AddTransaction1 />} />
                     <Route path="/addPayment" element={<AddPayment />} />
+                    <Route path="/allOrderT" element={<AllOrderTableView />} /> 
                     <Route path="/allOrder" element={<AllOrder />} />
                     <Route path="/customerReport" element={<CustomerReport />} />
                     <Route path="/taskReport" element={<TaskReport />} />

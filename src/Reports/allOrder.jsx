@@ -1,286 +1,99 @@
-import React, { useState, useEffect, Suspense, lazy } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
-import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
-import "react-loading-skeleton/dist/skeleton.css";
-import { useNavigate } from "react-router-dom";
 import TopNavbar from "../Pages/topNavbar";
 import Footer from "../Pages/footer";
-import enquiry from '../assets/enquiry.svg';
-import payment from '../assets/payment.svg';
-import reciept from '../assets/reciept.svg';
-import FloatingButtons from "../Pages/floatingButton";
-import order from '../assets/order.svg';
 
-const AddOrder1 = lazy(() => import("../Pages/addOrder1"));
-const OrderUpdate = lazy(() => import("./orderUpdate"));
-
-export default function AllOrder() {
-    const navigate = useNavigate();
+export default function CancelledOrderTable() {
     const [orders, setOrders] = useState([]);
-    const [searchOrder, setSearchOrder] = useState("");
-    const [tasks, setTasks] = useState([]);
-    const [showOrderModal, setShowOrderModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [selectedOrder, setSelectedOrder] = useState(null);
-    const [customers, setCustomers] = useState({});
     const [isLoading, setIsLoading] = useState(true);
 
-    // Fetch orders and customers on mount
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                const [ordersRes, customersRes] = await Promise.all([
-                    axios.get("/order/GetOrderList"),
-                    axios.get("/customer/GetCustomersList")
-                ]);
-
-                setOrders(ordersRes.data.success ? ordersRes.data.result : []);
-
-                if (customersRes.data.success) {
-                    const customerMap = customersRes.data.result.reduce((acc, customer) => {
-                        if (customer.Customer_uuid && customer.Customer_name) {
-                            acc[customer.Customer_uuid] = customer.Customer_name;
-                        }
-                        return acc;
-                    }, {});
-                    setCustomers(customerMap);
+                const res = await axios.get("/order/GetOrderList");
+                if (res.data.success) {
+                    setOrders(res.data.result);
                 } else {
-                    setCustomers({});
+                    setOrders([]);
                 }
-            } catch (err) {
-                alert("Failed to fetch orders or customers.");
+            } catch {
                 setOrders([]);
-                setCustomers({});
             } finally {
                 setIsLoading(false);
             }
         };
-
         fetchData();
     }, []);
 
-    // Fetch tasks on mount
-    useEffect(() => {
-        const fetchTasks = async () => {
-            try {
-                const res = await axios.get("/taskgroup/GetTaskgroupList");
-                if (res.data.success) {
-                    const filteredTasks = res.data.result.filter(task =>
-                        !["delivered", "cancel"].includes(task.Task_group.trim().toLowerCase())
-                    );
-                    setTasks(filteredTasks);
-                } else {
-                    setTasks([]);
-                }
-            } catch (err) {
-                setTasks([]);
-            }
-        };
-
-        fetchTasks();
-    }, []);
-
-    // Unique task group names
-    const taskOptions = [...new Set(tasks.map((task) => task.Task_group.trim()))];
-
-    // Map and filter orders based on search
-    const filteredOrders = orders
-        .map((order) => {
-            const highestStatusTask = (order.Status && order.Status.length > 0)
-                ? order.Status.reduce((prev, current) =>
-                    prev.Status_number > current.Status_number ? prev : current
-                ) : {};
-
-            const customerName = customers[order.Customer_uuid] || "Unknown";
-
-            return {
-                ...order,
-                highestStatusTask,
-                Customer_name: customerName,
-            };
-        })
-        .filter((order) => {
-            const matchesSearch =
-                searchOrder === "" ||
-                order.Customer_name.toLowerCase().includes(searchOrder.toLowerCase());
-
-            return matchesSearch;
-        });
-
-    // Modal Handlers
-    const handleEditClick = (order) => {
-        setSelectedOrder(order);
-        setShowEditModal(true);
-    };
-    const handleOrder = () => setShowOrderModal(true);
-    const closeModal = () => setShowOrderModal(false);
-    const closeEditModal = () => {
-        setShowEditModal(false);
-        setSelectedOrder(null);
-    };
-
-    // Floating action buttons
-    const buttonsList = [
-        { onClick: () => navigate('/addTransaction'), src: reciept },
-        { onClick: () => navigate('/addTransaction1'), src: payment },
-        { onClick: () => navigate('/addOrder1'), src: order },
-        { onClick: () => navigate('/addEnquiry'), src: enquiry },
-    ];
+    // Find latest status (by Status_number) and filter for cancel
+    const cancelledOrders = orders.filter(order => {
+        if (!order.Status || order.Status.length === 0) return false;
+        const latestStatus = order.Status.reduce((prev, curr) =>
+            prev.Status_number > curr.Status_number ? prev : curr
+        );
+        return (latestStatus.Status || "").toLowerCase() === "cancel";
+    });
 
     return (
         <>
-            <div className="order-update-content bg-[#e5ddd5] min-h-screen">
+            <div className="bg-[#e5ddd5] min-h-screen">
                 <TopNavbar />
                 <div className="pt-2 pb-2">
-                    {/* Search Bar */}
-                    <div className="flex flex-wrap bg-white w-full max-w-xl p-2 mx-auto rounded-full shadow-sm">
-                        <input
-                            type="text"
-                            placeholder="Search by Customer Name"
-                            className="form-control text-black bg-transparent rounded-full w-full p-2 focus:outline-none"
-                            value={searchOrder}
-                            onChange={(e) => setSearchOrder(e.target.value)}
-                        />
-                    </div>
-
-                    {/* Main Content */}
-                    <main className="flex flex-1 p-2 overflow-y-auto">
+                    <main className="flex flex-1 p-2 overflow-x-auto">
                         <div className="w-full mx-auto">
-                            <SkeletonTheme>
-                                {isLoading
-                                    ? Array(5).fill().map((_, index) => (
-                                        <Skeleton key={index} height={80} width="100%" style={{ marginBottom: "5px" }} />
-                                    ))
-                                    : taskOptions.length === 0 ? (
-                                        <div className="text-center text-gray-400 py-10">No tasks found.</div>
-                                    ) : (
-                                        taskOptions.map((taskGroup) => {
-                                            const taskGroupOrders = filteredOrders.filter(order => order.highestStatusTask?.Task === taskGroup);
-
-                                            if (taskGroupOrders.length === 0) return null;
-
-                                            return (
-                                                <div key={taskGroup} className="mb-2 p-2 bg-[#e5ddd5] rounded-lg">
-                                                    <h3 className="font-semibold text-lg text-green-700 mb-3">{taskGroup}</h3>
-                                                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-2">
-                                                        {/* --- Updated order card --- */}
-                                                        {taskGroupOrders.map((order) => {
-                                                            // Date logic for delay days
-                                                            let latestStatusDate = order.highestStatusTask?.CreatedAt
-                                                                ? new Date(order.highestStatusTask.CreatedAt)
-                                                                : null;
-                                                            let timeDifference = 0;
-                                                            let formattedDate = '';
-                                                            if (latestStatusDate) {
-                                                                const today = new Date();
-                                                                today.setHours(0, 0, 0, 0);
-                                                                const latest = new Date(latestStatusDate);
-                                                                latest.setHours(0, 0, 0, 0);
-                                                                const diffTime = today - latest;
-                                                                timeDifference = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                                                                formattedDate = latestStatusDate.toLocaleDateString();
-                                                            }
-                                                            let cardClass = "bg-white";
-                                                            if (timeDifference === 0) cardClass = "bg-green-100";
-                                                            else if (timeDifference === 1) cardClass = "bg-yellow-100";
-                                                            else if (timeDifference >= 2) cardClass = "bg-red-100";
-
-                                                            return (
-                                                                <div
-                                                                    key={order.Order_uuid}
-                                                                    className={`${cardClass} rounded-lg p-2 cursor-pointer hover:bg-green-50 transition-all`}
-                                                                    onClick={() => handleEditClick(order)}
-                                                                >
-                                                                    <div className="font-medium text-gray-800 truncate">
-                                                                        {order.Customer_name}
-                                                                    </div>
-
-                                                                    {/* Row 1: Order number, delay days, latest update date */}
-                                                                    <div className="flex items-center justify-between mb-2">
-                                                                        <span className="font-bold text-green-700 text-lg">{order.Order_Number}</span>
-                                                                        <span className={
-                                                                            `text-xs font-semibold px-2 py-1 rounded-full
-                                                                            ${timeDifference === 0
-                                                                                ? 'bg-green-200 text-green-800'
-                                                                                : timeDifference === 1
-                                                                                    ? 'bg-yellow-200 text-yellow-800'
-                                                                                    : 'bg-red-200 text-red-800'}`
-                                                                        }>
-                                                                            {timeDifference === 0
-                                                                                ? 'Today'
-                                                                                : timeDifference === 1
-                                                                                    ? '1 day'
-                                                                                    : `${timeDifference} days`}
-                                                                        </span>
-                                                                        <span className="text-xs text-gray-500">{formattedDate}</span>
-                                                                    </div>
-                                                                    {/* Row 2: Customer name */}
-                                                                    
-                                                                </div>
-                                                            );
-                                                        })}
-                                                        {/* --- End updated order card --- */}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })
-                                    )}
-                            </SkeletonTheme>
+                            {isLoading ? (
+                                <div className="text-center text-gray-400 py-10">Loading...</div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full bg-white rounded-xl shadow-lg">
+                                        <thead>
+                                            <tr className="bg-red-200 text-red-900">
+                                                <th className="py-2 px-3 text-left">Order #</th>
+                                                <th className="py-2 px-3 text-left">Order Date</th>
+                                                <th className="py-2 px-3 text-left">Customer UUID</th>
+                                                <th className="py-2 px-3 text-left">Remark</th>
+                                                <th className="py-2 px-3 text-left">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {cancelledOrders.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={5} className="text-center text-gray-400 py-10">
+                                                        No cancelled orders found.
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                cancelledOrders.map((order) => {
+                                                    const latestStatus = order.Status.reduce((prev, curr) =>
+                                                        prev.Status_number > curr.Status_number ? prev : curr
+                                                    );
+                                                    return (
+                                                        <tr key={order.Order_uuid} className="border-b hover:bg-red-50">
+                                                            <td className="py-2 px-3 font-bold">{order.Order_Number}</td>
+                                                            <td className="py-2 px-3">
+                                                                {latestStatus.CreatedAt
+                                                                    ? new Date(latestStatus.CreatedAt).toLocaleDateString()
+                                                                    : (order.OrderDate
+                                                                        ? new Date(order.OrderDate).toLocaleDateString()
+                                                                        : "")}
+                                                            </td>
+                                                            <td className="py-2 px-3">{order.Customer_uuid}</td>
+                                                            <td className="py-2 px-3">{order.Remark || latestStatus.Remark || ""}</td>
+                                                            <td className="py-2 px-3 text-red-700 font-semibold">{latestStatus.Status}</td>
+                                                        </tr>
+                                                    );
+                                                })
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
                         </div>
                     </main>
-
-                    <FloatingButtons
-                        buttonType="bars"
-                        buttonsList={buttonsList}
-                        direction="up"
-                        buttonClassName="rounded-full bg-green-500 hover:bg-green-600 text-white"
-                    />
                 </div>
-
-                {/* Modals */}
-                <Suspense fallback={
-                    <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-30 z-50">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
-                    </div>
-                }>
-                    {showOrderModal && (
-                        <Modal onClose={closeModal}>
-                            <AddOrder1 closeModal={closeModal} />
-                        </Modal>
-                    )}
-                    {showEditModal && (
-                        <Modal onClose={closeEditModal}>
-                            <OrderUpdate order={selectedOrder} onClose={closeEditModal} />
-                        </Modal>
-                    )}
-                </Suspense>
                 <Footer />
             </div>
         </>
-    );
-}
-
-// --- Modal wrapper for DRYness and accessibility ---
-function Modal({ onClose, children }) {
-    return (
-        <div
-            className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
-            aria-modal="true"
-            role="dialog"
-            onClick={(e) => {
-                if (e.target === e.currentTarget) onClose();
-            }}
-        >
-            <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 relative">
-                <button
-                    className="absolute right-2 top-2 text-xl text-gray-400 hover:text-green-500"
-                    onClick={onClose}
-                    aria-label="Close"
-                    type="button"
-                >×</button>
-                {children}
-            </div>
-        </div>
     );
 }

@@ -13,6 +13,7 @@ export default function UpdateDelivery({ onClose, order }) {
     const [Customer_uuid, setCustomer_uuid] = useState(''); 
     const [Quantity, setQuantity] = useState('');
     const [Rate, setRate] = useState('');
+    
     const [Item, setItem] = useState('');
     const [Customer_name, setCustomer_name] = useState('');
     const [Amount, setAmount] = useState(0);  
