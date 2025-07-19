@@ -51,6 +51,8 @@ import AllBills from "./Reports/allBills";
 import UserReport from "./Reports/userReport";
 import EditUser from "./Reports/editUser";
 import PaymentReport from "./Reports/paymentReport";
+import AllPayments from "./Reports/AllPayments";
+
 import EditPayment from "./Reports/editPayment";
 import PriorityReport from "./Reports/priorityReport";
 import EditPriority from "./Reports/editPriority";
@@ -138,6 +140,8 @@ function App() {
                     <Route path="/PendingTasks" element={<PendingTasks />} />
                     <Route path="/AllAttandance" element={<AllAttandance />} />
                     <Route path="/CashLedger" element={<CashLedger />} />
+                    <Route path="/all-payments" element={<AllPayments />} />
+
                 </Routes>
             </div>
         </Router>
