@@ -9,6 +9,7 @@ const AllTransaction = () => {
   const [filteredEntries, setFilteredEntries] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTxn, setEditingTxn] = useState(null);
+  const [userRole, setUserRole] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -19,6 +20,11 @@ const AllTransaction = () => {
       if (txnRes.data.success) setTransactions(txnRes.data.result);
       if (custRes.data.success) setCustomers(custRes.data.result);
     };
+
+    const userGroup = localStorage.getItem('User_group');
+if (userGroup) setUserRole(userGroup);
+
+
     fetchData();
   }, []);
 
@@ -34,20 +40,26 @@ const AllTransaction = () => {
   };
 
   useEffect(() => {
-    const grouped = transactions.map(txn => {
+  const grouped = transactions
+    .map(txn => {
       const credit = txn.Journal_entry.find(e => e.Type.toLowerCase() === 'credit');
       const debit = txn.Journal_entry.find(e => e.Type.toLowerCase() === 'debit');
+
       return {
         Transaction_id: txn.Transaction_id,
         Transaction_date: txn.Transaction_date,
         Description: txn.Description,
-        Amount: credit?.Amount || debit?.Amount || 0,
+        CreditAmount: credit?.Amount || 0,
+        DebitAmount: debit?.Amount || 0,
         Credit_id: credit?.Account_id,
         Debit_id: debit?.Account_id
       };
-    });
-    setFilteredEntries(grouped);
-  }, [transactions]);
+    })
+    .filter(entry => entry.CreditAmount === 0 || entry.DebitAmount === 0); // 👈 Only keep entries where credit or debit is zero
+
+  setFilteredEntries(grouped);
+}, [transactions]);
+
 
   const openEdit = (txn) => {
     setEditingTxn({ ...txn });
@@ -76,6 +88,22 @@ const AllTransaction = () => {
     }
   };
 
+  const handleDelete = async (txnId) => {
+    if (!window.confirm('Are you sure you want to delete this transaction?')) return;
+    try {
+      const res = await axios.delete(`/transaction/deleteByTransactionId/${txnId}`);
+      if (res.data.success) {
+        alert('Transaction deleted');
+        window.location.reload();
+      } else {
+        alert('Delete failed');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting transaction');
+    }
+  };
+
   return (
     <>
       <div className="no-print">
@@ -95,7 +123,7 @@ const AllTransaction = () => {
                 <th className="py-2 px-4">Credit</th>
                 <th className="py-2 px-4">Name Debit</th>
                 <th className="py-2 px-4">Debit</th>
-                <th className="py-2 px-4">Edit</th>
+                <th className="py-2 px-4">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -108,7 +136,12 @@ const AllTransaction = () => {
                   <td className="py-2 px-4">{customerMap[txn.Debit_id] || '-'}</td>
                   <td className="py-2 px-4">{txn.Amount?.toFixed(2)}</td>
                   <td className="py-2 px-4">
-                    <button className="text-blue-600 underline" onClick={() => openEdit(txn)}>Edit</button>
+                    {userRole === 'Admin User' && (
+                      <>
+                        <button className="text-blue-600 underline mr-2" onClick={() => openEdit(txn)}>Edit</button>
+                        <button className="text-red-600 underline" onClick={() => handleDelete(txn.Transaction_id)}>Delete</button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}
