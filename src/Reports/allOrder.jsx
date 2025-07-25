@@ -25,7 +25,6 @@ export default function AllOrder() {
     const [customers, setCustomers] = useState({});
     const [isLoading, setIsLoading] = useState(true);
 
-    // Fetch orders and customers on mount
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
@@ -60,7 +59,6 @@ export default function AllOrder() {
         fetchData();
     }, []);
 
-    // Fetch tasks on mount
     useEffect(() => {
         const fetchTasks = async () => {
             try {
@@ -81,10 +79,8 @@ export default function AllOrder() {
         fetchTasks();
     }, []);
 
-    // Unique task group names
     const taskOptions = [...new Set(tasks.map((task) => task.Task_group.trim()))];
 
-    // Map and filter orders based on search
     const filteredOrders = orders
         .map((order) => {
             const highestStatusTask = (order.Status && order.Status.length > 0)
@@ -108,7 +104,6 @@ export default function AllOrder() {
             return matchesSearch;
         });
 
-    // Modal Handlers
     const handleEditClick = (order) => {
         setSelectedOrder(order);
         setShowEditModal(true);
@@ -120,7 +115,6 @@ export default function AllOrder() {
         setSelectedOrder(null);
     };
 
-    // Floating action buttons
     const buttonsList = [
         { onClick: () => navigate('/addTransaction'), src: reciept },
         { onClick: () => navigate('/addTransaction1'), src: payment },
@@ -133,7 +127,6 @@ export default function AllOrder() {
             <div className="order-update-content bg-[#e5ddd5] min-h-screen">
                 <TopNavbar />
                 <div className="pt-2 pb-2">
-                    {/* Search Bar */}
                     <div className="flex flex-wrap bg-white w-full max-w-xl p-2 mx-auto rounded-full shadow-sm">
                         <input
                             type="text"
@@ -144,7 +137,6 @@ export default function AllOrder() {
                         />
                     </div>
 
-                    {/* Main Content */}
                     <main className="flex flex-1 p-2 overflow-y-auto">
                         <div className="w-full mx-auto">
                             <SkeletonTheme>
@@ -164,10 +156,7 @@ export default function AllOrder() {
                                                 <div key={taskGroup} className="mb-2 p-2 bg-[#e5ddd5] rounded-lg">
                                                     <h3 className="font-semibold text-lg text-green-700 mb-3">{taskGroup}</h3>
                                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12 gap-2">
-
-                                                        {/* --- Updated order card --- */}
                                                         {taskGroupOrders.map((order) => {
-                                                            // Date logic for delay days
                                                             let latestStatusDate = order.highestStatusTask?.CreatedAt
                                                                 ? new Date(order.highestStatusTask.CreatedAt)
                                                                 : null;
@@ -188,44 +177,39 @@ export default function AllOrder() {
                                                             else if (timeDifference >= 2) cardClass = "bg-red-100";
 
                                                             return (
-                                                               <div
-    key={order.Order_uuid}
-    className={`${cardClass} rounded-lg p-2 cursor-pointer hover:bg-green-50 transition-all`}
-    onClick={() => handleEditClick(order)}
->
-    {/* Row 1: Customer Name */}
-    <div className="font-medium text-gray-800 truncate mb-1 text-sm">
-        {order.Customer_name}
-    </div>
+                                                                <div
+                                                                    key={order.Order_uuid}
+                                                                    className={`${cardClass} rounded-lg p-2 cursor-pointer hover:bg-green-50 transition-all`}
+                                                                    onClick={() => handleEditClick(order)}
+                                                                >
+                                                                    {/* Row 1: Customer Name */}
+                                                                    <div className="font-medium text-gray-800 truncate mb-1 text-sm">
+                                                                        {order.Customer_name}
+                                                                    </div>
 
-    {/* Row 2: Order Number and Delay */}
-    <div className="flex justify-between items-center mb-1">
-        <span className="text-sm font-semibold text-green-700">{order.Order_Number}</span>
-        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full
-            ${timeDifference === 0
-                ? 'bg-green-200 text-green-800'
-                : timeDifference === 1
-                    ? 'bg-yellow-200 text-yellow-800'
-                    : 'bg-red-200 text-red-800'}
-        `}>
-            {timeDifference === 0
-                ? 'Today'
-                : timeDifference === 1
-                    ? '1 day'
-                    : `${timeDifference} days`}
-        </span>
-    </div>
+                                                                    {/* Row 2: Order Number and Delay */}
+                                                                    <div className="flex justify-between items-center mb-1">
+                                                                        <span className="text-sm font-semibold text-green-700">{order.Order_Number}</span>
+                                                                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full
+                                                                            ${timeDifference === 0
+                                                                                ? 'bg-green-200 text-green-800'
+                                                                                : timeDifference === 1
+                                                                                    ? 'bg-yellow-200 text-yellow-800'
+                                                                                    : 'bg-red-200 text-red-800'}
+                                                                        `}>
+                                                                            {timeDifference === 0
+                                                                                ? 'Today'
+                                                                                : timeDifference === 1
+                                                                                    ? '1 day'
+                                                                                    : `${timeDifference} days`}
+                                                                        </span>
+                                                                    </div>
 
-    {/* Row 3: Latest Status Date */}
-    <div className="text-xs text-gray-500 text-right">{formattedDate}</div>
-</div>
-
-                                                                    {/* Row 2: Customer name */}
-                                                                    
+                                                                    {/* Row 3: Latest Status Date */}
+                                                                    <div className="text-xs text-gray-500 text-right">{formattedDate}</div>
                                                                 </div>
                                                             );
                                                         })}
-                                                        {/* --- End updated order card --- */}
                                                     </div>
                                                 </div>
                                             );
@@ -243,7 +227,6 @@ export default function AllOrder() {
                     />
                 </div>
 
-                {/* Modals */}
                 <Suspense fallback={
                     <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-30 z-50">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
@@ -266,7 +249,6 @@ export default function AllOrder() {
     );
 }
 
-// --- Modal wrapper for DRYness and accessibility ---
 function Modal({ onClose, children }) {
     return (
         <div
