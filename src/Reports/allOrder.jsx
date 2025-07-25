@@ -163,7 +163,8 @@ export default function AllOrder() {
                                             return (
                                                 <div key={taskGroup} className="mb-2 p-2 bg-[#e5ddd5] rounded-lg">
                                                     <h3 className="font-semibold text-lg text-green-700 mb-3">{taskGroup}</h3>
-                                                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-2">
+                                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12 gap-2">
+
                                                         {/* --- Updated order card --- */}
                                                         {taskGroupOrders.map((order) => {
                                                             // Date logic for delay days
@@ -187,34 +188,38 @@ export default function AllOrder() {
                                                             else if (timeDifference >= 2) cardClass = "bg-red-100";
 
                                                             return (
-                                                                <div
-                                                                    key={order.Order_uuid}
-                                                                    className={`${cardClass} rounded-lg p-2 cursor-pointer hover:bg-green-50 transition-all`}
-                                                                    onClick={() => handleEditClick(order)}
-                                                                >
-                                                                    <div className="font-medium text-gray-800 truncate">
-                                                                        {order.Customer_name}
-                                                                    </div>
+                                                               <div
+    key={order.Order_uuid}
+    className={`${cardClass} rounded-lg p-2 cursor-pointer hover:bg-green-50 transition-all`}
+    onClick={() => handleEditClick(order)}
+>
+    {/* Row 1: Customer Name */}
+    <div className="font-medium text-gray-800 truncate mb-1 text-sm">
+        {order.Customer_name}
+    </div>
 
-                                                                    {/* Row 1: Order number, delay days, latest update date */}
-                                                                    <div className="flex items-center justify-between mb-2">
-                                                                        <span className="font-bold text-green-700 text-lg">{order.Order_Number}</span>
-                                                                        <span className={
-                                                                            `text-xs font-semibold px-2 py-1 rounded-full
-                                                                            ${timeDifference === 0
-                                                                                ? 'bg-green-200 text-green-800'
-                                                                                : timeDifference === 1
-                                                                                    ? 'bg-yellow-200 text-yellow-800'
-                                                                                    : 'bg-red-200 text-red-800'}`
-                                                                        }>
-                                                                            {timeDifference === 0
-                                                                                ? 'Today'
-                                                                                : timeDifference === 1
-                                                                                    ? '1 day'
-                                                                                    : `${timeDifference} days`}
-                                                                        </span>
-                                                                        <span className="text-xs text-gray-500">{formattedDate}</span>
-                                                                    </div>
+    {/* Row 2: Order Number and Delay */}
+    <div className="flex justify-between items-center mb-1">
+        <span className="text-sm font-semibold text-green-700">{order.Order_Number}</span>
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full
+            ${timeDifference === 0
+                ? 'bg-green-200 text-green-800'
+                : timeDifference === 1
+                    ? 'bg-yellow-200 text-yellow-800'
+                    : 'bg-red-200 text-red-800'}
+        `}>
+            {timeDifference === 0
+                ? 'Today'
+                : timeDifference === 1
+                    ? '1 day'
+                    : `${timeDifference} days`}
+        </span>
+    </div>
+
+    {/* Row 3: Latest Status Date */}
+    <div className="text-xs text-gray-500 text-right">{formattedDate}</div>
+</div>
+
                                                                     {/* Row 2: Customer name */}
                                                                     
                                                                 </div>
