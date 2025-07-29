@@ -1,18 +1,25 @@
 import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import axios from "axios";
 
 export default function OrderStepsModal({ order, onClose }) {
   const [steps, setSteps] = useState([]);
   const [userOptions, setUserOptions] = useState([]);
   const [paymentOptions, setPaymentOptions] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load steps from task group id '1'
-    axios
-      .get("/taskgroup/GetTaskgroupList")
-      .then((res) => {
-        if (res.data.success) {
-          const filtered = res.data.result.filter((t) => t.Id === 1);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [taskRes, userRes, customerRes] = await Promise.all([
+          axios.get("/taskgroup/GetTaskgroupList"),
+          axios.get("/user/GetUserList"),
+          axios.get("/customer/GetCustomersList"),
+        ]);
+
+        if (taskRes.data.success) {
+          const filtered = taskRes.data.result.filter((t) => t.Id === 1);
           const list = filtered.map((item) => ({
             name: item.Task_group,
             assignedTo: "",
@@ -22,35 +29,38 @@ export default function OrderStepsModal({ order, onClose }) {
             paymentMode: "",
           }));
           setSteps(list);
+        } else {
+          setSteps([]);
         }
-      })
-      .catch(() => setSteps([]));
 
-    // Load users excluding Office User group
-    axios
-      .get("/user/GetUserList")
-      .then((res) => {
-        if (res.data.success) {
-          const users = res.data.result
+        if (userRes.data.success) {
+          const users = userRes.data.result
             .filter((u) => u.User_group !== "Office User")
             .map((u) => u.User_name);
           setUserOptions(users);
+        } else {
+          setUserOptions([]);
         }
-      })
-      .catch(() => setUserOptions([]));
 
-    // Load payment modes from customers with group Bank and Account
-    axios
-      .get("/customer/GetCustomersList")
-      .then((res) => {
-        if (res.data.success) {
-          const payModes = res.data.result
+        if (customerRes.data.success) {
+          const modes = customerRes.data.result
             .filter((c) => c.Customer_group === "Bank and Account")
             .map((c) => c.Customer_name);
-          setPaymentOptions(payModes);
+          setPaymentOptions(modes);
+        } else {
+          setPaymentOptions([]);
         }
-      })
-      .catch(() => setPaymentOptions([]));
+      } catch (err) {
+        console.error("Failed to load step data:", err);
+        setSteps([]);
+        setUserOptions([]);
+        setPaymentOptions([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const handleChange = (index, field, value) => {
@@ -73,6 +83,9 @@ export default function OrderStepsModal({ order, onClose }) {
             X
           </button>
         </div>
+        {loading ? (
+          <div className="text-center py-8">Loading...</div>
+        ) : (
         <div className="space-y-4">
           {steps.map((step, idx) => (
             <div key={idx} className="border rounded p-3 space-y-2">
@@ -141,6 +154,7 @@ export default function OrderStepsModal({ order, onClose }) {
             </div>
           ))}
         </div>
+        )}
         <button
           onClick={onClose}
           className="mt-4 bg-green-500 text-white w-full py-2 rounded"
@@ -151,3 +165,8 @@ export default function OrderStepsModal({ order, onClose }) {
     </div>
   );
 }
+
+OrderStepsModal.propTypes = {
+  order: PropTypes.object,
+  onClose: PropTypes.func.isRequired,
+};
