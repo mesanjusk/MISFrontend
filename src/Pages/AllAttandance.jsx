@@ -1,20 +1,14 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { enIN } from "date-fns/locale";
 import { format } from "date-fns";
 
 export default function AllAttandance() {
-  const [tasks, setTasks] = useState([]);
-  const [attendanceData, setAttendanceData] = useState([]);
-  const [attendanceState, setAttendanceState] = useState(null);
   const [loggedInUser, setLoggedInUser] = useState(null);
-  const [userMobile, setUserMobile] = useState(null);
   const [userName, setUserName] = useState("");
-  const [mobile, setMobile] = useState("");
   const [attendance, setAttendance] = useState([]);
-  const [showButtons, setShowButtons] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
+  const [showReportSection, setShowReportSection] = useState(false);
+  const [searchUser, setSearchUser] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reportData, setReportData] = useState([]);
@@ -24,13 +18,9 @@ export default function AllAttandance() {
   useEffect(() => {
     const userNameFromState = location.state?.id;
     const user = userNameFromState || localStorage.getItem("User_name");
-    const usermobile =
-      userNameFromState || localStorage.getItem("Mobile_number");
     setLoggedInUser(user);
-    setUserMobile(usermobile);
     if (user) {
       setUserName(user);
-      setUserMobile(usermobile);
       fetchAttendanceData(user);
     } else {
       navigate("/");
@@ -41,52 +31,6 @@ export default function AllAttandance() {
     localStorage.removeItem("User_name");
     localStorage.removeItem("Mobile_number");
     navigate("/");
-  };
-
-  const sequence = ["In", "Break", "Start", "Out"];
-
-  const initAttendanceState = async (userName) => {
-    if (!userName) return;
-
-    try {
-      const response = await axios.get(
-        `/attendance/getTodayAttendance/${userName}`
-      );
-      const data = response.data;
-
-      if (!data.success || !Array.isArray(data.flow)) {
-        setAttendanceState("In");
-        return;
-      }
-
-      const flow = data.flow;
-      const sequence = ["In", "Break", "Start", "Out"];
-      const nextStep = sequence.find((step) => !flow.includes(step));
-
-      if (flow.includes("Out")) {
-        setAttendanceState(null);
-      } else {
-        setAttendanceState(nextStep || null);
-      }
-    } catch (error) {
-      console.error("Failed to fetch attendance state:", error);
-      setAttendanceState("In");
-    } finally {
-      setShowButtons(true);
-    }
-  };
-
-  const fetchLastAttendance = async () => {
-    try {
-      const response = await fetch(
-        `https://misbackend-e078.onrender.com/attendance/getTodayAttendance/${userName}`
-      );
-      const data = await response.json();
-      return data && data.success ? data : null;
-    } catch (error) {
-      console.error("Fetch error:", error);
-      return null;
-    }
   };
 
   const fetchUserNames = async () => {
@@ -112,31 +56,10 @@ export default function AllAttandance() {
   const fetchAttendanceData = async (loggedInUser) => {
     try {
       const userLookup = await fetchUserNames();
-      const attendanceResponse = await axios.get(
-        "/attendance/GetAttendanceList"
-      );
+      const attendanceResponse = await axios.get("/attendance/GetAttendanceList");
       const attendanceRecords = attendanceResponse.data.result || [];
       const formattedData = processAttendanceData(attendanceRecords, userLookup);
       setAttendance(formattedData);
-
-      const filteredAttendance = attendanceRecords
-        .flatMap((record) => {
-          const employeeUuid = record.Employee_uuid.trim();
-          const userName = userLookup[employeeUuid] || "Unknown";
-          return record.User.map((user) => ({
-            Attendance_Record_ID: record.Attendance_Record_ID,
-            User_name: userName,
-            Date: new Date(user.CreatedAt).toISOString().split("T")[0],
-            Time: user.CreatedAt
-              ? format(new Date(user.CreatedAt), "hh:mm a")
-              : "No Time",
-            Type: user.Type || "N/A",
-            Status: record.Status || "N/A",
-          }));
-        })
-        .filter((record) => record.User_name === loggedInUser);
-
-      setAttendanceData(filteredAttendance);
     } catch (error) {
       console.error("Error fetching attendance:", error);
     }
@@ -166,29 +89,16 @@ export default function AllAttandance() {
       const record = groupedData.get(userDateKey);
       User.forEach((userEntry) => {
         switch (userEntry.Type) {
-          case "In":
-            record.In = userEntry.Time.trim();
-            break;
-          case "Break":
-            record.Break = userEntry.Time.trim();
-            break;
-          case "Start":
-            record.Start = userEntry.Time.trim();
-            break;
-          case "Out":
-            record.Out = userEntry.Time.trim();
-            break;
+          case "In": record.In = userEntry.Time.trim(); break;
+          case "Break": record.Break = userEntry.Time.trim(); break;
+          case "Start": record.Start = userEntry.Time.trim(); break;
+          case "Out": record.Out = userEntry.Time.trim(); break;
         }
       });
     });
 
     return Array.from(groupedData.values()).map((record) => {
-      record.TotalHours = calculateWorkingHours(
-        record.In,
-        record.Out,
-        record.Break,
-        record.Start
-      );
+      record.TotalHours = calculateWorkingHours(record.In, record.Out, record.Break, record.Start);
       return record;
     });
   };
@@ -225,16 +135,9 @@ export default function AllAttandance() {
   const fetchReportData = async () => {
     try {
       const userLookup = await fetchUserNames();
-      const attendanceResponse = await axios.get(
-        "/attendance/GetAttendanceList"
-      );
+      const attendanceResponse = await axios.get("/attendance/GetAttendanceList");
       const attendanceRecords = attendanceResponse.data.result || [];
-      const formattedData = processAttendanceDataRange(
-        attendanceRecords,
-        userLookup,
-        startDate,
-        endDate
-      );
+      const formattedData = processAttendanceDataRange(attendanceRecords, userLookup, startDate, endDate);
       setReportData(formattedData);
     } catch (error) {
       console.error("Error fetching report data:", error);
@@ -269,29 +172,16 @@ export default function AllAttandance() {
       const record = groupedData.get(userDateKey);
       User.forEach((userEntry) => {
         switch (userEntry.Type) {
-          case "In":
-            record.In = userEntry.Time.trim();
-            break;
-          case "Break":
-            record.Break = userEntry.Time.trim();
-            break;
-          case "Start":
-            record.Start = userEntry.Time.trim();
-            break;
-          case "Out":
-            record.Out = userEntry.Time.trim();
-            break;
+          case "In": record.In = userEntry.Time.trim(); break;
+          case "Break": record.Break = userEntry.Time.trim(); break;
+          case "Start": record.Start = userEntry.Time.trim(); break;
+          case "Out": record.Out = userEntry.Time.trim(); break;
         }
       });
     });
 
     return Array.from(groupedData.values()).map((record) => {
-      record.TotalHours = calculateWorkingHours(
-        record.In,
-        record.Out,
-        record.Break,
-        record.Start
-      );
+      record.TotalHours = calculateWorkingHours(record.In, record.Out, record.Break, record.Start);
       return record;
     });
   };
@@ -301,14 +191,15 @@ export default function AllAttandance() {
       <div className="bg-[#e5ddd5] pt-5 max-w-8xl mx-auto px-2">
         <div className="mb-4">
           <button
-            onClick={() => setShowReportModal(true)}
+            onClick={() => setShowReportSection(!showReportSection)}
             className="px-4 py-2 bg-green-600 text-white rounded"
           >
             View Report
           </button>
         </div>
+
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 p-2">
-          <div className="bg-white overflow-x-auto w-full ">
+          <div className="bg-white overflow-x-auto w-full">
             <table className="min-w-full text-sm text-center border">
               <tbody>
                 {attendance.length === 0 ? (
@@ -334,57 +225,63 @@ export default function AllAttandance() {
         </div>
       </div>
 
-      {showReportModal && (
-        <div
-          className="fixed inset-0 z-50 bg-black bg-opacity-40 flex justify-center items-center"
-          onClick={(e) =>
-            e.target === e.currentTarget && setShowReportModal(false)
-          }
-        >
-          <div className="bg-white p-4 rounded-lg w-full max-w-4xl shadow-lg">
-            <h3 className="text-lg font-semibold mb-2">Attendance Register</h3>
-            <div className="flex space-x-2 mb-4">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="border p-1"
-              />
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="border p-1"
-              />
-              <button
-                onClick={fetchReportData}
-                className="px-3 py-1 bg-green-500 text-white rounded"
-              >
-                View
-              </button>
-            </div>
-            <div className="overflow-x-auto max-h-96">
-              <table className="min-w-full text-sm text-center border">
-                <thead>
+      {showReportSection && (
+        <div className="bg-white p-4 mt-4 rounded-lg w-full shadow-lg">
+          <h3 className="text-lg font-semibold mb-2">Attendance Register</h3>
+          <div className="flex flex-wrap gap-2 mb-4">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="border p-1"
+            />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="border p-1"
+            />
+            <input
+              type="text"
+              placeholder="Search user"
+              value={searchUser}
+              onChange={(e) => setSearchUser(e.target.value)}
+              className="border p-1"
+            />
+            <button
+              onClick={fetchReportData}
+              className="px-3 py-1 bg-green-500 text-white rounded"
+            >
+              View
+            </button>
+          </div>
+
+          <div className="overflow-x-auto max-h-96">
+            <table className="min-w-full text-sm text-center border">
+              <thead>
+                <tr>
+                  <th className="border px-2">Name</th>
+                  <th className="border px-2">Date</th>
+                  <th className="border px-2">In</th>
+                  <th className="border px-2">Break</th>
+                  <th className="border px-2">Start</th>
+                  <th className="border px-2">Out</th>
+                  <th className="border px-2">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportData.length === 0 ? (
                   <tr>
-                    <th className="border px-2">Name</th>
-                    <th className="border px-2">Date</th>
-                    <th className="border px-2">In</th>
-                    <th className="border px-2">Break</th>
-                    <th className="border px-2">Start</th>
-                    <th className="border px-2">Out</th>
-                    <th className="border px-2">Total</th>
+                    <td className="px-4 py-2" colSpan="7">
+                      No records
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {reportData.length === 0 ? (
-                    <tr>
-                      <td className="px-4 py-2" colSpan="7">
-                        No records
-                      </td>
-                    </tr>
-                  ) : (
-                    reportData.map((rec, idx) => (
+                ) : (
+                  reportData
+                    .filter((rec) =>
+                      rec.User_name.toLowerCase().includes(searchUser.toLowerCase())
+                    )
+                    .map((rec, idx) => (
                       <tr key={idx} className="border-t">
                         <td className="border px-2">{rec.User_name}</td>
                         <td className="border px-2">{rec.Date}</td>
@@ -395,18 +292,18 @@ export default function AllAttandance() {
                         <td className="border px-2">{rec.TotalHours}</td>
                       </tr>
                     ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <div className="flex justify-end mt-4">
-              <button
-                onClick={() => setShowReportModal(false)}
-                className="bg-red-500 text-white px-4 py-2 rounded"
-              >
-                Close
-              </button>
-            </div>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex justify-end mt-4">
+            <button
+              onClick={() => setShowReportSection(false)}
+              className="bg-red-500 text-white px-4 py-2 rounded"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
