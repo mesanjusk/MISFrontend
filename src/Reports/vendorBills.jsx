@@ -45,8 +45,10 @@ export default function VendorBills() {
 
     const filteredOrders = orders
         .map(order => {
-            const highestStatusTask = order.Status.reduce((prev, current) =>
-                (prev.Status_number > current.Status_number) ? prev : current, {});
+            const highestStatusTask = Array.isArray(order.Status) && order.Status.length > 0
+                ? order.Status.reduce((prev, current) =>
+                    (prev.Status_number > current.Status_number) ? prev : current)
+                : {};
             const customerName = customers[order.Customer_uuid] || "Unknown";
             return { ...order, highestStatusTask, Customer_name: customerName };
         })
