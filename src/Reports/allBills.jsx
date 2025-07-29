@@ -199,7 +199,7 @@ export default function AllBills() {
                                         className="absolute top-2 right-2 text-xs bg-blue-500 text-white px-2 py-1 rounded"
                                         onClick={(e) => handleStepsClick(e, order)}
                                     >
-                                        Edit
+                                        Steps
                                     </button>
                                     <div className="flex justify-between items-center mb-2">
                                         <div className="font-semibold text-lg text-gray-800">
