@@ -14,7 +14,8 @@ export default function AllAttandance() {
   const [mobile, setMobile] = useState("");
   const [attendance, setAttendance] = useState([]);
   const [showButtons, setShowButtons] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
+  const [showReportSection, setShowReportSection] = useState(false);
+  const [searchUser, setSearchUser] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reportData, setReportData] = useState([]);
@@ -301,7 +302,7 @@ export default function AllAttandance() {
       <div className="bg-[#e5ddd5] pt-5 max-w-8xl mx-auto px-2">
         <div className="mb-4">
           <button
-            onClick={() => setShowReportModal(true)}
+            onClick={() => setShowReportSection(!showReportSection)}
             className="px-4 py-2 bg-green-600 text-white rounded"
           >
             View Report
@@ -334,57 +335,62 @@ export default function AllAttandance() {
         </div>
       </div>
 
-      {showReportModal && (
-        <div
-          className="fixed inset-0 z-50 bg-black bg-opacity-40 flex justify-center items-center"
-          onClick={(e) =>
-            e.target === e.currentTarget && setShowReportModal(false)
-          }
-        >
-          <div className="bg-white p-4 rounded-lg w-full max-w-4xl shadow-lg">
-            <h3 className="text-lg font-semibold mb-2">Attendance Register</h3>
-            <div className="flex space-x-2 mb-4">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="border p-1"
-              />
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="border p-1"
-              />
-              <button
-                onClick={fetchReportData}
-                className="px-3 py-1 bg-green-500 text-white rounded"
-              >
-                View
-              </button>
-            </div>
-            <div className="overflow-x-auto max-h-96">
-              <table className="min-w-full text-sm text-center border">
-                <thead>
+      {showReportSection && (
+        <div className="bg-white p-4 mt-4 rounded-lg w-full shadow-lg">
+          <h3 className="text-lg font-semibold mb-2">Attendance Register</h3>
+          <div className="flex flex-wrap gap-2 mb-4">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="border p-1"
+            />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="border p-1"
+            />
+            <input
+              type="text"
+              placeholder="Search user"
+              value={searchUser}
+              onChange={(e) => setSearchUser(e.target.value)}
+              className="border p-1"
+            />
+            <button
+              onClick={fetchReportData}
+              className="px-3 py-1 bg-green-500 text-white rounded"
+            >
+              View
+            </button>
+          </div>
+          <div className="overflow-x-auto max-h-96">
+            <table className="min-w-full text-sm text-center border">
+              <thead>
+                <tr>
+                  <th className="border px-2">Name</th>
+                  <th className="border px-2">Date</th>
+                  <th className="border px-2">In</th>
+                  <th className="border px-2">Break</th>
+                  <th className="border px-2">Start</th>
+                  <th className="border px-2">Out</th>
+                  <th className="border px-2">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportData.length === 0 ? (
                   <tr>
-                    <th className="border px-2">Name</th>
-                    <th className="border px-2">Date</th>
-                    <th className="border px-2">In</th>
-                    <th className="border px-2">Break</th>
-                    <th className="border px-2">Start</th>
-                    <th className="border px-2">Out</th>
-                    <th className="border px-2">Total</th>
+                    <td className="px-4 py-2" colSpan="7">
+                      No records
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {reportData.length === 0 ? (
-                    <tr>
-                      <td className="px-4 py-2" colSpan="7">
-                        No records
-                      </td>
-                    </tr>
-                  ) : (
-                    reportData.map((rec, idx) => (
+                ) : (
+                  reportData
+                    .filter((rec) =>
+                      rec.User_name.toLowerCase().includes(searchUser.toLowerCase())
+                    )
+                    .map((rec, idx) => (
                       <tr key={idx} className="border-t">
                         <td className="border px-2">{rec.User_name}</td>
                         <td className="border px-2">{rec.Date}</td>
@@ -395,18 +401,17 @@ export default function AllAttandance() {
                         <td className="border px-2">{rec.TotalHours}</td>
                       </tr>
                     ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <div className="flex justify-end mt-4">
-              <button
-                onClick={() => setShowReportModal(false)}
-                className="bg-red-500 text-white px-4 py-2 rounded"
-              >
-                Close
-              </button>
-            </div>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex justify-end mt-4">
+            <button
+              onClick={() => setShowReportSection(false)}
+              className="bg-red-500 text-white px-4 py-2 rounded"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
