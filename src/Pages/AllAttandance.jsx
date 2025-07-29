@@ -361,6 +361,6 @@ export default function AllAttandance() {
                     </div>
                 </div>
             )}
-        
+
     );
 }
