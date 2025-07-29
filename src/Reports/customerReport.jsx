@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import TopNavbar from "../Pages/topNavbar";
-import Footer from "../Pages/footer";
 import EditCustomer from './editCustomer';
 import AddCustomer from '../Pages/addCustomer';
 
@@ -90,7 +88,6 @@ const CustomerReport = () => {
     return (
         <div className="min-h-screen bg-[#f0f2f5] text-[#111b21]">
             <div className="no-print">
-                <TopNavbar />
             </div>
 
             <div className="px-4 py-6">
@@ -189,7 +186,6 @@ const CustomerReport = () => {
             )}
 
             <div className="no-print">
-                <Footer />
             </div>
         </div>
     );

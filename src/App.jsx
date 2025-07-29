@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import axios from 'axios';
+import Layout from './Pages/Layout';
 
 // New pages from first snippet
 import Login from "./Pages/login";          // Make sure case matches your file/folder
@@ -76,6 +77,7 @@ function App() {
         <Router>
             <div>
                 <Routes>
+                    <Route element={<Layout />}>
                     {/* New auth/planner pages */}
                     <Route path="/" element={<Login />} />
                     <Route path="/register" element={<Register />} />
@@ -140,8 +142,8 @@ function App() {
                     <Route path="/PendingTasks" element={<PendingTasks />} />
                     <Route path="/AllAttandance" element={<AllAttandance />} />
                     <Route path="/CashLedger" element={<CashLedger />} />
-                    
 
+                    </Route>
                 </Routes>
             </div>
         </Router>

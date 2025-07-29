@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import TopNavbar from "./topNavbar";
-import Footer from "./footer";
 import EditCustomer from '../Reports/editCustomer';
 
 const SearchMobile = () => {
@@ -49,7 +47,6 @@ const SearchMobile = () => {
 
     return (
         <>
-            <TopNavbar />
             <div className="pt-12 pb-20">
                 <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
                 <input
@@ -101,7 +98,6 @@ const SearchMobile = () => {
                 </div>
             )}
 
-            <Footer />
         </>
     );
 };

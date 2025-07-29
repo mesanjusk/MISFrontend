@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import TopNavbar from '../Pages/topNavbar';
-import Footer from '../Pages/footer';
 import AddOrder1 from "../Pages/addOrder1";
 import { FaWhatsapp, FaSortUp, FaSortDown } from 'react-icons/fa';
 
@@ -152,7 +150,6 @@ const AllTransaction2 = () => {
     return (
         <>
             <div className="no-print">
-                <TopNavbar />
             </div>
             <div className="pt-12 pb-20">
                 <div className="mt-6 max-w-4xl mx-auto bg-white p-4 rounded shadow">
@@ -294,7 +291,6 @@ const AllTransaction2 = () => {
                 )}
 
                 <div className="no-print">
-                    <Footer />
                 </div>
             </div>
         </>

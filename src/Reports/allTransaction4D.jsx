@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import TopNavbar from '../Pages/topNavbar';
-import Footer from '../Pages/footer';
 import AddOrder1 from "../Pages/addOrder1";
 import { FaTrash } from "react-icons/fa";
 
@@ -214,7 +212,6 @@ const AllTransaction = () => {
     return (
         <>
             <div className="no-print">
-                <TopNavbar />
             </div>
             <div className="min-w-xl pt-12 pb-20">
                 <div className="flex flex-wrap bg-white p-4 space-x-4">
@@ -430,7 +427,6 @@ const AllTransaction = () => {
 
       
         <div className="no-print">
-            <Footer />
         </div>
     </>
 );

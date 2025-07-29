@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import TopNavbar from '../Pages/topNavbar';
-import Footer from '../Pages/footer';
 import AddOrder1 from "../Pages/addOrder1";
 
 const AccountTransaction = () => {
@@ -166,7 +164,6 @@ const AccountTransaction = () => {
     return (
         <>
             <div className="no-print">
-                <TopNavbar />
             </div>
             <div className="pt-12 pb-20">
                 <div className="flex flex-wrap bg-white p-4 space-x-4">
@@ -338,7 +335,6 @@ const AccountTransaction = () => {
             )}
 
             <div className="no-print">
-                <Footer />
             </div>
         </>
     );

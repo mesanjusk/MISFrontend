@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import TopNavbar from "../Pages/topNavbar";
-import Footer from "../Pages/footer";
 import EditItem from './editItem';
 import AddItem from '../Pages/addItem';
 
@@ -84,7 +82,6 @@ const ItemReport = () => {
     return (
         <>
             <div className="no-print">
-                <TopNavbar />
             </div>
 
             <div className="print-content">
@@ -189,7 +186,6 @@ const ItemReport = () => {
                 </div>
             )}
             <div className="no-print">
-                <Footer />
             </div>
         </>
     );

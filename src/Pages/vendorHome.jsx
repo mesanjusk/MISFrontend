@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
-import TopNavbar from "../Pages/topNavbar";
-import Footer from './footer';
 import axios from 'axios';
 
 export default function VendorHome() {
@@ -56,7 +54,6 @@ export default function VendorHome() {
 
   return (
     <>
-      <TopNavbar />
       <div className="relative mt-10">
         <h1 className="absolute right-10 text-s font-bold mb-6">Welcome, {userName}!</h1>
 
@@ -79,7 +76,6 @@ export default function VendorHome() {
         </div>
       </div>
 
-      <Footer />
     </>
   );
 }

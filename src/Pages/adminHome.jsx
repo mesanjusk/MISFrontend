@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
-import TopNavbar from "./topNavbar";
-import Footer from './footer';
 import axios from 'axios';
 import OrderUpdate from '../Reports/orderUpdate'; 
 import AllOrder from "../Reports/allOrder";
@@ -263,7 +261,6 @@ const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
 
   return (
     <>
-      <TopNavbar />
       <AllOrder />
       <br /><br />
                  {isLoading ? (
@@ -332,7 +329,6 @@ const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
                 </div>
             )}
 
-      <Footer />
     </>
   );
 }

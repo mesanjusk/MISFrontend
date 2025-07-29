@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import TopNavbar from "../Pages/topNavbar";
-import Footer from "../Pages/footer";
 import EditTask from './editTask';
 import AddTask from '../Pages/addTask';
 
@@ -88,7 +86,6 @@ const TaskReport = () => {
     return (
         <>
              <div className="no-print">
-                <TopNavbar />
             </div>
             <div className="pt-12 pb-20">
                 <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
@@ -196,7 +193,6 @@ const TaskReport = () => {
             )}
 
             <div className="no-print">
-                <Footer />
             </div>
         </>
     );

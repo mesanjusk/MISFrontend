@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import TopNavbar from "../Pages/topNavbar";
-import Footer from "../Pages/footer";
 import BillUpdate from "../Reports/billUpdate";
 import AddOrder1 from "../Pages/addOrder1";
 import jsPDF from "jspdf";
@@ -168,7 +166,6 @@ export default function AllBills() {
 
     return (
         <>
-            <TopNavbar />
             <div className="pt-12 pb-20 max-w-7xl mx-auto px-4">
                 {/* Export Buttons */}
                 <div className="mb-3 flex gap-2">
@@ -283,7 +280,6 @@ export default function AllBills() {
                     <BillUpdate order={selectedOrder} onClose={closeEditModal} />
                 </div>
             )}
-            <Footer />
         </>
     );
 }

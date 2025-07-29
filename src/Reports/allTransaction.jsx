@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import TopNavbar from '../Pages/topNavbar';
-import Footer from '../Pages/footer';
 
 const AllTransaction = () => {
   const [transactions, setTransactions] = useState([]);
@@ -107,7 +105,6 @@ if (userGroup) setUserRole(userGroup);
   return (
     <>
       <div className="no-print">
-        <TopNavbar />
       </div>
 
       <div className="p-6">
@@ -151,7 +148,6 @@ if (userGroup) setUserRole(userGroup);
       </div>
 
       <div className="no-print">
-        <Footer />
       </div>
 
       {showEditModal && editingTxn && (

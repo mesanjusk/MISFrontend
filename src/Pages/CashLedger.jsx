@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import TopNavbar from './topNavbar';
-import Footer from './footer';
 import * as XLSX from 'xlsx';
 
 const CashLedger = () => {
@@ -131,7 +129,6 @@ const CashLedger = () => {
 
     return (
         <>
-            <TopNavbar />
             <div className="p-4 print:p-0">
                 <h2 className="text-2xl font-bold mb-4 print:text-xl">Cash Ledger</h2>
 
@@ -226,7 +223,6 @@ const CashLedger = () => {
                     )}
                 </div>
             </div>
-            <Footer />
         </>
     );
 };

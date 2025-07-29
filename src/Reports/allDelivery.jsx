@@ -5,8 +5,6 @@ import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
 
-import TopNavbar from "../Pages/topNavbar";
-import Footer from "../Pages/footer";
 import UpdateDelivery from "../Pages/updateDelivery";
 import AddOrder1 from "../Pages/addOrder1";
 
@@ -167,7 +165,6 @@ export default function AllDelivery() {
 
   return (
     <>
-      <TopNavbar />
       <div className="pt-12 pb-20  max-w-8xl mx-auto px-2">
         <div className="flex flex-wrap bg-white w-full p-2 mb-2 rounded-lg shadow">
           <input
@@ -267,7 +264,6 @@ export default function AllDelivery() {
         </div>
       )}
 
-      <Footer />
     </>
   );
 }

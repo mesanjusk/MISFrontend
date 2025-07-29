@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import "react-loading-skeleton/dist/skeleton.css";
-import TopNavbar from "./topNavbar";
-import Footer from './footer';
 import axios from 'axios';
 import OrderUpdate from '../Reports/orderUpdate'; 
 import AllOrder from "../Reports/allOrder";
@@ -161,7 +159,6 @@ export default function Home() {
 
   return (
     <>
-      <TopNavbar />
       {userGroup === "Admin User" && <AllAttandance />} 
       {userGroup === "Office User" && <UserTask onClose={closeUserModal} />}
       <PendingTasks tasks={  userGroup === "Admin User" ? task  : task.filter(t => t.User === loggedInUser) } isLoading={isLoading} onTaskClick={handleTaskClick} />
@@ -190,7 +187,6 @@ export default function Home() {
         </div>
       )}
 
-      <Footer />
     </>
   );
 }

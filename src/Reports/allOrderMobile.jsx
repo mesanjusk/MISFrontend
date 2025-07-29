@@ -3,8 +3,6 @@ import axios from "axios";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { useNavigate } from "react-router-dom";
-import TopNavbar from "../Pages/topNavbar";
-import Footer from "../Pages/footer";
 import enquiry from '../assets/enquiry.svg';
 import payment from '../assets/payment.svg';
 import reciept from '../assets/reciept.svg';
@@ -127,7 +125,6 @@ export default function AllOrder() {
     return (
         <>
             <div className="order-update-content">
-                <TopNavbar />
                 <div className="pt-12 pb-20">
                     <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
                         <input
@@ -217,7 +214,6 @@ export default function AllOrder() {
                     )}
                 </Suspense>
 
-                <Footer />
             </div>
         </>
     );

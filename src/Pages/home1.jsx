@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
-import TopNavbar from "./topNavbar";
-import Footer from './footer';
 import axios from 'axios';
 import OrderUpdate from '../Reports/orderUpdate'; 
 import AddOrder1 from "./addOrder1";
@@ -136,7 +134,6 @@ const buttonsList = [
 
   return (
     <>
-      <TopNavbar />
       <br /><br />
             {isLoading ? (
                   <Skeleton count={5} height={30} />
@@ -179,7 +176,6 @@ const buttonsList = [
                      <OrderUpdate order={selectedOrderId} onClose={closeEditModal} />
                 </div>
             )}
-            <Footer /> 
     </>
   );
 }

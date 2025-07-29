@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import TopNavbar from "../Pages/topNavbar";
-import Footer from "../Pages/footer";
 import EditPayment from './editPayment';
 import AddPayment from '../Pages/addPayment'; 
 
@@ -98,7 +96,6 @@ const PaymentReport = () => {
     return (
         <>
             <div className="no-print">
-                <TopNavbar />
             </div>
             <div className="pt-12 pb-20">
                 <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
@@ -203,7 +200,6 @@ const PaymentReport = () => {
             )}
 
             <div className="no-print">
-                <Footer />
             </div>
         </>
     );

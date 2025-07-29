@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
-import TopNavbar from '../Pages/topNavbar';
-import Footer from '../Pages/footer';
 import AddOrder1 from "../Pages/addOrder1";
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
@@ -183,7 +181,6 @@ const AllTransaction3 = () => {
     return (
         <>
             <div className="no-print">
-                <TopNavbar />
             </div>
 
             <div className="pt-16 pb-24 px-4">
@@ -299,7 +296,6 @@ const AllTransaction3 = () => {
             </div>
 
             {showOrderModal && <AddOrder1 closeModal={closeModal} />}
-            <Footer />
         </>
     );
 };

@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import TopNavbar from "../Pages/topNavbar";
-import Footer from "../Pages/footer";
 import EditUser from './editUser';
 import AddUser from '../Pages/addUser'; 
 
@@ -100,7 +98,6 @@ const UserReport = () => {
     return (
         <>
             <div className="no-print">
-                <TopNavbar />
             </div>
             <div className="pt-12 pb-20">
                 <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
@@ -207,7 +204,6 @@ const UserReport = () => {
             )}
 
             <div className="no-print">
-                <Footer />
             </div>
         </>
     );
