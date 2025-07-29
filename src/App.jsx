@@ -28,8 +28,6 @@ import AddOrder1 from "./Pages/addOrder1";
 import AllOrder from "./Reports/allOrder";
 import AllDelivery from "./Reports/allDelivery";
 import OrderUpdate from "./Reports/orderUpdate";
-import Footer from "./Pages/footer";
-import TopNavbar from "./Pages/topNavbar";
 import AddEnquiry from "./Pages/addEnquiry";
 import AddPayment from "./Pages/addPayment";
 import AddTransaction from "./Pages/addTransaction";
@@ -127,8 +125,6 @@ function App() {
                     <Route path="/editUser/:id" element={<EditUser />} />
                     <Route path="/editPayment/:id" element={<EditPayment />} />
                     <Route path="/editPriority/:id" element={<EditPriority />} />
-                    <Route path="/footer" element={<Footer />} />
-                    <Route path="/header" element={<TopNavbar />} />
                     <Route path="/customerMobile" element={<SearchMobile />} />
                     <Route path="/addUsertask" element={<AddUsertask />} />
                     <Route path="/calllogs" element={<CallLogs />} />
