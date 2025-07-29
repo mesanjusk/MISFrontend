@@ -9,6 +9,11 @@ export default function OrderStepsModal({ order, onClose }) {
 
   const [steps, setSteps] = useState(initialSteps);
 
+  const handleSave = () => {
+    console.log('Saving steps', steps);
+    onClose();
+  };
+
   const handleChange = (index, field, value) => {
     const updated = [...steps];
     updated[index][field] = value;
@@ -71,7 +76,20 @@ export default function OrderStepsModal({ order, onClose }) {
             </div>
           ))}
         </div>
-        <button onClick={onClose} className="mt-4 bg-green-500 text-white w-full py-2 rounded">Close</button>
+        <div className="flex justify-end gap-2 mt-4">
+          <button
+            onClick={onClose}
+            className="bg-gray-300 text-gray-700 px-4 py-2 rounded"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            className="bg-green-500 text-white px-4 py-2 rounded"
+          >
+            Save
+          </button>
+        </div>
       </div>
     </div>
   );
