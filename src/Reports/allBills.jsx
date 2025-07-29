@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import BillUpdate from "../Reports/billUpdate";
 import AddOrder1 from "../Pages/addOrder1";
+import OrderStepsModal from "../Components/OrderStepsModal";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -18,6 +19,8 @@ export default function AllBills() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [showOrderModal, setShowOrderModal] = useState(false);
+    const [showStepsModal, setShowStepsModal] = useState(false);
+    const [stepsOrder, setStepsOrder] = useState(null);
 
     function addOrder1() {
         navigate("/addOrder1");
@@ -127,6 +130,17 @@ export default function AllBills() {
         setShowEditModal(true);
     };
 
+    const handleStepsClick = (e, order) => {
+        e.stopPropagation();
+        setStepsOrder(order);
+        setShowStepsModal(true);
+    };
+
+    const closeStepsModal = () => {
+        setShowStepsModal(false);
+        setStepsOrder(null);
+    };
+
     const closeEditModal = () => {
         setShowEditModal(false);
         setSelectedOrder(null);
@@ -179,8 +193,14 @@ export default function AllBills() {
                                 <div
                                     key={index}
                                     onClick={() => handleEditClick(order)}
-                                    className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-all cursor-pointer"
+                                    className="relative bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-all cursor-pointer"
                                 >
+                                    <button
+                                        className="absolute top-2 right-2 text-xs bg-blue-500 text-white px-2 py-1 rounded"
+                                        onClick={(e) => handleStepsClick(e, order)}
+                                    >
+                                        Edit
+                                    </button>
                                     <div className="flex justify-between items-center mb-2">
                                         <div className="font-semibold text-lg text-gray-800">
                                             #{order.Order_Number}
@@ -247,6 +267,9 @@ export default function AllBills() {
                 <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center ">
                     <BillUpdate order={selectedOrder} onClose={closeEditModal} />
                 </div>
+            )}
+            {showStepsModal && (
+                <OrderStepsModal order={stepsOrder} onClose={closeStepsModal} />
             )}
         </>
     );
