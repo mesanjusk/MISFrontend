@@ -174,6 +174,7 @@ const TopNavbar = () => {
               { label: "Priority Report", path: "/priorityReport" },
               { label: "Add Recievable", path: "/addRecievable" },
               { label: "Add Payable", path: "/addPayable" },
+              ...(userGroup === "Vendor" ? [{ label: "Vendor Bills", path: "/vendorBills" }] : []),
               ...(userGroup === "Office User" ? [{ label: "Call logs", path: "/calllogs" }] : []),
             ].map((item) => (
               <div key={item.label} onClick={() => navigate(item.path)} className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm">

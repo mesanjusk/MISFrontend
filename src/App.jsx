@@ -47,6 +47,7 @@ import AllTransaction3 from "./Reports/allTransaction3";
 import ItemReport from "./Reports/itemReport";
 import EditItem from "./Reports/editItem";
 import AllBills from "./Reports/allBills";
+import VendorBills from "./Reports/vendorBills";
 import UserReport from "./Reports/userReport";
 import EditUser from "./Reports/editUser";
 import PaymentReport from "./Reports/paymentReport";
@@ -111,6 +112,7 @@ function App() {
                     <Route path="/paymentReport" element={<PaymentReport />} />
                     <Route path="/priorityReport" element={<PriorityReport />} />
                     <Route path="/allDelivery" element={<AllDelivery />} />
+                    <Route path="/vendorBills" element={<VendorBills />} />
                     <Route path="/allBills" element={<AllBills />} />
                     <Route path="/allTransaction" element={<AllTransaction />} />
                     <Route path="/allTransaction1" element={<AllTransaction1 />} />
