@@ -1,19 +1,12 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { enIN } from "date-fns/locale";
 import { format } from "date-fns";
 
 export default function AllAttandance() {
-  const [tasks, setTasks] = useState([]);
-  const [attendanceData, setAttendanceData] = useState([]);
-  const [attendanceState, setAttendanceState] = useState(null);
   const [loggedInUser, setLoggedInUser] = useState(null);
-  const [userMobile, setUserMobile] = useState(null);
   const [userName, setUserName] = useState("");
-  const [mobile, setMobile] = useState("");
   const [attendance, setAttendance] = useState([]);
-  const [showButtons, setShowButtons] = useState(false);
   const [showReportSection, setShowReportSection] = useState(false);
   const [searchUser, setSearchUser] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -25,13 +18,9 @@ export default function AllAttandance() {
   useEffect(() => {
     const userNameFromState = location.state?.id;
     const user = userNameFromState || localStorage.getItem("User_name");
-    const usermobile =
-      userNameFromState || localStorage.getItem("Mobile_number");
     setLoggedInUser(user);
-    setUserMobile(usermobile);
     if (user) {
       setUserName(user);
-      setUserMobile(usermobile);
       fetchAttendanceData(user);
     } else {
       navigate("/");
@@ -44,51 +33,7 @@ export default function AllAttandance() {
     navigate("/");
   };
 
-  const sequence = ["In", "Break", "Start", "Out"];
 
-  const initAttendanceState = async (userName) => {
-    if (!userName) return;
-
-    try {
-      const response = await axios.get(
-        `/attendance/getTodayAttendance/${userName}`
-      );
-      const data = response.data;
-
-      if (!data.success || !Array.isArray(data.flow)) {
-        setAttendanceState("In");
-        return;
-      }
-
-      const flow = data.flow;
-      const sequence = ["In", "Break", "Start", "Out"];
-      const nextStep = sequence.find((step) => !flow.includes(step));
-
-      if (flow.includes("Out")) {
-        setAttendanceState(null);
-      } else {
-        setAttendanceState(nextStep || null);
-      }
-    } catch (error) {
-      console.error("Failed to fetch attendance state:", error);
-      setAttendanceState("In");
-    } finally {
-      setShowButtons(true);
-    }
-  };
-
-  const fetchLastAttendance = async () => {
-    try {
-      const response = await fetch(
-        `https://misbackend-e078.onrender.com/attendance/getTodayAttendance/${userName}`
-      );
-      const data = await response.json();
-      return data && data.success ? data : null;
-    } catch (error) {
-      console.error("Fetch error:", error);
-      return null;
-    }
-  };
 
   const fetchUserNames = async () => {
     try {
@@ -120,24 +65,6 @@ export default function AllAttandance() {
       const formattedData = processAttendanceData(attendanceRecords, userLookup);
       setAttendance(formattedData);
 
-      const filteredAttendance = attendanceRecords
-        .flatMap((record) => {
-          const employeeUuid = record.Employee_uuid.trim();
-          const userName = userLookup[employeeUuid] || "Unknown";
-          return record.User.map((user) => ({
-            Attendance_Record_ID: record.Attendance_Record_ID,
-            User_name: userName,
-            Date: new Date(user.CreatedAt).toISOString().split("T")[0],
-            Time: user.CreatedAt
-              ? format(new Date(user.CreatedAt), "hh:mm a")
-              : "No Time",
-            Type: user.Type || "N/A",
-            Status: record.Status || "N/A",
-          }));
-        })
-        .filter((record) => record.User_name === loggedInUser);
-
-      setAttendanceData(filteredAttendance);
     } catch (error) {
       console.error("Error fetching attendance:", error);
     }
