@@ -8,6 +8,9 @@ import Print from '../Components/print';
 import WhatsApp from '../Components/whatsApp';
 import Note from '../Components/note';
 import EditCustomer from '../Components/editCustomer';
+import OrderHeader from '../Components/OrderHeader';
+import OrderActionButtons from '../Components/OrderActionButtons';
+import StatusTable from '../Components/StatusTable';
 
 export default function OrderUpdate({ order, onClose }) {
   const navigate = useNavigate();
@@ -184,63 +187,13 @@ export default function OrderUpdate({ order, onClose }) {
     <div className="min-h-screen bg-[#f0f2f5] flex justify-center items-center px-4">
       <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-6">
         {/* Header Info */}
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-base">
-            <strong className="text-gray-500">{values.Order_Number}</strong>
-          </div>
-          <div>
-            <strong className="text-lg text-gray-900">{values.Customer_name}</strong>
-            {values.Remark && (
-              <div className="text-xs text-gray-500 mt-0.5">{values.Remark}</div>
-            )}
-            <div className="text-xs text-gray-600">
-              {notes
-                .filter(note => note.Order_uuid === values.Order_uuid)
-                .map((note, index) => (
-                  <div key={index}>{note.Note_name}</div>
-                ))}
-            </div>
-          </div>
-        </div>
+        <OrderHeader values={values} notes={notes} />
 
         {/* Action Buttons Row */}
-        <div className="flex flex-wrap gap-2 my-3">
-          <EditOrder order={order} />
-          <Print order={order} />
-          <WhatsApp order={order} />
-          <Note order={order} />
-          <EditCustomer order={order} />
-        </div>
+        <OrderActionButtons order={order} />
 
         {/* Status Table */}
-        {values.Status?.length > 0 ? (
-          <div className="overflow-x-auto mb-6">
-            <table className="min-w-full w-full bg-white rounded-lg shadow border text-xs">
-              <thead>
-                <tr>
-                  <th className="px-2 py-2 text-left font-bold text-gray-700">#</th>
-                  <th className="px-2 py-2 text-left font-bold text-gray-700">Date</th>
-                  <th className="px-2 py-2 text-left font-bold text-gray-700">Task</th>
-                  <th className="px-2 py-2 text-left font-bold text-gray-700">User</th>
-                  <th className="px-2 py-2 text-left font-bold text-gray-700">Delivery</th>
-                </tr>
-              </thead>
-              <tbody>
-                {values.Status.map((status, idx) => (
-                  <tr key={idx} className="border-t">
-                    <td className="px-2 py-2">{idx + 1}</td>
-                    <td className="px-2 py-2">{status.CreatedAt ? new Date(status.CreatedAt).toLocaleDateString() : "-"}</td>
-                    <td className="px-2 py-2">{status.Task || "-"}</td>
-                    <td className="px-2 py-2">{status.Assigned || "-"}</td>
-                    <td className="px-2 py-2">{status.Delivery_Date ? new Date(status.Delivery_Date).toLocaleDateString() : "-"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center text-gray-500 mb-6 text-sm">No status data available</div>
-        )}
+        <StatusTable status={values.Status} />
 
         {/* Update Form */}
         <form onSubmit={handleSaveChanges} className="space-y-4">
