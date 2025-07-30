@@ -101,6 +101,25 @@ export default function OrderUpdate({ order, onClose }) {
     }
   }, [values.Order_uuid]);
 
+  useEffect(() => {
+    axios.get("/user/GetUserList")
+      .then(res => {
+        if (res.data.success) {
+          const groupMap = {};
+          res.data.result.forEach((u) => {
+            u.Allowed_Task_Groups?.forEach((group) => {
+              if (!groupMap[group]) groupMap[group] = [];
+              groupMap[group].push(u.User_name);
+            });
+          });
+          setUserOptions(groupMap);
+        }
+      })
+      .catch(() => setUserOptions({}));
+  }, []);
+
+
+
   const handleSaveChanges = (e) => {
     e.preventDefault();
     if (!values.Task || !values.Assigned) {
@@ -246,10 +265,11 @@ export default function OrderUpdate({ order, onClose }) {
               onChange={(e) => setValues({ ...values, Assigned: e.target.value })}
             >
               <option value="">Select User</option>
-              {userOptions.map((option, i) => (
-                <option key={i} value={option}>{option}</option>
+              {(userOptions[values.Task] || []).map((user, i) => (
+                <option key={i} value={user}>{user}</option>
               ))}
             </select>
+
           </div>
           <div className="flex items-center space-x-2">
             <input
