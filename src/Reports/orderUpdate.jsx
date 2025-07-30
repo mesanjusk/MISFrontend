@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import Vendor from "../Pages/vendor";
-import VendorDetails from "../Pages/vendorDetails";
+import OrderStepsModal from "../Components/OrderStepsModal";
 import EditOrder from "../Components/editOrder";
 import Print from "../Components/print";
 import WhatsApp from "../Components/whatsApp";
@@ -18,12 +17,10 @@ export default function OrderUpdate({ order, onClose }) {
   const [notes, setNotes] = useState([]);
   const [customers, setCustomers] = useState({});
   const [taskOptions, setTaskOptions] = useState([]);
-  const [taskId, setTaskId] = useState([]);
   const [userOptions, setUserOptions] = useState([]);
-  const [showVendorModal, setShowVendorModal] = useState(false);
-  const [showClickModal, setShowClickModal] = useState(false);
+  const [showStepsModal, setShowStepsModal] = useState(false);
+  const [isStepsChecked, setIsStepsChecked] = useState(false);
   const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState(null);
   const [values, setValues] = useState({
     id: order?._id || "",
     Customer_name: order?.Customer_name || "",
@@ -46,12 +43,10 @@ export default function OrderUpdate({ order, onClose }) {
       .get("/taskgroup/GetTaskgroupList")
       .then((res) => {
         if (res.data.success) {
-          const filteredData = res.data.result.filter((item) => item.Id === 1);
           const options = res.data.result.map((item) => item.Task_group);
           setTaskOptions(
             options.length ? options : ["Packing", "Delivery", "Billing"],
           ); // fallback for demo
-          setTaskId(filteredData);
         }
       })
       .catch(() => setTaskOptions(["Packing", "Delivery", "Billing"])); // fallback for demo
@@ -170,10 +165,6 @@ export default function OrderUpdate({ order, onClose }) {
       });
   };
 
-  const handleVendorClick = (order) => {
-    setSelectedOrder(order);
-    setShowVendorModal(true);
-  };
 
   const handleAdvanceCheckboxChange = () => {
     setIsAdvanceChecked((prev) => {
@@ -188,19 +179,30 @@ export default function OrderUpdate({ order, onClose }) {
     });
   };
 
-  const closeVendorModal = () => {
-    setShowVendorModal(false);
-    setSelectedOrder(null);
+  const handleStepsCheckboxChange = () => {
+    setIsStepsChecked((prev) => {
+      const newState = !prev;
+      if (!prev) setShowStepsModal(true);
+      return newState;
+    });
   };
 
-  const closeClickModal = () => {
-    setShowClickModal(false);
-    setSelectedOrder(null);
+  const closeStepsModal = () => {
+    setShowStepsModal(false);
+    setIsStepsChecked(false);
   };
 
   return (
     <div className="min-h-screen bg-[#f0f2f5] flex justify-center items-center px-4">
-      <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-6">
+      <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-6 relative">
+        <button
+          className="absolute right-2 top-2 text-xl text-gray-400 hover:text-green-500"
+          onClick={onClose}
+          type="button"
+          aria-label="Close"
+        >
+          ×
+        </button>
         {/* Header Info */}
         <OrderHeader values={values} notes={notes} />
 
@@ -282,46 +284,24 @@ export default function OrderUpdate({ order, onClose }) {
             >
               Update
             </button>
-            <button
-              type="button"
-              className="bg-gray-400 hover:bg-gray-600 text-white font-medium py-2 rounded-lg transition"
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-            {/* Vendor group buttons */}
-            {values.Status?.length > 0 &&
-              taskId.length > 0 &&
-              values.Status.reduce((acc, status) => {
-                const match = taskId.find(
-                  (task) => task.Task_group === status.Task && task.Id === 1,
-                );
-                if (match && !acc.includes(match.Task_group))
-                  acc.push(match.Task_group);
-                return acc;
-              }, []).map((group, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  className="bg-indigo-500 text-white font-medium py-2 rounded-lg transition"
-                  onClick={() => handleVendorClick(order)}
-                >
-                  {group}
-                </button>
-              ))}
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="stepsCheckbox"
+                checked={isStepsChecked}
+                onChange={handleStepsCheckboxChange}
+                className="h-4 w-4 text-[#25d366] focus:ring-[#25d366] border-gray-300 rounded"
+              />
+              <label htmlFor="stepsCheckbox" className="text-gray-700">
+                Order Steps
+              </label>
+            </div>
           </div>
         </form>
 
         {/* Modals */}
-        {showVendorModal && (
-          <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
-            <Vendor order={selectedOrder} onClose={closeVendorModal} />
-          </div>
-        )}
-        {showClickModal && (
-          <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
-            <VendorDetails order={selectedOrder} onClose={closeClickModal} />
-          </div>
+        {showStepsModal && (
+          <OrderStepsModal order={order} onClose={closeStepsModal} />
         )}
       </div>
     </div>
