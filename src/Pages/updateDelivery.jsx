@@ -5,6 +5,7 @@ import AddItem from "./addItem";
 import EditOrder from '../Components/editOrder';
 import Print from '../Components/print';
 import EditCustomer from '../Components/editCustomer';
+import Select from 'react-select';
 
 export default function UpdateDelivery({ onClose, order }) {
     const navigate = useNavigate();
@@ -174,24 +175,25 @@ export default function UpdateDelivery({ onClose, order }) {
                 <form onSubmit={submit}>
 
                     <div className="mb-3">
-                        <label htmlFor="item"><strong>Item Name</strong>
-                        <button onClick={handleItem} type="button" className="text-white p-2 rounded-full bg-green-500 mb-3">
-                        <svg className="h-8 w-8 text-white-500" width="20" height="20" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">  
-                            <path stroke="none" d="M0 0h24v24H0z"/>  
-                            <circle cx="12" cy="12" r="9" />  
-                            <line x1="9" y1="12" x2="15" y2="12" />  
-                            <line x1="12" y1="9" x2="12" y2="15" />
-                        </svg>
-                    </button>
-                        </label>
+  <label htmlFor="item"><strong>Item Name</strong>
+    <button onClick={handleItem} type="button" className="text-white p-2 rounded-full bg-green-500 mb-3">
+      <svg className="h-8 w-8 text-white-500" width="20" height="20" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">  
+        <path stroke="none" d="M0 0h24v24H0z"/>  
+        <circle cx="12" cy="12" r="9" />  
+        <line x1="9" y1="12" x2="15" y2="12" />  
+        <line x1="12" y1="9" x2="12" y2="15" />
+      </svg>
+    </button>
+  </label>
+  <Select
+    options={itemOptions.map(item => ({ label: item, value: item }))}
+    value={itemOptions.find(option => option === Item) ? { label: Item, value: Item } : null}
+    onChange={(selectedOption) => setItem(selectedOption.value)}
+    placeholder="Search or select item..."
+    className="mb-3"
+  />
+</div>
 
-                        <select className="form-control rounded-0" onChange={(e) => setItem(e.target.value)} value={Item}>
-                            <option value="">Select Item</option>
-                            {itemOptions.map((option, index) => (
-                                <option key={index} value={option}>{option}</option>
-                            ))}
-                        </select>
-                    </div>
 
                     <div className="mb-3">
                         <label htmlFor="customer"><strong>Remark</strong></label>
