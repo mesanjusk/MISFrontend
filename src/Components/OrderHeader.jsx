@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 export default function OrderHeader({ values, notes }) {
   return (
@@ -7,13 +7,15 @@ export default function OrderHeader({ values, notes }) {
         <strong className="text-gray-500">{values.Order_Number}</strong>
       </div>
       <div>
-        <strong className="text-lg text-gray-900">{values.Customer_name}</strong>
+        <strong className="text-lg text-gray-900">
+          {values.Customer_name}
+        </strong>
         {values.Remark && (
           <div className="text-xs text-gray-500 mt-0.5">{values.Remark}</div>
         )}
         <div className="text-xs text-gray-600">
           {notes
-            .filter(note => note.Order_uuid === values.Order_uuid)
+            .filter((note) => note.Order_uuid === values.Order_uuid)
             .map((note, index) => (
               <div key={index}>{note.Note_name}</div>
             ))}

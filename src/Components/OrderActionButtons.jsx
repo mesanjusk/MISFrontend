@@ -1,9 +1,9 @@
-import React from 'react';
-import EditOrder from './editOrder';
-import Print from './print';
-import WhatsApp from './whatsApp';
-import Note from './note';
-import EditCustomer from './editCustomer';
+import React from "react";
+import EditOrder from "./editOrder";
+import Print from "./print";
+import WhatsApp from "./whatsApp";
+import Note from "./note";
+import EditCustomer from "./editCustomer";
 
 export default function OrderActionButtons({ order }) {
   return (
