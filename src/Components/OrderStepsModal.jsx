@@ -43,10 +43,14 @@ export default function OrderStepsModal({ order, onClose }) {
         // Pre-filled steps or initialize fresh
         let stepsList = [];
         if (stepRes.data?.steps?.length > 0) {
-          stepsList = stepRes.data.steps;
+          stepsList = stepRes.data.steps.map((s) => ({
+            selected: true,
+            ...s,
+          }));
         } else {
           stepsList = filteredGroups.map((item) => ({
             name: item.Task_group,
+            selected: true,
             assignedTo: "",
             completed: false,
             charge: "",
@@ -105,7 +109,7 @@ export default function OrderStepsModal({ order, onClose }) {
 
     const payload = {
       orderId: order?.Order_Id,
-      steps: steps,
+      steps: steps.filter((s) => s.selected),
     };
 
     try {
@@ -149,8 +153,16 @@ export default function OrderStepsModal({ order, onClose }) {
         <div className="space-y-4">
           {steps.map((step, idx) => (
             <div key={idx} className="border rounded p-3 space-y-2">
-              <div className="font-medium">
-                {idx + 1}. {step.name}
+              <div className="flex items-center justify-between">
+                <div className="font-medium">
+                  {idx + 1}. {step.name}
+                </div>
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 text-[#25d366] focus:ring-[#25d366] border-gray-300 rounded"
+                  checked={!!step.selected}
+                  onChange={(e) => handleChange(idx, "selected", e.target.checked)}
+                />
               </div>
 
               {/* Assigned To */}
