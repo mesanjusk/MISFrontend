@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function AddUser({ closeModal }) {
     const navigate = useNavigate();
@@ -12,6 +14,7 @@ export default function AddUser({ closeModal }) {
     const [Allowed_Task_Groups, setAllowed_Task_Groups] = useState([]);
     const [groupOptions, setGroupOptions] = useState([]);
     const [taskGroupOptions, setTaskGroupOptions] = useState([]);
+    const [passwordStrength, setPasswordStrength] = useState("");
 
     useEffect(() => {
         axios.get("/usergroup/GetUsergroupList")
@@ -20,9 +23,6 @@ export default function AddUser({ closeModal }) {
                     const options = res.data.result.map(item => item.User_group);
                     setGroupOptions(options); 
                 }
-            })
-            .catch(err => {
-                console.error("Error fetching group options:", err);
             });
 
         axios.get("/taskgroup/GetTaskgroupList")
@@ -31,9 +31,6 @@ export default function AddUser({ closeModal }) {
                     const taskOptions = res.data.result.map(item => item.Task_group);
                     setTaskGroupOptions(taskOptions);
                 }
-            })
-            .catch(err => {
-                console.error("Error fetching task groups:", err);
             });
     }, []);
 
@@ -42,11 +39,30 @@ export default function AddUser({ closeModal }) {
         setAllowed_Task_Groups(selected);
     };
 
+    const evaluatePasswordStrength = (password) => {
+        if (password.length < 6) return "Weak";
+        if (/[A-Z]/.test(password) && /\d/.test(password) && /[@$!%*?&#]/.test(password)) return "Strong";
+        return "Medium";
+    };
+
+    const handlePasswordChange = (e) => {
+        const value = e.target.value;
+        setPassword(value);
+        setPasswordStrength(evaluatePasswordStrength(value));
+    };
+
     async function submit(e) {
         e.preventDefault();
 
+        const phonePattern = /^[6-9]\d{9}$/;
+
         if (!User_name || !Password || !Mobile_number || !User_group) {
-            alert("All fields are required");
+            toast.error("All fields are required");
+            return;
+        }
+
+        if (!phonePattern.test(Mobile_number)) {
+            toast.error("Enter a valid 10-digit mobile number starting with 6-9");
             return;
         }
 
@@ -60,20 +76,32 @@ export default function AddUser({ closeModal }) {
             });
 
             if (response.data === "exist") {
-                alert("User already exists");
+                toast.warning("User already exists");
             } else if (response.data === "notexist") {
-                alert("User added successfully");
-                if (closeModal) closeModal();
-                else navigate("/home");
+                toast.success("User added successfully");
+                setTimeout(() => {
+                    if (closeModal) closeModal();
+                    else navigate("/home");
+                }, 1500);
             }
         } catch (e) {
-            alert("Error submitting form");
+            toast.error("Error submitting form");
             console.log(e);
         }
     }
 
+    const getPasswordStrengthColor = () => {
+        switch (passwordStrength) {
+            case "Weak": return "text-danger";
+            case "Medium": return "text-warning";
+            case "Strong": return "text-success";
+            default: return "text-muted";
+        }
+    };
+
     return (
         <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
+            <ToastContainer position="top-center" />
             <div className="bg-white p-3 rounded w-90">
                 <h2>Add User</h2>
                 <form onSubmit={submit}>
@@ -84,7 +112,7 @@ export default function AddUser({ closeModal }) {
                             autoComplete="off"
                             onChange={(e) => setUser_Name(e.target.value)}
                             placeholder="User Name"
-                            className="form-control rounded-0"
+                            className="form-control"
                         />
                     </div>
                     <div className="mb-3">
@@ -92,10 +120,16 @@ export default function AddUser({ closeModal }) {
                         <input
                             type="password"
                             autoComplete="off"
-                            onChange={(e) => setPassword(e.target.value)}
+                            value={Password}
+                            onChange={handlePasswordChange}
                             placeholder="Password"
-                            className="form-control rounded-0"
+                            className="form-control"
                         />
+                        {Password && (
+                            <small className={getPasswordStrengthColor()}>
+                                Strength: {passwordStrength}
+                            </small>
+                        )}
                     </div>
                     <div className="mb-3">
                         <label><strong>Mobile Number</strong></label>
@@ -104,13 +138,13 @@ export default function AddUser({ closeModal }) {
                             autoComplete="off"
                             onChange={(e) => setMobile_Number(e.target.value)}
                             placeholder="Mobile Number"
-                            className="form-control rounded-0"
+                            className="form-control"
                         />
                     </div>
                     <div className="mb-3">
                         <label><strong>User Group</strong></label>
                         <select
-                            className="form-control rounded-0"
+                            className="form-control"
                             onChange={(e) => setUser_Group(e.target.value)}
                             value={User_group}
                         >
@@ -124,7 +158,7 @@ export default function AddUser({ closeModal }) {
                         <label><strong>Allowed Task Groups</strong></label>
                         <select
                             multiple
-                            className="form-control rounded-0"
+                            className="form-control"
                             onChange={handleTaskGroupChange}
                             value={Allowed_Task_Groups}
                         >
@@ -132,10 +166,11 @@ export default function AddUser({ closeModal }) {
                                 <option key={index} value={task}>{task}</option>
                             ))}
                         </select>
+                        <small className="text-muted">Hold Ctrl (Cmd on Mac) to select multiple</small>
                     </div>
-                    <button type="submit" className="btn btn-success w-100 rounded-0">Submit</button>
+                    <button type="submit" className="btn btn-success w-100">Submit</button>
                     {closeModal && (
-                        <button type="button" className="btn btn-secondary mt-2 w-100 rounded-0" onClick={closeModal}>Cancel</button>
+                        <button type="button" className="btn btn-secondary mt-2 w-100" onClick={closeModal}>Cancel</button>
                     )}
                 </form>
             </div>

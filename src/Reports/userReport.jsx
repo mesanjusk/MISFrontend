@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import EditUser from './editUser';
-import AddUser from '../Pages/addUser'; 
+import AddUser from '../Pages/addUser';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const UserReport = () => {
     const [users, setUsers] = useState({});
     const [userNames, setUserNames] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [showEditModal, setShowEditModal] = useState(false); 
-    const [selectedUserId, setSelectedUserId] = useState(null); 
-    const [showDeleteModal, setShowDeleteModal] = useState(false); 
-    const [selectedUser, setSelectedUser] = useState(null); 
-    const [showAddModal, setShowAddModal] = useState(false); 
-    const [userGroup, setUserGroup] = useState(''); 
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [selectedUserId, setSelectedUserId] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [userGroup, setUserGroup] = useState('');
     const [deleteErrorMessage, setDeleteErrorMessage] = useState('');
 
     useEffect(() => {
@@ -27,67 +29,76 @@ const UserReport = () => {
             .then(res => {
                 if (res.data.success) {
                     const userMap = res.data.result.reduce((acc, user) => {
-                        if (user.User_uuid && user.User_name && user.Mobile_number) { 
+                        if (user.User_uuid && user.User_name && user.Mobile_number) {
                             acc[user._id] = {
                                 name: user.User_name,
                                 mobile: user.Mobile_number,
                                 group: user.User_group,
-                                taskGroups: user.Allowed_Task_Groups || [], // ✅ task group
+                                taskGroups: user.Allowed_Task_Groups || [],
                                 userUuid: user.User_uuid,
-                                isUsed: user.isUsed || false, 
+                                isUsed: user.isUsed || false,
                             };
                         }
                         return acc;
                     }, {});
-                    
+
                     setUsers(userMap);
                     setUserNames(Object.values(userMap).map(c => c.name));
                 } else {
                     setUsers({});
                 }
             })
-            .catch(err => console.log('Error fetching users list:', err));
+            .catch(err => {
+                toast.error("Error fetching users list");
+                console.log(err);
+            });
     }, []);
-    
+
     const handleEdit = (userId) => {
-        setSelectedUserId(userId); 
-        setShowEditModal(true); 
+        setSelectedUserId(userId);
+        setShowEditModal(true);
     };
 
     const handleDeleteClick = (userId) => {
         const userToDelete = users[userId];
         if (userToDelete) {
             setSelectedUser(userToDelete);
+            setSelectedUserId(userId);
             setShowDeleteModal(true);
-            setDeleteErrorMessage(''); 
+            setDeleteErrorMessage('');
         } else {
-            console.error('User not found for ID:', userId);
+            toast.error('User not found');
         }
     };
 
     const handleDeleteConfirm = () => {
-        axios.delete(`/user/Delete/${selectedUser?.userUuid}`) 
+        axios.delete(`/user/Delete/${selectedUser?.userUuid}`)
             .then(res => {
                 if (res.data.success) {
                     setUsers(prevUser => {
                         const newUser = { ...prevUser };
-                        delete newUser[selectedUserId]; 
+                        delete newUser[selectedUserId];
                         return newUser;
                     });
+                    toast.success("User deleted successfully");
                 } else {
-                    console.log('Error deleting user:', res.data.message);
+                    toast.error("Delete failed: " + res.data.message);
                 }
+                setShowDeleteModal(false);
             })
-            .catch(err => console.log('Error deleting user:', err));
-        setShowDeleteModal(false); 
+            .catch(err => {
+                toast.error("Error deleting user");
+                console.log(err);
+                setShowDeleteModal(false);
+            });
     };
 
     const handleDeleteCancel = () => {
-        setShowDeleteModal(false); 
+        setShowDeleteModal(false);
     };
 
     const handleAddUser = () => {
-        setShowAddModal(true); 
+        setShowAddModal(true);
     };
 
     const handlePrint = () => {
@@ -96,6 +107,7 @@ const UserReport = () => {
 
     return (
         <>
+            <ToastContainer position="top-center" />
             <div className="pt-12 pb-20">
                 <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
                     <label>
@@ -113,12 +125,13 @@ const UserReport = () => {
                         </svg>
                     </button>
                 </div>
+
                 <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
                     <button onClick={handleAddUser} type="button" className="p-3 rounded-full text-white bg-green-500 mb-3">
-                        <svg className="h-8 w-8 text-white-500" width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">  
-                            <path stroke="none" d="M0 0h24v24H0z"/>  
-                            <circle cx="12" cy="12" r="9" />  
-                            <line x1="9" y1="12" x2="15" y2="12" />  
+                        <svg className="h-8 w-8 text-white-500" width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" />
+                            <circle cx="12" cy="12" r="9" />
+                            <line x1="9" y1="12" x2="15" y2="12" />
                             <line x1="12" y1="9" x2="12" y2="15" />
                         </svg>
                     </button>

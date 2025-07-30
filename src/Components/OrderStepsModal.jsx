@@ -23,15 +23,15 @@ export default function OrderStepsModal({ order, onClose }) {
         const taskNames = filteredGroups.map((t) => t.Task_group);
 
         // Users per group
+        // Users per group
         const groupMap = {};
         userRes.data.result.forEach((u) => {
-          if (u.User_group !== "Office User") {
-            u.Allowed_Task_Groups?.forEach((group) => {
-              if (!groupMap[group]) groupMap[group] = [];
-              groupMap[group].push(u.User_name);
-            });
-          }
+          u.Allowed_Task_Groups?.forEach((group) => {
+            if (!groupMap[group]) groupMap[group] = [];
+            groupMap[group].push(u.User_name);
+          });
         });
+
 
         // Payment modes
         const payModes = customerRes.data.result

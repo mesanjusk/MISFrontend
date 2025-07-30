@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function EditUser({ userId, closeModal }) {
     const [groupOptions, setGroupOptions] = useState([]);
@@ -20,7 +22,7 @@ export default function EditUser({ userId, closeModal }) {
                 }
             })
             .catch(err => {
-                console.error("Error fetching user group options:", err);
+                toast.error("Failed to load user groups");
             });
 
         axios.get("/taskgroup/GetTaskgroupList")
@@ -30,7 +32,9 @@ export default function EditUser({ userId, closeModal }) {
                     setTaskGroupOptions(taskOptions);
                 }
             })
-            .catch(err => console.error("Error fetching task groups:", err));
+            .catch(err => {
+                toast.error("Failed to load task groups");
+            });
     }, []);
 
     useEffect(() => {
@@ -47,7 +51,9 @@ export default function EditUser({ userId, closeModal }) {
                         });
                     }
                 })
-                .catch(err => console.log('Error fetching user data:', err));
+                .catch(err => {
+                    toast.error("Failed to load user data");
+                });
         }
     }, [userId]);
 
@@ -56,59 +62,68 @@ export default function EditUser({ userId, closeModal }) {
         setValues(prev => ({ ...prev, Allowed_Task_Groups: selected }));
     };
 
-    const handleSaveChanges = (e) => {
+    const handleSaveChanges = async (e) => {
         e.preventDefault();
 
+        const phonePattern = /^[6-9]\d{9}$/;
+
         if (!values.User_name || !values.Mobile_number || !values.User_group) {
-            alert('All fields are required.');
+            toast.warning("All fields are required");
             return;
         }
 
-        axios.put(`/user/update/${userId}`, { 
-            User_name: values.User_name,
-            Mobile_number: values.Mobile_number,
-            User_group: values.User_group,
-            Allowed_Task_Groups: values.Allowed_Task_Groups
-        })
-        .then(res => {
+        if (!phonePattern.test(values.Mobile_number)) {
+            toast.warning("Enter valid 10-digit mobile number");
+            return;
+        }
+
+        try {
+            const res = await axios.put(`/user/update/${userId}`, {
+                User_name: values.User_name,
+                Mobile_number: values.Mobile_number,
+                User_group: values.User_group,
+                Allowed_Task_Groups: values.Allowed_Task_Groups
+            });
+
             if (res.data.success) {
-                alert('User updated successfully!');
-                closeModal(); 
+                toast.success("User updated successfully!");
+                setTimeout(() => closeModal(), 1500);
+            } else {
+                toast.error("Update failed");
             }
-        })
-        .catch(err => {
-            console.log('Error updating user:', err);
-        });
+        } catch (err) {
+            console.error(err);
+            toast.error("Error updating user");
+        }
     };
 
     return (
         <div className="bg-white-100">
+            <ToastContainer position="top-center" />
             <h2 className="text-xl font-bold mb-4">Edit User</h2>
             <form onSubmit={handleSaveChanges}>
-                <div className="self-start bg-white p-2 w-100 mb-2 rounded-lg">
-                    <label>User Name</label> 
-                    <br />
+                <div className="bg-white p-2 w-100 mb-2 rounded-lg">
+                    <label>User Name</label>
                     <input
                         type="text"
                         value={values.User_name}
                         onChange={(e) => setValues({ ...values, User_name: e.target.value })}
+                        className="form-control"
                         required
                     />
-                    <br />
-                    <label>Mobile Number</label>
-                    <br />
+                    <label className="mt-2">Mobile Number</label>
                     <input
                         type="text"
                         value={values.Mobile_number}
                         onChange={(e) => setValues({ ...values, Mobile_number: e.target.value })}
+                        className="form-control"
                         required
                     />
-                    <br />
-                    <label>User Group</label>
-                    <br />
+                    <label className="mt-2">User Group</label>
                     <select
                         value={values.User_group}
                         onChange={(e) => setValues({ ...values, User_group: e.target.value })}
+                        className="form-control"
                         required
                     >
                         <option value="">Select Group</option>
@@ -116,23 +131,21 @@ export default function EditUser({ userId, closeModal }) {
                             <option key={index} value={group}>{group}</option>
                         ))}
                     </select>
-                    <br />
-                    <label>Allowed Task Groups</label>
-                    <br />
+                    <label className="mt-2">Allowed Task Groups</label>
                     <select
                         multiple
                         value={values.Allowed_Task_Groups}
                         onChange={handleTaskGroupChange}
-                        className="w-full p-1 border rounded"
+                        className="form-control"
                     >
                         {taskGroupOptions.map((task, i) => (
                             <option key={i} value={task}>{task}</option>
                         ))}
                     </select>
-                    <br />
-                    <button type="submit" className="btn btn-primary">Save Changes</button>
-                    <br />
-                    <button type="button" className="btn btn-secondary" onClick={closeModal}>Cancel</button>
+                    <small className="text-muted">Hold Ctrl (Cmd on Mac) to select multiple</small>
+
+                    <button type="submit" className="btn btn-primary mt-3 w-100">Save Changes</button>
+                    <button type="button" className="btn btn-secondary mt-2 w-100" onClick={closeModal}>Cancel</button>
                 </div>
             </form>
         </div>
