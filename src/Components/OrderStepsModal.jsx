@@ -174,7 +174,7 @@ export default function OrderStepsModal({ order, onClose }) {
                   className="bg-green-500 text-white px-3 py-1 rounded"
                   onClick={() => openDetailModal(idx)}
                 >
-                  Add
+                  {step.completed || step.charge || step.paymentMode ? "Edit" : "Add"}
                 </button>
               </div>
             </div>

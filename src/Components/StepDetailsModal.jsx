@@ -14,6 +14,7 @@ export default function StepDetailsModal({ step, onSave, onClose, paymentOptions
 
   const handleSave = () => {
     onSave({ ...step, ...form });
+    onClose();
   };
 
   return (
