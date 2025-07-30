@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import StepDetailsModal from "./StepDetailsModal";
 
 export default function OrderStepsModal({ order, onClose }) {
   const [steps, setSteps] = useState([]);
   const [userMap, setUserMap] = useState({}); // { taskGroupName: [user1, user2] }
   const [paymentOptions, setPaymentOptions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [detailIndex, setDetailIndex] = useState(null);
 
   // Load task groups and assignable users
   useEffect(() => {
@@ -72,6 +74,21 @@ export default function OrderStepsModal({ order, onClose }) {
     setSteps(updated);
   };
 
+  const openDetailModal = (index) => {
+    setDetailIndex(index);
+  };
+
+  const closeDetailModal = () => {
+    setDetailIndex(null);
+  };
+
+  const handleDetailSave = (updatedStep) => {
+    const updated = [...steps];
+    updated[detailIndex] = updatedStep;
+    setSteps(updated);
+    setDetailIndex(null);
+  };
+
   const handleSave = async () => {
     // Validation
     for (let i = 0; i < steps.length; i++) {
@@ -114,6 +131,7 @@ export default function OrderStepsModal({ order, onClose }) {
   }
 
   return (
+    <>
     <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
       <div className="bg-white p-4 rounded-lg w-full max-w-xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
@@ -151,56 +169,13 @@ export default function OrderStepsModal({ order, onClose }) {
                 ))}
               </select>
 
-              {/* Completion, Charge, Payment */}
-              <div className="flex items-center space-x-2 flex-wrap">
-                <label className="flex items-center space-x-1">
-                  <input
-                    type="checkbox"
-                    checked={step.completed}
-                    onChange={(e) =>
-                      handleChange(idx, "completed", e.target.checked)
-                    }
-                  />
-                  <span>Completed</span>
-                </label>
-
-                <input
-                  type="number"
-                  className="w-24 p-1 border rounded"
-                  placeholder="Charge"
-                  value={step.charge}
-                  onChange={(e) =>
-                    handleChange(idx, "charge", e.target.value)
-                  }
-                />
-
-                <select
-                  className="p-1 border rounded"
-                  value={step.paymentStatus}
-                  onChange={(e) =>
-                    handleChange(idx, "paymentStatus", e.target.value)
-                  }
+              <div className="flex justify-end">
+                <button
+                  className="bg-green-500 text-white px-3 py-1 rounded"
+                  onClick={() => openDetailModal(idx)}
                 >
-                  <option value="Paid">Paid</option>
-                  <option value="Balance">Balance</option>
-                </select>
-
-                {step.paymentStatus === "Paid" && (
-                  <select
-                    className="p-1 border rounded"
-                    value={step.paymentMode}
-                    onChange={(e) =>
-                      handleChange(idx, "paymentMode", e.target.value)
-                    }
-                  >
-                    <option value="">Payment Mode</option>
-                    {paymentOptions.map((mode, i) => (
-                      <option key={i} value={mode}>
-                        {mode}
-                      </option>
-                    ))}
-                  </select>
-                )}
+                  Add
+                </button>
               </div>
             </div>
           ))}
@@ -222,5 +197,14 @@ export default function OrderStepsModal({ order, onClose }) {
         </div>
       </div>
     </div>
+    {detailIndex !== null && (
+      <StepDetailsModal
+        step={steps[detailIndex]}
+        onSave={handleDetailSave}
+        onClose={closeDetailModal}
+        paymentOptions={paymentOptions}
+      />
+    )}
+    </>
   );
 }
