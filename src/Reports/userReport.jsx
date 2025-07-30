@@ -32,6 +32,7 @@ const UserReport = () => {
                                 name: user.User_name,
                                 mobile: user.Mobile_number,
                                 group: user.User_group,
+                                taskGroups: user.Allowed_Task_Groups || [], // ✅ task group
                                 userUuid: user.User_uuid,
                                 isUsed: user.isUsed || false, 
                             };
@@ -63,15 +64,14 @@ const UserReport = () => {
             console.error('User not found for ID:', userId);
         }
     };
-    
 
-    const handleDeleteConfirm = (userId) => {
-        axios.delete(`/user/Delete/${userId}`) 
+    const handleDeleteConfirm = () => {
+        axios.delete(`/user/Delete/${selectedUser?.userUuid}`) 
             .then(res => {
                 if (res.data.success) {
                     setUsers(prevUser => {
                         const newUser = { ...prevUser };
-                        delete newUser[userId]; 
+                        delete newUser[selectedUserId]; 
                         return newUser;
                     });
                 } else {
@@ -81,7 +81,6 @@ const UserReport = () => {
             .catch(err => console.log('Error deleting user:', err));
         setShowDeleteModal(false); 
     };
-    
 
     const handleDeleteCancel = () => {
         setShowDeleteModal(false); 
@@ -97,8 +96,6 @@ const UserReport = () => {
 
     return (
         <>
-            <div className="no-print">
-            </div>
             <div className="pt-12 pb-20">
                 <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
                     <label>
@@ -111,10 +108,10 @@ const UserReport = () => {
                         />
                     </label>
                     <button onClick={handlePrint} className="btn">
-                            <svg className="h-8 w-8 text-blue" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 9V3h12v6M6 15h12m-6 0v6m0 0H9m3 0h3" />
-                            </svg>
-                        </button>
+                        <svg className="h-8 w-8 text-blue" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 9V3h12v6M6 15h12m-6 0v6m0 0H9m3 0h3" />
+                        </svg>
+                    </button>
                 </div>
                 <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
                     <button onClick={handleAddUser} type="button" className="p-3 rounded-full text-white bg-green-500 mb-3">
@@ -126,6 +123,7 @@ const UserReport = () => {
                         </svg>
                     </button>
                 </div>
+
                 <main className="flex flex-1 p-1 overflow-y-auto">
                     <div className="w-100 max-w-md mx-auto">
                         {Object.keys(users).length > 0 ? (
@@ -134,7 +132,8 @@ const UserReport = () => {
                                     <tr>
                                         <th>Name</th>
                                         <th>Mobile</th>
-                                        {userGroup === "Admin User" && <th>Actions</th>} 
+                                        <th>Task Groups</th>
+                                        {userGroup === "Admin User" && <th>Actions</th>}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -145,24 +144,18 @@ const UserReport = () => {
                                         )
                                         .map(([id, user]) => (
                                             <tr key={id}>
-                                                <td onClick={() => handleEdit(id)} style={{ cursor: 'pointer' }}>
-                                                    {user.name}
-                                                </td>
-                                                <td onClick={() => handleEdit(id)} style={{ cursor: 'pointer' }}>
-                                                    {user.mobile}
-                                                </td>
-                                                <td>
-                                                    {userGroup === "Admin User" && (
-    <td className="px-4 py-2">
-       {user.isUsed ? (
-    <span title="Cannot delete - linked to transactions/orders" className="text-gray-400 cursor-not-allowed">🔒</span>
-) : (
-    <button onClick={() => { setSelectedUser({ ...user }); setShowDeleteModal(true); }} className="text-red-500 hover:text-red-600">🗑️</button>
-)}
-
-    </td>
-)}
-                                                </td>
+                                                <td onClick={() => handleEdit(id)} style={{ cursor: 'pointer' }}>{user.name}</td>
+                                                <td onClick={() => handleEdit(id)} style={{ cursor: 'pointer' }}>{user.mobile}</td>
+                                                <td>{user.taskGroups?.length ? user.taskGroups.join(", ") : "-"}</td>
+                                                {userGroup === "Admin User" && (
+                                                    <td className="px-4 py-2">
+                                                        {user.isUsed ? (
+                                                            <span title="Cannot delete - linked to transactions/orders" className="text-gray-400 cursor-not-allowed">🔒</span>
+                                                        ) : (
+                                                            <button onClick={() => handleDeleteClick(id)} className="text-red-500 hover:text-red-600">🗑️</button>
+                                                        )}
+                                                    </td>
+                                                )}
                                             </tr>
                                         ))}
                                 </tbody>
@@ -174,14 +167,20 @@ const UserReport = () => {
                 </main>
             </div>
 
+            {/* Edit Modal */}
             {showEditModal && (
                 <div className="modal-overlay">
                     <div className="modal-content">
-                        <EditUser userId={selectedUserId} closeModal={() => setShowEditModal(false)} />
+                        <EditUser
+                            userId={selectedUserId}
+                            userData={users[selectedUserId]}
+                            closeModal={() => setShowEditModal(false)}
+                        />
                     </div>
                 </div>
             )}
 
+            {/* Delete Modal */}
             {showDeleteModal && (
                 <div className="modal-overlay">
                     <div className="modal-content">
@@ -195,16 +194,14 @@ const UserReport = () => {
                 </div>
             )}
 
+            {/* Add Modal */}
             {showAddModal && (
                 <div className="modal-overlay">
                     <div className="modal-content">
-                        <AddUser closeModal={() => setShowAddModal(false)} /> 
+                        <AddUser closeModal={() => setShowAddModal(false)} />
                     </div>
                 </div>
             )}
-
-            <div className="no-print">
-            </div>
         </>
     );
 };
