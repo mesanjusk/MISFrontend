@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
-
 import AddCustomer from "./addCustomer";
 
 export default function AddOrder1() {
@@ -38,33 +37,31 @@ export default function AddOrder1() {
   }, []);
 
   useEffect(() => {
-  axios.get("/customer/GetCustomersList").then((res) => {
-    if (res.data.success) {
-      setCustomerOptions(res.data.result);
-      const accountOptions = res.data.result.filter(
-        (item) => item.Customer_group === "Bank and Account"
-      );
-      setAccountCustomerOptions(accountOptions);
-    }
-  });
+    axios.get("/customer/GetCustomersList").then((res) => {
+      if (res.data.success) {
+        setCustomerOptions(res.data.result);
+        const accountOptions = res.data.result.filter(
+          (item) => item.Customer_group === "Bank and Account"
+        );
+        setAccountCustomerOptions(accountOptions);
+      }
+    });
 
-  axios.get("/taskgroup/GetTaskgroupList").then((res) => {
-  if (res.data.success) {
-    const filtered = res.data.result.filter((tg) => tg.Id === 1); // ✅ Only Id === 1
-    setTaskGroups(filtered);
-
-      const initialSteps = {};
-      res.data.result.forEach((tg) => {
-        initialSteps[tg.Task_group_uuid] = tg.Steps.map((step) => ({
-          label: step,
-          checked: false,
-        }));
-      });
-      setTaskGroupSteps(initialSteps);
-    }
-  });
-}, []);
-
+    axios.get("/taskgroup/GetTaskgroupList").then((res) => {
+      if (res.data.success) {
+        const filtered = res.data.result.filter((tg) => tg.Id === 1); // ✅ Only Id === 1
+        setTaskGroups(filtered);
+        const initialSteps = {};
+        filtered.forEach((tg) => {
+          initialSteps[tg.Task_group_uuid] = tg.Steps.map((step) => ({
+            label: step,
+            checked: false,
+          }));
+        });
+        setTaskGroupSteps(initialSteps);
+      }
+    });
+  }, []);
 
   const handleTaskGroupToggle = (uuid) => {
     setSelectedTaskGroups((prev) =>
@@ -99,10 +96,9 @@ export default function AddOrder1() {
         Customer_uuid: customer.Customer_uuid,
         Remark,
         Task_groups: selectedTaskGroups,
-        Steps_data: selectedTaskGroups.map((tgId) => ({
-          groupId: tgId,
-          steps: taskGroupSteps[tgId],
-        })),
+        Steps: selectedTaskGroups.flatMap((tgId) =>
+          taskGroupSteps[tgId]?.filter((step) => step.checked) || []
+        ),
       });
 
       if (!orderResponse.data.success) {
@@ -112,29 +108,18 @@ export default function AddOrder1() {
 
       if (isAdvanceChecked && Amount && group) {
         const journal = [
-          {
-            Account_id: group,
-            Type: "Debit",
-            Amount: Number(Amount),
-          },
-          {
-            Account_id: customer.Customer_uuid,
-            Type: "Credit",
-            Amount: Number(Amount),
-          },
+          { Account_id: group, Type: "Debit", Amount: Number(Amount) },
+          { Account_id: customer.Customer_uuid, Type: "Credit", Amount: Number(Amount) },
         ];
 
-        const transactionResponse = await axios.post(
-          "/transaction/addTransaction",
-          {
-            Description: Remark,
-            Total_Credit: Number(Amount),
-            Total_Debit: Number(Amount),
-            Payment_mode: Group?.Customer_name,
-            Journal_entry: journal,
-            Created_by: loggedInUser,
-          }
-        );
+        const transactionResponse = await axios.post("/transaction/addTransaction", {
+          Description: Remark,
+          Total_Credit: Number(Amount),
+          Total_Debit: Number(Amount),
+          Payment_mode: Group?.Customer_name,
+          Journal_entry: journal,
+          Created_by: loggedInUser,
+        });
 
         if (!transactionResponse.data.success) {
           toast.error("Transaction failed");
@@ -143,13 +128,10 @@ export default function AddOrder1() {
 
         toast.success("Order & Payment Added");
 
-        setTimeout(() => {
-          if (
-            confirm(
-              `Send WhatsApp confirmation to ${customer.Customer_name}?`
-            )
-          ) {
-            sendMessageToAPI(
+        setTimeout(async () => {
+          const confirmSend = window.confirm(`Send WhatsApp confirmation to ${customer.Customer_name}?`);
+          if (confirmSend) {
+            await sendMessageToAPI(
               customer.Customer_name,
               customer.Mobile_number,
               `Dear ${customer.Customer_name}, your order has been booked successfully.`
@@ -169,19 +151,16 @@ export default function AddOrder1() {
 
   const sendMessageToAPI = async (name, phone, message) => {
     try {
-      const res = await fetch(
-        "https://misbackend-e078.onrender.com/usertask/send-message",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            mobile: phone,
-            userName: name,
-            type: "customer",
-            message,
-          }),
-        }
-      );
+      const res = await fetch("https://misbackend-e078.onrender.com/usertask/send-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mobile: phone,
+          userName: name,
+          type: "customer",
+          message,
+        }),
+      });
       const result = await res.json();
       if (result?.error) toast.error("Failed to send message");
       else toast.success("WhatsApp message sent");
@@ -251,7 +230,6 @@ export default function AddOrder1() {
               >
                 +
               </button>
-
               {showOptions && filteredOptions.length > 0 && (
                 <ul className="absolute z-10 w-full bg-white border mt-1 rounded-md shadow">
                   {filteredOptions.map((option, index) => (
@@ -321,7 +299,8 @@ export default function AddOrder1() {
                 </div>
               </>
             )}
-            {/* Task Groups as checkboxes */}
+
+            {/* Task Groups */}
             <div className="mb-4">
               <label className="block mb-1 font-medium">Task Groups</label>
               <div className="flex flex-wrap gap-2">
@@ -341,8 +320,6 @@ export default function AddOrder1() {
                 ))}
               </div>
             </div>
-
-
 
 
 
