@@ -48,18 +48,11 @@ export default function AddOrder1() {
     });
 
     axios.get("/taskgroup/GetTaskgroupList").then((res) => {
-      if (res.data.success) {
-        const filtered = res.data.result.filter((tg) => tg.Id === 1); // ✅ Only Id === 1
-        setTaskGroups(filtered);
-        const initialSteps = {};
-        filtered.forEach((tg) => {
-          initialSteps[tg.Task_group_uuid] = tg.Steps.map((step) => ({
-            label: step,
-            checked: false,
-          }));
-        });
-        setTaskGroupSteps(initialSteps);
-      }
+  if (res.data.success) {
+    const filtered = res.data.result.filter((tg) => tg.Id === 1);
+    setTaskGroups(filtered);
+    
+  }
     });
   }, []);
 
@@ -96,9 +89,14 @@ export default function AddOrder1() {
         Customer_uuid: customer.Customer_uuid,
         Remark,
         Task_groups: selectedTaskGroups,
-        Steps: selectedTaskGroups.flatMap((tgId) =>
-          taskGroupSteps[tgId]?.filter((step) => step.checked) || []
-        ),
+        Steps: selectedTaskGroups.map((uuid) => {
+  const group = taskGroups.find((tg) => tg.Task_group_uuid === uuid);
+  return {
+    label: group?.Task_group || "Unnamed Group",
+    checked: 'true',
+  };
+}),
+
       });
 
       if (!orderResponse.data.success) {
@@ -114,6 +112,7 @@ export default function AddOrder1() {
 
         const transactionResponse = await axios.post("/transaction/addTransaction", {
           Description: Remark,
+          Transaction_date: new Date().toISOString().split("T")[0],
           Total_Credit: Number(Amount),
           Total_Debit: Number(Amount),
           Payment_mode: Group?.Customer_name,

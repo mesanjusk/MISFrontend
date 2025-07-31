@@ -21,6 +21,8 @@ export default function OrderUpdate({ order, onClose }) {
   const [showStepsModal, setShowStepsModal] = useState(false);
   const [isStepsChecked, setIsStepsChecked] = useState(false);
   const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
+   const [taskGroups, setTaskGroups] = useState([]);
+    const [selectedTaskGroups, setSelectedTaskGroups] = useState([]);
   const [values, setValues] = useState({
     id: order?._id || "",
     Customer_name: order?.Customer_name || "",
@@ -36,6 +38,16 @@ export default function OrderUpdate({ order, onClose }) {
       new Date().toISOString().split("T")[0],
     Status: order?.Status || [],
   });
+
+   useEffect(() => {
+
+    axios.get("/taskgroup/GetTaskgroupList").then((res) => {
+  if (res.data.success) {
+    const filtered = res.data.result.filter((tg) => tg.Id === 1);
+    setTaskGroups(filtered);
+  }
+    });
+  }, []);
 
   // Fetch dropdown options and related data
   useEffect(() => {
@@ -141,6 +153,7 @@ export default function OrderUpdate({ order, onClose }) {
       ...values,
       CreatedAt: new Date().toISOString(),
       Delivery_Date: values.Delivery_Date || today,
+      
     };
     axios
       .post("/order/addStatus", {
@@ -151,6 +164,13 @@ export default function OrderUpdate({ order, onClose }) {
           Delivery_Date: updatedValues.Delivery_Date,
           CreatedAt: updatedValues.CreatedAt,
         },
+        Steps: selectedTaskGroups.map((uuid) => {
+  const group = taskGroups.find((tg) => tg.Task_group_uuid === uuid);
+  return {
+    label: group?.Task_group || "Unnamed Group",
+    checked: 'true',
+  };
+}),
       })
       .then((res) => {
         if (res.data.success) {
@@ -292,9 +312,26 @@ export default function OrderUpdate({ order, onClose }) {
                 onChange={handleStepsCheckboxChange}
                 className="h-4 w-4 text-[#25d366] focus:ring-[#25d366] border-gray-300 rounded"
               />
-              <label htmlFor="stepsCheckbox" className="text-gray-700">
-                Order Steps
-              </label>
+               {/* Task Groups */}
+            <div className="mb-4">
+              <label className="block mb-1 font-medium">Task Groups</label>
+              <div className="flex flex-wrap gap-2">
+                {taskGroups.map((tg) => (
+                  <label
+                    key={tg.Task_group_uuid}
+                    className="flex items-center gap-2 border px-2 py-1 rounded-md shadow-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedTaskGroups.includes(tg.Task_group_uuid)}
+                      onChange={() => handleTaskGroupToggle(tg.Task_group_uuid)}
+                      className="accent-[#25D366]"
+                    />
+                    <span>{tg.Task_group_name || tg.Task_group || "Unnamed Group"}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
             </div>
           </div>
         </form>
