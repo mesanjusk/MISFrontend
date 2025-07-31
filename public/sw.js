@@ -1,9 +1,12 @@
-const CACHE_NAME = 'static-v1';
+const CACHE_NAME = 'static-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icon.svg'
+  '/icon.svg',
+  '/apple-touch-icon.png',
+  '/pwa-192x192.png',
+  '/pwa-512x512.png'
 ];
 
 self.addEventListener('install', event => {
@@ -24,17 +27,25 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
+  const { request } = event;
+  if (request.method !== 'GET' || !request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      const networkFetch = fetch(event.request).then(response => {
+    caches.match(request).then(cached => {
+      const fetchAndCache = fetch(request).then(response => {
         return caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, response.clone());
+          cache.put(request, response.clone());
           return response;
         });
       }).catch(() => cached);
 
-      return cached || networkFetch;
+      if (cached) {
+        event.waitUntil(fetchAndCache);
+        return cached;
+      }
+      return fetchAndCache;
     })
   );
 });
