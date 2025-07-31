@@ -27,7 +27,14 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   event.respondWith(
     caches.match(event.request).then(cached => {
-      return cached || fetch(event.request);
+      const networkFetch = fetch(event.request).then(response => {
+        return caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, response.clone());
+          return response;
+        });
+      }).catch(() => cached);
+
+      return cached || networkFetch;
     })
   );
 });
