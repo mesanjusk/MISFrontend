@@ -165,7 +165,7 @@ export default function UpdateDelivery({ onClose, order }) {
     return (
         <>
         <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
-            <div className="bg-white p-3 rounded w-90">
+            <div className="bg-white p-3 rounded w-90" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
                 <button type="button" onClick={onClose}>X</button>
                 <h2>Update Order</h2> 
                 <EditOrder order={order} />

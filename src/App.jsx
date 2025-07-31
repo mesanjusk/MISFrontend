@@ -67,6 +67,7 @@ import WhatsAppAdminPanel from "./Pages/WhatsAppAdminPanel";
 import PendingTasks from './Pages/PendingTasks';
 import AllAttandance from './Pages/AllAttandance';
 import CashLedger from "./Pages/CashLedger";
+import Vendor from "./Pages/vendor";
 
 function App() {
     axios.defaults.baseURL = "https://misbackend-e078.onrender.com/";
@@ -140,6 +141,7 @@ function App() {
                         <Route path="/PendingTasks" element={<PendingTasks />} />
                         <Route path="/AllAttandance" element={<AllAttandance />} />
                         <Route path="/CashLedger" element={<CashLedger />} />
+                        <Route path="/addVendor" element={<Vendor />} />
                     </Route>
                 </Routes>
             </div>

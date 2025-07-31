@@ -199,13 +199,14 @@ export default function OrderUpdate({ order, onClose }) {
     });
   };
 
-  const handleStepsCheckboxChange = () => {
-    setIsStepsChecked((prev) => {
-      const newState = !prev;
-      if (!prev) setShowStepsModal(true);
-      return newState;
-    });
+  const handleTaskGroupToggle = (uuid) => {
+    setSelectedTaskGroups((prev) =>
+      prev.includes(uuid)
+        ? prev.filter((id) => id !== uuid)
+        : [...prev, uuid]
+    );
   };
+
 
   const closeStepsModal = () => {
     setShowStepsModal(false);
@@ -305,13 +306,7 @@ export default function OrderUpdate({ order, onClose }) {
               Update
             </button>
             <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="stepsCheckbox"
-                checked={isStepsChecked}
-                onChange={handleStepsCheckboxChange}
-                className="h-4 w-4 text-[#25d366] focus:ring-[#25d366] border-gray-300 rounded"
-              />
+             
                {/* Task Groups */}
             <div className="mb-4">
               <label className="block mb-1 font-medium">Task Groups</label>
