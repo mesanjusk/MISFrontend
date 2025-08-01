@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import toast, { Toaster } from "react-hot-toast";
+import { FaSpinner } from 'react-icons/fa';
+import Modal from 'react-bootstrap/Modal';
+import Button from 'react-bootstrap/Button';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 export default function AddTransaction({ editMode, existingData, onClose, onSuccess }) {
   const navigate = useNavigate();
@@ -16,11 +21,16 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
   const [isDateChecked, setIsDateChecked] = useState(false);
   const [userGroup, setUserGroup] = useState('');
   const [loggedInUser, setLoggedInUser] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const [allCustomerOptions, setAllCustomerOptions] = useState([]);
   const [accountCustomerOptions, setAccountCustomerOptions] = useState([]);
   const [filteredOptions, setFilteredOptions] = useState([]);
   const [showOptions, setShowOptions] = useState(false);
+
+  const [whatsAppModal, setWhatsAppModal] = useState(false);
+  const [whatsAppMessage, setWhatsAppMessage] = useState('');
+  const [mobileToSend, setMobileToSend] = useState('');
 
   useEffect(() => {
     const userNameFromState = location.state?.id || localStorage.getItem('User_name');
@@ -40,9 +50,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
           const accountOptions = res.data.result.filter(item => item.Customer_group === "Bank and Account");
           setAccountCustomerOptions(accountOptions);
         }
-      }).catch(err => {
-        console.error("Error fetching customers:", err);
-      });
+      }).catch(err => toast.error("Error fetching customers"));
   }, []);
 
   useEffect(() => {
@@ -63,13 +71,9 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
   const getDebitUuid = (txn) =>
     txn.Journal_entry?.find(j => j.Type.toLowerCase() === "debit")?.Account_id;
 
-  const handleFileChange = (e) => {
-    setSelectedImage(e.target.files[0]);
-  };
+  const handleFileChange = (e) => setSelectedImage(e.target.files[0]);
 
-  const handleAmountChange = (e) => {
-    setAmount(e.target.value);
-  };
+  const handleAmountChange = (e) => setAmount(e.target.value);
 
   const handleDateCheckboxChange = () => {
     setIsDateChecked(prev => !prev);
@@ -96,10 +100,16 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
     setShowOptions(false);
   };
 
+  const closeModal = () => {
+    if (userGroup === "Office User" || userGroup === "Admin User") {
+      onClose ? onClose() : navigate("/home");
+    }
+  };
+
   const submit = async (e) => {
     e.preventDefault();
-    if (!Amount || isNaN(Amount) || Amount <= 0) return alert("Enter valid amount.");
-    if (!customers || !group) return alert("Select both a Credit and Debit customer.");
+    if (!Amount || isNaN(Amount) || Amount <= 0) return toast.error("Enter valid amount.");
+    if (!customers || !group) return toast.error("Select both Credit and Debit customer.");
 
     const Customer = allCustomerOptions.find(c => c.Customer_uuid === customers);
     const Group = accountCustomerOptions.find(c => c.Customer_uuid === group);
@@ -122,61 +132,83 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
     if (selectedImage) formData.append('image', selectedImage);
 
     try {
+      setLoading(true);
       const res = await axios.post("/transaction/addTransaction", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+
       if (res.data.success) {
-        alert(res.data.message);
-        onSuccess?.(); // Refresh table
-        onClose?.();   // Close modal
+        toast.success("Transaction saved.");
+        const message = `Hello ${Customer?.Customer_name}, we have received your payment of ₹${Amount} on ${Transaction_date || todayDate} via ${Group?.Customer_name}. Thank you!`;
+        setWhatsAppMessage(message);
+        setMobileToSend(Customer?.Mobile_number);
+        setWhatsAppModal(true);
       } else {
-        alert("Failed to save transaction");
+        toast.error("Failed to save transaction");
       }
     } catch (err) {
-      console.error("Submission error:", err);
-      alert("Error occurred while saving the form.");
+      toast.error("Submission error");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleWhatsAppClick = async (e) => {
-    e.preventDefault();
-    await submit(e);
-    const cust = allCustomerOptions.find(c => c.Customer_uuid === customers);
-    const group = accountCustomerOptions.find(c => c.Customer_uuid === group);
-    const message = `Hello ${cust?.Customer_name}, we have received your payment of ₹${Amount} on ${Transaction_date} via ${group?.Customer_name}. Thank you!`;
-    const confirmed = window.confirm(`Send WhatsApp message?\n\n"${message}"`);
-    if (!confirmed) return;
-
+  const sendWhatsApp = async () => {
     try {
       const res = await fetch('https://misbackend-e078.onrender.com/usertask/send-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          mobile: cust?.Mobile_number,
-          userName: cust?.Customer_name,
+          mobile: mobileToSend,
+          userName: Customer_name,
           type: 'customer',
-          message
+          message: whatsAppMessage,
         }),
       });
       const data = await res.json();
-      alert(data?.error ? "Failed to send message" : "Message sent successfully");
+      if (data?.error) toast.error("❌ Failed to send WhatsApp message");
+      else toast.success("✅ WhatsApp message sent successfully");
     } catch (err) {
-      alert("Failed to send message: " + err.message);
+      toast.error("⚠️ Error sending WhatsApp");
+    } finally {
+      setWhatsAppModal(false);
+      onSuccess?.();
+      onClose?.();
     }
   };
 
   const addCustomer = () => navigate("/addCustomer");
 
-  const closeModal = () => {
-    if (userGroup === "Office User" || userGroup === "Admin User") {
-      onClose ? onClose() : navigate("/home");
-    }
-  };
-
   return (
     <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
-      <div className="bg-white p-3 rounded w-90">
+      <Toaster position="top-center" reverseOrder={false} />
+
+      <Modal show={whatsAppModal} onHide={() => setWhatsAppModal(false)} centered>
+        <Modal.Header closeButton className="bg-light">
+          <Modal.Title className="fs-5 text-success">Send WhatsApp Confirmation?</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="p-2">
+            <p className="text-muted">{whatsAppMessage}</p>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="outline-secondary" size="sm" onClick={() => setWhatsAppModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="success" size="sm" onClick={sendWhatsApp}>
+            Send
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <div className="bg-white p-3 rounded w-90 position-relative">
+        <button onClick={closeModal} className="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2 px-2 py-0">
+          ✕
+        </button>
+
         <h2>{editMode ? "Edit Receipt" : "Add Receipt"}</h2>
+
         <form onSubmit={submit}>
           <div className="mb-3 position-relative">
             <input
@@ -242,20 +274,10 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
             </select>
           </div>
 
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="form-control mb-3"
-          />
+          <input type="file" accept="image/*" onChange={handleFileChange} className="form-control mb-3" />
 
           <div className="mb-3 form-check">
-            <input
-              type="checkbox"
-              className="form-check-input"
-              checked={isDateChecked}
-              onChange={handleDateCheckboxChange}
-            />
+            <input type="checkbox" className="form-check-input" checked={isDateChecked} onChange={handleDateCheckboxChange} />
             <label className="form-check-label">Save Date</label>
           </div>
 
@@ -271,16 +293,12 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
             </div>
           )}
 
-          <button type="submit" className="btn btn-success w-100 mb-2">
-            {editMode ? "Update" : "Submit"}
-          </button>
-
-          <button type="button" onClick={handleWhatsAppClick} className="btn btn-success w-100 mb-2">
-            WhatsApp
-          </button>
-
-          <button type="button" onClick={closeModal} className="btn btn-danger w-100">
-            Close
+          <button
+            type="submit"
+            className="btn btn-success w-100"
+            disabled={loading || !Amount || isNaN(Amount) || Amount <= 0 || !customers || !group}
+          >
+            {loading ? <><FaSpinner className="spinner-border spinner-border-sm me-2" /> Saving...</> : editMode ? "Update" : "Submit"}
           </button>
         </form>
       </div>
