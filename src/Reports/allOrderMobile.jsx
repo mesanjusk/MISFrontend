@@ -3,11 +3,6 @@ import axios from "axios";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { useNavigate } from "react-router-dom";
-import enquiry from '../assets/enquiry.svg';
-import payment from '../assets/payment.svg';
-import reciept from '../assets/reciept.svg';
-import FloatingButtons from "../Pages/floatingButton";
-import order from '../assets/order.svg';
 
 const AddOrder1 = lazy(() => import("../Pages/addOrder1"));
 const OrderUpdate = lazy(() => import("./orderUpdate"));
@@ -115,13 +110,6 @@ export default function AllOrder() {
         setSelectedOrder(null);
     };
 
-    const buttonsList = [
-        { onClick: () => navigate('/addTransaction'), src: reciept },
-        { onClick: () => navigate('/addTransaction1'), src: payment },
-        { onClick: () => navigate('/addOrder1'), src: order },
-        { onClick: () => navigate('/addEnquiry'), src: enquiry },
-    ];
-
     return (
         <>
             <div className="order-update-content">
@@ -195,7 +183,6 @@ export default function AllOrder() {
                             </SkeletonTheme>
                         </div>
                     </main>
-                    <FloatingButtons buttonType="bars" buttonsList={buttonsList} direction="up" />
                 </div>
 
                 <Suspense fallback={<div className="text-center py-4">Loading...</div>}>

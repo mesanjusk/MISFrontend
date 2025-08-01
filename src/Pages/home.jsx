@@ -4,11 +4,6 @@ import "react-loading-skeleton/dist/skeleton.css";
 import axios from 'axios';
 import OrderUpdate from '../Reports/orderUpdate'; 
 import AllOrder from "../Reports/allOrder";
-import order from '../assets/order.svg';
-import payment from '../assets/payment.svg';
-import reciept from '../assets/reciept.svg';
-import usertask from '../assets/usertask.svg';
-import FloatingButtons from "./floatingButton";
 import UserTask from "./userTask";
 import { format } from 'date-fns';
 import TaskUpdate from "./taskUpdate";
@@ -150,23 +145,13 @@ export default function Home() {
     setShowOrderModal(false);
   };
 
-  const buttonsList = [
-    { onClick: ()=> navigate('/addTransaction'), src: reciept },
-    { onClick: ()=> navigate('/addTransaction1'), src: payment },
-    { onClick: ()=> navigate('/addOrder1'), src: order },
-    { onClick: ()=> navigate('/addUsertask'), src: usertask },
-  ];
-
   return (
     <>
-      {userGroup === "Admin User" && <AllAttandance />} 
+      {userGroup === "Admin User" && <AllAttandance />}
       {userGroup === "Office User" && <UserTask onClose={closeUserModal} />}
       <PendingTasks tasks={  userGroup === "Admin User" ? task  : task.filter(t => t.User === loggedInUser) } isLoading={isLoading} onTaskClick={handleTaskClick} />
-      
-      <AllOrder />
-      
-      <FloatingButtons buttonType="bars" buttonsList={buttonsList} direction="up" />
 
+      <AllOrder />
       {showOrderModal && (
         <div className="modal-overlay">
           <div className="modal-content">

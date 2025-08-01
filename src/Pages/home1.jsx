@@ -5,11 +5,6 @@ import "react-loading-skeleton/dist/skeleton.css";
 import axios from 'axios';
 import OrderUpdate from '../Reports/orderUpdate'; 
 import AddOrder1 from "./addOrder1";
-import order from  '../assets/order.svg'
-import enquiry from  '../assets/enquiry.svg'
-import payment from  '../assets/payment.svg'
-import reciept from  '../assets/reciept.svg'
-import FloatingButtons from "./floatingButton";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -124,14 +119,6 @@ const closeModal = () => {
     setShowOrderModal(false);
 };
 
-const buttonsList = [
-  { onClick: ()=> navigate('/addTransaction'), src: reciept },
-  { onClick: ()=> navigate('/addTransaction1'), src: payment },
-  { onClick: ()=> navigate('/addOrder1'), src: order },
-  { onClick: ()=> navigate('/addEnquiry'), src: enquiry },
-]
-
-
   return (
     <>
       <br /><br />
@@ -161,9 +148,8 @@ const buttonsList = [
                </div>
                </div>
               ))}
-           </div>  
-           )} 
-            <FloatingButtons buttonType="bars" buttonsList={buttonsList} direction="up" />
+           </div>
+           )}
             {showOrderModal && (
                            <div className="modal-overlay">
                                <div className="modal-content">

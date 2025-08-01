@@ -5,11 +5,6 @@ import "react-loading-skeleton/dist/skeleton.css";
 import axios from 'axios';
 import OrderUpdate from '../Reports/orderUpdate'; 
 import AllOrder from "../Reports/allOrder";
-import order from  '../assets/order.svg'
-import enquiry from  '../assets/enquiry.svg'
-import payment from  '../assets/payment.svg'
-import reciept from  '../assets/reciept.svg'
-import FloatingButtons from "./floatingButton";
 import UserTask from "./userTask";
 import { format } from 'date-fns';
 import TaskUpdate from "./taskUpdate";
@@ -250,13 +245,6 @@ const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
     setSelectedOrderId(null); 
   };
 
-  const buttonsList = [
-   { onClick: () => navigate('/addTransaction'), src: reciept },
-   { onClick: ()=>  navigate('/addTransaction1'), src: payment },
-   { onClick: ()=> navigate('/addOrder1'), src: order },
-   { onClick: () => navigate('/addUsertask'), src: usertask },
-   { onClick: ()=> navigate('/addEnquiry'), src: enquiry },
- ]
  
 
   return (
@@ -320,9 +308,6 @@ const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
 </div>
 )}
 
-                
-                <FloatingButtons buttonType="bars" buttonsList={buttonsList} direction="up" />
-                       
       {showEditModal && (
                 <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center w-full h-full">
                      <OrderUpdate order={selectedOrderId} onClose={closeEditModal} />

@@ -1,7 +1,7 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import TopNavbar from '../Components/TopNavbar';
 import Footer from '../Components/Footer';
-import FloatingButtons from './floatingButton';
+import FloatingButtons from '../Components/FloatingButtons';
 import order from '../assets/order.svg';
 import payment from '../assets/payment.svg';
 import reciept from '../assets/reciept.svg';
