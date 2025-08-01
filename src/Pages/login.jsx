@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -61,7 +61,7 @@ export default function Login() {
     }
     
     return (
-        <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
+        <div className="flex justify-center items-center min-h-screen bg-background">
             <div className="bg-white p-3 rounded w-90">
                 <h1>Login</h1>
                 <form onSubmit={submit}>
