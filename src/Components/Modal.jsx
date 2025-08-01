@@ -1,0 +1,29 @@
+/* eslint-disable react/prop-types */
+import Button from './Button';
+
+export default function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
+  actions,
+}) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md relative">
+        {title && <h2 className="text-lg font-semibold mb-4">{title}</h2>}
+        <div>{children}</div>
+        {actions && <div className="mt-4 flex justify-end space-x-2">{actions}</div>}
+        <Button
+          variant="secondary"
+          className="absolute top-2 right-2 px-2 py-1"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          ✕
+        </Button>
+      </div>
+    </div>
+  );
+}

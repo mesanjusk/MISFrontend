@@ -2,13 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+
 :root {
- --color-primary: #0F74D8;
-  --color-secondary: #0A58CA;
-  --color-accent: #EA4335;
-  --color-background: #F8FAFC;
-  --color-text: #1F2937;
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --color-primary: #1E88E5;
+  --color-secondary: #1565C0;
+  --color-accent: #E53935;
+  --color-background: #F4F6F8;
+  --color-text: #212121;
+  font-family: Inter, Roboto, system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
 body {

@@ -1,11 +1,9 @@
-import React, { useEffect, useState } from 'react';
+/* eslint-disable react/prop-types */
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
-import toast, { Toaster } from "react-hot-toast";
 import { FaSpinner } from 'react-icons/fa';
-import Modal from 'react-bootstrap/Modal';
-import Button from 'react-bootstrap/Button';
-import 'bootstrap/dist/css/bootstrap.min.css';
+import { Button, InputField, Card, Modal, ToastContainer, toast } from "../Components";
 
 export default function AddTransaction({ editMode, existingData, onClose, onSuccess }) {
   const navigate = useNavigate();
@@ -50,7 +48,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
           const accountOptions = res.data.result.filter(item => item.Customer_group === "Bank and Account");
           setAccountCustomerOptions(accountOptions);
         }
-      }).catch(err => toast.error("Error fetching customers"));
+      }).catch(() => toast.error("Error fetching customers"));
   }, []);
 
   useEffect(() => {
@@ -146,7 +144,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
       } else {
         toast.error("Failed to save transaction");
       }
-    } catch (err) {
+    } catch {
       toast.error("Submission error");
     } finally {
       setLoading(false);
@@ -168,7 +166,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
       const data = await res.json();
       if (data?.error) toast.error("❌ Failed to send WhatsApp message");
       else toast.success("✅ WhatsApp message sent successfully");
-    } catch (err) {
+    } catch {
       toast.error("⚠️ Error sending WhatsApp");
     } finally {
       setWhatsAppModal(false);
@@ -180,50 +178,53 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
   const addCustomer = () => navigate("/addCustomer");
 
   return (
-    <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
-      <Toaster position="top-center" reverseOrder={false} />
+    <div className="flex items-center justify-center bg-secondary min-h-screen p-4">
+      <ToastContainer />
 
-      <Modal show={whatsAppModal} onHide={() => setWhatsAppModal(false)} centered>
-        <Modal.Header closeButton className="bg-light">
-          <Modal.Title className="fs-5 text-success">Send WhatsApp Confirmation?</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div className="p-2">
-            <p className="text-muted">{whatsAppMessage}</p>
-          </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="outline-secondary" size="sm" onClick={() => setWhatsAppModal(false)}>
+      <Modal
+        isOpen={whatsAppModal}
+        onClose={() => setWhatsAppModal(false)}
+        title="Send WhatsApp Confirmation?"
+        actions={[
+          <Button key="cancel" variant="secondary" onClick={() => setWhatsAppModal(false)}>
             Cancel
-          </Button>
-          <Button variant="success" size="sm" onClick={sendWhatsApp}>
+          </Button>,
+          <Button key="send" onClick={sendWhatsApp}>
             Send
-          </Button>
-        </Modal.Footer>
+          </Button>,
+        ]}
+      >
+        <p className="text-sm text-text">{whatsAppMessage}</p>
       </Modal>
 
-      <div className="bg-white p-3 rounded w-90 position-relative">
-        <button onClick={closeModal} className="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2 px-2 py-0">
+      <Card className="w-full max-w-lg relative">
+        <Button
+          variant="secondary"
+          className="absolute top-2 right-2 px-2 py-1"
+          onClick={closeModal}
+        >
           ✕
-        </button>
+        </Button>
 
-        <h2>{editMode ? "Edit Receipt" : "Add Receipt"}</h2>
+        <h2 className="text-xl font-semibold mb-4">{editMode ? "Edit Receipt" : "Add Receipt"}</h2>
 
         <form onSubmit={submit}>
-          <div className="mb-3 position-relative">
-            <input
-              type="text"
-              placeholder="Search by Customer Name"
-              className="form-control mb-3"
+          <div className="relative">
+            <InputField
+              label="Search by Customer Name"
               value={Customer_name}
               onChange={handleInputChange}
               onFocus={() => setShowOptions(true)}
+              placeholder="Search by Customer Name"
             />
             {showOptions && filteredOptions.length > 0 && (
-              <ul className="list-group position-absolute w-100 z-10">
+              <ul className="absolute z-10 w-full bg-white border rounded-md max-h-40 overflow-y-auto">
                 {filteredOptions.map((option, index) => (
-                  <li key={index} className="list-group-item list-group-item-action"
-                    onClick={() => handleOptionClick(option)}>
+                  <li
+                    key={index}
+                    className="p-2 hover:bg-gray-100 cursor-pointer"
+                    onClick={() => handleOptionClick(option)}
+                  >
                     {option.Customer_name}
                   </li>
                 ))}
@@ -231,38 +232,31 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
             )}
           </div>
 
-          <button onClick={addCustomer} type="button" className="btn btn-primary mb-3">
+          <Button onClick={addCustomer} type="button" className="mb-4">
             Add Customer
-          </button>
+          </Button>
 
-          <div className="mb-3">
-            <label><strong>Description</strong></label>
-            <input
-              type="text"
-              value={Description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="form-control"
-              placeholder="Description"
-            />
-          </div>
+          <InputField
+            label="Description"
+            value={Description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Description"
+          />
 
-          <div className="mb-3">
-            <label><strong>Amount</strong></label>
-            <input
-              type="number"
-              value={Amount}
-              onChange={handleAmountChange}
-              className="form-control"
-              placeholder="Amount"
-            />
-          </div>
+          <InputField
+            label="Amount"
+            type="number"
+            value={Amount}
+            onChange={handleAmountChange}
+            placeholder="Amount"
+          />
 
-          <div className="mb-3">
-            <label><strong>Payment Mode</strong></label>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-text mb-1">Payment Mode</label>
             <select
               value={group}
               onChange={(e) => setGroup(e.target.value)}
-              className="form-control"
+              className="w-full border border-gray-300 rounded-md p-2 focus:border-primary focus:ring-1 focus:ring-primary"
               required
             >
               <option value="">Select Payment</option>
@@ -274,34 +268,52 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
             </select>
           </div>
 
-          <input type="file" accept="image/*" onChange={handleFileChange} className="form-control mb-3" />
+          <InputField type="file" accept="image/*" onChange={handleFileChange} />
 
-          <div className="mb-3 form-check">
-            <input type="checkbox" className="form-check-input" checked={isDateChecked} onChange={handleDateCheckboxChange} />
-            <label className="form-check-label">Save Date</label>
+          <div className="mb-4 flex items-center space-x-2">
+            <input
+              id="saveDate"
+              type="checkbox"
+              className="h-4 w-4 text-primary border-gray-300 rounded"
+              checked={isDateChecked}
+              onChange={handleDateCheckboxChange}
+            />
+            <label htmlFor="saveDate" className="text-sm">Save Date</label>
           </div>
 
           {isDateChecked && (
-            <div className="mb-3">
-              <label><strong>Date</strong></label>
-              <input
-                type="date"
-                value={Transaction_date}
-                onChange={(e) => setTransaction_date(e.target.value)}
-                className="form-control"
-              />
-            </div>
+            <InputField
+              label="Date"
+              type="date"
+              value={Transaction_date}
+              onChange={(e) => setTransaction_date(e.target.value)}
+            />
           )}
 
-          <button
+          <Button
             type="submit"
-            className="btn btn-success w-100"
-            disabled={loading || !Amount || isNaN(Amount) || Amount <= 0 || !customers || !group}
+            className="w-full mt-2"
+            disabled={
+              loading ||
+              !Amount ||
+              isNaN(Amount) ||
+              Amount <= 0 ||
+              !customers ||
+              !group
+            }
           >
-            {loading ? <><FaSpinner className="spinner-border spinner-border-sm me-2" /> Saving...</> : editMode ? "Update" : "Submit"}
-          </button>
+            {loading ? (
+              <>
+                <FaSpinner className="animate-spin mr-2" /> Saving...
+              </>
+            ) : editMode ? (
+              "Update"
+            ) : (
+              "Submit"
+            )}
+          </Button>
         </form>
-      </div>
+      </Card>
     </div>
   );
 }
