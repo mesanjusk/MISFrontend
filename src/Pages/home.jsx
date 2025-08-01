@@ -161,7 +161,7 @@ export default function Home() {
       )}
 
       {showEditModal && (
-        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
+        <div className="modal-overlay fixed inset-0  flex items-center justify-center">
           <OrderUpdate order={selectedOrderId} onClose={closeEditModal} />
         </div>
       )}

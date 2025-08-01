@@ -6,7 +6,7 @@ export default function PendingTasks({ tasks = [], isLoading, onTaskClick }) {
   const pendingTasks = tasks.filter(task => task.Status === "Pending");
 
   return (
-    <div className="bg-[#e5ddd5] px-4 py-2">
+    <div className=" px-4 py-2">
       {isLoading ? (
         <div className="space-y-4">
           {[...Array(4)].map((_, i) => (

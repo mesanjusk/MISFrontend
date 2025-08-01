@@ -110,7 +110,7 @@ export default function AllOrder() {
 
     return (
         <>
-            <div className="order-update-content bg-[#e5ddd5] min-h-screen">
+            <div className="order-update-content min-h-screen">
                 <div className="pt-2 pb-2">
                     <div className="flex flex-wrap bg-white w-full max-w-xl p-2 mx-auto rounded-full shadow-sm">
                         <input
@@ -138,9 +138,9 @@ export default function AllOrder() {
                                             if (taskGroupOrders.length === 0) return null;
 
                                             return (
-                                                <div key={taskGroup} className="mb-2 p-2 bg-[#e5ddd5] rounded-lg">
+                                                <div key={taskGroup} className="mb-2 p-2  rounded-lg">
                                                     <h3 className="font-semibold text-lg text-green-700 mb-3">{taskGroup}</h3>
-                                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-12 gap-2">
+                                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-10 gap-2">
                                                         {taskGroupOrders.map((order) => {
                                                             let latestStatusDate = order.highestStatusTask?.CreatedAt
                                                                 ? new Date(order.highestStatusTask.CreatedAt)

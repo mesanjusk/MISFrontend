@@ -188,11 +188,11 @@ export default function AllAttandance() {
 
   return (
     <>
-      <div className="bg-[#e5ddd5] pt-5 max-w-8xl mx-auto px-2">
+      <div className="  max-w-8xl mx-auto px-2">
         <div className="mb-4">
           <button
             onClick={() => setShowReportSection(!showReportSection)}
-            className="px-4 py-2 bg-green-600 text-white rounded"
+            className="px-3 py-2 bg-blue-600 text-white rounded"
           >
             View Report
           </button>
