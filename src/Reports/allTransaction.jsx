@@ -11,17 +11,25 @@ const AllTransaction = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const [txnRes, custRes] = await Promise.all([
-        axios.get('/transaction/GetFilteredTransactions'),
-        axios.get('/customer/GetCustomersList')
-      ]);
-      if (txnRes.data.success) setTransactions(txnRes.data.result);
-      if (custRes.data.success) setCustomers(custRes.data.result);
+      try {
+        const [txnRes, custRes] = await Promise.all([
+          axios.get('/transaction/GetFilteredTransactions'),
+          axios.get('/customer/GetCustomersList'),
+        ]);
+
+        if (txnRes.data.success) {
+          setTransactions(txnRes.data.result);
+        }
+        if (custRes.data.success) {
+          setCustomers(custRes.data.result);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
     };
 
     const userGroup = localStorage.getItem('User_group');
-if (userGroup) setUserRole(userGroup);
-
+    if (userGroup) setUserRole(userGroup);
 
     fetchData();
   }, []);
@@ -38,26 +46,24 @@ if (userGroup) setUserRole(userGroup);
   };
 
   useEffect(() => {
-  const grouped = transactions
-    .map(txn => {
-      const credit = txn.Journal_entry.find(e => e.Type.toLowerCase() === 'credit');
-      const debit = txn.Journal_entry.find(e => e.Type.toLowerCase() === 'debit');
+    const grouped = transactions.map((txn) => {
+      const credit = txn.Journal_entry?.find((e) => e.Type?.toLowerCase() === 'credit');
+      const debit = txn.Journal_entry?.find((e) => e.Type?.toLowerCase() === 'debit');
 
       return {
         Transaction_id: txn.Transaction_id,
         Transaction_date: txn.Transaction_date,
-        Description: txn.Description,
+        Description: txn.Description || '',
         CreditAmount: credit?.Amount || 0,
         DebitAmount: debit?.Amount || 0,
-        Credit_id: credit?.Account_id,
-        Debit_id: debit?.Account_id
+        Amount: credit?.Amount || debit?.Amount || 0,
+        Credit_id: credit?.Account_id || '',
+        Debit_id: debit?.Account_id || '',
       };
-    })
-    .filter(entry => entry.CreditAmount === 0 || entry.DebitAmount === 0); // 👈 Only keep entries where credit or debit is zero
+    });
 
-  setFilteredEntries(grouped);
-}, [transactions]);
-
+    setFilteredEntries(grouped);
+  }, [transactions]);
 
   const openEdit = (txn) => {
     setEditingTxn({ ...txn });
@@ -71,7 +77,7 @@ if (userGroup) setUserRole(userGroup);
         updatedAmount: editingTxn.Amount,
         updatedDate: editingTxn.Transaction_date,
         creditAccountId: editingTxn.Credit_id,
-        debitAccountId: editingTxn.Debit_id
+        debitAccountId: editingTxn.Debit_id,
       });
       if (res.data.success) {
         alert('Transaction updated');
@@ -104,9 +110,6 @@ if (userGroup) setUserRole(userGroup);
 
   return (
     <>
-      <div className="no-print">
-      </div>
-
       <div className="p-6">
         <h2 className="text-xl font-bold mb-4">All Transactions</h2>
 
@@ -124,30 +127,33 @@ if (userGroup) setUserRole(userGroup);
               </tr>
             </thead>
             <tbody>
-              {filteredEntries.map((txn, index) => (
-                <tr key={index} className="border-t">
-                  <td className="py-2 px-4">{txn.Transaction_id}</td>
-                  <td className="py-2 px-4">{formatDate(txn.Transaction_date)}</td>
-                  <td className="py-2 px-4">{customerMap[txn.Credit_id] || '-'}</td>
-                  <td className="py-2 px-4">{txn.Amount?.toFixed(2)}</td>
-                  <td className="py-2 px-4">{customerMap[txn.Debit_id] || '-'}</td>
-                  <td className="py-2 px-4">{txn.Amount?.toFixed(2)}</td>
-                  <td className="py-2 px-4">
-                    {userRole === 'Admin User' && (
-                      <>
-                        <button className="text-blue-600 underline mr-2" onClick={() => openEdit(txn)}>Edit</button>
-                        <button className="text-red-600 underline" onClick={() => handleDelete(txn.Transaction_id)}>Delete</button>
-                      </>
-                    )}
-                  </td>
+              {filteredEntries.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="text-center py-4">No transactions found.</td>
                 </tr>
-              ))}
+              ) : (
+                filteredEntries.map((txn, index) => (
+                  <tr key={index} className="border-t">
+                    <td className="py-2 px-4">{txn.Transaction_id}</td>
+                    <td className="py-2 px-4">{formatDate(txn.Transaction_date)}</td>
+                    <td className="py-2 px-4">{customerMap[txn.Credit_id] || '-'}</td>
+                    <td className="py-2 px-4">{txn.CreditAmount?.toFixed(2)}</td>
+                    <td className="py-2 px-4">{customerMap[txn.Debit_id] || '-'}</td>
+                    <td className="py-2 px-4">{txn.DebitAmount?.toFixed(2)}</td>
+                    <td className="py-2 px-4">
+                      {userRole === 'Admin User' && (
+                        <>
+                          <button className="text-blue-600 underline mr-2" onClick={() => openEdit(txn)}>Edit</button>
+                          <button className="text-red-600 underline" onClick={() => handleDelete(txn.Transaction_id)}>Delete</button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
-      </div>
-
-      <div className="no-print">
       </div>
 
       {showEditModal && editingTxn && (
@@ -210,10 +216,17 @@ if (userGroup) setUserRole(userGroup);
             </div>
 
             <div className="mt-6 flex justify-end gap-3">
-              <button className="px-4 py-2 bg-gray-300 rounded" onClick={() => setShowEditModal(false)}>
+              <button
+                className="px-4 py-2 bg-gray-300 rounded"
+                onClick={() => setShowEditModal(false)}
+              >
                 Cancel
               </button>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={handleUpdate}>
+              <button
+                className={`px-4 py-2 rounded ${!editingTxn.Transaction_date || !editingTxn.Amount || !editingTxn.Credit_id || !editingTxn.Debit_id ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white'}`}
+                disabled={!editingTxn.Transaction_date || !editingTxn.Amount || !editingTxn.Credit_id || !editingTxn.Debit_id}
+                onClick={handleUpdate}
+              >
                 Save
               </button>
             </div>
