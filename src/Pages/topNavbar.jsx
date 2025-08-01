@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import UserTask from "../Pages/userTask";
 import axios from "axios";
-import { format } from 'date-fns';
 import TaskUpdate from "../Pages/taskUpdate";
 
 const TopNavbar = () => {
@@ -11,8 +10,6 @@ const TopNavbar = () => {
   const [userName, setUserName] = useState('');
   const [loggedInUser, setLoggedInUser] = useState(null); 
   const [showUserModel, setShowUserModel] = useState(false);
-  const [isHidden, setIsHidden] = useState(false);
-  const [attendanceData, setAttendanceData] = useState([]); 
   const [task, setTask] = useState([]);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [showTaskModal, setShowTaskModal] = useState(false); 
@@ -29,8 +26,7 @@ const TopNavbar = () => {
       setLoggedInUser(user);
       if (user) {
         setUserName(user);
-        fetchData(user);
-        fetchAttendance(user);
+        fetchData();
       } else {
         navigate("/login");
       }
@@ -38,7 +34,7 @@ const TopNavbar = () => {
     setTimeout(() => setIsLoading(false), 2000);
   }, [location.state, navigate]);
 
-  const fetchData = async (user) => {
+  const fetchData = async () => {
     try {
       const taskRes = await axios.get("/usertask/GetUsertaskList");
       if (taskRes.data.success) {
@@ -51,49 +47,6 @@ const TopNavbar = () => {
     }
   };
 
-  const fetchUserNames = async () => {
-    try {
-      const response = await axios.get('/user/GetUserList');
-      const data = response.data;
-      if (data.success) {
-        const userLookup = {};
-        data.result.forEach(user => {
-          userLookup[user.User_uuid] = user.User_name.trim(); 
-        });
-        return userLookup;
-      } else {
-        return {};
-      }
-    } catch (error) {
-      return {};
-    }
-  };
-
-  const fetchAttendance = async (user) => {
-    try {
-      const userLookup = await fetchUserNames();
-      const response = await axios.get('/attendance/GetAttendanceList');
-      const records = response.data.result || [];
-
-      const formatted = records.flatMap(record => {
-        const employeeUuid = record.Employee_uuid.trim();
-        const name = userLookup[employeeUuid] || 'Unknown';
-        return record.User.map(user => ({
-          Attendance_Record_ID: record.Attendance_Record_ID,
-          User_name: name,
-          Date: record.Date,
-          Time: user.CreatedAt ? format(new Date(user.CreatedAt), "hh:mm a") : "No Time",
-          Type: user.Type || 'N/A',
-          Status: record.Status || 'N/A',
-        }));
-      });
-
-      const filtered = formatted.filter(r => r.User_name === user);
-      setAttendanceData(filtered);
-    } catch (err) {
-      console.error("Attendance fetch error:", err);
-    }
-  };
 
   useEffect(() => {
     const group = localStorage.getItem("User_group");
@@ -110,7 +63,6 @@ const TopNavbar = () => {
   };
 
   const toggleSidebar = () => setIsOpen(!isOpen);
-  const toggleVisibility = () => setIsHidden(prev => !prev);
   const home = () => {
     if (userGroup === "Admin User") navigate('/Home');
     else if (userGroup === "Vendor") navigate('/vendorHome');
@@ -125,13 +77,11 @@ const TopNavbar = () => {
     setShowTaskModal(false);
     setSelectedTaskId(null);  
   };
-  const getTodayDate = () => format(new Date(), 'yyyy-MM-dd');
-
   const pendingTasks = task.filter(t => t.Status === "Pending" && t.User === loggedInUser);
 
   return (
     <>
-      <div className="fixed top-0 w-full bg-white text-green-600 pr-14 pl-4 pt-2 pb-2 flex z-50 items-center shadow-md">
+      <div className="fixed top-0 w-full bg-primary text-white px-4 py-2 flex z-50 items-center shadow-md">
         <button onClick={home}>
           <h1 className="text-xl font-bold uppercase">SANJU SK</h1>
         </button>
@@ -139,7 +89,7 @@ const TopNavbar = () => {
         <div className="ml-auto flex items-center gap-4">
           <div className="relative">
             <button onClick={() => setShowDropdown(!showDropdown)} className="focus:outline-none">
-              <svg className="w-6 h-6 text-gray-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="8" r="4" />
                 <path d="M6 20v-2a6 6 0 0112 0v2" />
               </svg>
@@ -154,7 +104,7 @@ const TopNavbar = () => {
             )}
           </div>
 
-          <button onClick={toggleSidebar} className="text-2xl focus:outline-none">
+          <button onClick={toggleSidebar} className="text-2xl text-white focus:outline-none">
             &#x22EE;
           </button>
         </div>

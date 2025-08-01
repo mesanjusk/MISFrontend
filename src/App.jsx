@@ -1,4 +1,3 @@
-import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import axios from 'axios';
@@ -74,7 +73,7 @@ function App() {
 
     return (
         <Router>
-            <div>
+            <div className="min-h-screen bg-background text-gray-900">
                 <Routes>
                     {/* Public routes - no Layout */}
                     <Route path="/" element={<Login />} />

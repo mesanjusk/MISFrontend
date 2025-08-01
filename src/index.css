@@ -3,7 +3,17 @@
 @tailwind utilities;
 
 :root {
+  --color-primary: #1E3A8A;
+  --color-secondary: #1E40AF;
+  --color-accent: #F59E0B;
+  --color-background: #F3F4F6;
+  --color-text: #111827;
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-text);
 }
 
 /* Other custom CSS */
