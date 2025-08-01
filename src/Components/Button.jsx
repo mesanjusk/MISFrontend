@@ -1,4 +1,4 @@
-/* eslint-disable react/prop-types */
+import PropTypes from 'prop-types';
 
 const variantClasses = {
   primary:
@@ -22,10 +22,17 @@ export default function Button({
   children,
   ...props
 }) {
-  const classes = `${variantClasses[variant]} ${sizeClasses[size]} inline-flex items-center justify-center rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 ${className}`;
+  const classes = `${variantClasses[variant]} ${sizeClasses[size]} inline-flex items-center justify-center rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${className}`;
   return (
     <button className={classes} {...props}>
       {children}
     </button>
   );
 }
+
+Button.propTypes = {
+  variant: PropTypes.oneOf(['primary', 'secondary', 'danger']),
+  size: PropTypes.oneOf(['sm', 'md', 'lg']),
+  className: PropTypes.string,
+  children: PropTypes.node,
+};

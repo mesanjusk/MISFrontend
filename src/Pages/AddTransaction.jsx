@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import { useEffect, useState } from 'react';
+import PropTypes from 'prop-types';
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { FaSpinner } from 'react-icons/fa';
@@ -317,3 +317,10 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
     </div>
   );
 }
+
+AddTransaction.propTypes = {
+  editMode: PropTypes.bool,
+  existingData: PropTypes.object,
+  onClose: PropTypes.func,
+  onSuccess: PropTypes.func,
+};

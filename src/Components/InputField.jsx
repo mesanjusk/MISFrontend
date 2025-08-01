@@ -1,4 +1,4 @@
-/* eslint-disable react/prop-types */
+import PropTypes from 'prop-types';
 
 export default function InputField({
   label,
@@ -21,3 +21,9 @@ export default function InputField({
     </div>
   );
 }
+
+InputField.propTypes = {
+  label: PropTypes.string,
+  type: PropTypes.string,
+  className: PropTypes.string,
+};

@@ -1,4 +1,4 @@
-/* eslint-disable react/prop-types */
+import PropTypes from 'prop-types';
 
 export default function Table({ columns = [], data = [] }) {
   return (
@@ -31,3 +31,13 @@ export default function Table({ columns = [], data = [] }) {
     </div>
   );
 }
+
+Table.propTypes = {
+  columns: PropTypes.arrayOf(
+    PropTypes.shape({
+      Header: PropTypes.node.isRequired,
+      accessor: PropTypes.string.isRequired,
+    })
+  ),
+  data: PropTypes.arrayOf(PropTypes.object),
+};

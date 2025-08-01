@@ -1,4 +1,4 @@
-/* eslint-disable react/prop-types */
+import PropTypes from 'prop-types';
 
 export default function Card({ className = '', children, ...props }) {
   return (
@@ -10,3 +10,8 @@ export default function Card({ className = '', children, ...props }) {
     </div>
   );
 }
+
+Card.propTypes = {
+  className: PropTypes.string,
+  children: PropTypes.node,
+};

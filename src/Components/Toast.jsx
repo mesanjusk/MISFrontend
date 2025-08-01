@@ -1,10 +1,10 @@
-/* eslint-disable react-refresh/only-export-components */
 import { Toaster, toast } from 'react-hot-toast';
 
-export const ToastContainer = () => (
-  <Toaster
-    position="top-right"
-    toastOptions={{
+export function ToastContainer() {
+  return (
+    <Toaster
+      position="top-right"
+      toastOptions={{
       style: {
         background: '#F4F6F8',
         color: '#212121',
@@ -17,7 +17,9 @@ export const ToastContainer = () => (
         iconTheme: { primary: '#E53935', secondary: '#F4F6F8' },
       },
     }}
-  />
-);
+    />
+  );
+}
 
+// eslint-disable-next-line react-refresh/only-export-components
 export { toast };

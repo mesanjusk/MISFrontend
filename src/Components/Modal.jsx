@@ -1,4 +1,4 @@
-/* eslint-disable react/prop-types */
+import PropTypes from 'prop-types';
 import Button from './Button';
 
 export default function Modal({
@@ -27,3 +27,11 @@ export default function Modal({
     </div>
   );
 }
+
+Modal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  title: PropTypes.string,
+  children: PropTypes.node,
+  actions: PropTypes.arrayOf(PropTypes.node),
+};

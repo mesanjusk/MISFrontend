@@ -29,7 +29,7 @@ import AllDelivery from "./Reports/allDelivery";
 import OrderUpdate from "./Reports/orderUpdate";
 import AddEnquiry from "./Pages/addEnquiry";
 import AddPayment from "./Pages/addPayment";
-import AddTransaction from "./Pages/addTransaction";
+import AddTransaction from "./Pages/AddTransaction";
 import AllTransaction from "./Reports/allTransaction";
 import AllTransaction1 from "./Reports/allTransaction1";
 import AllTransaction4D from "./Reports/allTransaction4D";
