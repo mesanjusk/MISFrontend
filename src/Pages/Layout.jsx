@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
-import TopNavbar from './topNavbar';
-import Footer from './footer';
+import TopNavbar from '../Components/TopNavbar';
+import Footer from '../Components/Footer';
 
 const Layout = () => (
   <div className="min-h-screen flex flex-col bg-background text-gray-900">
