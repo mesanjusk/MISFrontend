@@ -17,12 +17,8 @@ const AllTransaction = () => {
           axios.get('/customer/GetCustomersList'),
         ]);
 
-        if (txnRes.data.success) {
-          setTransactions(txnRes.data.result);
-        }
-        if (custRes.data.success) {
-          setCustomers(custRes.data.result);
-        }
+        if (txnRes.data.success) setTransactions(txnRes.data.result);
+        if (custRes.data.success) setCustomers(custRes.data.result);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -110,41 +106,47 @@ const AllTransaction = () => {
 
   return (
     <>
-      <div className="p-6">
-        <h2 className="text-xl font-bold mb-4">All Transactions</h2>
+      <div className="pt-12 pb-20 max-w-7xl mx-auto px-4">
+        <h2 className="text-xl font-semibold text-green-700 mb-4">All Transactions</h2>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full border">
-            <thead className="bg-gray-100">
+        <div className="overflow-auto rounded shadow bg-white">
+          <table className="w-full text-sm table-auto">
+            <thead className="bg-green-100 text-green-900 sticky top-0 z-10">
               <tr>
-                <th className="py-2 px-4">No</th>
-                <th className="py-2 px-4">Date</th>
-                <th className="py-2 px-4">Name Credit</th>
-                <th className="py-2 px-4">Credit</th>
-                <th className="py-2 px-4">Name Debit</th>
-                <th className="py-2 px-4">Debit</th>
-                <th className="py-2 px-4">Actions</th>
+                <th className="py-2 px-4 border">No</th>
+                <th className="py-2 px-4 border">Date</th>
+                <th className="py-2 px-4 border">Name Credit</th>
+                <th className="py-2 px-4 border">Credit</th>
+                <th className="py-2 px-4 border">Name Debit</th>
+                <th className="py-2 px-4 border">Debit</th>
+                <th className="py-2 px-4 border text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredEntries.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="text-center py-4">No transactions found.</td>
+                  <td colSpan="7" className="text-center py-6 text-gray-500">
+                    No transactions found.
+                  </td>
                 </tr>
               ) : (
                 filteredEntries.map((txn, index) => (
-                  <tr key={index} className="border-t">
+                  <tr key={index} className="border-t hover:bg-gray-50 transition">
                     <td className="py-2 px-4">{txn.Transaction_id}</td>
                     <td className="py-2 px-4">{formatDate(txn.Transaction_date)}</td>
                     <td className="py-2 px-4">{customerMap[txn.Credit_id] || '-'}</td>
-                    <td className="py-2 px-4">{txn.CreditAmount?.toFixed(2)}</td>
+                    <td className="py-2 px-4 text-right text-green-700">₹{txn.CreditAmount.toFixed(2)}</td>
                     <td className="py-2 px-4">{customerMap[txn.Debit_id] || '-'}</td>
-                    <td className="py-2 px-4">{txn.DebitAmount?.toFixed(2)}</td>
-                    <td className="py-2 px-4">
+                    <td className="py-2 px-4 text-right text-red-600">₹{txn.DebitAmount.toFixed(2)}</td>
+                    <td className="py-2 px-4 text-center">
                       {userRole === 'Admin User' && (
                         <>
-                          <button className="text-blue-600 underline mr-2" onClick={() => openEdit(txn)}>Edit</button>
-                          <button className="text-red-600 underline" onClick={() => handleDelete(txn.Transaction_id)}>Delete</button>
+                          <button className="text-blue-600 hover:underline mr-2" onClick={() => openEdit(txn)}>
+                            Edit
+                          </button>
+                          <button className="text-red-600 hover:underline" onClick={() => handleDelete(txn.Transaction_id)}>
+                            Delete
+                          </button>
                         </>
                       )}
                     </td>
@@ -156,13 +158,14 @@ const AllTransaction = () => {
         </div>
       </div>
 
+      {/* Edit Modal */}
       {showEditModal && editingTxn && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-xl">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-xl">
             <h3 className="text-lg font-semibold mb-4">Edit Transaction</h3>
 
-            <div className="space-y-3">
-              <label className="block">
+            <div className="space-y-4">
+              <label className="block text-sm">
                 Date:
                 <input
                   type="date"
@@ -172,7 +175,7 @@ const AllTransaction = () => {
                 />
               </label>
 
-              <label className="block">
+              <label className="block text-sm">
                 Amount:
                 <input
                   type="number"
@@ -182,7 +185,7 @@ const AllTransaction = () => {
                 />
               </label>
 
-              <label className="block">
+              <label className="block text-sm">
                 Credit Name:
                 <select
                   value={editingTxn.Credit_id}
@@ -198,7 +201,7 @@ const AllTransaction = () => {
                 </select>
               </label>
 
-              <label className="block">
+              <label className="block text-sm">
                 Debit Name:
                 <select
                   value={editingTxn.Debit_id}
@@ -223,7 +226,10 @@ const AllTransaction = () => {
                 Cancel
               </button>
               <button
-                className={`px-4 py-2 rounded ${!editingTxn.Transaction_date || !editingTxn.Amount || !editingTxn.Credit_id || !editingTxn.Debit_id ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white'}`}
+                className={`px-4 py-2 rounded ${!editingTxn.Transaction_date || !editingTxn.Amount || !editingTxn.Credit_id || !editingTxn.Debit_id
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
                 disabled={!editingTxn.Transaction_date || !editingTxn.Amount || !editingTxn.Credit_id || !editingTxn.Debit_id}
                 onClick={handleUpdate}
               >

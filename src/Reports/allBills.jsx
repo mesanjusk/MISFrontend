@@ -9,268 +9,233 @@ import "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-
 export default function AllBills() {
-    const navigate = useNavigate();
-    const [orders, setOrders] = useState([]);
-    const [searchOrder, setSearchOrder] = useState("");
-    const [filter, setFilter] = useState("");
-    const [customers, setCustomers] = useState({});
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [selectedOrder, setSelectedOrder] = useState(null);
-    const [showOrderModal, setShowOrderModal] = useState(false);
-    const [showStepsModal, setShowStepsModal] = useState(false);
-    const [stepsOrder, setStepsOrder] = useState(null);
+  const navigate = useNavigate();
+  const [orders, setOrders] = useState([]);
+  const [searchOrder, setSearchOrder] = useState("");
+  const [filter, setFilter] = useState("");
+  const [customers, setCustomers] = useState({});
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [showStepsModal, setShowStepsModal] = useState(false);
+  const [stepsOrder, setStepsOrder] = useState(null);
 
-    function addOrder1() {
-        navigate("/addOrder1");
-    }
+  useEffect(() => {
+    const fetchOrders = axios.get("/order/GetBillList");
+    const fetchCustomers = axios.get("/customer/GetCustomersList");
 
-    useEffect(() => {
-        const fetchOrders = axios.get("/order/GetBillList");
-        const fetchCustomers = axios.get("/customer/GetCustomersList");
+    Promise.all([fetchOrders, fetchCustomers])
+      .then(([ordersRes, customersRes]) => {
+        setOrders(ordersRes.data.success ? ordersRes.data.result : []);
+        if (customersRes.data.success) {
+          const customerMap = customersRes.data.result.reduce((acc, c) => {
+            if (c.Customer_uuid && c.Customer_name) {
+              acc[c.Customer_uuid] = c.Customer_name;
+            }
+            return acc;
+          }, {});
+          setCustomers(customerMap);
+        }
+      })
+      .catch((err) => console.log("Error fetching data:", err));
+  }, []);
 
-        Promise.all([fetchOrders, fetchCustomers])
-            .then(([ordersRes, customersRes]) => {
-                if (ordersRes.data.success) {
-                    setOrders(ordersRes.data.result);
-                } else {
-                    setOrders([]);
-                }
-
-                if (customersRes.data.success) {
-                    const customerMap = customersRes.data.result.reduce((acc, customer) => {
-                        if (customer.Customer_uuid && customer.Customer_name) {
-                            acc[customer.Customer_uuid] = customer.Customer_name;
-                        } else {
-                            console.warn("Invalid customer data:", customer);
-                        }
-                        return acc;
-                    }, {});
-                    setCustomers(customerMap);
-                } else {
-                    setCustomers({});
-                }
-            })
-            .catch(err => console.log('Error fetching data:', err));
-    }, []);
-    const exportToPDF = () => {
-        const doc = new jsPDF();
-        const tableColumn = ["Order #", "Customer", "Created At", "Remark", "Assigned", "Delivery"];
-        const tableRows = [];
-
-        filteredOrders.forEach(order => {
-            tableRows.push([
-                order.Order_Number,
-                order.Customer_name,
-                new Date(order.createdAt).toLocaleDateString(),
-                order.Remark,
-                order.highestStatusTask?.Assigned || "",
-                order.highestStatusTask?.Delivery_Date
-                    ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString()
-                    : ""
-            ]);
-        });
-
-        doc.autoTable({
-            head: [tableColumn],
-            body: tableRows,
-            startY: 20,
-        });
-
-        doc.text("Bill Report", 14, 15);
-        doc.save("bill_report.pdf");
-    };
-
-    const exportToExcel = () => {
-        const data = filteredOrders.map(order => ({
-            "Order Number": order.Order_Number,
-            "Customer Name": order.Customer_name,
-            "Created At": new Date(order.createdAt).toLocaleDateString(),
-            "Remark": order.Remark,
-            "Assigned": order.highestStatusTask?.Assigned || "",
-            "Delivery Date": order.highestStatusTask?.Delivery_Date
-                ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString()
-                : ""
-        }));
-
-        const worksheet = XLSX.utils.json_to_sheet(data);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Bills");
-
-        const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-        const file = new Blob([excelBuffer], { type: "application/octet-stream" });
-        saveAs(file, "bill_report.xlsx");
-    };
-
-    const filteredOrders = orders.map(order => {
-        const highestStatusTask = order.Status.reduce((prev, current) =>
-            (prev.Status_number > current.Status_number) ? prev : current, {});
-
-        const customerName = customers[order.Customer_uuid] || "Unknown";
-
-
-        return {
-            ...order,
-            highestStatusTask,
-            Customer_name: customerName
-        };
-    }).filter(order => {
-        const matchesSearch = order.Customer_name.toLowerCase().includes(searchOrder.toLowerCase());
-
-        const task = (order.highestStatusTask.Task || "").trim().toLowerCase();
-        const filterValue = filter.trim().toLowerCase();
-        const matchesFilter = filterValue === "" || task === filterValue;
-
-        return matchesSearch && matchesFilter;
+  const filteredOrders = orders
+    .map((order) => {
+      const highestStatusTask = order.Status.reduce(
+        (prev, current) =>
+          prev.Status_number > current.Status_number ? prev : current,
+        {}
+      );
+      return {
+        ...order,
+        highestStatusTask,
+        Customer_name: customers[order.Customer_uuid] || "Unknown",
+      };
+    })
+    .filter((order) => {
+      const matchesSearch = order.Customer_name
+        .toLowerCase()
+        .includes(searchOrder.toLowerCase());
+      const task = (order.highestStatusTask.Task || "").toLowerCase().trim();
+      const filterValue = filter.toLowerCase().trim();
+      return matchesSearch && (filterValue === "" || task === filterValue);
     });
 
-    const handleEditClick = (order) => {
-        setSelectedOrder(order);
-        setShowEditModal(true);
-    };
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    const tableColumn = [
+      "Order #",
+      "Customer",
+      "Created At",
+      "Remark",
+      "Assigned",
+      "Delivery",
+    ];
+    const tableRows = [];
 
-    const handleStepsClick = (e, order) => {
-        e.stopPropagation();
-        setStepsOrder(order);
-        setShowStepsModal(true);
-    };
+    filteredOrders.forEach((order) => {
+      tableRows.push([
+        order.Order_Number,
+        order.Customer_name,
+        new Date(order.createdAt).toLocaleDateString(),
+        order.Remark || "-",
+        order.highestStatusTask?.Assigned || "",
+        order.highestStatusTask?.Delivery_Date
+          ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString()
+          : "",
+      ]);
+    });
 
-    const closeStepsModal = () => {
-        setShowStepsModal(false);
-        setStepsOrder(null);
-    };
+    doc.text("Bill Report", 14, 15);
+    doc.autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: 20,
+    });
+    doc.save("bill_report.pdf");
+  };
 
-    const closeEditModal = () => {
-        setShowEditModal(false);
-        setSelectedOrder(null);
-    };
+  const exportToExcel = () => {
+    const data = filteredOrders.map((order) => ({
+      "Order Number": order.Order_Number,
+      "Customer Name": order.Customer_name,
+      "Created At": new Date(order.createdAt).toLocaleDateString(),
+      Remark: order.Remark || "-",
+      Assigned: order.highestStatusTask?.Assigned || "",
+      "Delivery Date": order.highestStatusTask?.Delivery_Date
+        ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString()
+        : "",
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Bills");
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const file = new Blob([excelBuffer], { type: "application/octet-stream" });
+    saveAs(file, "bill_report.xlsx");
+  };
 
-    const handleOrder = () => {
-        setShowOrderModal(true);
-    };
+  const handleEditClick = (order) => {
+    setSelectedOrder(order);
+    setShowEditModal(true);
+  };
 
-    const closeModal = () => {
-        setShowOrderModal(false);
-    };
+  const handleStepsClick = (e, order) => {
+    e.stopPropagation();
+    setStepsOrder(order);
+    setShowStepsModal(true);
+  };
 
-    return (
-        <>
-             <div className="pt-12 pb-20  max-w-7xl mx-auto px-4">
-                <button
-                                onClick={exportToPDF}
-                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-                            >
-                                PDF
-                            </button>
-                            <button
-                                onClick={exportToExcel}
-                                className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                            >
-                                Excel
-                            </button>
-                {/* Search + Export */}
-               <div className="flex flex-wrap items-center bg-white w-full p-2 mb-4 rounded-lg shadow gap-2">
-                    
-                        <input
-                            type="text"
-                            placeholder="Search by Customer Name"
-                            className="form-control text-black bg-gray-100 rounded-full px-4 py-2"
-                            value={searchOrder}
-                            onChange={(e) => setSearchOrder(e.target.value)}
-                        />
-                        
-                            
-                        
-                    
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setSelectedOrder(null);
+  };
+
+  const closeStepsModal = () => {
+    setShowStepsModal(false);
+    setStepsOrder(null);
+  };
+
+  const handleOrder = () => setShowOrderModal(true);
+  const closeModal = () => setShowOrderModal(false);
+
+  return (
+    <>
+      <div className="pt-14 pb-20 max-w-8xl mx-auto px-4">
+        {/* Toolbar */}
+        <div className="flex flex-col md:flex-row justify-between gap-2 mb-4 items-center">
+          <input
+            type="text"
+            placeholder="Search by customer name"
+            className="form-control text-black bg-gray-100 rounded-full px-4 py-2 w-full max-w-md"
+            value={searchOrder}
+            onChange={(e) => setSearchOrder(e.target.value)}
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={exportToPDF}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Export PDF
+            </button>
+            <button
+              onClick={exportToExcel}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              Export Excel
+            </button>
+          </div>
+        </div>
+
+        {/* Orders Grid */}
+        <main className="p-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
+            {filteredOrders.length > 0 ? (
+              filteredOrders.map((order, index) => (
+                <div
+                  key={index}
+                  onClick={() => handleEditClick(order)}
+                  className="relative bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition cursor-pointer"
+                >
+                  <button
+                    className="absolute top-2 right-2 text-xs bg-blue-500 text-white px-2 py-1 rounded"
+                    onClick={(e) => handleStepsClick(e, order)}
+                  >
+                    Steps
+                  </button>
+                  <div className="text-gray-900 font-bold text-lg">
+                    #{order.Order_Number}
+                  </div>
+                  <div className="text-gray-700 font-medium">
+                    {order.Customer_name}
+                  </div>
+                  <div className="text-gray-500 text-sm mb-2">
+                    {new Date(order.createdAt).toLocaleDateString()}
+                  </div>
+                  <div className="text-sm text-gray-600 italic">
+                    {order.Remark || "-"}
+                  </div>
+                  <div className="mt-2 text-sm text-gray-600">
+                    <p>👤 Assigned: {order.highestStatusTask?.Assigned || "N/A"}</p>
+                    <p>
+                      📅 Delivery:{" "}
+                      {order.highestStatusTask?.Delivery_Date
+                        ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString()
+                        : "N/A"}
+                    </p>
+                  </div>
                 </div>
-
-                {/* Orders List */}
-                <main className="flex flex-1 p-4 overflow-y-auto">
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 w-full">
-                        {filteredOrders.length > 0 ? (
-                            filteredOrders.map((order, index) => (
-                                <div
-                                    key={index}
-                                    onClick={() => handleEditClick(order)}
-                                    className="relative bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-all cursor-pointer"
-                                >
-                                    <button
-                                        className="absolute top-2 right-2 text-xs bg-blue-500 text-white px-2 py-1 rounded"
-                                        onClick={(e) => handleStepsClick(e, order)}
-                                    >
-                                        Edit
-                                    </button>
-                                    <div className="flex justify-between items-center mb-2">
-                                        <div className="font-semibold text-lg text-gray-800">
-                                            #{order.Order_Number}
-                                        </div>
-                                        <div className="text-sm text-gray-500">
-                                            {new Date(order.createdAt).toLocaleDateString()}
-                                        </div>
-                                    </div>
-                                    <div className="text-md font-medium text-gray-700">
-                                        {order.Customer_name}
-                                    </div>
-                                    <div className="text-sm text-gray-600 mb-2">{order.Remark}</div>
-                                    <div className="flex justify-between text-sm text-gray-600">
-                                        <span>Assigned: {order.highestStatusTask?.Assigned || "N/A"}</span>
-                                        <span>
-                                            Delivery:{" "}
-                                            {order.highestStatusTask?.Delivery_Date
-                                                ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString()
-                                                : "N/A"}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="text-center text-gray-500">No orders found</div>
-                        )}
-                    </div>
-                </main>
-
-                {/* Add Order Floating Button */}
-                <div className="fixed bottom-20 right-8">
-                    <button
-                        onClick={handleOrder}
-                        className="w-12 h-12 bg-green-500 text-white rounded-full shadow-lg flex items-center justify-center"
-                    >
-                        <svg
-                            className="h-8 w-8"
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            strokeWidth="2"
-                            stroke="currentColor"
-                            fill="none"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        >
-                            <path stroke="none" d="M0 0h24v24H0z" />
-                            <circle cx="12" cy="12" r="9" />
-                            <line x1="9" y1="12" x2="15" y2="12" />
-                            <line x1="12" y1="9" x2="12" y2="15" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            {showOrderModal && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <AddOrder1 closeModal={closeModal} />
-                    </div>
-                </div>
+              ))
+            ) : (
+              <div className="col-span-full text-center text-gray-500 py-10">
+                No bills found
+              </div>
             )}
-            {showEditModal && (
-                <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center ">
-                    <BillUpdate order={selectedOrder} onClose={closeEditModal} />
-                </div>
-            )}
-            {showStepsModal && (
-                <OrderStepsModal order={stepsOrder} onClose={closeStepsModal} />
-            )}
-        </>
-    );
+          </div>
+        </main>
+
+       
+      </div>
+
+      {/* Modals */}
+      {showOrderModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-lg p-4 max-w-2xl w-full">
+            <AddOrder1 closeModal={closeModal} />
+          </div>
+        </div>
+      )}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-lg p-4 max-w-3xl w-full">
+            <BillUpdate order={selectedOrder} onClose={closeEditModal} />
+          </div>
+        </div>
+      )}
+      {showStepsModal && (
+        <OrderStepsModal order={stepsOrder} onClose={closeStepsModal} />
+      )}
+    </>
+  );
 }

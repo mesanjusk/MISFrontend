@@ -5,7 +5,7 @@ export default function Footer() {
   const navigate = useNavigate();
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-secondary text-white">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-secondary to-primary text-white">
       <div className="flex justify-around p-2">
         <button className="flex flex-col items-center" onClick={() => navigate('/allDelivery')}>
           <FiCheckCircle className="h-6 w-6 mb-1" />

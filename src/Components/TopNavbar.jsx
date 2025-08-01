@@ -81,7 +81,7 @@ const TopNavbar = () => {
 
   return (
     <>
-      <div className="fixed top-0 w-full bg-primary text-white px-4 py-2 flex z-50 items-center shadow-md">
+     <div className="fixed top-0 w-full bg-gradient-to-r from-primary to-secondary text-white px-4 py-2 flex z-50 items-center shadow-md">
         <button onClick={home}>
           <h1 className="text-xl font-bold uppercase">SANJU SK</h1>
         </button>

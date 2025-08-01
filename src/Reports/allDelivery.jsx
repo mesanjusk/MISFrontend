@@ -18,19 +18,11 @@ export default function AllDelivery() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
 
-  // Helper to format dates as dd-mm-yyyy
-  function formatDateDDMMYYYY(dateString) {
+  const formatDateDDMMYYYY = (dateString) => {
     const date = new Date(dateString);
-    if (isNaN(date)) return ""; // fallback for invalid dates
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
-  }
-
-  function addOrder1() {
-    navigate("/addOrder1");
-  }
+    if (isNaN(date)) return "";
+    return `${String(date.getDate()).padStart(2, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${date.getFullYear()}`;
+  };
 
   useEffect(() => {
     const fetchOrders = axios.get("/order/GetDeliveredList");
@@ -38,24 +30,15 @@ export default function AllDelivery() {
 
     Promise.all([fetchOrders, fetchCustomers])
       .then(([ordersRes, customersRes]) => {
-        if (ordersRes.data.success) {
-          setOrders(ordersRes.data.result);
-        } else {
-          setOrders([]);
-        }
-
+        setOrders(ordersRes.data.success ? ordersRes.data.result : []);
         if (customersRes.data.success) {
-          const customerMap = customersRes.data.result.reduce((acc, customer) => {
-            if (customer.Customer_uuid && customer.Customer_name) {
-              acc[customer.Customer_uuid] = customer.Customer_name;
-            } else {
-              console.warn("Invalid customer data:", customer);
+          const customerMap = customersRes.data.result.reduce((acc, c) => {
+            if (c.Customer_uuid && c.Customer_name) {
+              acc[c.Customer_uuid] = c.Customer_name;
             }
             return acc;
           }, {});
           setCustomers(customerMap);
-        } else {
-          setCustomers({});
         }
       })
       .catch((err) => console.log("Error fetching data:", err));
@@ -63,49 +46,27 @@ export default function AllDelivery() {
 
   const filteredOrders = orders
     .map((order) => {
-      const highestStatusTask =
-        order.Status.reduce((prev, current) =>
-          prev.Status_number > current.Status_number ? prev : current,
-        {}) || {};
-
-      const customerName = customers[order.Customer_uuid] || "Unknown";
-
+      const highestStatusTask = order.Status.reduce((prev, current) =>
+        prev.Status_number > current.Status_number ? prev : current, {}) || {};
       return {
         ...order,
         highestStatusTask,
-        Customer_name: customerName,
+        Customer_name: customers[order.Customer_uuid] || "Unknown",
       };
     })
     .filter((order) => {
-      const matchesSearch = order.Customer_name
-        .toLowerCase()
-        .includes(searchOrder.toLowerCase());
-
-      const task = (order.highestStatusTask.Task || "").trim().toLowerCase();
-      const filterValue = filter.trim().toLowerCase();
-      const matchesFilter = filterValue === "" || task === filterValue;
-
-      return matchesSearch && matchesFilter;
+      const matchesSearch = order.Customer_name.toLowerCase().includes(searchOrder.toLowerCase());
+      const task = (order.highestStatusTask.Task || "").toLowerCase().trim();
+      const filterValue = filter.toLowerCase().trim();
+      return matchesSearch && (filterValue === "" || task === filterValue);
     });
 
-  // PDF Export function
   const exportPDF = () => {
     const doc = new jsPDF();
-
-    const tableColumn = [
-      "Order Number",
-      "Customer Name",
-      "Created Date",
-      "Remark",
-      "Delivery Date",
-      "Assigned",
-      "Highest Status Task",
-    ];
-
-    const tableRows = [];
-
-    filteredOrders.forEach((order) => {
-      const orderData = [
+    doc.text("Orders Report", 14, 15);
+    doc.autoTable({
+      head: [["Order Number", "Customer Name", "Created Date", "Remark", "Delivery Date", "Assigned", "Highest Status Task"]],
+      body: filteredOrders.map((order) => [
         order.Order_Number,
         order.Customer_name,
         formatDateDDMMYYYY(order.createdAt),
@@ -113,21 +74,12 @@ export default function AllDelivery() {
         formatDateDDMMYYYY(order.highestStatusTask.Delivery_Date),
         order.highestStatusTask.Assigned || "",
         order.highestStatusTask.Task || "",
-      ];
-      tableRows.push(orderData);
-    });
-
-    doc.autoTable({
-      head: [tableColumn],
-      body: tableRows,
+      ]),
       startY: 20,
     });
-
-    doc.text("Orders Report", 14, 15);
     doc.save("orders_report.pdf");
   };
 
-  // Excel Export function
   const exportExcel = () => {
     const worksheetData = filteredOrders.map((order) => ({
       "Order Number": order.Order_Number,
@@ -150,120 +102,99 @@ export default function AllDelivery() {
     setShowEditModal(true);
   };
 
+  const handleOrder = () => setShowOrderModal(true);
   const closeEditModal = () => {
     setShowEditModal(false);
     setSelectedOrder(null);
   };
-
-  const handleOrder = () => {
-    setShowOrderModal(true);
-  };
-
-  const closeModal = () => {
-    setShowOrderModal(false);
-  };
+  const closeModal = () => setShowOrderModal(false);
 
   return (
     <>
-      <div className="pt-12 pb-20  max-w-8xl mx-auto px-2">
-        <div className="flex flex-wrap bg-white w-full p-2 mb-2 rounded-lg shadow">
-          <input
-            type="text"
-            placeholder="Search by Customer Name"
-            className="form-control text-black bg-gray-100 rounded-full flex-grow px-2 py-2"
-            value={searchOrder}
-            onChange={(e) => setSearchOrder(e.target.value)}
-          />
-          
-        </div>
-      <main className="flex-1 overflow-y-auto w-full px-1 md:px-2 lg:px-4">
-  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-2 w-full">
-    {filteredOrders.length > 0 ? (
-      filteredOrders.map((order, index) => (
-        <div
-          key={index}
-          onClick={() => handleEditClick(order)}
-          className="bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-lg transition w-full"
-        >
-          <div className="bg-gray-100 text-black rounded-full w-10 h-10 flex items-center justify-center font-bold mb-2">
-            {order.Order_Number}
+      <div className="max-w-8xl mx-auto p-4">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-2">
+          <div className="flex flex-grow items-center gap-2">
+            <input
+              type="text"
+              placeholder="Search by customer name"
+              className="bg-white shadow-sm border border-gray-300 rounded-full px-4 py-2 w-full max-w-md focus:outline-none"
+              value={searchOrder}
+              onChange={(e) => setSearchOrder(e.target.value)}
+            />
           </div>
-          <div>
-            <h3 className="text-md font-semibold text-black">
-              {order.Customer_name}
-            </h3>
-            <p className="text-sm text-gray-600">
-              {formatDateDDMMYYYY(order.createdAt)} - {order.Remark}
-            </p>
-            <p className="text-sm text-gray-700 mt-2">
-              Delivery: {formatDateDDMMYYYY(order.highestStatusTask.Delivery_Date)}
-              <br />
-              Assigned: {order.highestStatusTask.Assigned}
-            </p>
-          </div>
-        </div>
-      ))
-    ) : (
-      <div className="col-span-full text-center">No orders found</div>
-    )}
-  </div>
-  <button
-            onClick={exportPDF}
-            className="ml-2 bg-red-600 text-white rounded px-4 py-2 hover:bg-red-700 transition"
-            title="Export PDF"
-          >
-            Export PDF
-          </button>
-          <button
-            onClick={exportExcel}
-            className="ml-2 bg-green-600 text-white rounded px-4 py-2 hover:bg-green-700 transition"
-            title="Export Excel"
-          >
-            Export Excel
-          </button>
-</main>
-
-
-
-        <div className="fixed bottom-20 right-8">
-          <button
-            onClick={handleOrder}
-            className="w-12 h-12 bg-green-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-green-600 transition"
-            title="Add New Order"
-          >
-            <svg
-              className="h-8 w-8 text-white-500"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              strokeWidth="2"
-              stroke="currentColor"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          <div className="flex gap-2 mt-2 md:mt-0">
+            <button
+              onClick={exportPDF}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow transition"
+              title="Export as PDF"
             >
-              <circle cx="12" cy="12" r="9" />
-              <line x1="9" y1="12" x2="15" y2="12" />
-              <line x1="12" y1="9" x2="12" y2="15" />
-            </svg>
-          </button>
+              Export PDF
+            </button>
+            <button
+              onClick={exportExcel}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow transition"
+              title="Export as Excel"
+            >
+              Export Excel
+            </button>
+          </div>
         </div>
-      </div>
 
+        {/* Orders Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-4">
+          {filteredOrders.length > 0 ? (
+            filteredOrders.map((order, index) => (
+              <div
+                key={index}
+                onClick={() => handleEditClick(order)}
+                className="bg-white border border-gray-200 hover:border-blue-500 rounded-lg p-4 shadow hover:shadow-md cursor-pointer transition"
+              >
+                <div className="text-blue-600 font-bold text-xl mb-2">
+                  #{order.Order_Number}
+                </div>
+                <div className="text-gray-800 font-semibold text-md">
+                  {order.Customer_name}
+                </div>
+                <div className="text-gray-500 text-sm">
+                  Created: {formatDateDDMMYYYY(order.createdAt)}
+                </div>
+                <div className="text-gray-600 mt-1 text-sm">
+                  Remark: {order.Remark || "-"}
+                </div>
+                <div className="mt-2 text-sm">
+                  <p>🗓 Delivery: {formatDateDDMMYYYY(order.highestStatusTask.Delivery_Date)}</p>
+                  <p>👤 Assigned: {order.highestStatusTask.Assigned || "N/A"}</p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="col-span-full text-center text-gray-500 py-10">
+              No orders found
+            </div>
+          )}
+        </div>
+
+        
+        </div>
+      
+
+      {/* Modals */}
       {showOrderModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-lg p-4 max-w-2xl w-full">
             <AddOrder1 closeModal={closeModal} />
           </div>
         </div>
       )}
 
       {showEditModal && (
-        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center ">
-          <UpdateDelivery order={selectedOrder} onClose={closeEditModal} />
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-lg p-4 max-w-3xl w-full">
+            <UpdateDelivery order={selectedOrder} onClose={closeEditModal} />
+          </div>
         </div>
       )}
-
     </>
   );
 }
