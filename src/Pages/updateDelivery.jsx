@@ -1,240 +1,287 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams, useLocation } from "react-router-dom";
-import axios from "axios";
-import AddItem from "./addItem";
-import EditOrder from '../Components/editOrder';
-import Print from '../Components/print';
-import EditCustomer from '../Components/editCustomer';
+import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
 import Select from 'react-select';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
-export default function UpdateDelivery({ onClose, order }) {
-    const navigate = useNavigate();
-    const location = useLocation();  
-    const [orderId, setOrderId] = useState(order?.Order_id || "");
-    const [Customer_uuid, setCustomer_uuid] = useState(''); 
-    const [Quantity, setQuantity] = useState('');
-    const [Rate, setRate] = useState('');
-    
-    const [Item, setItem] = useState('');
-    const [Customer_name, setCustomer_name] = useState('');
-    const [Amount, setAmount] = useState(0);  
-    const [Remark, setRemark] = useState('');
-    const [customers, setCustomers] = useState([]); 
-    const [itemOptions, setItemOptions] = useState([]);
-    const [salePaymentModeUuid, setSalePaymentModeUuid] = useState(null); 
-    const [loggedInUser, setLoggedInUser] = useState('');
-    const [showItemModal, setShowItemModal] = useState(false);
+const BASE_URL = 'https://misbackend-e078.onrender.com';
 
-    useEffect(() => {
-        const userNameFromState = location.state?.id;
-        const logInUser = userNameFromState || localStorage.getItem('User_name');
-    
-        if (logInUser) {
-            setLoggedInUser(logInUser);
-        } else {
-            navigate("/login");
-        }
-    }, [location.state, navigate]);
+export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const previewRef = useRef();
 
-    useEffect(() => {
-        if (order) {
-            setCustomer_uuid(order.Customer_uuid);
-            setItem(order.Item);
-            setQuantity(order.Quantity);
-            setRate(order.Rate);
-            setAmount(order.Amount);
-            setCustomer_name(order.Customer_name || '');
-            setOrderId(order._id);
-            setRemark(order.Remark);
-        }
-    }, [order]);
+  const [orderId, setOrderId] = useState('');
+  const [Customer_uuid, setCustomer_uuid] = useState('');
+  const [items, setItems] = useState([{ Item: '', Quantity: '', Rate: '', Amount: 0 }]);
+  const [Remark, setRemark] = useState('');
+  const [Customer_name, setCustomer_name] = useState('');
+  const [customers, setCustomers] = useState([]);
+  const [itemOptions, setItemOptions] = useState([]);
+  const [loggedInUser, setLoggedInUser] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [customerMap, setCustomerMap] = useState({});
+  const [customerMobile, setCustomerMobile] = useState('');
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
-    useEffect(() => {
-        axios.get("/customer/GetCustomersList")
-            .then(res => {
-                if (res.data.success) {
-                    setCustomers(res.data.result); 
-                    const customer = res.data.result.find(cust => cust.Customer_uuid === Customer_uuid);
-                    if (customer) {
-                        setCustomer_name(customer.Customer_name); 
-                    }
-                }
-            })
-            .catch(err => console.log('Error fetching customers list:', err));
-    }, [Customer_uuid]); 
-   
-    useEffect(() => {
-        axios.get("/payment_mode/GetPaymentList")
-        .then(res => {
-            if (res.data.success) {
-                const salePaymentMode = res.data.result.find(mode => mode.Payment_name === "Sale");
-                if (salePaymentMode) {
-                    setSalePaymentModeUuid(salePaymentMode.Payment_mode_uuid);
-                }
-            }
-        })
-        .catch(err => {
-            console.error("Error fetching payment modes:", err);
-        });
-    }, []); 
+  useEffect(() => {
+    const userNameFromState = location.state?.id;
+    const logInUser = userNameFromState || localStorage.getItem('User_name');
+    if (logInUser) setLoggedInUser(logInUser);
+    else navigate('/login');
+  }, [location.state, navigate]);
 
-    useEffect(() => {
-        axios.get("/item/GetItemList")
-            .then(res => {
-                if (res.data.success) {
-                    const options = res.data.result.map(item => item.Item_name);
-                    setItemOptions(options);
-                }
-            })
-            .catch(err => {
-                console.error("Error fetching item options:", err);
-            });
-    }, []);
-
-    useEffect(() => {
-        if (Quantity && Rate) {
-            setAmount(Quantity * Rate); 
-        }
-    }, [Quantity, Rate]);
-
-    async function submit(e) {
-        e.preventDefault();
-    
-        if (!Item || !Quantity || !Rate || !Customer_uuid) {
-            alert('Please provide all required fields.');
-            return;
-        }
-    
-        try {
-            const response = await axios.put(`/order/updateDelivery/${orderId}`, {
-                Customer_uuid,
-                Item,
-                Quantity: Number(Quantity),
-                Rate: Number(Rate),
-                Amount: Number(Amount),
-                Remark
-            });
-    
-            if (response.data.success) {
-                const journal = [
-                    {
-                        Account_id: Customer_uuid, 
-                        Type: 'Credit',
-                        Amount: Number(Amount), 
-                    },
-                    {
-                        Account_id: "6c91bf35-e9c4-4732-a428-0310f56bd0a7", 
-                        Type: 'Debit',
-                        Amount: Number(Amount), 
-                    }
-                ];
-                console.log("Journal Entry Payload:", journal);
-
-                const transactionResponse = await axios.post("/transaction/addTransaction", {
-                    Description: "Delivered", 
-                    Transaction_date: new Date().toISOString(),
-                    Total_Credit: Number(Amount), 
-                    Total_Debit: Number(Amount), 
-                    Payment_mode: "Sale", 
-                    Journal_entry: journal,
-                    Created_by: loggedInUser 
-                });
-                console.log("Transaction Payload:", transactionResponse);
-                if (!transactionResponse.data.success) {
-                    alert("Failed to add Transaction.");
-                }
-
-                alert("Transaction added successfully!");
-                navigate("/allOrder");
-
-            } else {
-                alert("Failed to update transaction");
-            }
-        } catch (e) {
-            console.log("Error updating transaction:", e);
-        }
+  useEffect(() => {
+    if (mode === 'edit' && (order?._id || order?.Order_id)) {
+      setOrderId(order._id || order.Order_id);
+      setCustomer_uuid(order.Customer_uuid || '');
+      setItems(order.Items || [{ Item: '', Quantity: '', Rate: '', Amount: 0 }]);
+      setRemark(order.Remark || '');
+      setCustomer_name(order.Customer_name || '');
     }
+  }, [order, mode]);
 
-    const handleItem = () => {
-        setShowItemModal(true);
-    };
+  useEffect(() => {
+    axios.get(`${BASE_URL}/customer/GetCustomersList`).then(res => {
+      if (res.data.success) {
+        setCustomers(res.data.result);
+        const map = {};
+        res.data.result.forEach(c => {
+          map[c.Customer_uuid] = c.Customer_name;
+        });
+        setCustomerMap(map);
+        const found = res.data.result.find(c => c.Customer_uuid === Customer_uuid);
+        if (found) {
+          setCustomer_name(found.Customer_name);
+          setCustomerMobile(found.Mobile_number);
+        }
+      }
+    }).catch(() => toast.error('Error fetching customers'));
+  }, [Customer_uuid]);
 
-    const exitModal = () => {
-        setShowItemModal(false);
-    };
-    return (
-        <>
-        <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
-            <div className="bg-white p-3 rounded w-90" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
-                <button type="button" onClick={onClose}>X</button>
-                <h2>Update Order</h2> 
-                <EditOrder order={order} />
-                    <Print order={order} />
-                 <EditCustomer order={order} />
-                             
-                <form onSubmit={submit}>
+  useEffect(() => {
+    axios.get(`${BASE_URL}/item/GetItemList`).then(res => {
+      if (res.data.success) {
+        const options = res.data.result.map(item => item.Item_name);
+        setItemOptions(options);
+      }
+    }).catch(() => toast.error('Error fetching items'));
+  }, []);
 
-                    <div className="mb-3">
-  <label htmlFor="item"><strong>Item Name</strong>
-    <button onClick={handleItem} type="button" className="text-white p-2 rounded-full bg-green-500 mb-3">
-      <svg className="h-8 w-8 text-white-500" width="20" height="20" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">  
-        <path stroke="none" d="M0 0h24v24H0z"/>  
-        <circle cx="12" cy="12" r="9" />  
-        <line x1="9" y1="12" x2="15" y2="12" />  
-        <line x1="12" y1="9" x2="12" y2="15" />
-      </svg>
-    </button>
-  </label>
-  <Select
-    options={itemOptions.map(item => ({ label: item, value: item }))}
-    value={itemOptions.find(option => option === Item) ? { label: Item, value: Item } : null}
-    onChange={(selectedOption) => setItem(selectedOption.value)}
-    placeholder="Search or select item..."
-    className="mb-3"
-  />
-</div>
+  const handleItemChange = (index, key, value) => {
+    const updated = [...items];
+    updated[index][key] = value;
+    if (key === 'Quantity' || key === 'Rate') {
+      const qty = parseFloat(updated[index].Quantity) || 0;
+      const rate = parseFloat(updated[index].Rate) || 0;
+      updated[index].Amount = qty * rate;
+    }
+    setItems(updated);
+  };
 
+  const addNewItem = () => {
+    setItems([...items, { Item: '', Quantity: '', Rate: '', Amount: 0 }]);
+  };
 
-                    <div className="mb-3">
-                        <label htmlFor="customer"><strong>Remark</strong></label>
-                        <input
-                            type="text"
-                            autoComplete="off"
-                            value={Remark} 
-                            className="form-control rounded-0"
-                            onChange={(e) => setRemark(e.target.value)}
-                           
-                        />
-                    </div>
-                   
-                    <div className="mb-3">
-                        <label htmlFor="quantity"><strong>Quantity</strong></label>
-                        <input type="number" autoComplete="off" onChange={(e) => setQuantity(e.target.value)} value={Quantity} className="form-control rounded-0" />
-                    </div>
+  const validateForm = () => {
+    if (!Customer_uuid || items.some(i => !i.Item || !i.Quantity || !i.Rate)) {
+      toast.error('Please fill all required fields');
+      return false;
+    }
+    return true;
+  };
 
-                    <div className="mb-3">
-                        <label htmlFor="rate"><strong>Rate</strong></label>
-                        <input type="number" autoComplete="off" onChange={(e) => setRate(e.target.value)} value={Rate} className="form-control rounded-0" />
-                    </div>
+  const submit = async () => {
+    if (!validateForm()) return;
+    setIsSubmitting(true);
 
-                    <div className="mb-3">
-                        <label htmlFor="amount"><strong>Amount</strong></label>
-                        <input type="text" autoComplete="off" value={Amount} className="form-control rounded-0" readOnly />
-                    </div>
+    try {
+      const url = mode === 'edit' ? `${BASE_URL}/order/updateDelivery/${orderId}` : `${BASE_URL}/order/addDelivery`;
+      const payload = {
+        Customer_uuid,
+        Items: items,
+        Remark
+      };
 
-                    <button type="submit" className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center">
-                        Submit
-                    </button>
-                </form>
+      const response = await axios[mode === 'edit' ? 'put' : 'post'](url, payload);
+      if (response.data.success) {
+        const totalAmount = items.reduce((sum, i) => sum + i.Amount, 0);
+        const journal = [
+          { Account_id: Customer_uuid, Type: 'Credit', Amount: +totalAmount },
+          { Account_id: '6c91bf35-e9c4-4732-a428-0310f56bd0a7', Type: 'Debit', Amount: +totalAmount },
+        ];
+
+        const transaction = await axios.post(`${BASE_URL}/transaction/addTransaction`, {
+          Description: 'Delivered',
+          Transaction_date: new Date().toISOString(),
+          Total_Credit: +totalAmount,
+          Total_Debit: +totalAmount,
+          Payment_mode: 'Sale',
+          Journal_entry: journal,
+          Created_by: loggedInUser,
+        });
+
+        if (transaction.data.success) {
+          const confirmSend = window.confirm("Send WhatsApp confirmation to customer?");
+          if (confirmSend && customerMobile) {
+            await axios.post(`${BASE_URL}/api/send-whatsapp`, {
+              number: customerMobile,
+              message: `Hi ${customerMap[Customer_uuid] || Customer_name}, your order has been delivered. Amount: ₹${totalAmount}`
+            });
+          }
+          toast.success('Order saved');
+          setShowInvoiceModal(true);
+        } else {
+          toast.error('Transaction failed');
+        }
+      } else {
+        toast.error('Order failed');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Something went wrong');
+    }
+    setIsSubmitting(false);
+  };
+
+  const handlePrint = () => {
+    const printContents = previewRef.current.innerHTML;
+    const win = window.open('', '', 'height=600,width=800');
+    win.document.write('<html><head><title>Invoice</title></head><body>');
+    win.document.write(printContents);
+    win.document.write('</body></html>');
+    win.document.close();
+    win.print();
+    onClose();
+  };
+
+  const handlePDF = async () => {
+    const element = previewRef.current;
+    const canvas = await html2canvas(element);
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF();
+    pdf.addImage(imgData, 'PNG', 10, 10);
+    pdf.save('invoice.pdf');
+    onClose();
+  };
+
+  return (
+    <>
+      <ToastContainer />
+      <div className="flex justify-center items-center bg-gray-100 min-h-screen">
+        <div className="bg-white p-6 rounded shadow-md w-full max-w-3xl">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">{mode === 'edit' ? 'Edit Order' : 'New Delivery'}</h2>
+            <button onClick={onClose} className="text-gray-500 hover:text-red-600">✕</button>
+          </div>
+
+          <form className="grid grid-cols-1 gap-4">
+            <div>
+              <label className="block font-semibold">Customer <span className="text-red-500">*</span></label>
+              <select value={Customer_uuid} onChange={(e) => setCustomer_uuid(e.target.value)} className="w-full border p-2 rounded">
+                <option value="">Select customer</option>
+                {customers.map(c => (
+                  <option key={c.Customer_uuid} value={c.Customer_uuid}>{c.Customer_name}</option>
+                ))}
+              </select>
             </div>
+
+            {items.map((item, index) => (
+              <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
+                <Select
+                  options={itemOptions.map(i => ({ label: i, value: i }))}
+                  value={item.Item ? { label: item.Item, value: item.Item } : null}
+                  onChange={(opt) => handleItemChange(index, 'Item', opt.value)}
+                  placeholder="Select item"
+                />
+                <input type="number" placeholder="Qty" value={item.Quantity} onChange={(e) => handleItemChange(index, 'Quantity', e.target.value)} className="border p-2 rounded" />
+                <input type="number" placeholder="Rate" value={item.Rate} onChange={(e) => handleItemChange(index, 'Rate', e.target.value)} className="border p-2 rounded" />
+                <input type="text" value={item.Amount} readOnly className="border p-2 bg-gray-100 rounded" />
+              </div>
+            ))}
+            <button type="button" onClick={addNewItem} className="bg-green-500 text-white px-3 py-1 rounded">+ Add Item</button>
+
+            <div>
+              <label className="block font-semibold">Remark</label>
+              <input type="text" value={Remark} onChange={(e) => setRemark(e.target.value)} className="w-full border p-2 rounded" />
+            </div>
+
+            <button type="button" onClick={submit} disabled={isSubmitting} className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:bg-gray-400">
+              {isSubmitting ? 'Saving...' : 'Submit'}
+            </button>
+          </form>
         </div>
-        {showItemModal && (
-            <div className="modal-overlay">
-                <div className="modal-content">
-                    <AddItem closeModal={exitModal} />
-                </div>
-            </div>
-        )}
-        </>
-    );
+      </div>
+{showInvoiceModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div className="bg-white w-full max-w-3xl p-6 rounded-lg shadow-xl relative">
+      <button className="absolute top-2 right-3 text-xl" onClick={onClose}>✕</button>
+      <div ref={previewRef} className="p-6 bg-white space-y-4 border rounded shadow-md">
+        <div className="text-center mb-4">
+          <h2 className="text-3xl font-bold text-gray-800">🧾 My Printing Company</h2>
+          <p className="text-sm text-gray-500">123 Business Street, Your City, State, 123456</p>
+          <p className="text-sm text-gray-500">GSTIN: 22AAAAA0000A1Z5 | Phone: +91-9999999999</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p><strong>Invoice To:</strong></p>
+            <p>{customerMap[Customer_uuid] || Customer_name}</p>
+            {customerMobile && <p>📞 {customerMobile}</p>}
+          </div>
+          <div className="text-right">
+            <p><strong>Invoice Date:</strong> {new Date().toLocaleDateString('en-IN')}</p>
+            <p><strong>Order No:</strong> #{orderId?.slice(-6).toUpperCase()}</p>
+          </div>
+        </div>
+
+        <table className="w-full mt-4 border-t border-b text-sm">
+          <thead>
+            <tr className="bg-gray-200 text-left">
+              <th className="p-2">#</th>
+              <th className="p-2">Item</th>
+              <th className="p-2 text-right">Qty</th>
+              <th className="p-2 text-right">Rate</th>
+              <th className="p-2 text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item, idx) => (
+              <tr key={idx} className="border-b">
+                <td className="p-2">{idx + 1}</td>
+                <td className="p-2">{item.Item}</td>
+                <td className="p-2 text-right">{item.Quantity}</td>
+                <td className="p-2 text-right">₹{item.Rate}</td>
+                <td className="p-2 text-right">₹{item.Amount}</td>
+              </tr>
+            ))}
+            <tr className="bg-gray-100 font-semibold">
+              <td colSpan="4" className="p-2 text-right">Total</td>
+              <td className="p-2 text-right">₹{items.reduce((sum, i) => sum + i.Amount, 0)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div className="mt-4">
+          <p><strong>Remark:</strong> {Remark || 'N/A'}</p>
+        </div>
+      </div>
+
+      <div className="mt-6 flex justify-end gap-3">
+        <button onClick={handlePrint} className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+          🖨️ Print
+        </button>
+        <button onClick={handlePDF} className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+          📄 Download PDF
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+    </>
+  );
 }

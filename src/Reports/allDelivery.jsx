@@ -46,7 +46,7 @@ export default function AllDelivery() {
 
   const filteredOrders = orders
     .map((order) => {
-      const highestStatusTask = order.Status.reduce((prev, current) =>
+      const highestStatusTask = order.Status?.reduce((prev, current) =>
         prev.Status_number > current.Status_number ? prev : current, {}) || {};
       return {
         ...order,
@@ -98,7 +98,12 @@ export default function AllDelivery() {
   };
 
   const handleEditClick = (order) => {
-    setSelectedOrder(order);
+    const id = order._id || order.Order_id || null;
+    if (!id) {
+      alert("⚠️ Invalid order ID. Cannot open edit modal.");
+      return;
+    }
+    setSelectedOrder({ ...order, _id: id }); // ensure _id is passed
     setShowEditModal(true);
   };
 
@@ -174,10 +179,7 @@ export default function AllDelivery() {
             </div>
           )}
         </div>
-
-        
-        </div>
-      
+      </div>
 
       {/* Modals */}
       {showOrderModal && (
@@ -191,7 +193,7 @@ export default function AllDelivery() {
       {showEditModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-lg p-4 max-w-3xl w-full">
-            <UpdateDelivery order={selectedOrder} onClose={closeEditModal} />
+            <UpdateDelivery mode="edit" order={selectedOrder} onClose={closeEditModal} />
           </div>
         </div>
       )}
