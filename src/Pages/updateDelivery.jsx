@@ -115,7 +115,10 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
     setIsSubmitting(true);
 
     try {
-      const url = mode === 'edit' ? `${BASE_URL}/order/updateDelivery/${orderId}` : `${BASE_URL}/order/addDelivery`;
+      const url = mode === 'edit'
+        ? `${BASE_URL}/order/updateDelivery/${orderId}`
+        : `${BASE_URL}/order/addDelivery`;
+
       const payload = {
         Customer_uuid,
         Items: items,
@@ -142,6 +145,33 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
 
         if (transaction.data.success) {
           toast.success('Order saved');
+
+          // ✅ Generate and upload invoice to Cloudinary
+          const element = previewRef.current;
+          const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+          const imgData = canvas.toDataURL('image/jpeg', 0.9);
+          const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [74, 105] });
+          pdf.addImage(imgData, 'JPEG', 0, 0, 74, 105);
+
+          const pdfBlob = pdf.output('blob');
+          const cloudForm = new FormData();
+          const fileName = `${order.Order_Number || 'invoice'}.pdf`;
+          cloudForm.append('file', pdfBlob, fileName);
+          cloudForm.append('upload_preset', 'missk_invoice');
+
+          try {
+            const res = await axios.post(
+              'https://api.cloudinary.com/v1_1/dadcprflr/raw/upload',
+              cloudForm
+            );
+            const pdfUrl = res.data.secure_url;
+            toast.success('Invoice uploaded');
+            await sendWhatsApp(pdfUrl); // 📩 Send WhatsApp with PDF
+          } catch (uploadErr) {
+            console.error(uploadErr);
+            toast.error('Upload to Cloudinary failed');
+          }
+
           setShowInvoiceModal(true);
         } else {
           toast.error('Transaction failed');
@@ -153,22 +183,42 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
       console.error(err);
       toast.error('Something went wrong');
     }
+
     setIsSubmitting(false);
   };
 
-  const sendWhatsApp = async () => {
+
+
+  const sendWhatsApp = async (pdfUrl = '') => {
     const totalAmount = items.reduce((sum, i) => sum + i.Amount, 0);
-    if (customerMobile) {
-      const number = normalizeWhatsAppNumber(customerMobile);
-      await axios.post(`${BASE_URL}/whatsapp/send-test`, {
-        number,
-        message: `Hi ${customerMap[Customer_uuid] || Customer_name}, your order has been delivered. Amount: ₹${totalAmount}`
-      });
-      toast.success('WhatsApp sent');
-    } else {
+    if (!customerMobile) {
       toast.warn('Customer mobile number not found');
+      return;
+    }
+
+    const number = normalizeWhatsAppNumber(customerMobile);
+    const message = `Hi ${customerMap[Customer_uuid] || Customer_name}, your order has been delivered. Amount: ₹${totalAmount}`;
+
+    const payload = { number, message };
+    if (pdfUrl) {
+      payload.mediaUrl = pdfUrl;
+    }
+
+    try {
+      const res = await axios.post(`${BASE_URL}/whatsapp/send-test`, payload);
+      if (res.data.success || res.status === 200) {
+        toast.success('WhatsApp message sent');
+      } else {
+        toast.error('WhatsApp sending failed');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Error sending WhatsApp');
     }
   };
+
+
+
 
   const handlePrint = () => {
     const printContents = previewRef.current.innerHTML;
@@ -182,12 +232,44 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
 
   const handlePDF = async () => {
     const element = previewRef.current;
-    const canvas = await html2canvas(element);
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF();
-    pdf.addImage(imgData, 'PNG', 10, 10);
-    pdf.save('invoice.pdf');
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.9);
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: [74, 105]
+    });
+
+    pdf.addImage(imgData, 'JPEG', 0, 0, 74, 105);
+
+    // Convert to Blob
+    const pdfBlob = pdf.output('blob');
+    const formData = new FormData();
+    formData.append('file', pdfBlob, `${order.Order_Number || 'invoice'}.pdf`);
+    formData.append('upload_preset', 'your_upload_preset'); // REQUIRED
+    formData.append('cloud_name', 'your_cloud_name'); // REQUIRED
+
+    try {
+      const res = await axios.post('https://api.cloudinary.com/v1_1/your_cloud_name/raw/upload', formData);
+      const pdfUrl = res.data.secure_url;
+
+      toast.success('Uploaded to Cloudinary');
+      await sendWhatsApp(pdfUrl); // Send with link
+    } catch (err) {
+      console.error('Upload failed', err);
+      toast.error('Upload failed');
+    }
+
+    // Save to disk using Order Number
+    const fileName = `${order.Order_Number || 'invoice'}.pdf`;
+    pdf.save(fileName);
   };
+
+
 
   if (loading) {
     return (
@@ -252,56 +334,55 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white w-full max-w-3xl p-6 rounded-lg shadow-xl relative">
             <button className="absolute top-2 right-3 text-xl" onClick={() => setShowInvoiceModal(false)}>✕</button>
-            <div ref={previewRef} className="p-6 bg-white space-y-4 border rounded shadow-md">
-              <div className="text-center mb-4">
-                <h2 className="text-3xl font-bold text-gray-800">🧾 My Printing Company</h2>
-                <p className="text-sm text-gray-500">123 Business Street, Your City, State, 123456</p>
-                <p className="text-sm text-gray-500">GSTIN: 22AAAAA0000A1Z5 | Phone: +91-9999999999</p>
+            <div ref={previewRef} className="mx-auto w-[320px] border bg-white p-4 text-[12px] rounded shadow-md">
+
+              <div className="text-center border-b pb-2">
+
+                <h2 className="text-lg font-bold">S.K. Digital</h2>
+                <p>Infront of Santoshi Mata Mandir</p>
+                <p>Krishnapura Ward, Gondia</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p><strong>Invoice To:</strong></p>
-                  <p>{customerMap[Customer_uuid] || Customer_name}</p>
-                  {customerMobile && <p>📞 {customerMobile}</p>}
-                </div>
-                <div className="text-right">
-                  <p><strong>Invoice Date:</strong> {new Date().toLocaleDateString('en-GB')}</p>
-                  <p><strong>Order No:</strong> #{String(orderId || '').slice(-6).toUpperCase()}</p>
-                </div>
+              <div className="mt-2">
+                <p><strong>Bill No:</strong> {order.Order_Number || '432'}</p>
+
+                <p><strong>Date:</strong> {new Date().toLocaleDateString('en-GB')}</p>
               </div>
 
-              <table className="w-full mt-4 border-t border-b text-sm">
+              <table className="w-full text-left mt-2">
                 <thead>
-                  <tr className="bg-gray-200 text-left">
-                    <th className="p-2">#</th>
-                    <th className="p-2">Item</th>
-                    <th className="p-2 text-right">Qty</th>
-                    <th className="p-2 text-right">Rate</th>
-                    <th className="p-2 text-right">Amount</th>
+                  <tr className="border-b">
+                    <th className="py-1">Item</th>
+                    <th className="py-1 text-right">Qty</th>
+                    <th className="py-1 text-right">Rate</th>
+                    <th className="py-1 text-right">Amt</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item, idx) => (
-                    <tr key={idx} className="border-b">
-                      <td className="p-2">{idx + 1}</td>
-                      <td className="p-2">{item.Item}</td>
-                      <td className="p-2 text-right">{item.Quantity}</td>
-                      <td className="p-2 text-right">₹{item.Rate}</td>
-                      <td className="p-2 text-right">₹{item.Amount}</td>
+                    <tr key={idx}>
+                      <td className="py-1">{item.Item}</td>
+                      <td className="py-1 text-right">{item.Quantity}</td>
+                      <td className="py-1 text-right">₹{item.Rate}</td>
+                      <td className="py-1 text-right">₹{item.Amount}</td>
                     </tr>
                   ))}
-                  <tr className="bg-gray-100 font-semibold">
-                    <td colSpan="4" className="p-2 text-right">Total</td>
-                    <td className="p-2 text-right">₹{items.reduce((sum, i) => sum + i.Amount, 0)}</td>
-                  </tr>
                 </tbody>
+
               </table>
 
-              <div className="mt-4">
-                <p><strong>Remark:</strong> {Remark || 'N/A'}</p>
+              <hr className="my-1" />
+
+              <div className="flex justify-between font-bold">
+                <span>Total</span>
+                <span>₹{items.reduce((sum, i) => sum + i.Amount, 0)}</span>
+              </div>
+              <div className="mt-3 text-center">
+                <p className="text-sm font-semibold">Scan to Pay via UPI</p>
+                <img src="/your-upi-qr.png" alt="UPI QR" className="mx-auto h-24" />
               </div>
             </div>
+
 
             <div className="mt-6 flex justify-end gap-3">
               <button onClick={sendWhatsApp} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
