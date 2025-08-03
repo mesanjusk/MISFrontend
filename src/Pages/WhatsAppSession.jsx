@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -10,9 +10,27 @@ const WhatsAppSession = () => {
   const [number, setNumber] = useState('');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+
+  const checkStatus = async () => {
+    try {
+      const res = await axios.get(`${BASE_URL}/whatsapp/status`);
+      setIsConnected(res.data.ready === true);
+    } catch (err) {
+      console.error("Status check failed:", err);
+      setIsConnected(false);
+    }
+  };
+
+  useEffect(() => {
+    checkStatus();
+    const interval = setInterval(checkStatus, 10000); // check every 10s
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSend = async (e) => {
     e.preventDefault();
+
     if (!number || !message) {
       toast.error("Please fill all fields");
       return;
@@ -25,9 +43,15 @@ const WhatsAppSession = () => {
         number: normalized,
         message,
       });
-      toast.success(`✅ Sent! ID: ${res.data.id}`);
+
+      if (res.data && res.data.success && res.data.messageId) {
+        toast.success(`✅ Message sent! ID: ${res.data.messageId}`);
+        setMessage('');
+      } else {
+        toast.error("⚠️ Message send failed (server did not confirm)");
+      }
     } catch (err) {
-      console.error(err);
+      console.error("❌ Send error:", err);
       toast.error("❌ Failed to send message");
     } finally {
       setSending(false);
@@ -35,7 +59,14 @@ const WhatsAppSession = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
+    <div className="min-h-screen flex flex-col items-center bg-gray-100 p-4">
+      <ToastContainer />
+
+      {/* ✅ Status Banner */}
+      <div className={`w-full max-w-md text-center py-2 rounded mb-4 ${isConnected ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+        {isConnected ? '🟢 WhatsApp Connected' : '🔴 WhatsApp Not Connected'}
+      </div>
+
       <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-6">
         <h2 className="text-2xl font-semibold mb-4 text-center">📲 Send WhatsApp Message</h2>
 
@@ -59,15 +90,12 @@ const WhatsAppSession = () => {
           <button
             type="submit"
             disabled={sending}
-            className={`w-full py-2 rounded text-white ${
-              sending ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
-            }`}
+            className={`w-full py-2 rounded text-white ${sending ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`}
           >
             {sending ? 'Sending...' : 'Send Message'}
           </button>
         </form>
       </div>
-      <ToastContainer />
     </div>
   );
 };
