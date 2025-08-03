@@ -1,6 +1,6 @@
-// src/utils/normalizeNumber.js
-export default function normalizeWhatsAppNumber(number) {
-  number = String(number).trim().replace(/\D/g, '');
-  if (number.startsWith('91')) return number;
-  return '91' + number.replace(/^0+/, '');
+export default function normalizeWhatsAppNumber(input) {
+  const digits = input.replace(/\D/g, '');
+  if (digits.startsWith('91') && digits.length === 12) return digits;
+  if (digits.length === 10) return '91' + digits;
+  return digits;
 }

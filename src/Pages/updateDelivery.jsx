@@ -29,6 +29,8 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
   const [customerMobile, setCustomerMobile] = useState('');
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [invoiceUrl, setInvoiceUrl] = useState('');
+
 
   useEffect(() => {
     const userNameFromState = location.state?.id;
@@ -82,6 +84,52 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
 
     fetchData();
   }, [Customer_uuid]);
+  // 📌 Upload invoice after modal is shown and previewRef is ready
+  useEffect(() => {
+    const uploadInvoice = async () => {
+      // Wait for DOM to settle
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      if (!previewRef.current) {
+        console.warn("⚠️ previewRef not ready");
+        return;
+      }
+
+      try {
+        const element = previewRef.current;
+        const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+        const imgData = canvas.toDataURL('image/jpeg', 0.9);
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [74, 105] });
+        pdf.addImage(imgData, 'JPEG', 0, 0, 74, 105);
+
+        const pdfBlob = pdf.output('blob');
+        const cloudForm = new FormData();
+        const fileName = `${order.Order_Number || 'invoice'}.pdf`;
+
+        cloudForm.append('file', pdfBlob, fileName);
+        cloudForm.append('upload_preset', 'missk_invoice');
+
+        const res = await axios.post(
+          'https://api.cloudinary.com/v1_1/dadcprflr/raw/upload',
+          cloudForm
+        );
+
+        const pdfUrl = res.data.secure_url;
+        setInvoiceUrl(pdfUrl);
+        toast.success('Invoice uploaded');
+      } catch (err) {
+        console.error("❌ Invoice upload error:", err);
+        toast.error('Upload failed');
+      }
+    };
+
+    if (showInvoiceModal) {
+      uploadInvoice();
+    }
+  }, [showInvoiceModal]);
+
+
+
 
   const handleItemChange = (index, key, value) => {
     const updated = [...items];
@@ -146,31 +194,7 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
         if (transaction.data.success) {
           toast.success('Order saved');
 
-          // ✅ Generate and upload invoice to Cloudinary
-          const element = previewRef.current;
-          const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-          const imgData = canvas.toDataURL('image/jpeg', 0.9);
-          const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [74, 105] });
-          pdf.addImage(imgData, 'JPEG', 0, 0, 74, 105);
 
-          const pdfBlob = pdf.output('blob');
-          const cloudForm = new FormData();
-          const fileName = `${order.Order_Number || 'invoice'}.pdf`;
-          cloudForm.append('file', pdfBlob, fileName);
-          cloudForm.append('upload_preset', 'missk_invoice');
-
-          try {
-            const res = await axios.post(
-              'https://api.cloudinary.com/v1_1/dadcprflr/raw/upload',
-              cloudForm
-            );
-            const pdfUrl = res.data.secure_url;
-            toast.success('Invoice uploaded');
-            await sendWhatsApp(pdfUrl); // 📩 Send WhatsApp with PDF
-          } catch (uploadErr) {
-            console.error(uploadErr);
-            toast.error('Upload to Cloudinary failed');
-          }
 
           setShowInvoiceModal(true);
         } else {
@@ -189,33 +213,40 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
 
 
 
-  const sendWhatsApp = async (pdfUrl = '') => {
-    const totalAmount = items.reduce((sum, i) => sum + i.Amount, 0);
-    if (!customerMobile) {
-      toast.warn('Customer mobile number not found');
-      return;
-    }
+ const sendWhatsApp = async (pdfUrl = '') => {
+  const totalAmount = items.reduce((sum, i) => sum + i.Amount, 0);
+  const mobile = customerMobile || customers.find(c => c.Customer_uuid === Customer_uuid)?.Mobile_number;
 
-    const number = normalizeWhatsAppNumber(customerMobile);
-    const message = `Hi ${customerMap[Customer_uuid] || Customer_name}, your order has been delivered. Amount: ₹${totalAmount}`;
+  if (!mobile) {
+    toast.error('Customer mobile number not found');
+    return;
+  }
 
-    const payload = { number, message };
-    if (pdfUrl) {
-      payload.mediaUrl = pdfUrl;
-    }
+  const number = normalizeWhatsAppNumber(mobile);
+  const message = `Hi ${customerMap[Customer_uuid] || Customer_name}, your order has been delivered. Amount: ₹${totalAmount}`;
+  
+  const payload = { number, message };
+  if (pdfUrl && pdfUrl.length > 0) {
+    payload.mediaUrl = pdfUrl;
+  }
 
-    try {
-      const res = await axios.post(`${BASE_URL}/whatsapp/send-test`, payload);
-      if (res.data.success || res.status === 200) {
-        toast.success('WhatsApp message sent');
-      } else {
-        toast.error('WhatsApp sending failed');
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Error sending WhatsApp');
+  try {
+    console.log("📤 Sending WhatsApp payload:", payload);
+    const res = await axios.post(`${BASE_URL}/whatsapp/send-test`, payload);
+
+    if (res.data?.success || res.status === 200) {
+      toast.success('✅ WhatsApp message sent');
+    } else {
+      console.error("⚠️ WhatsApp API error response:", res.data);
+      toast.error('❌ WhatsApp sending failed');
     }
-  };
+  } catch (err) {
+    console.error("❌ WhatsApp error:", err?.response?.data || err.message);
+    toast.error('Error sending WhatsApp');
+  }
+};
+
+
 
 
 
@@ -245,29 +276,10 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
     });
 
     pdf.addImage(imgData, 'JPEG', 0, 0, 74, 105);
-
-    // Convert to Blob
-    const pdfBlob = pdf.output('blob');
-    const formData = new FormData();
-    formData.append('file', pdfBlob, `${order.Order_Number || 'invoice'}.pdf`);
-    formData.append('upload_preset', 'your_upload_preset'); // REQUIRED
-    formData.append('cloud_name', 'your_cloud_name'); // REQUIRED
-
-    try {
-      const res = await axios.post('https://api.cloudinary.com/v1_1/your_cloud_name/raw/upload', formData);
-      const pdfUrl = res.data.secure_url;
-
-      toast.success('Uploaded to Cloudinary');
-      await sendWhatsApp(pdfUrl); // Send with link
-    } catch (err) {
-      console.error('Upload failed', err);
-      toast.error('Upload failed');
-    }
-
-    // Save to disk using Order Number
     const fileName = `${order.Order_Number || 'invoice'}.pdf`;
     pdf.save(fileName);
   };
+
 
 
 
@@ -289,7 +301,8 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
         <div className="bg-white p-6 rounded shadow-md w-full max-w-3xl">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">{mode === 'edit' ? 'Edit Order' : 'New Delivery'}</h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-red-600">✕</button>
+            <button onClick={() => { setShowInvoiceModal(false); onClose(); }}  className="text-gray-500 hover:text-red-600">✕</button>
+            
           </div>
 
           <form className="grid grid-cols-1 gap-4">
@@ -379,24 +392,33 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
               </div>
               <div className="mt-3 text-center">
                 <p className="text-sm font-semibold">Scan to Pay via UPI</p>
-                <img src="/your-upi-qr.png" alt="UPI QR" className="mx-auto h-24" />
+                <img src="/qr.png" alt="UPI QR" className="mx-auto h-24" />
               </div>
             </div>
 
 
             <div className="mt-6 flex justify-end gap-3">
-              <button onClick={sendWhatsApp} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                📩 Send WhatsApp
+              <button
+                onClick={() => {
+                  if (!invoiceUrl) {
+                    toast.error("Invoice not ready yet");
+                    return;
+                  }
+                  sendWhatsApp(invoiceUrl);
+                }}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              >
+                WhatsApp
               </button>
+
+
               <button onClick={handlePrint} className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
-                🖨️ Print
+                Print
               </button>
               <button onClick={handlePDF} className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-                📄 Download PDF
+                Download 
               </button>
-              <button onClick={() => { setShowInvoiceModal(false); onClose(); }} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-                ❌ Close
-              </button>
+              
             </div>
           </div>
         </div>
