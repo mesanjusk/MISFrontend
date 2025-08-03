@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";

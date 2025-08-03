@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import { useEffect, useState, useRef } from 'react';
+import PropTypes from 'prop-types';
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import AddItem from "./addItem";
@@ -292,3 +292,8 @@ export default function Vendor({ onClose, order }) {
         </>
     );
 }
+
+Vendor.propTypes = {
+    onClose: PropTypes.func,
+    order: PropTypes.object,
+};

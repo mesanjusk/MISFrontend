@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -34,7 +33,7 @@ export default function AddOrder1() {
     const logInUser = userNameFromState || localStorage.getItem("User_name");
     if (logInUser) setLoggedInUser(logInUser);
     else navigate("/login");
-  }, [location.state, navigate]);
+  }, [navigate]);
 
   useEffect(() => {
     axios.get("/customer/GetCustomersList").then((res) => {
