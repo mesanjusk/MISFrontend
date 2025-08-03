@@ -7,6 +7,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+import normalizeWhatsAppNumber from '../utils/normalizeNumber';
 
 const BASE_URL = 'https://misbackend-e078.onrender.com';
 
@@ -158,8 +159,9 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
   const sendWhatsApp = async () => {
     const totalAmount = items.reduce((sum, i) => sum + i.Amount, 0);
     if (customerMobile) {
-      await axios.post(`${BASE_URL}/api/send-whatsapp`, {
-        number: customerMobile,
+      const number = normalizeWhatsAppNumber(customerMobile);
+      await axios.post(`${BASE_URL}/whatsapp/send-test`, {
+        number,
         message: `Hi ${customerMap[Customer_uuid] || Customer_name}, your order has been delivered. Amount: ₹${totalAmount}`
       });
       toast.success('WhatsApp sent');

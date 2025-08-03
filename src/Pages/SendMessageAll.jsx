@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import normalizeWhatsAppNumber from '../utils/normalizeNumber';
 
 const BASE_URL = 'https://misbackend-e078.onrender.com';
 
@@ -23,7 +24,8 @@ export default function SendMessagePanel() {
 
   const sendMessage = async () => {
     try {
-      await axios.post(`${BASE_URL}/whatsapp/send`, { sessionId, to, message });
+      const number = normalizeWhatsAppNumber(to);
+      await axios.post(`${BASE_URL}/whatsapp/send`, { sessionId, to: number, message });
       alert('✅ Message sent!');
     } catch (err) {
       console.error(err);
