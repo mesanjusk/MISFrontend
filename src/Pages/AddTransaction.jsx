@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { FaSpinner } from 'react-icons/fa';
-import { Button, InputField, Card, Modal, ToastContainer, toast } from "../Components";
+import { Button, InputField, Card, ToastContainer, toast } from "../Components";
+import InvoiceModal from "../Components/InvoiceModal";
 
 export default function AddTransaction({ editMode, existingData, onClose, onSuccess }) {
   const navigate = useNavigate();
@@ -26,9 +27,11 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
   const [filteredOptions, setFilteredOptions] = useState([]);
   const [showOptions, setShowOptions] = useState(false);
 
-  const [whatsAppModal, setWhatsAppModal] = useState(false);
   const [whatsAppMessage, setWhatsAppMessage] = useState('');
   const [mobileToSend, setMobileToSend] = useState('');
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceItems, setInvoiceItems] = useState([]);
+  const previewRef = useRef();
 
   useEffect(() => {
     const userNameFromState = location.state?.id || localStorage.getItem('User_name');
@@ -140,7 +143,8 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
         const message = `Hello ${Customer?.Customer_name}, we have received your payment of ₹${Amount} on ${Transaction_date || todayDate} via ${Group?.Customer_name}. Thank you!`;
         setWhatsAppMessage(message);
         setMobileToSend(Customer?.Mobile_number);
-        setWhatsAppModal(true);
+        setInvoiceItems([{ Item: Description || 'Payment', Quantity: 1, Rate: Amount, Amount: Amount }]);
+        setShowInvoiceModal(true);
       } else {
         toast.error("Failed to save transaction");
       }
@@ -169,7 +173,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
     } catch {
       toast.error("⚠️ Error sending WhatsApp");
     } finally {
-      setWhatsAppModal(false);
+      setShowInvoiceModal(false);
       onSuccess?.();
       onClose?.();
     }
@@ -181,21 +185,16 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
     <div className="flex items-center justify-center bg-secondary min-h-screen p-4">
       <ToastContainer />
 
-      <Modal
-        isOpen={whatsAppModal}
-        onClose={() => setWhatsAppModal(false)}
-        title="Send WhatsApp Confirmation?"
-        actions={[
-          <Button key="cancel" variant="secondary" onClick={() => setWhatsAppModal(false)}>
-            Cancel
-          </Button>,
-          <Button key="send" onClick={sendWhatsApp}>
-            Send
-          </Button>,
-        ]}
-      >
-        <p className="text-sm text-text">{whatsAppMessage}</p>
-      </Modal>
+      <InvoiceModal
+        isOpen={showInvoiceModal}
+        onClose={() => { setShowInvoiceModal(false); onSuccess?.(); onClose?.(); }}
+        invoiceRef={previewRef}
+        customerName={Customer_name}
+        customerMobile={mobileToSend}
+        items={invoiceItems}
+        remark={Description}
+        onSendWhatsApp={sendWhatsApp}
+      />
 
       <Card className="w-full max-w-lg relative">
         <Button

@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+/* eslint-disable react/prop-types */
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import InvoiceModal from "../Components/InvoiceModal";
 
 export default function AddUsertask() {
     const navigate = useNavigate();
@@ -11,6 +13,9 @@ export default function AddUsertask() {
     const [Remark, setRemark] = useState('');
     const [userOptions, setUserOptions] = useState([]);
     const [isDeadlineChecked, setIsDeadlineChecked] = useState(false);
+    const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+    const [invoiceItems, setInvoiceItems] = useState([]);
+    const previewRef = useRef();
 
     useEffect(() => {
         axios.get("/user/GetUserList")
@@ -51,7 +56,8 @@ export default function AddUsertask() {
                 alert("Task already exists");
             } else if (res.data === "notexist") {
                 alert("Task added successfully");
-                navigate("/home");
+                setInvoiceItems([{ Item: Usertask_name, Quantity: 1, Rate: 0, Amount: 0 }]);
+                setShowInvoiceModal(true);
             }
         } catch (e) {
             alert("Something went wrong.");
@@ -69,6 +75,15 @@ export default function AddUsertask() {
     };
 
     return (
+        <>
+        <InvoiceModal
+          isOpen={showInvoiceModal}
+          onClose={() => { setShowInvoiceModal(false); navigate('/home'); }}
+          invoiceRef={previewRef}
+          customerName={User}
+          items={invoiceItems}
+          remark={Remark}
+        />
         <div className="min-h-screen bg-[#f0f2f5] flex justify-center items-center px-4">
             <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-6">
                 <h2 className="text-xl font-semibold mb-4 text-[#075e54]">Add User Task</h2>
@@ -150,5 +165,6 @@ export default function AddUsertask() {
                 </form>
             </div>
         </div>
+        </>
     );
 }

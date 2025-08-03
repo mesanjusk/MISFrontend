@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from "react";
+/* eslint-disable react/prop-types */
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
 import AddCustomer from "./addCustomer";
+import InvoiceModal from "../Components/InvoiceModal";
 
 export default function AddOrder1() {
   const navigate = useNavigate();
 
   const [Customer_name, setCustomer_Name] = useState("");
-  const [Customer_uuid, setCustomer_uuid] = useState("");
-  const [userGroup, setUserGroup] = useState("");
   const [Remark, setRemark] = useState("");
   const [customerOptions, setCustomerOptions] = useState([]);
   const [filteredOptions, setFilteredOptions] = useState([]);
@@ -23,7 +23,11 @@ export default function AddOrder1() {
 
   const [taskGroups, setTaskGroups] = useState([]);
   const [selectedTaskGroups, setSelectedTaskGroups] = useState([]);
-  const [taskGroupSteps, setTaskGroupSteps] = useState({});
+  const [whatsAppMessage, setWhatsAppMessage] = useState('');
+  const [mobileToSend, setMobileToSend] = useState('');
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceItems, setInvoiceItems] = useState([]);
+  const previewRef = useRef();
 
   useEffect(() => {
     const userNameFromState = location.state?.id;
@@ -31,10 +35,6 @@ export default function AddOrder1() {
     if (logInUser) setLoggedInUser(logInUser);
     else navigate("/login");
   }, [location.state, navigate]);
-
-  useEffect(() => {
-    setUserGroup(localStorage.getItem("User_group"));
-  }, []);
 
   useEffect(() => {
     axios.get("/customer/GetCustomersList").then((res) => {
@@ -64,11 +64,6 @@ export default function AddOrder1() {
     );
   };
 
-  const toggleStepCheckbox = (groupId, index) => {
-    const updated = [...taskGroupSteps[groupId]];
-    updated[index].checked = !updated[index].checked;
-    setTaskGroupSteps({ ...taskGroupSteps, [groupId]: updated });
-  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -126,22 +121,19 @@ export default function AddOrder1() {
         }
 
         toast.success("Order & Payment Added");
-
-        setTimeout(async () => {
-          const confirmSend = window.confirm(`Send WhatsApp confirmation to ${customer.Customer_name}?`);
-          if (confirmSend) {
-            await sendMessageToAPI(
-              customer.Customer_name,
-              customer.Mobile_number,
-              `Dear ${customer.Customer_name}, your order has been booked successfully.`
-            );
-          }
-        }, 500);
       } else {
         toast.success("Order Added");
       }
 
-      navigate("/home");
+      const message = `Dear ${customer.Customer_name}, your order has been booked successfully.`;
+      setWhatsAppMessage(message);
+      setMobileToSend(customer.Mobile_number);
+      if (isAdvanceChecked && Amount) {
+        setInvoiceItems([{ Item: 'Advance', Quantity: 1, Rate: Amount, Amount: Amount }]);
+      } else {
+        setInvoiceItems([]);
+      }
+      setShowInvoiceModal(true);
     } catch (error) {
       console.error("Error during submit:", error);
       toast.error("Something went wrong");
@@ -163,9 +155,15 @@ export default function AddOrder1() {
       const result = await res.json();
       if (result?.error) toast.error("Failed to send message");
       else toast.success("WhatsApp message sent");
-    } catch (error) {
+    } catch {
       toast.error("Failed to send WhatsApp");
     }
+  };
+
+  const sendWhatsApp = async () => {
+    await sendMessageToAPI(Customer_name, mobileToSend, whatsAppMessage);
+    setShowInvoiceModal(false);
+    navigate("/home");
   };
 
   const handleInputChange = (e) => {
@@ -184,7 +182,6 @@ export default function AddOrder1() {
 
   const handleOptionClick = (opt) => {
     setCustomer_Name(opt.Customer_name);
-    setCustomer_uuid(opt.Customer_uuid);
     setShowOptions(false);
   };
 
@@ -199,6 +196,16 @@ export default function AddOrder1() {
 
   return (
     <>
+      <InvoiceModal
+        isOpen={showInvoiceModal}
+        onClose={() => { setShowInvoiceModal(false); navigate('/home'); }}
+        invoiceRef={previewRef}
+        customerName={Customer_name}
+        customerMobile={mobileToSend}
+        items={invoiceItems}
+        remark={Remark}
+        onSendWhatsApp={sendWhatsApp}
+      />
       <div className="flex justify-center items-center bg-[#f0f2f5] min-h-screen text-[#111b21] px-4">
         <div className="bg-white w-full max-w-2xl rounded-xl shadow-xl p-6 relative">
           <button

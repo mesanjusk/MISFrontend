@@ -1,20 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+/* eslint-disable react/prop-types */
+import { useEffect, useState, useRef } from 'react';
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import AddItem from "./addItem";
+import InvoiceModal from "../Components/InvoiceModal";
 
 export default function Vendor({ onClose, order }) {
     const navigate = useNavigate();
     const location = useLocation();  
-    const [orderId, setOrderId] = useState(order?.Order_id || "");
     const [order_uuid, setOrder_uuid] = useState("");
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [Quantity, setQuantity] = useState('');
     const [Rate, setRate] = useState('');
     const [Item, setItem] = useState('');
-    const [items, setItems] = useState('');
-    const [Customer_name, setCustomer_name] = useState('');
-    const [Amount, setAmount] = useState(0);  
+    const [Amount, setAmount] = useState(0);
     const [Remark, setRemark] = useState('');
     const [customerList, setCustomerList] = useState([]); 
     const [itemOptions, setItemOptions] = useState([]);
@@ -23,6 +22,11 @@ export default function Vendor({ onClose, order }) {
     const [showItemModal, setShowItemModal] = useState(false);
     const [filteredOptions, setFilteredOptions] = useState([]);
     const [showOptions, setShowOptions] = useState(false);
+    const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+    const [whatsAppMessage, setWhatsAppMessage] = useState('');
+    const [mobileToSend, setMobileToSend] = useState('');
+    const [invoiceItems, setInvoiceItems] = useState([]);
+    const previewRef = useRef();
 
     useEffect(() => {
         axios.get("/customer/GetCustomersList")
@@ -49,12 +53,10 @@ export default function Vendor({ onClose, order }) {
 
     useEffect(() => {
         if (order) {
-            setCustomer_name(order.Customer_name || '');
             setItem(order.Item);
             setQuantity(order.Quantity);
             setRate(order.Rate);
             setAmount(order.Amount);
-            setOrderId(order._id);
             setRemark(order.Remark);
             setOrder_uuid(order.Order_uuid);
         }
@@ -130,7 +132,10 @@ export default function Vendor({ onClose, order }) {
                 alert("Failed to add Transaction.");
             } else {
                 alert("Transaction added successfully!");
-                navigate("/allOrder");
+                setWhatsAppMessage(`Hello ${selectedCustomer.Customer_name}, your purchase of ${Item} worth ₹${Amount} has been recorded.`);
+                setMobileToSend(selectedCustomer.Mobile_number);
+                setInvoiceItems([{ Item, Quantity, Rate, Amount }]);
+                setShowInvoiceModal(true);
             }
         } catch (err) {
             console.error("Error updating transaction:", err);
@@ -157,12 +162,42 @@ export default function Vendor({ onClose, order }) {
 
     const handleOptionClick = (option) => {
         setItem(option.Item_name);
-        setItems(option.Item_uuid);
         setShowOptions(false);
+    };
+
+    const sendWhatsApp = async () => {
+        try {
+            await fetch('https://misbackend-e078.onrender.com/usertask/send-message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mobile: mobileToSend,
+                    userName: selectedCustomer.Customer_name,
+                    type: 'customer',
+                    message: whatsAppMessage,
+                }),
+            });
+            alert('WhatsApp message sent');
+        } catch {
+            alert('Failed to send WhatsApp');
+        } finally {
+            setShowInvoiceModal(false);
+            navigate('/allOrder');
+        }
     };
 
     return (
         <>
+        <InvoiceModal
+            isOpen={showInvoiceModal}
+            onClose={() => { setShowInvoiceModal(false); navigate('/allOrder'); }}
+            invoiceRef={previewRef}
+            customerName={selectedCustomer?.Customer_name}
+            customerMobile={mobileToSend}
+            items={invoiceItems}
+            remark={Remark}
+            onSendWhatsApp={sendWhatsApp}
+        />
         <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
             <div className="bg-white p-3 rounded w-90">
                 <button type="button" onClick={onClose}>X</button>

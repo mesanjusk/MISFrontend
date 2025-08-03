@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+/* eslint-disable react/prop-types */
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import { FaSpinner } from 'react-icons/fa';
-import Modal from 'react-bootstrap/Modal';
-import Button from 'react-bootstrap/Button';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import InvoiceModal from "../Components/InvoiceModal";
 
 export default function AddTransaction1() {
   const navigate = useNavigate();
@@ -19,7 +19,6 @@ export default function AddTransaction1() {
   const [DebitCustomer, setDebitCustomer] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
   const [isDateChecked, setIsDateChecked] = useState(false);
-  const [userGroup, setUserGroup] = useState('');
   const [loggedInUser, setLoggedInUser] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -28,9 +27,11 @@ export default function AddTransaction1() {
   const [filteredOptions, setFilteredOptions] = useState([]);
   const [showOptions, setShowOptions] = useState(false);
 
-  const [whatsAppModal, setWhatsAppModal] = useState(false);
   const [whatsAppMessage, setWhatsAppMessage] = useState('');
   const [mobileToSend, setMobileToSend] = useState('');
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceItems, setInvoiceItems] = useState([]);
+  const previewRef = useRef();
 
   useEffect(() => {
     const userNameFromState = location.state?.id || localStorage.getItem('User_name');
@@ -39,7 +40,6 @@ export default function AddTransaction1() {
     } else {
       navigate("/login");
     }
-    setUserGroup(localStorage.getItem("User_group") || '');
   }, [location.state, navigate]);
 
   useEffect(() => {
@@ -51,7 +51,7 @@ export default function AddTransaction1() {
           setAccountCustomerOptions(accountOptions);
         }
       })
-      .catch(err => toast.error("Error fetching customers"));
+      .catch(() => toast.error("Error fetching customers"));
   }, []);
 
   const handleInputChange = (e) => {
@@ -123,11 +123,12 @@ export default function AddTransaction1() {
         const message = `Hello ${creditCustomer.Customer_name}, we have received your payment of ₹${Amount} on ${Transaction_date || todayDate} via ${debitCustomer.Customer_name}. Thank you!`;
         setWhatsAppMessage(message);
         setMobileToSend(creditCustomer.Mobile_number);
-        setWhatsAppModal(true);
+        setInvoiceItems([{ Item: Description || 'Payment', Quantity: 1, Rate: Amount, Amount: Amount }]);
+        setShowInvoiceModal(true);
       } else {
         toast.error("Failed to save transaction");
       }
-    } catch (err) {
+    } catch {
       toast.error("Submission error");
     } finally {
       setLoading(false);
@@ -149,10 +150,10 @@ export default function AddTransaction1() {
       const data = await res.json();
       if (data?.error) toast.error("❌ Failed to send WhatsApp message");
       else toast.success("✅ WhatsApp message sent successfully");
-    } catch (err) {
+    } catch {
       toast.error("⚠️ Error sending WhatsApp");
     } finally {
-      setWhatsAppModal(false);
+      setShowInvoiceModal(false);
       navigate("/home");
     }
   };
@@ -161,24 +162,16 @@ export default function AddTransaction1() {
     <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
       <Toaster position="top-center" reverseOrder={false} />
 
-      <Modal show={whatsAppModal} onHide={() => setWhatsAppModal(false)} centered>
-        <Modal.Header closeButton className="bg-light">
-          <Modal.Title className="fs-5 text-success">Send WhatsApp Confirmation?</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div className="p-2">
-            <p className="text-muted">{whatsAppMessage}</p>
-          </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="outline-secondary" size="sm" onClick={() => setWhatsAppModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="success" size="sm" onClick={sendWhatsApp}>
-            Send
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      <InvoiceModal
+        isOpen={showInvoiceModal}
+        onClose={() => setShowInvoiceModal(false)}
+        invoiceRef={previewRef}
+        customerName={Customer_name}
+        customerMobile={mobileToSend}
+        items={invoiceItems}
+        remark={Description}
+        onSendWhatsApp={sendWhatsApp}
+      />
 
       <div className="bg-white p-3 rounded w-90 position-relative">
         <button onClick={closeModal} className="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2 px-2 py-0">
