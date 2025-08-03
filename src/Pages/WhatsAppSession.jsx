@@ -1,110 +1,71 @@
-import React, { useEffect, useState } from 'react';
-import { io } from 'socket.io-client';
-import QRCode from 'react-qr-code'; // ✅ Safe for Vite/Vercel
+import React, { useState } from 'react';
+import axios from 'axios';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-const socket = io('https://misbackend-e078.onrender.com'); // ✅ Your backend URL
+const WhatsAppSession = () => {
+  const [number, setNumber] = useState('');
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
 
-export default function WhatsAppSession() {
-  const [selectedSession, setSelectedSession] = useState('default');
-  const [qr, setQr] = useState(null);
-  const [status, setStatus] = useState('Connecting...');
-  const [messages, setMessages] = useState([]);
+  const handleSend = async (e) => {
+    e.preventDefault();
+    if (!number || !message) {
+      toast.error("Please fill all fields");
+      return;
+    }
 
-  useEffect(() => {
-    socket.on('connect', () => {
-      setStatus('Connected. Waiting for QR...');
-    });
-
-    socket.on('qr', ({ sessionId, qr }) => {
-      if (sessionId === selectedSession) {
-        setQr(qr);
-        setStatus('Scan the QR Code');
-      }
-    });
-
-    socket.on('authenticated', (sessionId) => {
-      if (sessionId === selectedSession) {
-        setStatus('Authenticated. Please wait...');
-        setQr(null);
-      }
-    });
-
-    socket.on('ready', (sessionId) => {
-      if (sessionId === selectedSession) {
-        setStatus('✅ WhatsApp is Ready');
-        setQr(null);
-      }
-    });
-
-    socket.on('auth_failure', ({ sessionId, msg }) => {
-      if (sessionId === selectedSession) {
-        setStatus(`❌ Auth failed: ${msg}`);
-      }
-    });
-
-    socket.on('message', ({ sessionId, number, message, time }) => {
-      if (sessionId === selectedSession) {
-        setMessages((prev) => [...prev, { number, message, time }]);
-      }
-    });
-
-    return () => {
-      socket.off('qr');
-      socket.off('authenticated');
-      socket.off('ready');
-      socket.off('auth_failure');
-      socket.off('message');
-    };
-  }, [selectedSession]);
-
-  const handleSessionChange = (e) => {
-    const sessionId = e.target.value;
-    setSelectedSession(sessionId);
-    setMessages([]);
-    setStatus('Switching session...');
-    setQr(null);
+    setSending(true);
+    try {
+      const res = await axios.post('https://misbackend-e078.onrender.com/whatsapp/send-test', {
+        number,
+        message,
+      });
+      toast.success(`✅ Sent! ID: ${res.data.id}`);
+    } catch (err) {
+      console.error(err);
+      toast.error("❌ Failed to send message");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
-    <div className="p-6 max-w-md mx-auto bg-white shadow-lg rounded-xl">
-      <h2 className="text-2xl font-bold mb-4">📱 WhatsApp Session Manager</h2>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
+      <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-6">
+        <h2 className="text-2xl font-semibold mb-4 text-center">📲 Send WhatsApp Message</h2>
 
-      <div className="mb-4">
-        <label className="block mb-1 font-medium">Select Session</label>
-        <select
-          value={selectedSession}
-          onChange={handleSessionChange}
-          className="border border-gray-300 px-3 py-2 rounded w-full"
-        >
-          <option value="default">Default</option>
-          <option value="admin">Admin</option>
-          <option value="staff1">Staff 1</option>
-        </select>
+        <form onSubmit={handleSend} className="space-y-4">
+          <input
+            type="text"
+            placeholder="Phone number (e.g., 91XXXXXXXXXX)"
+            value={number}
+            onChange={(e) => setNumber(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+
+          <textarea
+            rows="4"
+            placeholder="Enter your message"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+
+          <button
+            type="submit"
+            disabled={sending}
+            className={`w-full py-2 rounded text-white ${
+              sending ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
+            }`}
+          >
+            {sending ? 'Sending...' : 'Send Message'}
+          </button>
+        </form>
       </div>
-
-      <div className="mb-4">
-        <p className="text-gray-700">Status: <strong>{status}</strong></p>
-      </div>
-
-      {qr && (
-        <div className="mb-4 flex justify-center bg-white p-4 rounded shadow">
-          <QRCode value={qr} size={256} />
-        </div>
-      )}
-
-      {messages.length > 0 && (
-        <div className="mt-6">
-          <h3 className="font-semibold mb-2">📩 Incoming Messages:</h3>
-          <div className="bg-gray-100 p-3 rounded h-64 overflow-y-auto text-sm">
-            {messages.map((msg, idx) => (
-              <div key={idx} className="mb-2">
-                <strong>{msg.number}:</strong> {msg.message}
-                <div className="text-gray-400 text-xs">{new Date(msg.time).toLocaleString()}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <ToastContainer />
     </div>
   );
-}
+};
+
+export default WhatsAppSession;

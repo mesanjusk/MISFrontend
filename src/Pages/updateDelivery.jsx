@@ -1,3 +1,4 @@
+// Import statements remain unchanged
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
@@ -26,6 +27,7 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
   const [customerMap, setCustomerMap] = useState({});
   const [customerMobile, setCustomerMobile] = useState('');
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const userNameFromState = location.state?.id;
@@ -45,31 +47,40 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
   }, [order, mode]);
 
   useEffect(() => {
-    axios.get(`${BASE_URL}/customer/GetCustomersList`).then(res => {
-      if (res.data.success) {
-        setCustomers(res.data.result);
-        const map = {};
-        res.data.result.forEach(c => {
-          map[c.Customer_uuid] = c.Customer_name;
-        });
-        setCustomerMap(map);
-        const found = res.data.result.find(c => c.Customer_uuid === Customer_uuid);
-        if (found) {
-          setCustomer_name(found.Customer_name);
-          setCustomerMobile(found.Mobile_number);
-        }
-      }
-    }).catch(() => toast.error('Error fetching customers'));
-  }, [Customer_uuid]);
+    const fetchData = async () => {
+      try {
+        const [custRes, itemRes] = await Promise.all([
+          axios.get(`${BASE_URL}/customer/GetCustomersList`),
+          axios.get(`${BASE_URL}/item/GetItemList`)
+        ]);
 
-  useEffect(() => {
-    axios.get(`${BASE_URL}/item/GetItemList`).then(res => {
-      if (res.data.success) {
-        const options = res.data.result.map(item => item.Item_name);
-        setItemOptions(options);
+        if (custRes.data.success) {
+          setCustomers(custRes.data.result);
+          const map = {};
+          custRes.data.result.forEach(c => {
+            map[c.Customer_uuid] = c.Customer_name;
+          });
+          setCustomerMap(map);
+          const found = custRes.data.result.find(c => c.Customer_uuid === Customer_uuid);
+          if (found) {
+            setCustomer_name(found.Customer_name);
+            setCustomerMobile(found.Mobile_number);
+          }
+        }
+
+        if (itemRes.data.success) {
+          const options = itemRes.data.result.map(item => item.Item_name);
+          setItemOptions(options);
+        }
+      } catch {
+        toast.error('Error loading data');
+      } finally {
+        setLoading(false);
       }
-    }).catch(() => toast.error('Error fetching items'));
-  }, []);
+    };
+
+    fetchData();
+  }, [Customer_uuid]);
 
   const handleItemChange = (index, key, value) => {
     const updated = [...items];
@@ -83,6 +94,10 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
   };
 
   const addNewItem = () => {
+    if (items.some(i => !i.Item || !i.Quantity || !i.Rate)) {
+      toast.error('Please complete existing item rows first');
+      return;
+    }
     setItems([...items, { Item: '', Quantity: '', Rate: '', Amount: 0 }]);
   };
 
@@ -125,13 +140,6 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
         });
 
         if (transaction.data.success) {
-          const confirmSend = window.confirm("Send WhatsApp confirmation to customer?");
-          if (confirmSend && customerMobile) {
-            await axios.post(`${BASE_URL}/api/send-whatsapp`, {
-              number: customerMobile,
-              message: `Hi ${customerMap[Customer_uuid] || Customer_name}, your order has been delivered. Amount: ₹${totalAmount}`
-            });
-          }
           toast.success('Order saved');
           setShowInvoiceModal(true);
         } else {
@@ -147,6 +155,19 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
     setIsSubmitting(false);
   };
 
+  const sendWhatsApp = async () => {
+    const totalAmount = items.reduce((sum, i) => sum + i.Amount, 0);
+    if (customerMobile) {
+      await axios.post(`${BASE_URL}/api/send-whatsapp`, {
+        number: customerMobile,
+        message: `Hi ${customerMap[Customer_uuid] || Customer_name}, your order has been delivered. Amount: ₹${totalAmount}`
+      });
+      toast.success('WhatsApp sent');
+    } else {
+      toast.warn('Customer mobile number not found');
+    }
+  };
+
   const handlePrint = () => {
     const printContents = previewRef.current.innerHTML;
     const win = window.open('', '', 'height=600,width=800');
@@ -155,7 +176,6 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
     win.document.write('</body></html>');
     win.document.close();
     win.print();
-    onClose();
   };
 
   const handlePDF = async () => {
@@ -165,8 +185,18 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
     const pdf = new jsPDF();
     pdf.addImage(imgData, 'PNG', 10, 10);
     pdf.save('invoice.pdf');
-    onClose();
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-white">
+        <div className="text-center">
+          <div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-20 w-20 mb-4 animate-spin"></div>
+          <h2 className="text-center text-gray-600">Loading...</h2>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -209,79 +239,85 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
               <input type="text" value={Remark} onChange={(e) => setRemark(e.target.value)} className="w-full border p-2 rounded" />
             </div>
 
-            <button type="button" onClick={submit} disabled={isSubmitting} className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:bg-gray-400">
+            <button type="button" onClick={submit} disabled={isSubmitting} className={`py-2 rounded text-white ${isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}>
               {isSubmitting ? 'Saving...' : 'Submit'}
             </button>
           </form>
         </div>
       </div>
-{showInvoiceModal && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-    <div className="bg-white w-full max-w-3xl p-6 rounded-lg shadow-xl relative">
-      <button className="absolute top-2 right-3 text-xl" onClick={onClose}>✕</button>
-      <div ref={previewRef} className="p-6 bg-white space-y-4 border rounded shadow-md">
-        <div className="text-center mb-4">
-          <h2 className="text-3xl font-bold text-gray-800">🧾 My Printing Company</h2>
-          <p className="text-sm text-gray-500">123 Business Street, Your City, State, 123456</p>
-          <p className="text-sm text-gray-500">GSTIN: 22AAAAA0000A1Z5 | Phone: +91-9999999999</p>
-        </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p><strong>Invoice To:</strong></p>
-            <p>{customerMap[Customer_uuid] || Customer_name}</p>
-            {customerMobile && <p>📞 {customerMobile}</p>}
+      {showInvoiceModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white w-full max-w-3xl p-6 rounded-lg shadow-xl relative">
+            <button className="absolute top-2 right-3 text-xl" onClick={() => setShowInvoiceModal(false)}>✕</button>
+            <div ref={previewRef} className="p-6 bg-white space-y-4 border rounded shadow-md">
+              <div className="text-center mb-4">
+                <h2 className="text-3xl font-bold text-gray-800">🧾 My Printing Company</h2>
+                <p className="text-sm text-gray-500">123 Business Street, Your City, State, 123456</p>
+                <p className="text-sm text-gray-500">GSTIN: 22AAAAA0000A1Z5 | Phone: +91-9999999999</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p><strong>Invoice To:</strong></p>
+                  <p>{customerMap[Customer_uuid] || Customer_name}</p>
+                  {customerMobile && <p>📞 {customerMobile}</p>}
+                </div>
+                <div className="text-right">
+                  <p><strong>Invoice Date:</strong> {new Date().toLocaleDateString('en-GB')}</p>
+                  <p><strong>Order No:</strong> #{String(orderId || '').slice(-6).toUpperCase()}</p>
+                </div>
+              </div>
+
+              <table className="w-full mt-4 border-t border-b text-sm">
+                <thead>
+                  <tr className="bg-gray-200 text-left">
+                    <th className="p-2">#</th>
+                    <th className="p-2">Item</th>
+                    <th className="p-2 text-right">Qty</th>
+                    <th className="p-2 text-right">Rate</th>
+                    <th className="p-2 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item, idx) => (
+                    <tr key={idx} className="border-b">
+                      <td className="p-2">{idx + 1}</td>
+                      <td className="p-2">{item.Item}</td>
+                      <td className="p-2 text-right">{item.Quantity}</td>
+                      <td className="p-2 text-right">₹{item.Rate}</td>
+                      <td className="p-2 text-right">₹{item.Amount}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-gray-100 font-semibold">
+                    <td colSpan="4" className="p-2 text-right">Total</td>
+                    <td className="p-2 text-right">₹{items.reduce((sum, i) => sum + i.Amount, 0)}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div className="mt-4">
+                <p><strong>Remark:</strong> {Remark || 'N/A'}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={sendWhatsApp} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                📩 Send WhatsApp
+              </button>
+              <button onClick={handlePrint} className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                🖨️ Print
+              </button>
+              <button onClick={handlePDF} className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+                📄 Download PDF
+              </button>
+              <button onClick={() => { setShowInvoiceModal(false); onClose(); }} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                ❌ Close
+              </button>
+            </div>
           </div>
-          <div className="text-right">
-            <p><strong>Invoice Date:</strong> {new Date().toLocaleDateString('en-IN')}</p>
-            <p><strong>Order No:</strong> #{orderId?.slice(-6).toUpperCase()}</p>
-          </div>
         </div>
-
-        <table className="w-full mt-4 border-t border-b text-sm">
-          <thead>
-            <tr className="bg-gray-200 text-left">
-              <th className="p-2">#</th>
-              <th className="p-2">Item</th>
-              <th className="p-2 text-right">Qty</th>
-              <th className="p-2 text-right">Rate</th>
-              <th className="p-2 text-right">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, idx) => (
-              <tr key={idx} className="border-b">
-                <td className="p-2">{idx + 1}</td>
-                <td className="p-2">{item.Item}</td>
-                <td className="p-2 text-right">{item.Quantity}</td>
-                <td className="p-2 text-right">₹{item.Rate}</td>
-                <td className="p-2 text-right">₹{item.Amount}</td>
-              </tr>
-            ))}
-            <tr className="bg-gray-100 font-semibold">
-              <td colSpan="4" className="p-2 text-right">Total</td>
-              <td className="p-2 text-right">₹{items.reduce((sum, i) => sum + i.Amount, 0)}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div className="mt-4">
-          <p><strong>Remark:</strong> {Remark || 'N/A'}</p>
-        </div>
-      </div>
-
-      <div className="mt-6 flex justify-end gap-3">
-        <button onClick={handlePrint} className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
-          🖨️ Print
-        </button>
-        <button onClick={handlePDF} className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-          📄 Download PDF
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
+      )}
     </>
   );
 }
