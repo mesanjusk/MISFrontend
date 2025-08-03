@@ -25,7 +25,7 @@ export default function SendMessagePanel() {
   const sendMessage = async () => {
     try {
       const number = normalizeWhatsAppNumber(to);
-      await axios.post(`${BASE_URL}/whatsapp/send`, { sessionId, to: number, message });
+      await axios.post(`${BASE_URL}/whatsapp/send-test`, { sessionId, to: number, message });
       alert('✅ Message sent!');
     } catch (err) {
       console.error(err);

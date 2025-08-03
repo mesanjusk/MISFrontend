@@ -4,6 +4,8 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import normalizeWhatsAppNumber from '../utils/normalizeNumber';
 
+const BASE_URL = 'https://misbackend-e078.onrender.com';
+
 const WhatsAppSession = () => {
   const [number, setNumber] = useState('');
   const [message, setMessage] = useState('');
@@ -19,7 +21,7 @@ const WhatsAppSession = () => {
     setSending(true);
     try {
       const normalized = normalizeWhatsAppNumber(number);
-      const res = await axios.post('https://misbackend-e078.onrender.com/whatsapp/send-test', {
+      const res = await axios.post(`${BASE_URL}/whatsapp/send-test`, {
         number: normalized,
         message,
       });
