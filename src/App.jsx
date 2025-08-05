@@ -1,7 +1,9 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import axios from 'axios';
 import Layout from './Pages/Layout';
+import { initVersionChecker } from './utils/versionChecker';
 
 // Public pages
 import Login from "./Pages/login";
@@ -70,6 +72,10 @@ import Vendor from "./Pages/vendor";
 
 function App() {
     axios.defaults.baseURL = "https://misbackend-e078.onrender.com/";
+
+    useEffect(() => {
+        initVersionChecker();
+    }, []);
 
     return (
         <Router>
