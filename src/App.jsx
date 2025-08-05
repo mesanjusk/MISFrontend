@@ -74,7 +74,10 @@ function App() {
     axios.defaults.baseURL = "https://misbackend-e078.onrender.com/";
 
     useEffect(() => {
-        initVersionChecker();
+        if (import.meta.env.PROD) {
+            const id = initVersionChecker();
+            return () => clearInterval(id);
+        }
     }, []);
 
     return (
