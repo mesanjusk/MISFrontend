@@ -6,7 +6,6 @@ import "jspdf-autotable";
 import * as XLSX from "xlsx";
 
 import UpdateDelivery from "../Pages/updateDelivery";
-import AddOrder1 from "../Pages/addOrder1";
 
 export default function AllDelivery() {
   const navigate = useNavigate();
@@ -16,7 +15,8 @@ export default function AllDelivery() {
   const [customers, setCustomers] = useState({});
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(20); // For lazy loading
 
   const formatDateDDMMYYYY = (dateString) => {
     const date = new Date(dateString);
@@ -25,6 +25,7 @@ export default function AllDelivery() {
   };
 
   useEffect(() => {
+    setLoading(true);
     const fetchOrders = axios.get("/order/GetDeliveredList");
     const fetchCustomers = axios.get("/customer/GetCustomersList");
 
@@ -41,7 +42,8 @@ export default function AllDelivery() {
           setCustomers(customerMap);
         }
       })
-      .catch((err) => console.log("Error fetching data:", err));
+      .catch((err) => console.log("Error fetching data:", err))
+      .finally(() => setLoading(false));
   }, []);
 
   const filteredOrders = orders
@@ -60,6 +62,8 @@ export default function AllDelivery() {
       const filterValue = filter.toLowerCase().trim();
       return matchesSearch && (filterValue === "" || task === filterValue);
     });
+
+  const visibleOrders = filteredOrders.slice(0, visibleCount);
 
   const exportPDF = () => {
     const doc = new jsPDF();
@@ -103,16 +107,14 @@ export default function AllDelivery() {
       alert("⚠️ Invalid order ID. Cannot open edit modal.");
       return;
     }
-    setSelectedOrder({ ...order, _id: id }); // ensure _id is passed
+    setSelectedOrder({ ...order, _id: id });
     setShowEditModal(true);
   };
 
-  const handleOrder = () => setShowOrderModal(true);
   const closeEditModal = () => {
     setShowEditModal(false);
     setSelectedOrder(null);
   };
-  const closeModal = () => setShowOrderModal(false);
 
   return (
     <>
@@ -146,50 +148,56 @@ export default function AllDelivery() {
           </div>
         </div>
 
-        {/* Orders Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-4">
-          {filteredOrders.length > 0 ? (
-            filteredOrders.map((order, index) => (
-              <div
-                key={index}
-                onClick={() => handleEditClick(order)}
-                className="bg-white border border-gray-200 hover:border-blue-500 rounded-lg p-4 shadow hover:shadow-md cursor-pointer transition"
-              >
-                <div className="text-blue-600 font-bold text-xl mb-2">
-                  #{order.Order_Number}
+        {/* Loading Spinner */}
+        {loading ? (
+          <div className="flex justify-center items-center h-40">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+          </div>
+        ) : (
+          <>
+            {/* Orders Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-9 gap-2">
+              {visibleOrders.length > 0 ? (
+                visibleOrders.map((order, index) => (
+                  <div
+                    key={index}
+                    onClick={() => handleEditClick(order)}
+                    className="bg-white border border-gray-200 hover:border-blue-500 rounded-lg p-2 shadow hover:shadow-md cursor-pointer transition"
+                  >
+                    <div className="text-blue-600 font-bold text-xl mb-1">
+                      #{order.Order_Number}
+                    </div>
+                    <div className="text-gray-800 font-semibold text-md mb-1">
+                      {order.Customer_name}
+                    </div>
+                    <div className="text-gray-600 text-sm">
+                      Date {formatDateDDMMYYYY(order.highestStatusTask.Delivery_Date)}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full text-center text-gray-500 py-10">
+                  No orders found
                 </div>
-                <div className="text-gray-800 font-semibold text-md">
-                  {order.Customer_name}
-                </div>
-                <div className="text-gray-500 text-sm">
-                  Created: {formatDateDDMMYYYY(order.createdAt)}
-                </div>
-                <div className="text-gray-600 mt-1 text-sm">
-                  Remark: {order.Remark || "-"}
-                </div>
-                <div className="mt-2 text-sm">
-                  <p>🗓 Delivery: {formatDateDDMMYYYY(order.highestStatusTask.Delivery_Date)}</p>
-                  <p>👤 Assigned: {order.highestStatusTask.Assigned || "N/A"}</p>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="col-span-full text-center text-gray-500 py-10">
-              No orders found
+              )}
             </div>
-          )}
-        </div>
+
+            {/* Load More */}
+            {visibleCount < filteredOrders.length && (
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={() => setVisibleCount((prev) => prev + 20)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full shadow"
+                >
+                  Load More
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
-      {/* Modals */}
-      {showOrderModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg shadow-lg p-4 max-w-2xl w-full">
-            <AddOrder1 closeModal={closeModal} />
-          </div>
-        </div>
-      )}
-
+      {/* Edit Modal */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-lg p-4 max-w-3xl w-full">
