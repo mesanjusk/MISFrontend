@@ -356,9 +356,8 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
                 <p>Krishnapura Ward, Gondia</p>
               </div>
 
-              <div className="mt-2">
+              <div className="mt-2 flex justify-between text-sm">
                 <p><strong>Bill No:</strong> {order.Order_Number || '432'}</p>
-
                 <p><strong>Date:</strong> {new Date().toLocaleDateString('en-GB')}</p>
               </div>
 
