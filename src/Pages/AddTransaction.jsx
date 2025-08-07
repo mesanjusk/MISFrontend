@@ -21,6 +21,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
   const [userGroup, setUserGroup] = useState('');
   const [loggedInUser, setLoggedInUser] = useState('');
   const [loading, setLoading] = useState(false);
+  const [optionsLoading, setOptionsLoading] = useState(true);
 
   const [allCustomerOptions, setAllCustomerOptions] = useState([]);
   const [accountCustomerOptions, setAccountCustomerOptions] = useState([]);
@@ -44,6 +45,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
   }, [location.state, navigate]);
 
   useEffect(() => {
+    setOptionsLoading(true);
     axios.get("/customer/GetCustomersList")
       .then(res => {
         if (res.data.success) {
@@ -51,7 +53,8 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
           const accountOptions = res.data.result.filter(item => item.Customer_group === "Bank and Account");
           setAccountCustomerOptions(accountOptions);
         }
-      }).catch(() => toast.error("Error fetching customers"));
+      }).catch(() => toast.error("Error fetching customers"))
+      .finally(() => setOptionsLoading(false));
   }, []);
 
   useEffect(() => {
@@ -208,28 +211,34 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
         <h2 className="text-xl font-semibold mb-4">{editMode ? "Edit Receipt" : "Add Receipt"}</h2>
 
         <form onSubmit={submit}>
-          <div className="relative">
-            <InputField
-              label="Search by Customer Name"
-              value={Customer_name}
-              onChange={handleInputChange}
-              onFocus={() => setShowOptions(true)}
-              placeholder="Search by Customer Name"
-            />
-            {showOptions && filteredOptions.length > 0 && (
-              <ul className="absolute z-10 w-full bg-white border rounded-md max-h-40 overflow-y-auto">
-                {filteredOptions.map((option, index) => (
-                  <li
-                    key={index}
-                    className="p-2 hover:bg-gray-100 cursor-pointer"
-                    onClick={() => handleOptionClick(option)}
-                  >
-                    {option.Customer_name}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          {optionsLoading ? (
+            <div className="flex justify-center items-center h-12 mb-4">
+              <FaSpinner className="animate-spin" />
+            </div>
+          ) : (
+            <div className="relative">
+              <InputField
+                label="Search by Customer Name"
+                value={Customer_name}
+                onChange={handleInputChange}
+                onFocus={() => setShowOptions(true)}
+                placeholder="Search by Customer Name"
+              />
+              {showOptions && filteredOptions.length > 0 && (
+                <ul className="absolute z-10 w-full bg-white border rounded-md max-h-40 overflow-y-auto">
+                  {filteredOptions.map((option, index) => (
+                    <li
+                      key={index}
+                      className="p-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => handleOptionClick(option)}
+                    >
+                      {option.Customer_name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
 
           <Button onClick={addCustomer} type="button" className="mb-4">
             Add Customer
@@ -250,22 +259,28 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
             placeholder="Amount"
           />
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-text mb-1">Payment Mode</label>
-            <select
-              value={group}
-              onChange={(e) => setGroup(e.target.value)}
-              className="w-full border border-gray-300 rounded-md p-2 focus:border-primary focus:ring-1 focus:ring-primary"
-              required
-            >
-              <option value="">Select Payment</option>
-              {accountCustomerOptions.map((cust, i) => (
-                <option key={i} value={cust.Customer_uuid}>
-                  {cust.Customer_name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {optionsLoading ? (
+            <div className="flex justify-center items-center h-10 mb-4">
+              <FaSpinner className="animate-spin" />
+            </div>
+          ) : (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-text mb-1">Payment Mode</label>
+              <select
+                value={group}
+                onChange={(e) => setGroup(e.target.value)}
+                className="w-full border border-gray-300 rounded-md p-2 focus:border-primary focus:ring-1 focus:ring-primary"
+                required
+              >
+                <option value="">Select Payment</option>
+                {accountCustomerOptions.map((cust, i) => (
+                  <option key={i} value={cust.Customer_uuid}>
+                    {cust.Customer_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <InputField type="file" accept="image/*" onChange={handleFileChange} />
 

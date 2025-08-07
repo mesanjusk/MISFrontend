@@ -21,6 +21,7 @@ export default function AddTransaction1() {
   const [isDateChecked, setIsDateChecked] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState('');
   const [loading, setLoading] = useState(false);
+  const [optionsLoading, setOptionsLoading] = useState(true);
 
   const [allCustomerOptions, setAllCustomerOptions] = useState([]);
   const [accountCustomerOptions, setAccountCustomerOptions] = useState([]);
@@ -43,6 +44,7 @@ export default function AddTransaction1() {
   }, [location.state, navigate]);
 
   useEffect(() => {
+    setOptionsLoading(true);
     axios.get("/customer/GetCustomersList")
       .then(res => {
         if (res.data.success) {
@@ -51,7 +53,8 @@ export default function AddTransaction1() {
           setAccountCustomerOptions(accountOptions);
         }
       })
-      .catch(() => toast.error("Error fetching customers"));
+      .catch(() => toast.error("Error fetching customers"))
+      .finally(() => setOptionsLoading(false));
   }, []);
 
   const handleInputChange = (e) => {
@@ -181,26 +184,32 @@ export default function AddTransaction1() {
         <h2>Add Payment</h2>
 
         <form onSubmit={submit}>
-          <div className="mb-3 position-relative">
-            <input
-              type="text"
-              placeholder="Search by Customer Name"
-              className="form-control mb-3"
-              value={Customer_name}
-              onChange={handleInputChange}
-              onFocus={() => setShowOptions(true)}
-            />
-            {showOptions && filteredOptions.length > 0 && (
-              <ul className="list-group position-absolute w-100 z-10">
-                {filteredOptions.map((option, index) => (
-                  <li key={index} className="list-group-item list-group-item-action"
-                    onClick={() => handleOptionClick(option)}>
-                    {option.Customer_name}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          {optionsLoading ? (
+            <div className="d-flex justify-content-center align-items-center mb-3" style={{ height: '38px' }}>
+              <FaSpinner className="spinner-border" />
+            </div>
+          ) : (
+            <div className="mb-3 position-relative">
+              <input
+                type="text"
+                placeholder="Search by Customer Name"
+                className="form-control mb-3"
+                value={Customer_name}
+                onChange={handleInputChange}
+                onFocus={() => setShowOptions(true)}
+              />
+              {showOptions && filteredOptions.length > 0 && (
+                <ul className="list-group position-absolute w-100 z-10">
+                  {filteredOptions.map((option, index) => (
+                    <li key={index} className="list-group-item list-group-item-action"
+                      onClick={() => handleOptionClick(option)}>
+                      {option.Customer_name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
 
           <button onClick={addCustomer} type="button" className="btn btn-primary mb-3">
             Add Customer
@@ -228,22 +237,28 @@ export default function AddTransaction1() {
             />
           </div>
 
-          <div className="mb-3">
-            <label><strong>Payment Mode</strong></label>
-            <select
-              value={DebitCustomer}
-              onChange={(e) => setDebitCustomer(e.target.value)}
-              className="form-control"
-              required
-            >
-              <option value="">Select Payment</option>
-              {accountCustomerOptions.map((cust, i) => (
-                <option key={i} value={cust.Customer_uuid}>
-                  {cust.Customer_name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {optionsLoading ? (
+            <div className="d-flex justify-content-center align-items-center mb-3" style={{ height: '38px' }}>
+              <FaSpinner className="spinner-border" />
+            </div>
+          ) : (
+            <div className="mb-3">
+              <label><strong>Payment Mode</strong></label>
+              <select
+                value={DebitCustomer}
+                onChange={(e) => setDebitCustomer(e.target.value)}
+                className="form-control"
+                required
+              >
+                <option value="">Select Payment</option>
+                {accountCustomerOptions.map((cust, i) => (
+                  <option key={i} value={cust.Customer_uuid}>
+                    {cust.Customer_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <input type="file" accept="image/*" onChange={handleFileChange} className="form-control mb-3" />
 
