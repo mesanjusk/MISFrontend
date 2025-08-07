@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
-import "react-loading-skeleton/dist/skeleton.css";
 import axios from 'axios';
 import OrderUpdate from '../Reports/orderUpdate'; 
 import AllOrder from "../Reports/allOrder";

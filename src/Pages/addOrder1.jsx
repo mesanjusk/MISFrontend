@@ -3,9 +3,9 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { FaSpinner } from 'react-icons/fa';
 import AddCustomer from "./addCustomer";
 import InvoiceModal from "../Components/InvoiceModal";
+import LoadingSpinner from "../Components/LoadingSpinner";
 
 export default function AddOrder1() {
   const navigate = useNavigate();
@@ -232,7 +232,7 @@ export default function AddOrder1() {
             {/* Customer Search */}
             {optionsLoading ? (
               <div className="flex justify-center items-center h-10 mb-4">
-                <FaSpinner className="animate-spin" />
+                <LoadingSpinner size="h-5 w-5" />
               </div>
             ) : (
               <div className="mb-4 relative">
@@ -305,11 +305,11 @@ export default function AddOrder1() {
                   />
                 </div>
 
-                {optionsLoading ? (
-                  <div className="flex justify-center items-center h-10 mb-4">
-                    <FaSpinner className="animate-spin" />
-                  </div>
-                ) : (
+                    {optionsLoading ? (
+                      <div className="flex justify-center items-center h-10 mb-4">
+                        <LoadingSpinner size="h-5 w-5" />
+                      </div>
+                    ) : (
                   <div className="mb-4">
                     <label className="block mb-1 font-medium">Payment Mode</label>
                     <select
@@ -332,7 +332,7 @@ export default function AddOrder1() {
             {/* Task Groups */}
             {optionsLoading ? (
               <div className="flex justify-center items-center h-10 mb-4">
-                <FaSpinner className="animate-spin" />
+                <LoadingSpinner size="h-5 w-5" />
               </div>
             ) : (
               <div className="mb-4">

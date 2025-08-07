@@ -6,6 +6,7 @@ import "jspdf-autotable";
 import * as XLSX from "xlsx";
 
 import UpdateDelivery from "../Pages/updateDelivery";
+import LoadingSpinner from "../Components/LoadingSpinner";
 
 export default function AllDelivery() {
   const navigate = useNavigate();
@@ -16,7 +17,6 @@ export default function AllDelivery() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [visibleCount, setVisibleCount] = useState(20); // For lazy loading
 
   const formatDateDDMMYYYY = (dateString) => {
     const date = new Date(dateString);
@@ -63,7 +63,6 @@ export default function AllDelivery() {
       return matchesSearch && (filterValue === "" || task === filterValue);
     });
 
-  const visibleOrders = filteredOrders.slice(0, visibleCount);
 
   const exportPDF = () => {
     const doc = new jsPDF();
@@ -151,14 +150,14 @@ export default function AllDelivery() {
         {/* Loading Spinner */}
         {loading ? (
           <div className="flex justify-center items-center h-40">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+            <LoadingSpinner />
           </div>
         ) : (
           <>
             {/* Orders Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-9 gap-2">
-              {visibleOrders.length > 0 ? (
-                visibleOrders.map((order, index) => (
+              {filteredOrders.length > 0 ? (
+                filteredOrders.map((order, index) => (
                   <div
                     key={index}
                     onClick={() => handleEditClick(order)}
@@ -180,22 +179,10 @@ export default function AllDelivery() {
                   No orders found
                 </div>
               )}
-            </div>
-
-            {/* Load More */}
-            {visibleCount < filteredOrders.length && (
-              <div className="flex justify-center mt-6">
-                <button
-                  onClick={() => setVisibleCount((prev) => prev + 20)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full shadow"
-                >
-                  Load More
-                </button>
               </div>
-            )}
-          </>
-        )}
-      </div>
+            </>
+          )}
+        </div>
 
       {/* Edit Modal */}
       {showEditModal && (

@@ -5,6 +5,7 @@ import AddOrder1 from "../Pages/addOrder1";
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import LoadingSpinner from "../Components/LoadingSpinner";
 
 const AllTransaction3 = () => {
     const [transactions, setTransactions] = useState([]);
@@ -220,7 +221,7 @@ const AllTransaction3 = () => {
                     Closing Balance: ₹{totals.total.toFixed(2)}
                 </p>
                 {loading ? (
-                    <div className="text-center py-12 text-lg">Loading transactions...</div>
+                    <div className="flex justify-center py-12"><LoadingSpinner /></div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="min-w-full border-collapse">

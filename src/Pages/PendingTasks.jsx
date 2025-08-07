@@ -1,6 +1,7 @@
 // src/components/PendingTasks.js
 
 import React from 'react';
+import LoadingSpinner from "../Components/LoadingSpinner";
 
 export default function PendingTasks({ tasks = [], isLoading, onTaskClick }) {
   const pendingTasks = tasks.filter(task => task.Status === "Pending");
@@ -8,11 +9,7 @@ export default function PendingTasks({ tasks = [], isLoading, onTaskClick }) {
   return (
     <div className=" px-4 py-2">
       {isLoading ? (
-        <div className="space-y-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className=" h-28 rounded-xl animate-pulse" />
-          ))}
-        </div>
+        <div className="flex justify-center py-4"><LoadingSpinner /></div>
       ) : pendingTasks.length > 0 ? (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2">
           {pendingTasks.map((task) => (
