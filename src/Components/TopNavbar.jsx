@@ -1,52 +1,30 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import UserTask from "../Pages/userTask";
 import axios from "axios";
-import TaskUpdate from "../Pages/taskUpdate";
 
 const TopNavbar = () => {
-  const [isOpen, setIsOpen] = useState(false);
   const [userGroup, setUserGroup] = useState("");
   const [userName, setUserName] = useState('');
-  const [loggedInUser, setLoggedInUser] = useState(null); 
-  const [showUserModel, setShowUserModel] = useState(false);
-  const [task, setTask] = useState([]);
-  const [selectedTaskId, setSelectedTaskId] = useState(null);
-  const [showTaskModal, setShowTaskModal] = useState(false); 
-  const [isLoading, setIsLoading] = useState(true);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [openGroup, setOpenGroup] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const navigate = useNavigate();
   const location = useLocation();
+  const dropdownRef = useRef();
 
   useEffect(() => {
     setTimeout(() => {
       const userNameFromState = location.state?.id;
       const user = userNameFromState || localStorage.getItem('User_name');
-      setLoggedInUser(user);
       if (user) {
         setUserName(user);
-        fetchData();
       } else {
         navigate("/login");
       }
-    }, 2000);
-    setTimeout(() => setIsLoading(false), 2000);
+    }, 1000);
+    setTimeout(() => setIsLoading(false), 1000);
   }, [location.state, navigate]);
-
-  const fetchData = async () => {
-    try {
-      const taskRes = await axios.get("/usertask/GetUsertaskList");
-      if (taskRes.data.success) {
-        setTask(taskRes.data.result);
-      } else {
-        setTask([]);
-      }
-    } catch (err) {
-      console.error('Error fetching data:', err);
-    }
-  };
-
 
   useEffect(() => {
     const group = localStorage.getItem("User_group");
@@ -62,107 +40,127 @@ const TopNavbar = () => {
     }
   };
 
-  const toggleSidebar = () => setIsOpen(!isOpen);
-  const home = () => {
-    if (userGroup === "Admin User") navigate('/Home');
-    else if (userGroup === "Vendor") navigate('/vendorHome');
-    else navigate('/');
+  // Close dropdown if clicked outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false);
+        setOpenGroup(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const menuGroups = [
+    {
+      group: "Customer",
+      items: [{ label: "Ledger", path: "/customerReport" }],
+    },
+    {
+      group: "Item",
+      items: [
+        { label: "Item Report", path: "/itemReport" },
+        ...(userGroup === "Vendor" ? [{ label: "Vendor Bills", path: "/vendorBills" }] : []),
+      ],
+    },
+    {
+      group: "Task",
+      items: [{ label: "Task Report", path: "/taskReport" }],
+    },
+    {
+      group: "User",
+      items: [{ label: "User Report", path: "/userReport" }],
+    },
+    {
+      group: "Account",
+      items: [
+        { label: "Payment Report", path: "/paymentReport" },
+        { label: "Priority Report", path: "/priorityReport" },
+        { label: "Add Receivable", path: "/addRecievable" },
+        { label: "Add Payable", path: "/addPayable" },
+        { label: "Transaction", path: "/allTransaction" },
+        ...(userGroup === "Office User" ? [{ label: "Call logs", path: "/calllogs" }] : []),
+      ],
+    },
+  ];
+
+  const toggleGroup = (groupName) => {
+    setOpenGroup(prev => (prev === groupName ? null : groupName));
   };
-  const closeUserModal = () => setShowUserModel(false);
-  const handleTaskClick = (task) => {
-    setSelectedTaskId(task);
-    setShowTaskModal(true);
-  };
-  const closeTaskModal = () => {
-    setShowTaskModal(false);
-    setSelectedTaskId(null);  
-  };
-  const pendingTasks = task.filter(t => t.Status === "Pending" && t.User === loggedInUser);
 
   return (
     <>
-     <div className="fixed top-0 w-full bg-gradient-to-r from-primary to-secondary text-white px-4 py-2 flex z-50 items-center shadow-md">
-        <button onClick={home}>
+      <div className="fixed top-0 w-full bg-gradient-to-r from-primary to-secondary text-white px-4 py-2 flex justify-between items-center z-50 shadow-md">
+        <button
+          onClick={() =>
+            navigate(
+              userGroup === "Admin User"
+                ? "/Home"
+                : userGroup === "Vendor"
+                ? "/vendorHome"
+                : "/"
+            )
+          }
+        >
           <h1 className="text-xl font-bold uppercase">SANJU SK</h1>
         </button>
 
-        <div className="ml-auto flex items-center gap-4">
-          <div className="relative">
-            <button onClick={() => setShowDropdown(!showDropdown)} className="focus:outline-none">
-              <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="8" r="4" />
-                <path d="M6 20v-2a6 6 0 0112 0v2" />
-              </svg>
-            </button>
-            {showDropdown && (
-              <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-50 border">
-                <div className="p-3 border-b font-semibold text-gray-700">Hi, {userName}</div>
-                <button onClick={handleLogout} className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-500">
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
-
-          <button onClick={toggleSidebar} className="text-2xl text-white focus:outline-none">
-            &#x22EE;
+        <div className="flex items-center gap-4 relative" ref={dropdownRef}>
+          <span className="text-sm">Hi, {userName}</span>
+          <button
+            onClick={() => {
+              setShowDropdown(prev => !prev);
+              setOpenGroup(null); // reset group
+            }}
+            className="text-lg font-bold"
+          >
+            ☰
           </button>
+
+          {showDropdown && (
+            <div className="absolute top-10 right-0 w-64 bg-white text-black rounded shadow-lg z-50 overflow-y-auto max-h-[80vh] border border-gray-200">
+              {menuGroups.map((group) => (
+                <div key={group.group} className="border-b border-gray-100">
+                  <div
+                    className="px-4 py-2 text-sm font-semibold bg-gray-50 hover:bg-gray-100 cursor-pointer"
+                    onClick={() => toggleGroup(group.group)}
+                  >
+                    {group.group}
+                  </div>
+                  {openGroup === group.group && (
+                    <div className="pl-4">
+                      {group.items.map((item) => (
+                        <div
+                          key={item.label}
+                          onClick={() => {
+                            navigate(item.path);
+                            setShowDropdown(false);
+                            setOpenGroup(null);
+                          }}
+                          className="text-sm py-1 px-2 rounded hover:bg-gray-100 cursor-pointer"
+                        >
+                          • {item.label}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+              <div
+                onClick={handleLogout}
+                className="px-4 py-3 text-red-500 hover:bg-gray-100 cursor-pointer text-sm font-semibold border-t"
+              >
+                Logout
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Sidebar */}
-      {isOpen && (
-        <>
-          <div className="fixed top-10 right-0 w-64 h-[90vh] bg-white z-40 shadow-lg overflow-y-auto">
-            <div className="p-4 font-semibold border-b">Menu</div>
-            {[
-              { label: "Ledger", path: "/customerReport" },
-              { label: "Item Report", path: "/itemReport" },
-              { label: "Task Report", path: "/taskReport" },
-              { label: "User Report", path: "/userReport" },
-              { label: "Payment Report", path: "/paymentReport" },
-              { label: "Priority Report", path: "/priorityReport" },
-              { label: "Add Recievable", path: "/addRecievable" },
-              { label: "Add Payable", path: "/addPayable" },
-              ...(userGroup === "Vendor" ? [{ label: "Vendor Bills", path: "/vendorBills" }] : []),
-              ...(userGroup === "Office User" ? [{ label: "Call logs", path: "/calllogs" }] : []),
-            ].map((item) => (
-              <div key={item.label} onClick={() => navigate(item.path)} className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm">
-                {item.label}
-              </div>
-            ))}
-          </div>
-          <div onClick={toggleSidebar} className="fixed inset-0 bg-black opacity-25 z-30" />
-        </>
-      )}
-
-      {/* User Modal */}
-      {showUserModel && (
-        <div className="fixed inset-0 bg-white z-40 pt-20 px-6 overflow-auto">
-          <div className="flex justify-between mb-4">
-            <h2 className="text-lg font-bold">Welcome, {userName}</h2>
-            <button onClick={closeUserModal} className="text-red-500 font-bold text-xl">×</button>
-          </div>
-
-          {isLoading ? (
-            <div className="text-center text-gray-500">Loading tasks...</div>
-          ) : (
-            pendingTasks.map((task, i) => (
-              <div key={i} onClick={() => handleTaskClick(task)} className="mb-2 p-3 bg-gray-50 border rounded shadow-sm cursor-pointer">
-                <div className="font-semibold text-green-700">{task.Usertask_name}</div>
-                <div className="text-sm text-gray-600">{new Date(task.Date).toLocaleDateString()} - {task.Remark}</div>
-                <div className="text-xs text-right text-gray-500">{new Date(task.Deadline).toLocaleDateString()}</div>
-              </div>
-            ))
-          )}
-          <UserTask onClose={closeUserModal} />
-        </div>
-      )}
-
-      {/* Task Modal */}
-      {showTaskModal && (
-        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-          <TaskUpdate task={selectedTaskId} onClose={closeTaskModal} />
+      {isLoading && (
+        <div className="fixed top-0 left-0 w-full h-full bg-white opacity-70 z-40 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-primary border-solid"></div>
         </div>
       )}
     </>
