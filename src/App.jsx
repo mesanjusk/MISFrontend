@@ -69,6 +69,7 @@ import PendingTasks from './Pages/PendingTasks';
 import AllAttandance from './Pages/AllAttandance';
 import CashLedger from "./Pages/CashLedger";
 import Vendor from "./Pages/vendor";
+import MigrateOrders from "./Pages/MigrateOrders";
 
 function App() {
     axios.defaults.baseURL = "https://misbackend-e078.onrender.com/";
@@ -150,6 +151,8 @@ function App() {
                         <Route path="/AllAttandance" element={<AllAttandance />} />
                         <Route path="/CashLedger" element={<CashLedger />} />
                         <Route path="/addVendor" element={<Vendor />} />
+                        <Route path="/migrate-orders" element={<MigrateOrders />} />
+
                     </Route>
                 </Routes>
             </div>
