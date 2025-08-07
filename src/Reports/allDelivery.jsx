@@ -48,23 +48,39 @@ export default function AllDelivery() {
   }, []);
 
   const filteredOrders = orders
-    .map((order) => {
-      const highestStatusTask = order.Status?.reduce((prev, current) =>
-        prev.Status_number > current.Status_number ? prev : current, {}) || {};
-      return {
-        ...order,
-        highestStatusTask,
-        Customer_name: customers[order.Customer_uuid] || "Unknown",
-      };
-    })
-    .filter((order) => {
-      const matchesSearch = order.Customer_name.toLowerCase().includes(searchOrder.toLowerCase());
-      const task = (order.highestStatusTask.Task || "").toLowerCase().trim();
-      const filterValue = filter.toLowerCase().trim();
-      return matchesSearch && (filterValue === "" || task === filterValue);
-    });
+  .map((order) => {
+    const highestStatusTask =
+      order.Status?.reduce((prev, current) =>
+        prev.Status_number > current.Status_number ? prev : current
+      ) || {};
 
-  const visibleOrders = filteredOrders.slice(0, visibleCount);
+    return {
+      ...order,
+      highestStatusTask,
+      Customer_name: customers[order.Customer_uuid] || "Unknown",
+    };
+  })
+  .filter((order) => {
+    const matchesSearch = order.Customer_name
+      .toLowerCase()
+      .includes(searchOrder.toLowerCase());
+
+    const task = (order.highestStatusTask.Task || "").toLowerCase().trim();
+    const filterValue = filter.toLowerCase().trim();
+
+    const isDelivered = task === "delivered";
+    const hasItems = Array.isArray(order.Items) && order.Items.length > 0;
+
+    return (
+      matchesSearch &&
+      (filterValue === "" || task === filterValue) &&
+      isDelivered &&
+      hasItems
+    );
+  });
+
+const visibleOrders = filteredOrders;
+
 
   const exportPDF = () => {
     const doc = new jsPDF();
@@ -184,16 +200,7 @@ export default function AllDelivery() {
             </div>
 
             {/* Load More */}
-            {visibleCount < filteredOrders.length && (
-              <div className="flex justify-center mt-6">
-                <button
-                  onClick={() => setVisibleCount((prev) => prev + 20)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full shadow"
-                >
-                  Load More
-                </button>
-              </div>
-            )}
+           
           </>
         )}
       </div>
