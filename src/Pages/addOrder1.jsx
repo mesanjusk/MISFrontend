@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { FaSpinner } from 'react-icons/fa';
@@ -9,6 +9,7 @@ import InvoiceModal from "../Components/InvoiceModal";
 
 export default function AddOrder1() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [Customer_name, setCustomer_Name] = useState("");
   const [Remark, setRemark] = useState("");
