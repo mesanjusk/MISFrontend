@@ -40,7 +40,6 @@ const TopNavbar = () => {
     }
   };
 
-  // Close dropdown if clicked outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -55,34 +54,80 @@ const TopNavbar = () => {
   const menuGroups = [
     {
       group: "Customer",
-      items: [{ label: "Ledger", path: "/customerReport" }],
+      items: [
+        { label: "Ledger", path: "/customerReport" },
+        { label: "Add Customer", path: "/addcustomer" },
+        { label: "Add Customer Group", path: "/addcustomergroup" }
+      ]
     },
     {
       group: "Item",
       items: [
         { label: "Item Report", path: "/itemReport" },
-        ...(userGroup === "Vendor" ? [{ label: "Vendor Bills", path: "/vendorBills" }] : []),
-      ],
+        { label: "Add Item", path: "/additem" },
+        { label: "Add Item Group", path: "/additemgroup" },
+        ...(userGroup === "Vendor" ? [{ label: "Vendor Bills", path: "/vendorBills" }] : [])
+      ]
     },
     {
       group: "Task",
-      items: [{ label: "Task Report", path: "/taskReport" }],
+      items: [
+        { label: "Task Report", path: "/taskReport" },
+        { label: "Pending Task", path: "/pendingtask" },
+        { label: "Add Task", path: "/addtask" },
+        { label: "Add Task Group", path: "/addtaskgroup" }
+      ]
     },
     {
       group: "User",
-      items: [{ label: "User Report", path: "/userReport" }],
+      items: [
+        { label: "User Report", path: "/userReport" },
+        { label: "Add User", path: "/adduser" },
+        { label: "Add User Group", path: "/addusergroup" },
+        { label: "Attendance", path: "/allattandance" }
+      ]
     },
     {
-      group: "Account",
+      group: "Order",
+      items: [
+        { label: "Add Order", path: "/addorder1" },
+        { label: "All Bills", path: "/allbills" },
+        { label: "Vendor Home", path: "/vendorhome" }
+      ]
+    },
+    {
+      group: "Enquiry",
+      items: [
+        { label: "Add Enquiry", path: "/addenquiry" },
+        { label: "Add Note", path: "/addnote" }
+      ]
+    },
+    {
+      group: "Account / Payment",
       items: [
         { label: "Payment Report", path: "/paymentReport" },
         { label: "Priority Report", path: "/priorityReport" },
-        { label: "Add Receivable", path: "/addRecievable" },
-        { label: "Add Payable", path: "/addPayable" },
-        { label: "Transaction", path: "/allTransaction" },
-        ...(userGroup === "Office User" ? [{ label: "Call logs", path: "/calllogs" }] : []),
-      ],
+        { label: "Add Payable", path: "/addpayble" },
+        { label: "Add Receivable", path: "/addrecivable" },
+        { label: "Add Payment", path: "/addpayment" },
+        { label: "Add Receipt", path: "/addreciept" }
+      ]
     },
+    {
+      group: "Transaction",
+      items: [
+        { label: "Transaction Report", path: "/allTransaction" },
+        { label: "Add Transaction", path: "/addtranscation" },
+        { label: "Add Transaction 1", path: "/addtranscation1" },
+        { label: "All Transaction 1", path: "/alltranscation1" },
+        { label: "All Transaction 2", path: "/alltranscation2" },
+        { label: "All Transaction 3", path: "/alltranscation3" }
+      ]
+    },
+    {
+      group: "Other",
+      items: userGroup === "Office User" ? [{ label: "Call Logs", path: "/calllogs" }] : []
+    }
   ];
 
   const toggleGroup = (groupName) => {
@@ -111,7 +156,7 @@ const TopNavbar = () => {
           <button
             onClick={() => {
               setShowDropdown(prev => !prev);
-              setOpenGroup(null); // reset group
+              setOpenGroup(null);
             }}
             className="text-lg font-bold"
           >
@@ -119,34 +164,37 @@ const TopNavbar = () => {
           </button>
 
           {showDropdown && (
-            <div className="absolute top-10 right-0 w-64 bg-white text-black rounded shadow-lg z-50 overflow-y-auto max-h-[80vh] border border-gray-200">
-              {menuGroups.map((group) => (
-                <div key={group.group} className="border-b border-gray-100">
-                  <div
-                    className="px-4 py-2 text-sm font-semibold bg-gray-50 hover:bg-gray-100 cursor-pointer"
-                    onClick={() => toggleGroup(group.group)}
-                  >
-                    {group.group}
-                  </div>
-                  {openGroup === group.group && (
-                    <div className="pl-4">
-                      {group.items.map((item) => (
-                        <div
-                          key={item.label}
-                          onClick={() => {
-                            navigate(item.path);
-                            setShowDropdown(false);
-                            setOpenGroup(null);
-                          }}
-                          className="text-sm py-1 px-2 rounded hover:bg-gray-100 cursor-pointer"
-                        >
-                          • {item.label}
-                        </div>
-                      ))}
+            <div className="absolute top-10 right-0 w-72 bg-white text-black rounded shadow-lg z-50 max-h-[80vh] overflow-y-auto border border-gray-300">
+              {menuGroups.map((group) =>
+                group.items.length > 0 ? (
+                  <div key={group.group} className="border-b border-gray-100">
+                    <div
+                      className="px-4 py-2 text-sm font-semibold bg-gray-50 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => toggleGroup(group.group)}
+                    >
+                      {group.group}
                     </div>
-                  )}
-                </div>
-              ))}
+                    {openGroup === group.group && (
+                      <div className="pl-4">
+                        {group.items.map((item) => (
+                          <div
+                            key={item.label}
+                            onClick={() => {
+                              navigate(item.path);
+                              setShowDropdown(false);
+                              setOpenGroup(null);
+                            }}
+                            className="text-sm py-1 px-2 rounded hover:bg-gray-100 cursor-pointer"
+                          >
+                            • {item.label}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : null
+              )}
+
               <div
                 onClick={handleLogout}
                 className="px-4 py-3 text-red-500 hover:bg-gray-100 cursor-pointer text-sm font-semibold border-t"
