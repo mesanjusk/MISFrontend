@@ -96,18 +96,16 @@ export default function InvoiceModal({
         <div className="mt-6 flex justify-end gap-3">
           {onSendWhatsApp && (
             <button onClick={onSendWhatsApp} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-              📩 Send WhatsApp
+              WhatsApp
             </button>
           )}
           <button onClick={handlePrint} className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
-            🖨️ Print
+            Print
           </button>
           <button onClick={handlePDF} className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-            📄 Download PDF
+            Download
           </button>
-          <button onClick={onClose} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-            ❌ Close
-          </button>
+          
         </div>
       </div>
     </div>

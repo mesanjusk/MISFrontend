@@ -132,15 +132,21 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
 
 
   const handleItemChange = (index, key, value) => {
-    const updated = [...items];
+  const updated = [...items];
+
+  if (key === 'Quantity' || key === 'Rate') {
+    updated[index][key] = parseFloat(value) || 0;
+  } else {
     updated[index][key] = value;
-    if (key === 'Quantity' || key === 'Rate') {
-      const qty = parseFloat(updated[index].Quantity) || 0;
-      const rate = parseFloat(updated[index].Rate) || 0;
-      updated[index].Amount = qty * rate;
-    }
-    setItems(updated);
-  };
+  }
+
+  const qty = parseFloat(updated[index].Quantity) || 0;
+  const rate = parseFloat(updated[index].Rate) || 0;
+  updated[index].Amount = +(qty * rate).toFixed(2);
+
+  setItems(updated);
+};
+
 
   const addNewItem = () => {
     if (items.some(i => !i.Item || !i.Quantity || !i.Rate)) {
@@ -151,12 +157,21 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
   };
 
   const validateForm = () => {
-    if (!Customer_uuid || items.some(i => !i.Item || !i.Quantity || !i.Rate)) {
-      toast.error('Please fill all required fields');
+  if (!Customer_uuid) {
+    toast.error('Please select a customer');
+    return false;
+  }
+
+  for (const item of items) {
+    if (!item.Item || item.Quantity <= 0 || item.Rate <= 0) {
+      toast.error('Each item must have a name, quantity > 0 and rate > 0');
       return false;
     }
-    return true;
-  };
+  }
+
+  return true;
+};
+
 
   const submit = async () => {
     if (!validateForm()) return;
@@ -213,38 +228,38 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
 
 
 
- const sendWhatsApp = async (pdfUrl = '') => {
-  const totalAmount = items.reduce((sum, i) => sum + i.Amount, 0);
-  const mobile = customerMobile || customers.find(c => c.Customer_uuid === Customer_uuid)?.Mobile_number;
+  const sendWhatsApp = async (pdfUrl = '') => {
+    const totalAmount = items.reduce((sum, i) => sum + i.Amount, 0);
+    const mobile = customerMobile || customers.find(c => c.Customer_uuid === Customer_uuid)?.Mobile_number;
 
-  if (!mobile) {
-    toast.error('Customer mobile number not found');
-    return;
-  }
-
-  const number = normalizeWhatsAppNumber(mobile);
-  const message = `Hi ${customerMap[Customer_uuid] || Customer_name}, your order has been delivered. Amount: ₹${totalAmount}`;
-  
-  const payload = { number, message };
-  if (pdfUrl && pdfUrl.length > 0) {
-    payload.mediaUrl = pdfUrl;
-  }
-
-  try {
-    console.log("📤 Sending WhatsApp payload:", payload);
-    const res = await axios.post(`${BASE_URL}/whatsapp/send-test`, payload);
-
-    if (res.data?.success || res.status === 200) {
-      toast.success('✅ WhatsApp message sent');
-    } else {
-      console.error("⚠️ WhatsApp API error response:", res.data);
-      toast.error('❌ WhatsApp sending failed');
+    if (!mobile) {
+      toast.error('Customer mobile number not found');
+      return;
     }
-  } catch (err) {
-    console.error("❌ WhatsApp error:", err?.response?.data || err.message);
-    toast.error('Error sending WhatsApp');
-  }
-};
+
+    const number = normalizeWhatsAppNumber(mobile);
+    const message = `Hi ${customerMap[Customer_uuid] || Customer_name}, your order has been delivered. Amount: ₹${totalAmount}`;
+
+    const payload = { number, message };
+    if (pdfUrl && pdfUrl.length > 0) {
+      payload.mediaUrl = pdfUrl;
+    }
+
+    try {
+      console.log("📤 Sending WhatsApp payload:", payload);
+      const res = await axios.post(`${BASE_URL}/whatsapp/send-test`, payload);
+
+      if (res.data?.success || res.status === 200) {
+        toast.success('✅ WhatsApp message sent');
+      } else {
+        console.error("⚠️ WhatsApp API error response:", res.data);
+        toast.error('❌ WhatsApp sending failed');
+      }
+    } catch (err) {
+      console.error("❌ WhatsApp error:", err?.response?.data || err.message);
+      toast.error('Error sending WhatsApp');
+    }
+  };
 
 
 
@@ -301,8 +316,8 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
         <div className="bg-white p-6 rounded shadow-md w-full max-w-3xl">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">{mode === 'edit' ? 'Edit Order' : 'New Delivery'}</h2>
-            <button onClick={() => { setShowInvoiceModal(false); onClose(); }}  className="text-gray-500 hover:text-red-600">✕</button>
-            
+            <button onClick={() => { setShowInvoiceModal(false); onClose(); }} className="text-gray-500 hover:text-red-600">✕</button>
+
           </div>
 
           <form className="grid grid-cols-1 gap-4">
@@ -318,12 +333,13 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
 
             {items.map((item, index) => (
               <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
-                <Select
-                  options={itemOptions.map(i => ({ label: i, value: i }))}
-                  value={item.Item ? { label: item.Item, value: item.Item } : null}
-                  onChange={(opt) => handleItemChange(index, 'Item', opt.value)}
-                  placeholder="Select item"
-                />
+               <Select
+  options={itemOptions.map(i => ({ label: i, value: i }))}
+  value={item.Item ? { label: item.Item, value: item.Item } : null}
+  onChange={(opt) => handleItemChange(index, 'Item', opt?.value || '')}
+  placeholder="Select item"
+/>
+
                 <input type="number" placeholder="Qty" value={item.Quantity} onChange={(e) => handleItemChange(index, 'Quantity', e.target.value)} className="border p-2 rounded" />
                 <input type="number" placeholder="Rate" value={item.Rate} onChange={(e) => handleItemChange(index, 'Rate', e.target.value)} className="border p-2 rounded" />
                 <input type="text" value={item.Amount} readOnly className="border p-2 bg-gray-100 rounded" />
@@ -360,6 +376,8 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
                 <p><strong>Bill No:</strong> {order.Order_Number || '432'}</p>
                 <p><strong>Date:</strong> {new Date().toLocaleDateString('en-GB')}</p>
               </div>
+              <p className="mt-1 text-sm"><strong>Party:</strong> {customerMap[Customer_uuid] || Customer_name}</p>
+
 
               <table className="w-full text-left mt-2">
                 <thead>
@@ -415,9 +433,9 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
                 Print
               </button>
               <button onClick={handlePDF} className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-                Download 
+                Download
               </button>
-              
+
             </div>
           </div>
         </div>
