@@ -11,7 +11,7 @@ export default function Modal({
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md relative">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md mx-4 relative max-h-[90vh] overflow-y-auto">
         {title && <h2 className="text-lg font-semibold mb-4">{title}</h2>}
         <div>{children}</div>
         {actions && <div className="mt-4 flex justify-end space-x-2">{actions}</div>}

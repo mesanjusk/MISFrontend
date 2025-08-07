@@ -1,11 +1,9 @@
-import React, { useState, useEffect, Suspense, lazy } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
-import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
-import "react-loading-skeleton/dist/skeleton.css";
 import { useNavigate } from "react-router-dom";
-
-const AddOrder1 = lazy(() => import("../Pages/addOrder1"));
-const OrderUpdate = lazy(() => import("./orderUpdate"));
+import AddOrder1 from "../Pages/addOrder1";
+import OrderUpdate from "./orderUpdate";
+import { LoadingSpinner } from "../Components";
 
 export default function AllOrder() {
     const navigate = useNavigate();
@@ -124,104 +122,94 @@ export default function AllOrder() {
 
                     <main className="flex flex-1 p-2 overflow-y-auto">
                         <div className="w-full mx-auto">
-                            <SkeletonTheme>
-                                {isLoading
-                                    ? Array(5).fill().map((_, index) => (
-                                        <Skeleton key={index} height={80} width="100%" style={{ marginBottom: "5px" }} />
-                                    ))
-                                    : taskOptions.length === 0 ? (
-                                        <div className="text-center text-gray-400 py-10">No tasks found.</div>
-                                    ) : (
-                                        taskOptions.map((taskGroup) => {
-                                            const taskGroupOrders = filteredOrders.filter(order => order.highestStatusTask?.Task === taskGroup);
+                            {isLoading ? (
+                                <div className="flex justify-center py-4"><LoadingSpinner /></div>
+                            ) : taskOptions.length === 0 ? (
+                                <div className="text-center text-gray-400 py-10">No tasks found.</div>
+                            ) : (
+                                taskOptions.map((taskGroup) => {
+                                    const taskGroupOrders = filteredOrders.filter(order => order.highestStatusTask?.Task === taskGroup);
 
-                                            if (taskGroupOrders.length === 0) return null;
+                                    if (taskGroupOrders.length === 0) return null;
 
-                                            return (
-                                                <div key={taskGroup} className="mb-2 p-2  rounded-lg">
-                                                    <h3 className="font-semibold text-lg text-green-700 mb-3">{taskGroup}</h3>
-                                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-10 gap-2">
-                                                        {taskGroupOrders.map((order) => {
-                                                            let latestStatusDate = order.highestStatusTask?.CreatedAt
-                                                                ? new Date(order.highestStatusTask.CreatedAt)
-                                                                : null;
-                                                            let timeDifference = 0;
-                                                            let formattedDate = '';
-                                                            if (latestStatusDate) {
-                                                                const today = new Date();
-                                                                today.setHours(0, 0, 0, 0);
-                                                                const latest = new Date(latestStatusDate);
-                                                                latest.setHours(0, 0, 0, 0);
-                                                                const diffTime = today - latest;
-                                                                timeDifference = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                                                                formattedDate = latestStatusDate.toLocaleDateString();
-                                                            }
-                                                            let cardClass = "bg-white";
-                                                            if (timeDifference === 0) cardClass = "bg-green-100";
-                                                            else if (timeDifference === 1) cardClass = "bg-yellow-100";
-                                                            else if (timeDifference >= 2) cardClass = "bg-red-100";
+                                    return (
+                                        <div key={taskGroup} className="mb-2 p-2  rounded-lg">
+                                            <h3 className="font-semibold text-lg text-green-700 mb-3">{taskGroup}</h3>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-10 gap-2">
+                                                {taskGroupOrders.map((order) => {
+                                                    let latestStatusDate = order.highestStatusTask?.CreatedAt
+                                                        ? new Date(order.highestStatusTask.CreatedAt)
+                                                        : null;
+                                                    let timeDifference = 0;
+                                                    let formattedDate = '';
+                                                    if (latestStatusDate) {
+                                                        const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                                                        const latest = new Date(latestStatusDate);
+                                                        latest.setHours(0, 0, 0, 0);
+                                                        const diffTime = today - latest;
+                                                        timeDifference = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                                                        formattedDate = latestStatusDate.toLocaleDateString();
+                                                    }
+                                                    let cardClass = "bg-white";
+                                                    if (timeDifference === 0) cardClass = "bg-green-100";
+                                                    else if (timeDifference === 1) cardClass = "bg-yellow-100";
+                                                    else if (timeDifference >= 2) cardClass = "bg-red-100";
 
-                                                            return (
-                                                                <div
-                                                                    key={order.Order_uuid}
-                                                                    className={`${cardClass} rounded-lg p-2 cursor-pointer hover:bg-green-50 transition-all`}
-                                                                    onClick={() => handleEditClick(order)}
-                                                                >
-                                                                    {/* Row 1: Customer Name */}
-                                                                    <div className="font-medium text-gray-800 truncate mb-1 text-sm">
-                                                                        {order.Customer_name}
-                                                                    </div>
+                                                    return (
+                                                        <div
+                                                            key={order.Order_uuid}
+                                                            className={`${cardClass} rounded-lg p-2 cursor-pointer hover:bg-green-50 transition-all`}
+                                                            onClick={() => handleEditClick(order)}
+                                                        >
+                                                            {/* Row 1: Customer Name */}
+                                                            <div className="font-medium text-gray-800 truncate mb-1 text-sm">
+                                                                {order.Customer_name}
+                                                            </div>
 
-                                                                    {/* Row 2: Order Number and Delay */}
-                                                                    <div className="flex justify-between items-center mb-1">
-                                                                        <span className="text-sm font-semibold text-green-700">{order.Order_Number}</span>
-                                                                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full
-                                                                            ${timeDifference === 0
-                                                                                ? 'bg-green-200 text-green-800'
-                                                                                : timeDifference === 1
-                                                                                    ? 'bg-yellow-200 text-yellow-800'
-                                                                                    : 'bg-red-200 text-red-800'}
-                                                                        `}>
-                                                                            {timeDifference === 0
-                                                                                ? 'Today'
-                                                                                : timeDifference === 1
-                                                                                    ? '1 day'
-                                                                                    : `${timeDifference} days`}
-                                                                        </span>
-                                                                    </div>
+                                                            {/* Row 2: Order Number and Delay */}
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className="text-sm font-semibold text-green-700">{order.Order_Number}</span>
+                                                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full
+                                                                    ${timeDifference === 0
+                                                                        ? 'bg-green-200 text-green-800'
+                                                                        : timeDifference === 1
+                                                                            ? 'bg-yellow-200 text-yellow-800'
+                                                                            : 'bg-red-200 text-red-800'}
+                                                                `}>
+                                                                    {timeDifference === 0
+                                                                        ? 'Today'
+                                                                        : timeDifference === 1
+                                                                            ? '1 day'
+                                                                            : `${timeDifference} days`}
+                                                                </span>
+                                                            </div>
 
-                                                                    {/* Row 3: Latest Status Date */}
-                                                                    <div className="text-xs text-gray-500 text-right">{formattedDate}</div>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })
-                                    )}
-                            </SkeletonTheme>
+                                                            {/* Row 3: Latest Status Date */}
+                                                            <div className="text-xs text-gray-500 text-right">{formattedDate}</div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
                         </div>
                     </main>
 
                 </div>
 
-                <Suspense fallback={
-                    <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-30 z-50">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
-                    </div>
-                }>
-                    {showOrderModal && (
-                        <Modal onClose={closeModal}>
-                            <AddOrder1 closeModal={closeModal} />
-                        </Modal>
-                    )}
-                    {showEditModal && (
-                        <Modal onClose={closeEditModal}>
-                            <OrderUpdate order={selectedOrder} onClose={closeEditModal} />
-                        </Modal>
-                    )}
-                </Suspense>
+                {showOrderModal && (
+                    <Modal onClose={closeModal}>
+                        <AddOrder1 closeModal={closeModal} />
+                    </Modal>
+                )}
+                {showEditModal && (
+                    <Modal onClose={closeEditModal}>
+                        <OrderUpdate order={selectedOrder} onClose={closeEditModal} />
+                    </Modal>
+                )}
             </div>
         </>
     );
@@ -237,7 +225,7 @@ function Modal({ onClose, children }) {
                 if (e.target === e.currentTarget) onClose();
             }}
         >
-            <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 relative">
+            <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 relative max-h-[90vh] overflow-y-auto">
                 <button
                     className="absolute right-2 top-2 text-xl text-gray-400 hover:text-green-500"
                     onClick={onClose}

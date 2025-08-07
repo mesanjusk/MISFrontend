@@ -2,8 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
-import { FaSpinner } from 'react-icons/fa';
-import { Button, InputField, Card, ToastContainer, toast } from "../Components";
+import { Button, InputField, Card, ToastContainer, toast, LoadingSpinner } from "../Components";
 import InvoiceModal from "../Components/InvoiceModal";
 
 export default function AddTransaction({ editMode, existingData, onClose, onSuccess }) {
@@ -213,7 +212,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
         <form onSubmit={submit}>
           {optionsLoading ? (
             <div className="flex justify-center items-center h-12 mb-4">
-              <FaSpinner className="animate-spin" />
+              <LoadingSpinner />
             </div>
           ) : (
             <div className="relative">
@@ -261,7 +260,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
 
           {optionsLoading ? (
             <div className="flex justify-center items-center h-10 mb-4">
-              <FaSpinner className="animate-spin" />
+              <LoadingSpinner />
             </div>
           ) : (
             <div className="mb-4">
@@ -318,7 +317,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
           >
             {loading ? (
               <>
-                <FaSpinner className="animate-spin mr-2" /> Saving...
+                <LoadingSpinner size={16} className="mr-2" /> Saving...
               </>
             ) : editMode ? (
               "Update"

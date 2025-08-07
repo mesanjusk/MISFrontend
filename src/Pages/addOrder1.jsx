@@ -3,9 +3,9 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { FaSpinner } from 'react-icons/fa';
 import AddCustomer from "./addCustomer";
 import InvoiceModal from "../Components/InvoiceModal";
+import { LoadingSpinner } from "../Components";
 
 export default function AddOrder1() {
   const navigate = useNavigate();
@@ -232,7 +232,7 @@ export default function AddOrder1() {
             {/* Customer Search */}
             {optionsLoading ? (
               <div className="flex justify-center items-center h-10 mb-4">
-                <FaSpinner className="animate-spin" />
+                <LoadingSpinner />
               </div>
             ) : (
               <div className="mb-4 relative">
@@ -307,7 +307,7 @@ export default function AddOrder1() {
 
                 {optionsLoading ? (
                   <div className="flex justify-center items-center h-10 mb-4">
-                    <FaSpinner className="animate-spin" />
+                    <LoadingSpinner />
                   </div>
                 ) : (
                   <div className="mb-4">
@@ -332,7 +332,7 @@ export default function AddOrder1() {
             {/* Task Groups */}
             {optionsLoading ? (
               <div className="flex justify-center items-center h-10 mb-4">
-                <FaSpinner className="animate-spin" />
+                <LoadingSpinner />
               </div>
             ) : (
               <div className="mb-4">

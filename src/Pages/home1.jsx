@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
-import Skeleton from "react-loading-skeleton";
-import "react-loading-skeleton/dist/skeleton.css";
 import axios from 'axios';
-import OrderUpdate from '../Reports/orderUpdate'; 
+import OrderUpdate from '../Reports/orderUpdate';
 import AddOrder1 from "./addOrder1";
+import { LoadingSpinner } from "../Components";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -123,9 +122,9 @@ const closeModal = () => {
     <>
       <br /><br />
             {isLoading ? (
-                  <Skeleton count={5} height={30} />
+                  <div className="flex justify-center py-4"><LoadingSpinner /></div>
                 ) : (
-            <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">            
+            <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">
                   { filteredOrders.map((order, index) => (
                     <div key={index}>
                 <div onClick={() => handleOrderClick(order)} className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer">

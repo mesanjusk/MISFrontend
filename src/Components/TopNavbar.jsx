@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import { LoadingSpinner } from "../Components";
 
 const TopNavbar = () => {
   const [userGroup, setUserGroup] = useState("");
@@ -160,7 +160,7 @@ const TopNavbar = () => {
 
       {isLoading && (
         <div className="fixed top-0 left-0 w-full h-full bg-white opacity-70 z-40 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-primary border-solid"></div>
+          <LoadingSpinner size={48} className="text-primary" />
         </div>
       )}
     </>

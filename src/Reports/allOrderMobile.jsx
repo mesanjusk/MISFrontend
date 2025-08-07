@@ -1,11 +1,9 @@
-import React, { useState, useEffect, Suspense, lazy } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
-import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
-import "react-loading-skeleton/dist/skeleton.css";
 import { useNavigate } from "react-router-dom";
-
-const AddOrder1 = lazy(() => import("../Pages/addOrder1"));
-const OrderUpdate = lazy(() => import("./orderUpdate"));
+import AddOrder1 from "../Pages/addOrder1";
+import OrderUpdate from "./orderUpdate";
+import { LoadingSpinner } from "../Components";
 
 export default function AllOrder() {
     const navigate = useNavigate();
@@ -126,80 +124,74 @@ export default function AllOrder() {
 
                     <div className="overflow-x-scroll flex space-x-1 py-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
                         <style>{`.overflow-x-scroll::-webkit-scrollbar {display: none;}`}</style>
-                        <SkeletonTheme highlightColor="#b4cf97">
-                            {isLoading
-                                ? Array(3).fill().map((_, index) => (
-                                    <Skeleton key={index} height={40} width={100} style={{ margin: "0 5px" }} />
-                                ))
-                                : taskOptions.map((taskGroup) => (
-                                    <button
-                                        key={taskGroup}
-                                        onClick={() => {
-                                            setFilter(taskGroup);
-                                        }}
-                                        className={`sanju ${filter === taskGroup ? "bg-green-200" : "bg-gray-100"} uppercase rounded-full text-black p-2 text-xs me-1`}
-                                    >
-                                        {taskGroup}
-                                    </button>
-                                ))}
-                        </SkeletonTheme>
+                        {isLoading ? (
+                            <div className="flex justify-center py-4 w-full"><LoadingSpinner /></div>
+                        ) : (
+                            taskOptions.map((taskGroup) => (
+                                <button
+                                    key={taskGroup}
+                                    onClick={() => {
+                                        setFilter(taskGroup);
+                                    }}
+                                    className={`sanju ${filter === taskGroup ? "bg-green-200" : "bg-gray-100"} uppercase rounded-full text-black p-2 text-xs me-1`}
+                                >
+                                    {taskGroup}
+                                </button>
+                            ))
+                        )}
                     </div>
 
                     <main className="flex flex-1 p-2 overflow-y-auto">
                         <div className="flex flex-col w-100 space-y-2 max-w-md mx-auto">
-                            <SkeletonTheme highlightColor="#b4cf97">
-                                {isLoading
-                                    ? Array(5).fill().map((_, index) => (
-                                        <Skeleton key={index} height={80} width="100%" style={{ marginBottom: "10px" }} />
-                                    ))
-                                    : filteredOrders.map((order) => (
-                                        <div key={order.Order_uuid || order.Order_Number}>
-                                            <div
-                                                onClick={() => handleEditClick(order)}
-                                                className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer"
-                                                role="button"
-                                                tabIndex={0}
-                                            >
-                                                <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
-                                                    <strong className="text-l text-gray-500">{order.Order_Number}</strong>
-                                                </div>
-                                                <div className="p-2 col-start-2 col-end-8">
-                                                    <strong className="text-l text-gray-900">{order.Customer_name}</strong><br />
-                                                    <label className="text-xs">
-                                                        {order.highestStatusTask?.CreatedAt ? new Date(order.highestStatusTask.CreatedAt).toLocaleDateString() : ''} - {order.Remark}
-                                                    </label>
-                                                </div>
-                                                <div className="items-center justify-center text-right col-end-9 col-span-1">
-                                                    <label className="text-xs pr-2">
-                                                        {order.highestStatusTask?.Delivery_Date ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString() : ''}
-                                                    </label><br />
-                                                    <label className="text-s text-green-500 pr-2">
-                                                        {order.highestStatusTask?.Assigned}
-                                                    </label>
-                                                </div>
+                            {isLoading ? (
+                                <div className="flex justify-center py-4"><LoadingSpinner /></div>
+                            ) : (
+                                filteredOrders.map((order) => (
+                                    <div key={order.Order_uuid || order.Order_Number}>
+                                        <div
+                                            onClick={() => handleEditClick(order)}
+                                            className="grid grid-cols-5 gap-1 flex items-center p-1 bg-white rounded-lg shadow-inner cursor-pointer"
+                                            role="button"
+                                            tabIndex={0}
+                                        >
+                                            <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
+                                                <strong className="text-l text-gray-500">{order.Order_Number}</strong>
+                                            </div>
+                                            <div className="p-2 col-start-2 col-end-8">
+                                                <strong className="text-l text-gray-900">{order.Customer_name}</strong><br />
+                                                <label className="text-xs">
+                                                    {order.highestStatusTask?.CreatedAt ? new Date(order.highestStatusTask.CreatedAt).toLocaleDateString() : ''} - {order.Remark}
+                                                </label>
+                                            </div>
+                                            <div className="items-center justify-center text-right col-end-9 col-span-1">
+                                                <label className="text-xs pr-2">
+                                                    {order.highestStatusTask?.Delivery_Date ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString() : ''}
+                                                </label><br />
+                                                <label className="text-s text-green-500 pr-2">
+                                                    {order.highestStatusTask?.Assigned}
+                                                </label>
                                             </div>
                                         </div>
-                                    ))}
-                            </SkeletonTheme>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </main>
                 </div>
 
-                <Suspense fallback={<div className="text-center py-4">Loading...</div>}>
-                    {showOrderModal && (
-                        <div className="modal-overlay">
-                            <div className="modal-content">
-                                <AddOrder1 closeModal={closeModal} />
-                            </div>
+                {showOrderModal && (
+                    <div className="modal-overlay">
+                        <div className="modal-content">
+                            <AddOrder1 closeModal={closeModal} />
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    {showEditModal && (
-                        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-                            <OrderUpdate order={selectedOrder} onClose={closeEditModal} />
-                        </div>
-                    )}
-                </Suspense>
+                {showEditModal && (
+                    <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
+                        <OrderUpdate order={selectedOrder} onClose={closeEditModal} />
+                    </div>
+                )}
 
             </div>
         </>

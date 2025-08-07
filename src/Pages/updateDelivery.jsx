@@ -8,6 +8,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import normalizeWhatsAppNumber from '../utils/normalizeNumber';
+import { LoadingSpinner } from "../Components";
 
 const BASE_URL = 'https://misbackend-e078.onrender.com';
 
@@ -303,7 +304,7 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-white">
         <div className="text-center">
-          <div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-20 w-20 mb-4 animate-spin"></div>
+          <LoadingSpinner size={80} className="mb-4" />
           <h2 className="text-center text-gray-600">Loading...</h2>
         </div>
       </div>
