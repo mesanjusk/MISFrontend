@@ -26,7 +26,8 @@ export default function AllDelivery() {
 
   useEffect(() => {
     setLoading(true);
-    const fetchOrders = axios.get("/order/GetDeliveredList");
+    const fetchOrders = axios.get("http://localhost:10000/order/GetDeliveredList");
+    console.log(fetchOrders);
     const fetchCustomers = axios.get("/customer/GetCustomersList");
 
     Promise.all([fetchOrders, fetchCustomers])

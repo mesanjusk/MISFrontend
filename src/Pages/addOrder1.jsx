@@ -91,7 +91,7 @@ export default function AddOrder1() {
         return;
       }
 
-      const orderResponse = await axios.post("/order/addOrder", {
+      const orderResponse = await axios.post("http://localhost:10000/order/addOrder", {
         Customer_uuid: customer.Customer_uuid,
         Remark,
         Task_groups: selectedTaskGroups,
@@ -116,7 +116,7 @@ export default function AddOrder1() {
           { Account_id: customer.Customer_uuid, Type: "Credit", Amount: Number(Amount) },
         ];
 
-        const transactionResponse = await axios.post("/transaction/addTransaction", {
+        const transactionResponse = await axios.post("http://localhost:10000/transaction/addTransaction", {
           Description: Remark,
           Transaction_date: new Date().toISOString().split("T")[0],
           Total_Credit: Number(Amount),

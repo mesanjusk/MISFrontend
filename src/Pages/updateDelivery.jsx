@@ -196,8 +196,9 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
           { Account_id: '6c91bf35-e9c4-4732-a428-0310f56bd0a7', Type: 'Debit', Amount: +totalAmount },
         ];
 
-        const transaction = await axios.post(`${BASE_URL}/transaction/addTransaction`, {
+        const transaction = await axios.post(`http://localhost:10000/transaction/addTransaction`, {
           Description: 'Delivered',
+          Order_number: order.Order_Number,
           Transaction_date: new Date().toISOString(),
           Total_Credit: +totalAmount,
           Total_Debit: +totalAmount,
