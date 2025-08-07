@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { FaSpinner } from 'react-icons/fa';
 import AddCustomer from "./addCustomer";
 import InvoiceModal from "../Components/InvoiceModal";
 
@@ -28,6 +29,7 @@ export default function AddOrder1() {
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceItems, setInvoiceItems] = useState([]);
   const previewRef = useRef();
+  const [optionsLoading, setOptionsLoading] = useState(true);
 
   useEffect(() => {
     const userNameFromState = location.state?.id;
@@ -37,23 +39,31 @@ export default function AddOrder1() {
   }, [location.state, navigate]);
 
   useEffect(() => {
-    axios.get("/customer/GetCustomersList").then((res) => {
-      if (res.data.success) {
-        setCustomerOptions(res.data.result);
-        const accountOptions = res.data.result.filter(
-          (item) => item.Customer_group === "Bank and Account"
-        );
-        setAccountCustomerOptions(accountOptions);
+    const fetchData = async () => {
+      setOptionsLoading(true);
+      try {
+        const [customerRes, taskRes] = await Promise.all([
+          axios.get("/customer/GetCustomersList"),
+          axios.get("/taskgroup/GetTaskgroupList"),
+        ]);
+        if (customerRes.data.success) {
+          setCustomerOptions(customerRes.data.result);
+          const accountOptions = customerRes.data.result.filter(
+            (item) => item.Customer_group === "Bank and Account"
+          );
+          setAccountCustomerOptions(accountOptions);
+        }
+        if (taskRes.data.success) {
+          const filtered = taskRes.data.result.filter((tg) => tg.Id === 1);
+          setTaskGroups(filtered);
+        }
+      } catch {
+        toast.error("Error fetching data");
+      } finally {
+        setOptionsLoading(false);
       }
-    });
-
-    axios.get("/taskgroup/GetTaskgroupList").then((res) => {
-  if (res.data.success) {
-    const filtered = res.data.result.filter((tg) => tg.Id === 1);
-    setTaskGroups(filtered);
-    
-  }
-    });
+    };
+    fetchData();
   }, []);
 
   const handleTaskGroupToggle = (uuid) => {
@@ -219,37 +229,43 @@ export default function AddOrder1() {
 
           <form onSubmit={submit}>
             {/* Customer Search */}
-            <div className="mb-4 relative">
-              <input
-                type="text"
-                placeholder="Search by Customer Name"
-                className="w-full p-2 rounded-md border border-gray-300 focus:outline-none"
-                value={Customer_name}
-                onChange={handleInputChange}
-                onFocus={() => setShowOptions(true)}
-              />
-              <button
-                type="button"
-                onClick={handleCustomer}
-                className="absolute top-1 right-1 bg-[#25D366] text-white w-8 h-8 rounded-full flex items-center justify-center"
-                title="Add Customer"
-              >
-                +
-              </button>
-              {showOptions && filteredOptions.length > 0 && (
-                <ul className="absolute z-10 w-full bg-white border mt-1 rounded-md shadow">
-                  {filteredOptions.map((option, index) => (
-                    <li
-                      key={index}
-                      className="px-4 py-2 hover:bg-[#f0f2f5] cursor-pointer"
-                      onClick={() => handleOptionClick(option)}
-                    >
-                      {option.Customer_name}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            {optionsLoading ? (
+              <div className="flex justify-center items-center h-10 mb-4">
+                <FaSpinner className="animate-spin" />
+              </div>
+            ) : (
+              <div className="mb-4 relative">
+                <input
+                  type="text"
+                  placeholder="Search by Customer Name"
+                  className="w-full p-2 rounded-md border border-gray-300 focus:outline-none"
+                  value={Customer_name}
+                  onChange={handleInputChange}
+                  onFocus={() => setShowOptions(true)}
+                />
+                <button
+                  type="button"
+                  onClick={handleCustomer}
+                  className="absolute top-1 right-1 bg-[#25D366] text-white w-8 h-8 rounded-full flex items-center justify-center"
+                  title="Add Customer"
+                >
+                  +
+                </button>
+                {showOptions && filteredOptions.length > 0 && (
+                  <ul className="absolute z-10 w-full bg-white border mt-1 rounded-md shadow">
+                    {filteredOptions.map((option, index) => (
+                      <li
+                        key={index}
+                        className="px-4 py-2 hover:bg-[#f0f2f5] cursor-pointer"
+                        onClick={() => handleOptionClick(option)}
+                      >
+                        {option.Customer_name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
 
             {/* Remark */}
             <div className="mb-4">
@@ -288,44 +304,56 @@ export default function AddOrder1() {
                   />
                 </div>
 
-                <div className="mb-4">
-                  <label className="block mb-1 font-medium">Payment Mode</label>
-                  <select
-                    className="w-full p-2 rounded-md border border-gray-300"
-                    value={group}
-                    onChange={(e) => setGroup(e.target.value)}
-                  >
-                    <option value="">Select Payment</option>
-                    {accountCustomerOptions.map((c, i) => (
-                      <option key={i} value={c.Customer_uuid}>
-                        {c.Customer_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {optionsLoading ? (
+                  <div className="flex justify-center items-center h-10 mb-4">
+                    <FaSpinner className="animate-spin" />
+                  </div>
+                ) : (
+                  <div className="mb-4">
+                    <label className="block mb-1 font-medium">Payment Mode</label>
+                    <select
+                      className="w-full p-2 rounded-md border border-gray-300"
+                      value={group}
+                      onChange={(e) => setGroup(e.target.value)}
+                    >
+                      <option value="">Select Payment</option>
+                      {accountCustomerOptions.map((c, i) => (
+                        <option key={i} value={c.Customer_uuid}>
+                          {c.Customer_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </>
             )}
 
             {/* Task Groups */}
-            <div className="mb-4">
-              <label className="block mb-1 font-medium">Task Groups</label>
-              <div className="flex flex-wrap gap-2">
-                {taskGroups.map((tg) => (
-                  <label
-                    key={tg.Task_group_uuid}
-                    className="flex items-center gap-2 border px-2 py-1 rounded-md shadow-sm"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedTaskGroups.includes(tg.Task_group_uuid)}
-                      onChange={() => handleTaskGroupToggle(tg.Task_group_uuid)}
-                      className="accent-[#25D366]"
-                    />
-                    <span>{tg.Task_group_name || tg.Task_group || "Unnamed Group"}</span>
-                  </label>
-                ))}
+            {optionsLoading ? (
+              <div className="flex justify-center items-center h-10 mb-4">
+                <FaSpinner className="animate-spin" />
               </div>
-            </div>
+            ) : (
+              <div className="mb-4">
+                <label className="block mb-1 font-medium">Task Groups</label>
+                <div className="flex flex-wrap gap-2">
+                  {taskGroups.map((tg) => (
+                    <label
+                      key={tg.Task_group_uuid}
+                      className="flex items-center gap-2 border px-2 py-1 rounded-md shadow-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedTaskGroups.includes(tg.Task_group_uuid)}
+                        onChange={() => handleTaskGroupToggle(tg.Task_group_uuid)}
+                        className="accent-[#25D366]"
+                      />
+                      <span>{tg.Task_group_name || tg.Task_group || "Unnamed Group"}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
 
 
