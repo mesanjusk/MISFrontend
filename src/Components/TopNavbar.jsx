@@ -7,6 +7,15 @@ import {
   FiChevronRight,
   FiChevronDown,
   FiLogOut,
+  FiUsers,
+  FiBox,
+  FiCheckSquare,
+  FiUserCheck,
+  FiShoppingCart,
+  FiHelpCircle,
+  FiDollarSign,
+  FiRepeat,
+  FiMoreHorizontal,
 } from "react-icons/fi";
 
 const TopNavbar = () => {
@@ -61,80 +70,89 @@ const TopNavbar = () => {
   const menuGroups = [
     {
       group: "Customer",
+      icon: FiUsers,
       items: [
         { label: "Ledger", path: "/customerReport" },
         { label: "Add Customer", path: "/addcustomer" },
-        { label: "Add Customer Group", path: "/addcustomergroup" }
-      ]
+        { label: "Add Customer Group", path: "/addcustomergroup" },
+      ],
     },
     {
       group: "Item",
+      icon: FiBox,
       items: [
         { label: "Item Report", path: "/itemReport" },
         { label: "Add Item", path: "/additem" },
         { label: "Add Item Group", path: "/additemgroup" },
-        ...(userGroup === "Vendor" ? [{ label: "Vendor Bills", path: "/vendorBills" }] : [])
-      ]
+        ...(userGroup === "Vendor" ? [{ label: "Vendor Bills", path: "/vendorBills" }] : []),
+      ],
     },
     {
       group: "Task",
+      icon: FiCheckSquare,
       items: [
         { label: "Task Report", path: "/taskReport" },
         { label: "Pending Task", path: "/pendingtask" },
         { label: "Add Task", path: "/addtask" },
-        { label: "Add Task Group", path: "/addtaskgroup" }
-      ]
+        { label: "Add Task Group", path: "/addtaskgroup" },
+      ],
     },
     {
       group: "User",
+      icon: FiUserCheck,
       items: [
         { label: "User Report", path: "/userReport" },
         { label: "Add User", path: "/adduser" },
         { label: "Add User Group", path: "/addusergroup" },
-        { label: "Attendance", path: "/allattandance" }
-      ]
+        { label: "Attendance", path: "/allattandance" },
+      ],
     },
     {
       group: "Order",
+      icon: FiShoppingCart,
       items: [
         { label: "Add Order", path: "/addorder1" },
         { label: "All Bills", path: "/allbills" },
-        { label: "Vendor Home", path: "/vendorhome" }
-      ]
+        { label: "Vendor Home", path: "/vendorhome" },
+      ],
     },
     {
       group: "Enquiry",
+      icon: FiHelpCircle,
       items: [
         { label: "Add Enquiry", path: "/addenquiry" },
-        { label: "Add Note", path: "/addnote" }
-      ]
+        { label: "Add Note", path: "/addnote" },
+      ],
     },
     {
       group: "Account / Payment",
+      icon: FiDollarSign,
       items: [
         { label: "Payment Report", path: "/paymentReport" },
         { label: "Priority Report", path: "/priorityReport" },
         { label: "Add Payable", path: "/addpayble" },
         { label: "Add Receivable", path: "/addrecivable" },
         { label: "Add Payment", path: "/addpayment" },
-        { label: "Add Receipt", path: "/addreciept" }
-      ]
+        { label: "Add Receipt", path: "/addreciept" },
+      ],
     },
     {
       group: "Transaction",
+      icon: FiRepeat,
       items: [
         { label: "Transaction Report", path: "/allTransaction" },
         { label: "Add Transaction", path: "/addtranscation" },
         { label: "Add Transaction 1", path: "/addtranscation1" },
         { label: "All Transaction 1", path: "/alltranscation1" },
         { label: "All Transaction 2", path: "/alltranscation2" },
-        { label: "All Transaction 3", path: "/alltranscation3" }
-      ]
+        { label: "All Transaction 3", path: "/alltranscation3" },
+      ],
     },
     {
       group: "Other",
-      items: userGroup === "Office User" ? [{ label: "Call Logs", path: "/calllogs" }] : []
-    }
+      icon: FiMoreHorizontal,
+      items: userGroup === "Office User" ? [{ label: "Call Logs", path: "/calllogs" }] : [],
+    },
   ];
 
   const toggleGroup = (groupName) => {
@@ -182,7 +200,10 @@ const TopNavbar = () => {
                       className="px-4 py-2 text-sm font-semibold bg-gray-50 hover:bg-gray-100 cursor-pointer flex items-center justify-between"
                       onClick={() => toggleGroup(group.group)}
                     >
-                      <span>{group.group}</span>
+                      <div className="flex items-center gap-2">
+                        {group.icon && <group.icon />}
+                        <span>{group.group}</span>
+                      </div>
                       {openGroup === group.group ? <FiChevronDown /> : <FiChevronRight />}
                     </div>
                     {openGroup === group.group && (
