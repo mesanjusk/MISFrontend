@@ -65,12 +65,20 @@ export default function MigrateOrders() {
           <thead className="bg-gray-100">
             <tr>
               <th className="p-2 text-center">
-                <input
-                  type="checkbox"
-                  checked={selectAll}
-                  onChange={handleSelectAll}
-                />
-              </th>
+  <button
+    className="text-blue-600 text-sm underline"
+    onClick={() => {
+      if (selectedIds.length === 20 || selectedIds.length === orders.slice(0, 20).length) {
+        setSelectedIds([]);
+      } else {
+        setSelectedIds(orders.slice(0, 20).map((o) => o._id));
+      }
+    }}
+  >
+    Select Top 20
+  </button>
+</th>
+
               <th className="p-2">Order #</th>
               <th className="p-2">Item</th>
               <th className="p-2">Qty</th>
