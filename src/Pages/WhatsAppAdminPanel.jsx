@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import LoadingSpinner from "../Components/LoadingSpinner";
 
 const BASE_URL = 'https://misbackend-e078.onrender.com';
 
@@ -104,11 +105,11 @@ export default function WhatsAppAdminPanel() {
           onChange={(e) => setNewSessionId(e.target.value)}
         />
         <button
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm flex items-center justify-center"
           onClick={() => startSession(newSessionId)}
           disabled={loading}
         >
-          + Add
+          {loading ? <LoadingSpinner size="h-4 w-4" /> : '+ Add'}
         </button>
       </div>
 
@@ -143,10 +144,10 @@ export default function WhatsAppAdminPanel() {
               <td className="p-2 border space-x-2">
                 <button
                   onClick={() => startSession(s.sessionId)}
-                  className="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600"
+                  className="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600 flex items-center justify-center"
                   disabled={loading}
                 >
-                  Start
+                  {loading ? <LoadingSpinner size="h-4 w-4" /> : 'Start'}
                 </button>
                 <button
                   onClick={() => resetSession(s.sessionId)}

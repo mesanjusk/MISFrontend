@@ -1,11 +1,9 @@
-import React, { useState, useEffect, Suspense, lazy } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
-import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
-import "react-loading-skeleton/dist/skeleton.css";
 import { useNavigate } from "react-router-dom";
-
-const AddOrder1 = lazy(() => import("../Pages/addOrder1"));
-const OrderUpdate = lazy(() => import("./orderUpdate"));
+import LoadingSpinner from "../Components/LoadingSpinner";
+import AddOrder1 from "../Pages/addOrder1";
+import OrderUpdate from "./orderUpdate";
 
 export default function AllOrder() {
     const navigate = useNavigate();
@@ -124,22 +122,19 @@ export default function AllOrder() {
 
                     <main className="flex flex-1 p-2 overflow-y-auto">
                         <div className="w-full mx-auto">
-                            <SkeletonTheme>
-                                {isLoading
-                                    ? Array(5).fill().map((_, index) => (
-                                        <Skeleton key={index} height={80} width="100%" style={{ marginBottom: "5px" }} />
-                                    ))
-                                    : taskOptions.length === 0 ? (
-                                        <div className="text-center text-gray-400 py-10">No tasks found.</div>
-                                    ) : (
-                                        taskOptions.map((taskGroup) => {
-                                            const taskGroupOrders = filteredOrders.filter(order => order.highestStatusTask?.Task === taskGroup);
+                            {isLoading ? (
+                                <div className="flex justify-center py-4"><LoadingSpinner /></div>
+                            ) : taskOptions.length === 0 ? (
+                                <div className="text-center text-gray-400 py-10">No tasks found.</div>
+                            ) : (
+                                taskOptions.map((taskGroup) => {
+                                    const taskGroupOrders = filteredOrders.filter(order => order.highestStatusTask?.Task === taskGroup);
 
-                                            if (taskGroupOrders.length === 0) return null;
+                                    if (taskGroupOrders.length === 0) return null;
 
-                                            return (
-                                                <div key={taskGroup} className="mb-2 p-2  rounded-lg">
-                                                    <h3 className="font-semibold text-lg text-green-700 mb-3">{taskGroup}</h3>
+                                    return (
+                                        <div key={taskGroup} className="mb-2 p-2  rounded-lg">
+                                            <h3 className="font-semibold text-lg text-green-700 mb-3">{taskGroup}</h3>
                                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-10 gap-2">
                                                         {taskGroupOrders.map((order) => {
                                                             let latestStatusDate = order.highestStatusTask?.CreatedAt
@@ -200,28 +195,21 @@ export default function AllOrder() {
                                             );
                                         })
                                     )}
-                            </SkeletonTheme>
                         </div>
                     </main>
 
                 </div>
 
-                <Suspense fallback={
-                    <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-30 z-50">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
-                    </div>
-                }>
-                    {showOrderModal && (
-                        <Modal onClose={closeModal}>
-                            <AddOrder1 closeModal={closeModal} />
-                        </Modal>
-                    )}
-                    {showEditModal && (
-                        <Modal onClose={closeEditModal}>
-                            <OrderUpdate order={selectedOrder} onClose={closeEditModal} />
-                        </Modal>
-                    )}
-                </Suspense>
+                {showOrderModal && (
+                    <Modal onClose={closeModal}>
+                        <AddOrder1 closeModal={closeModal} />
+                    </Modal>
+                )}
+                {showEditModal && (
+                    <Modal onClose={closeEditModal}>
+                        <OrderUpdate order={selectedOrder} onClose={closeEditModal} />
+                    </Modal>
+                )}
             </div>
         </>
     );

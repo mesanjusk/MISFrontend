@@ -3,9 +3,9 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
-import { FaSpinner } from 'react-icons/fa';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import InvoiceModal from "../Components/InvoiceModal";
+import LoadingSpinner from "../Components/LoadingSpinner";
 
 export default function AddTransaction1() {
   const navigate = useNavigate();
@@ -186,7 +186,7 @@ export default function AddTransaction1() {
         <form onSubmit={submit}>
           {optionsLoading ? (
             <div className="d-flex justify-content-center align-items-center mb-3" style={{ height: '38px' }}>
-              <FaSpinner className="spinner-border" />
+              <LoadingSpinner size="h-5 w-5" />
             </div>
           ) : (
             <div className="mb-3 position-relative">
@@ -239,7 +239,7 @@ export default function AddTransaction1() {
 
           {optionsLoading ? (
             <div className="d-flex justify-content-center align-items-center mb-3" style={{ height: '38px' }}>
-              <FaSpinner className="spinner-border" />
+              <LoadingSpinner size="h-5 w-5" />
             </div>
           ) : (
             <div className="mb-3">
@@ -284,7 +284,7 @@ export default function AddTransaction1() {
             className="btn btn-success w-100"
             disabled={loading || !Amount || isNaN(Amount) || Amount <= 0 || !CreditCustomer || !DebitCustomer}
           >
-            {loading ? <><FaSpinner className="spinner-border spinner-border-sm me-2" /> Saving...</> : "Submit"}
+            {loading ? (<><LoadingSpinner size="h-4 w-4" className="me-2" /> Saving...</>) : "Submit"}
           </button>
         </form>
       </div>

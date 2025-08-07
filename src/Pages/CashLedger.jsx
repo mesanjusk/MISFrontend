@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
+import LoadingSpinner from "../Components/LoadingSpinner";
 
 const CashLedger = () => {
     const [transactions, setTransactions] = useState([]);
@@ -176,7 +177,7 @@ const CashLedger = () => {
                     </div>
 
                     {loading ? (
-                        <p className="text-gray-500 text-center py-10">Loading transactions...</p>
+                        <div className="flex justify-center py-10"><LoadingSpinner /></div>
                     ) : (
                         <>
                             <div className="mb-4 space-y-1 print:text-sm">

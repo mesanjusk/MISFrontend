@@ -3,6 +3,7 @@ import axios from "axios";
 import StepDetailsModal from "./StepDetailsModal";
 import { useNavigate } from "react-router-dom";
 import Vendor from "../Pages/vendor";
+import LoadingSpinner from "./LoadingSpinner";
 
 export default function OrderStepsModal({ order, onClose }) {
   const navigate = useNavigate();
@@ -145,7 +146,7 @@ if (savedSteps.length > 0) {
   if (loading) {
     return (
       <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg">Loading...</div>
+        <LoadingSpinner />
       </div>
     );
   }
