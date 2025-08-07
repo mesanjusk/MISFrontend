@@ -27,6 +27,7 @@ import AddOrder from "./Pages/addOrder";
 import AllOrderTableView from "./Reports/AllOrderTableView"; 
 import AddOrder1 from "./Pages/addOrder1";
 import AllOrder from "./Reports/allOrder";
+import AllOrderMobile from "./Reports/allOrderMobile";
 import AllDelivery from "./Reports/allDelivery";
 import OrderUpdate from "./Reports/orderUpdate";
 import AddEnquiry from "./Pages/addEnquiry";
@@ -115,6 +116,7 @@ function App() {
                         <Route path="/addPayment" element={<AddPayment />} />
                         <Route path="/allOrderT" element={<AllOrderTableView />} />
                         <Route path="/allOrder" element={<AllOrder />} />
+                          <Route path="/allOrderM" element={<AllOrderM />} />
                         <Route path="/customerReport" element={<CustomerReport />} />
                         <Route path="/taskReport" element={<TaskReport />} />
                         <Route path="/userReport" element={<UserReport />} />
