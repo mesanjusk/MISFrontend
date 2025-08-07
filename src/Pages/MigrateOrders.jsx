@@ -4,6 +4,7 @@ import axios from 'axios';
 export default function MigrateOrders() {
   const [orders, setOrders] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
 
   useEffect(() => {
     fetchFlatOrders();
@@ -13,6 +14,8 @@ export default function MigrateOrders() {
     try {
       const res = await axios.get('/api/orders/migrate/flat');
       setOrders(res.data);
+      setSelectedIds([]);
+      setSelectAll(false);
     } catch (err) {
       alert('Error fetching orders');
     }
@@ -24,11 +27,20 @@ export default function MigrateOrders() {
     );
   };
 
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedIds([]);
+    } else {
+      const allIds = orders.map((o) => o._id);
+      setSelectedIds(allIds);
+    }
+    setSelectAll(!selectAll);
+  };
+
   const migrateSelected = async () => {
     if (!window.confirm('Migrate selected orders?')) return;
     await axios.put('/api/orders/migrate/bulk', { ids: selectedIds });
     fetchFlatOrders();
-    setSelectedIds([]);
   };
 
   const migrateOne = async (id) => {
@@ -52,7 +64,13 @@ export default function MigrateOrders() {
         <table className="min-w-full border border-gray-300">
           <thead className="bg-gray-100">
             <tr>
-              <th className="p-2">Select</th>
+              <th className="p-2 text-center">
+                <input
+                  type="checkbox"
+                  checked={selectAll}
+                  onChange={handleSelectAll}
+                />
+              </th>
               <th className="p-2">Order #</th>
               <th className="p-2">Item</th>
               <th className="p-2">Qty</th>
