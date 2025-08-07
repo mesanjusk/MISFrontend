@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { LoadingSpinner } from "../Components";
+import {
+  FiMenu,
+  FiUser,
+  FiChevronRight,
+  FiChevronDown,
+  FiLogOut,
+} from "react-icons/fi";
 
 const TopNavbar = () => {
   const [userGroup, setUserGroup] = useState("");
@@ -152,15 +159,18 @@ const TopNavbar = () => {
         </button>
 
         <div className="flex items-center gap-4 relative" ref={dropdownRef}>
-          <span className="text-sm">Hi, {userName}</span>
+          <span className="text-sm flex items-center gap-1">
+            <FiUser />
+            {userName}
+          </span>
           <button
             onClick={() => {
               setShowDropdown(prev => !prev);
               setOpenGroup(null);
             }}
-            className="text-lg font-bold"
+            className="text-lg"
           >
-            ☰
+            <FiMenu />
           </button>
 
           {showDropdown && (
@@ -169,10 +179,11 @@ const TopNavbar = () => {
                 group.items.length > 0 ? (
                   <div key={group.group} className="border-b border-gray-100">
                     <div
-                      className="px-4 py-2 text-sm font-semibold bg-gray-50 hover:bg-gray-100 cursor-pointer"
+                      className="px-4 py-2 text-sm font-semibold bg-gray-50 hover:bg-gray-100 cursor-pointer flex items-center justify-between"
                       onClick={() => toggleGroup(group.group)}
                     >
-                      {group.group}
+                      <span>{group.group}</span>
+                      {openGroup === group.group ? <FiChevronDown /> : <FiChevronRight />}
                     </div>
                     {openGroup === group.group && (
                       <div className="pl-4">
@@ -184,9 +195,10 @@ const TopNavbar = () => {
                               setShowDropdown(false);
                               setOpenGroup(null);
                             }}
-                            className="text-sm py-1 px-2 rounded hover:bg-gray-100 cursor-pointer"
+                            className="text-sm py-1 px-2 rounded hover:bg-gray-100 cursor-pointer flex items-center gap-2"
                           >
-                            • {item.label}
+                            <FiChevronRight />
+                            <span>{item.label}</span>
                           </div>
                         ))}
                       </div>
@@ -197,9 +209,10 @@ const TopNavbar = () => {
 
               <div
                 onClick={handleLogout}
-                className="px-4 py-3 text-red-500 hover:bg-gray-100 cursor-pointer text-sm font-semibold border-t"
+                className="px-4 py-3 text-red-500 hover:bg-gray-100 cursor-pointer text-sm font-semibold border-t flex items-center gap-2"
               >
-                Logout
+                <FiLogOut />
+                <span>Logout</span>
               </div>
             </div>
           )}
