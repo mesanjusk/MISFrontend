@@ -2,17 +2,16 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import TopNavbar from '../Components/TopNavbar';
 import Footer from '../Components/Footer';
 import FloatingButtons from '../Components/FloatingButtons';
-import order from '../assets/order.svg';
-import payment from '../assets/payment.svg';
-import reciept from '../assets/reciept.svg';
-import usertask from '../assets/usertask.svg';
+
 const Layout = () => {
   const navigate = useNavigate();
+
   const buttonsList = [
-    { onClick: () => navigate('/addTransaction'), src: reciept },
-    { onClick: () => navigate('/addTransaction1'), src: payment },
-    { onClick: () => navigate('/addOrder1'), src: order },
-    { onClick: () => navigate('/addUsertask'), src: usertask },
+    { onClick: () => navigate('/addOrder1'), label: 'Order' },
+    { onClick: () => navigate('/addTransaction'), label: 'Receipt' },
+    { onClick: () => navigate('/addTransaction1'), label: 'Payment' },
+    
+    { onClick: () => navigate('/addUsertask'), label: 'Task' },
   ];
 
   return (
@@ -21,7 +20,11 @@ const Layout = () => {
       <main className="flex-grow pt-16 pb-20 px-4">
         <Outlet />
       </main>
-      <FloatingButtons buttonType="bars" buttonsList={buttonsList} direction="up" />
+      <FloatingButtons
+        buttonsList={buttonsList}
+        direction="up"
+        autoClose={true}
+      />
       <Footer />
     </div>
   );
