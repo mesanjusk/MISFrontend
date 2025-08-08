@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Card from '../Components/Card';
 import {
@@ -14,6 +14,21 @@ import {
   FaWhatsapp,
   FaUserClock,
 } from 'react-icons/fa';
+
+// List of main features to display on the dashboard
+const features = [
+  { name: 'Planner', to: '/planner', icon: FaCalendarAlt },
+  { name: 'Review', to: '/review', icon: FaClipboardCheck },
+  { name: 'Team', to: '/team', icon: FaUsers },
+  { name: 'Customers', to: '/addCustomer', icon: FaUserFriends },
+  { name: 'Items', to: '/addItem', icon: FaBoxOpen },
+  { name: 'Tasks', to: '/addTask', icon: FaTasks },
+  { name: 'Orders', to: '/allOrder', icon: FaShoppingCart },
+  { name: 'Transactions', to: '/allTransaction', icon: FaExchangeAlt },
+  { name: 'Payments', to: '/paymentReport', icon: FaMoneyBillWave },
+  { name: 'WhatsApp', to: '/SendMessage', icon: FaWhatsapp },
+  { name: 'Attendance', to: '/AllAttandance', icon: FaUserClock },
+];
 
 // Home dashboard showing quick links to major application features
 export default function Home() {
@@ -35,21 +50,6 @@ export default function Home() {
     localStorage.removeItem('User_group');
     navigate('/');
   };
-
-  // List of main features to display on the dashboard
-  const features = [
-    { name: 'Planner', to: '/planner', icon: FaCalendarAlt },
-    { name: 'Review', to: '/review', icon: FaClipboardCheck },
-    { name: 'Team', to: '/team', icon: FaUsers },
-    { name: 'Customers', to: '/addCustomer', icon: FaUserFriends },
-    { name: 'Items', to: '/addItem', icon: FaBoxOpen },
-    { name: 'Tasks', to: '/addTask', icon: FaTasks },
-    { name: 'Orders', to: '/allOrder', icon: FaShoppingCart },
-    { name: 'Transactions', to: '/allTransaction', icon: FaExchangeAlt },
-    { name: 'Payments', to: '/paymentReport', icon: FaMoneyBillWave },
-    { name: 'WhatsApp', to: '/SendMessage', icon: FaWhatsapp },
-    { name: 'Attendance', to: '/AllAttandance', icon: FaUserClock },
-  ];
 
   return (
     <div className="p-4 space-y-8">
