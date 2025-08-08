@@ -116,7 +116,7 @@ function App() {
                         <Route path="/addPayment" element={<AddPayment />} />
                         <Route path="/allOrderT" element={<AllOrderTableView />} />
                         <Route path="/allOrder" element={<AllOrder />} />
-                          <Route path="/allOrderM" element={<AllOrderM />} />
+                          <Route path="/allOrderM" element={<AllOrderMobile />} />
                         <Route path="/customerReport" element={<CustomerReport />} />
                         <Route path="/taskReport" element={<TaskReport />} />
                         <Route path="/userReport" element={<UserReport />} />
