@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import EditUser from './editUser';
 import AddUser from '../Pages/addUser';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { InputField, Button, Card, Modal, Table } from '../Components';
+import { FiSearch, FiPlus, FiTrash2, FiLock, FiPrinter } from 'react-icons/fi';
 
 const UserReport = () => {
     const [users, setUsers] = useState({});
-    const [userNames, setUserNames] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedUserId, setSelectedUserId] = useState(null);
@@ -43,7 +44,6 @@ const UserReport = () => {
                     }, {});
 
                     setUsers(userMap);
-                    setUserNames(Object.values(userMap).map(c => c.name));
                 } else {
                     setUsers({});
                 }
@@ -108,113 +108,116 @@ const UserReport = () => {
     return (
         <>
             <ToastContainer position="top-center" />
-            <div className="pt-12 pb-20">
-                <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
-                    <label>
-                        Search by User Name or Group
-                        <input
-                            list="userNames"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Search by user name or group"
-                        />
-                    </label>
-                    <button onClick={handlePrint} className="btn">
-                        <svg className="h-8 w-8 text-blue" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 9V3h12v6M6 15h12m-6 0v6m0 0H9m3 0h3" />
-                        </svg>
-                    </button>
+            <Card className="pt-12 pb-20 max-w-3xl mx-auto">
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <InputField
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="Search by user name or group"
+                        icon={FiSearch}
+                        className="flex-1"
+                    />
+                    <Button
+                        variant="secondary"
+                        onClick={handlePrint}
+                        leftIcon={FiPrinter}
+                        aria-label="Print"
+                        className="p-2"
+                    />
+                    <Button
+                        onClick={handleAddUser}
+                        leftIcon={FiPlus}
+                        aria-label="Add user"
+                        className="p-2"
+                    />
                 </div>
+                {Object.keys(users).length > 0 ? (
+                    <Table
+                        columns={(() => {
+                            const cols = [
+                                { Header: 'Name', accessor: 'name' },
+                                { Header: 'Mobile', accessor: 'mobile' },
+                                { Header: 'Task Groups', accessor: 'taskGroups' },
+                            ];
+                            if (userGroup === 'Admin User') {
+                                cols.push({ Header: 'Actions', accessor: 'actions' });
+                            }
+                            return cols;
+                        })()}
+                        data={Object.entries(users)
+                            .filter(([, user]) =>
+                                user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                (user.group && user.group.toLowerCase().includes(searchTerm.toLowerCase()))
+                            )
+                            .map(([id, user]) => ({
+                                name: (
+                                    <span onClick={() => handleEdit(id)} className="cursor-pointer text-primary">
+                                        {user.name}
+                                    </span>
+                                ),
+                                mobile: (
+                                    <span onClick={() => handleEdit(id)} className="cursor-pointer text-primary">
+                                        {user.mobile}
+                                    </span>
+                                ),
+                                taskGroups: user.taskGroups?.length ? user.taskGroups.join(', ') : '-',
+                                ...(userGroup === 'Admin User'
+                                    ? {
+                                          actions: user.isUsed ? (
+                                              <FiLock
+                                                  className="text-gray-400"
+                                                  title="Cannot delete - linked to transactions/orders"
+                                              />
+                                          ) : (
+                                              <FiTrash2
+                                                  className="text-red-500 cursor-pointer hover:text-red-600"
+                                                  onClick={() => handleDeleteClick(id)}
+                                              />
+                                          ),
+                                      }
+                                    : {}),
+                            }))}
+                    />
+                ) : (
+                    <p>No data available for the selected filters.</p>
+                )}
+            </Card>
 
-                <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
-                    <button onClick={handleAddUser} type="button" className="p-3 rounded-full text-white bg-green-500 mb-3">
-                        <svg className="h-8 w-8 text-white-500" width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" />
-                            <circle cx="12" cy="12" r="9" />
-                            <line x1="9" y1="12" x2="15" y2="12" />
-                            <line x1="12" y1="9" x2="12" y2="15" />
-                        </svg>
-                    </button>
-                </div>
+            <Modal
+                isOpen={showEditModal}
+                onClose={() => setShowEditModal(false)}
+                title="Edit User"
+            >
+                <EditUser
+                    userId={selectedUserId}
+                    userData={users[selectedUserId]}
+                    closeModal={() => setShowEditModal(false)}
+                />
+            </Modal>
 
-                <main className="flex flex-1 p-1 overflow-y-auto">
-                    <div className="w-100 max-w-md mx-auto">
-                        {Object.keys(users).length > 0 ? (
-                            <table className="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Mobile</th>
-                                        <th>Task Groups</th>
-                                        {userGroup === "Admin User" && <th>Actions</th>}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {Object.entries(users)
-                                        .filter(([id, user]) =>
-                                            user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                            (user.group && user.group.toLowerCase().includes(searchTerm.toLowerCase()))
-                                        )
-                                        .map(([id, user]) => (
-                                            <tr key={id}>
-                                                <td onClick={() => handleEdit(id)} style={{ cursor: 'pointer' }}>{user.name}</td>
-                                                <td onClick={() => handleEdit(id)} style={{ cursor: 'pointer' }}>{user.mobile}</td>
-                                                <td>{user.taskGroups?.length ? user.taskGroups.join(", ") : "-"}</td>
-                                                {userGroup === "Admin User" && (
-                                                    <td className="px-4 py-2">
-                                                        {user.isUsed ? (
-                                                            <span title="Cannot delete - linked to transactions/orders" className="text-gray-400 cursor-not-allowed">🔒</span>
-                                                        ) : (
-                                                            <button onClick={() => handleDeleteClick(id)} className="text-red-500 hover:text-red-600">🗑️</button>
-                                                        )}
-                                                    </td>
-                                                )}
-                                            </tr>
-                                        ))}
-                                </tbody>
-                            </table>
-                        ) : (
-                            <p>No data available for the selected filters.</p>
-                        )}
-                    </div>
-                </main>
-            </div>
+            <Modal
+                isOpen={showDeleteModal}
+                onClose={handleDeleteCancel}
+                title={`Delete ${selectedUser?.name}?`}
+                actions={[
+                    <Button key="confirm" variant="danger" onClick={handleDeleteConfirm}>
+                        Yes
+                    </Button>,
+                    <Button key="cancel" variant="secondary" onClick={handleDeleteCancel}>
+                        Cancel
+                    </Button>,
+                ]}
+            >
+                {deleteErrorMessage && <p className="text-red-500">{deleteErrorMessage}</p>}
+            </Modal>
 
-            {/* Edit Modal */}
-            {showEditModal && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <EditUser
-                            userId={selectedUserId}
-                            userData={users[selectedUserId]}
-                            closeModal={() => setShowEditModal(false)}
-                        />
-                    </div>
-                </div>
-            )}
-
-            {/* Delete Modal */}
-            {showDeleteModal && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <h4>Are you sure you want to delete {selectedUser?.name}?</h4>
-                        <div className="modal-actions">
-                            <button onClick={handleDeleteConfirm} className="btn btn-danger">Yes</button>
-                            <button onClick={handleDeleteCancel} className="btn btn-secondary">Cancel</button>
-                        </div>
-                        {deleteErrorMessage && <p className="text-red-500">{deleteErrorMessage}</p>}
-                    </div>
-                </div>
-            )}
-
-            {/* Add Modal */}
-            {showAddModal && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <AddUser closeModal={() => setShowAddModal(false)} />
-                    </div>
-                </div>
-            )}
+            <Modal
+                isOpen={showAddModal}
+                onClose={() => setShowAddModal(false)}
+                title="Add User"
+            >
+                <AddUser closeModal={() => setShowAddModal(false)} />
+            </Modal>
         </>
     );
 };

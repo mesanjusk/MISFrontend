@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { useNavigate, useLocation } from "react-router-dom";
-import BillUpdate from "../Reports/billUpdate";
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useNavigate, useLocation } from 'react-router-dom';
+import BillUpdate from '../Reports/billUpdate';
+import { InputField, Card, Modal } from '../Components';
+import { FiSearch } from 'react-icons/fi';
 
 export default function VendorBills() {
     const navigate = useNavigate();
@@ -69,23 +71,23 @@ export default function VendorBills() {
     return (
         <>
             <div className="pt-12 pb-20 max-w-7xl mx-auto px-4">
-                <div className="flex flex-wrap items-center bg-white w-full p-2 mb-4 rounded-lg shadow gap-2">
-                    <input
-                        type="text"
-                        placeholder="Search by Customer Name"
-                        className="form-control text-black bg-gray-100 rounded-full px-4 py-2"
+                <Card className="flex flex-wrap items-center w-full p-2 mb-4 rounded-lg shadow gap-2">
+                    <InputField
                         value={searchOrder}
                         onChange={(e) => setSearchOrder(e.target.value)}
+                        placeholder="Search by Customer Name"
+                        icon={FiSearch}
+                        className="flex-1"
                     />
-                </div>
+                </Card>
                 <main className="flex flex-1 p-4 overflow-y-auto">
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 w-full">
                         {filteredOrders.length > 0 ? (
                             filteredOrders.map((order, index) => (
-                                <div
+                                <Card
                                     key={index}
                                     onClick={() => handleEditClick(order)}
-                                    className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-all cursor-pointer"
+                                    className="p-4 hover:shadow-lg transition-all cursor-pointer"
                                 >
                                     <div className="flex justify-between items-center mb-2">
                                         <div className="font-semibold text-lg text-gray-800">
@@ -100,14 +102,14 @@ export default function VendorBills() {
                                     </div>
                                     <div className="text-sm text-gray-600 mb-2">{order.Remark}</div>
                                     <div className="flex justify-between text-sm text-gray-600">
-                                        <span>Assigned: {order.highestStatusTask?.Assigned || "N/A"}</span>
+                                        <span>Assigned: {order.highestStatusTask?.Assigned || 'N/A'}</span>
                                         <span>
                                             Delivery: {order.highestStatusTask?.Delivery_Date
                                                 ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString()
-                                                : "N/A"}
+                                                : 'N/A'}
                                         </span>
                                     </div>
-                                </div>
+                                </Card>
                             ))
                         ) : (
                             <div className="text-center text-gray-500">No orders found</div>
@@ -115,11 +117,9 @@ export default function VendorBills() {
                     </div>
                 </main>
             </div>
-            {showEditModal && (
-                <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center ">
-                    <BillUpdate order={selectedOrder} onClose={closeEditModal} />
-                </div>
-            )}
+            <Modal isOpen={showEditModal} onClose={closeEditModal} title="Update Bill">
+                <BillUpdate order={selectedOrder} onClose={closeEditModal} />
+            </Modal>
         </>
     );
 }
