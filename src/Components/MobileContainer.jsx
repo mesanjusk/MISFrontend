@@ -14,5 +14,5 @@ export default function MobileContainer({ className = '', children, ...props }) 
 
 MobileContainer.propTypes = {
   className: PropTypes.string,
-  children: PropTypes.node,
+  children: PropTypes.node.isRequired,
 };

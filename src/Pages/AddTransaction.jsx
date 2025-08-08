@@ -198,7 +198,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
         onSendWhatsApp={sendWhatsApp}
       />
 
-      <Card className="w-full max-w-lg relative">
+      <Card className="relative">
         <Button
           variant="secondary"
           className="absolute top-2 right-2 px-2 py-1"
