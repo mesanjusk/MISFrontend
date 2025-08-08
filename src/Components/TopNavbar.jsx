@@ -104,7 +104,7 @@ const TopNavbar = () => {
         { label: "User Report", path: "/userReport" },
         { label: "Add User", path: "/adduser" },
         { label: "Add User Group", path: "/addusergroup" },
-        { label: "Attendance", path: "/allattandance" },
+        { label: "Attendance", path: "/Attendance-Report" },
       ],
     },
     {

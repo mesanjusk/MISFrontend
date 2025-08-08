@@ -2,7 +2,7 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import TopNavbar from '../Components/TopNavbar';
 import Footer from '../Components/Footer';
 import FloatingButtons from '../Components/FloatingButtons';
-import { MobileContainer } from '../Components';
+
 
 const Layout = () => {
   const navigate = useNavigate();
@@ -19,9 +19,9 @@ const Layout = () => {
     <div className="min-h-screen flex flex-col bg-background text-gray-900">
       <TopNavbar />
       <main className="flex-grow pt-16 pb-20">
-        <MobileContainer>
+        
           <Outlet />
-        </MobileContainer>
+        
       </main>
       <FloatingButtons
         buttonsList={buttonsList}
