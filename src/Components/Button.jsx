@@ -1,22 +1,8 @@
 import PropTypes from 'prop-types';
+import MuiButton from '@mui/material/Button';
 
-// Button component with optional Feather icons for a richer interface
-// Icons are passed as React components via leftIcon/rightIcon props
-
-const variantClasses = {
-  primary:
-    'bg-primary text-white hover:bg-secondary focus:ring-primary',
-  secondary:
-    'bg-secondary text-white hover:bg-primary focus:ring-secondary',
-  danger:
-    'bg-accent text-white hover:bg-red-600 focus:ring-accent',
-};
-
-const sizeClasses = {
-  sm: 'px-3 py-1 text-sm',
-  md: 'px-4 py-2 text-base',
-  lg: 'px-6 py-3 text-lg',
-};
+const sizeMap = { sm: 'small', md: 'medium', lg: 'large' };
+const colorMap = { primary: 'primary', secondary: 'secondary', danger: 'error' };
 
 export default function Button({
   variant = 'primary',
@@ -28,13 +14,19 @@ export default function Button({
   fullWidth = false,
   ...props
 }) {
-  const classes = `${variantClasses[variant]} ${sizeClasses[size]} inline-flex items-center justify-center rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${fullWidth ? 'w-full' : ''} ${className}`;
   return (
-    <button className={classes} {...props}>
-      {LeftIcon && <LeftIcon className="mr-2" aria-hidden="true" />}
+    <MuiButton
+      variant="contained"
+      color={colorMap[variant] || 'primary'}
+      size={sizeMap[size] || 'medium'}
+      className={className}
+      startIcon={LeftIcon ? <LeftIcon aria-hidden="true" /> : undefined}
+      endIcon={RightIcon ? <RightIcon aria-hidden="true" /> : undefined}
+      fullWidth={fullWidth}
+      {...props}
+    >
       {children}
-      {RightIcon && <RightIcon className="ml-2" aria-hidden="true" />}
-    </button>
+    </MuiButton>
   );
 }
 

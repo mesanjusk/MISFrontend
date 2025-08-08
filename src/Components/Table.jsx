@@ -1,34 +1,36 @@
 import PropTypes from 'prop-types';
+import {
+  Table as MuiTable,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from '@mui/material';
 
 export default function Table({ columns = [], data = [] }) {
   return (
-    <div className="overflow-x-auto rounded-lg shadow">
-      <table className="min-w-full divide-y divide-gray-200 text-sm">
-        <thead className="bg-gray-100">
-          <tr>
+    <TableContainer component={Paper}>
+      <MuiTable size="small">
+        <TableHead>
+          <TableRow>
             {columns.map((col) => (
-              <th
-                key={col.accessor}
-                className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              >
-                {col.Header}
-              </th>
+              <TableCell key={col.accessor}>{col.Header}</TableCell>
             ))}
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+          </TableRow>
+        </TableHead>
+        <TableBody>
           {data.map((row, idx) => (
-            <tr key={idx} className="hover:bg-gray-50">
+            <TableRow key={idx} hover>
               {columns.map((col) => (
-                <td key={col.accessor} className="px-4 py-2 whitespace-nowrap">
-                  {row[col.accessor]}
-                </td>
+                <TableCell key={col.accessor}>{row[col.accessor]}</TableCell>
               ))}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </MuiTable>
+    </TableContainer>
   );
 }
 

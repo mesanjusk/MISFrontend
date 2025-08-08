@@ -1,15 +1,8 @@
 import PropTypes from 'prop-types';
-import { FiLoader } from 'react-icons/fi';
+import CircularProgress from '@mui/material/CircularProgress';
 
-// Simple spinner based on Feather's loader icon
-export default function LoadingSpinner({ size = 24, className = 'text-primary' }) {
-  return (
-    <FiLoader
-      className={`animate-spin ${className}`}
-      size={size}
-      aria-label="Loading"
-    />
-  );
+export default function LoadingSpinner({ size = 24, className = '' }) {
+  return <CircularProgress size={size} className={className} />;
 }
 
 LoadingSpinner.propTypes = {

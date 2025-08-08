@@ -1,23 +1,21 @@
-export const lightTheme = {
-  colors: {
-    primary: '#1E88E5',
-    secondary: '#1565C0',
-    accent: '#E53935',
-    background: '#F4F6F8',
-    text: '#212121',
+import { createTheme } from '@mui/material/styles';
+
+const baseOptions = {
+  typography: { fontFamily: 'Inter, Roboto, sans-serif' },
+  palette: {
+    primary: { main: '#1976d2' },
   },
-  fontFamily: 'Inter, Roboto, sans-serif',
 };
 
-export const darkTheme = {
-  colors: {
-    primary: '#1E88E5',
-    secondary: '#1565C0',
-    accent: '#E53935',
-    background: '#1F2937',
-    text: '#F8FAFC',
-  },
-  fontFamily: 'Inter, Roboto, sans-serif',
-};
+export const lightTheme = createTheme({
+  ...baseOptions,
+  palette: { ...baseOptions.palette, mode: 'light' },
+});
+
+export const darkTheme = createTheme({
+  ...baseOptions,
+  palette: { ...baseOptions.palette, mode: 'dark' },
+});
 
 export default { lightTheme, darkTheme };
+
