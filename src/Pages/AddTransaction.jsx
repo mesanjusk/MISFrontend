@@ -239,7 +239,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
             </div>
           )}
 
-          <Button onClick={addCustomer} type="button" className="mb-4">
+          <Button onClick={addCustomer} type="button" className="mb-4" fullWidth>
             Add Customer
           </Button>
 
@@ -305,7 +305,8 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
 
           <Button
             type="submit"
-            className="w-full mt-2"
+            className="mt-2"
+            fullWidth
             disabled={
               loading ||
               !Amount ||

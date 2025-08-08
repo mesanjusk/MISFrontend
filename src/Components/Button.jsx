@@ -25,9 +25,10 @@ export default function Button({
   children,
   leftIcon: LeftIcon,
   rightIcon: RightIcon,
+  fullWidth = false,
   ...props
 }) {
-  const classes = `${variantClasses[variant]} ${sizeClasses[size]} inline-flex items-center justify-center rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${className}`;
+  const classes = `${variantClasses[variant]} ${sizeClasses[size]} inline-flex items-center justify-center rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${fullWidth ? 'w-full' : ''} ${className}`;
   return (
     <button className={classes} {...props}>
       {LeftIcon && <LeftIcon className="mr-2" aria-hidden="true" />}
@@ -44,4 +45,5 @@ Button.propTypes = {
   children: PropTypes.node,
   leftIcon: PropTypes.elementType,
   rightIcon: PropTypes.elementType,
+  fullWidth: PropTypes.bool,
 };
