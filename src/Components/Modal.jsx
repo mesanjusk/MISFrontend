@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import Button from './Button';
+import { FiX } from 'react-icons/fi';
 
 export default function Modal({
   isOpen,
@@ -20,9 +21,8 @@ export default function Modal({
           className="absolute top-2 right-2 px-2 py-1"
           onClick={onClose}
           aria-label="Close"
-        >
-          ✕
-        </Button>
+          leftIcon={FiX}
+        />
       </div>
     </div>
   );

@@ -2,9 +2,9 @@ import PropTypes from 'prop-types';
 
 export default function Table({ columns = [], data = [] }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
+    <div className="overflow-x-auto rounded-lg shadow">
+      <table className="min-w-full divide-y divide-gray-200 text-sm">
+        <thead className="bg-gray-100">
           <tr>
             {columns.map((col) => (
               <th

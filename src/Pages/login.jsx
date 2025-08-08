@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { Card, InputField, Button } from '../Components';
+import { FiUser, FiLock, FiLogIn } from 'react-icons/fi';
 
 export default function Login() {
     const navigate = useNavigate();
@@ -62,34 +64,31 @@ export default function Login() {
     
     return (
         <div className="flex justify-center items-center min-h-screen bg-background">
-            <div className="bg-white p-3 rounded w-90">
-                <h1>Login</h1>
+            <Card className="w-full max-w-sm">
+                <h1 className="text-xl font-semibold mb-4 text-center flex items-center justify-center"><FiUser className="mr-2" />Login</h1>
                 <form onSubmit={submit}>
-                    <div className="mb-3">
-                        <label htmlFor="Username"><strong>User Name</strong></label>
-                        <input
-                            type="text"
-                            autoComplete="off"
-                            onChange={(e) => setUser_Name(e.target.value)}
-                            placeholder="User Name"
-                            className="form-control rounded-0"
-                            required
-                        />
-                    </div>
-                    <div className="mb-3">
-                        <label htmlFor="Password"><strong>Password</strong></label>
-                        <input
-                            type="password"
-                            autoComplete="off"
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Password"
-                            className="form-control rounded-0"
-                            required
-                        />
-                    </div>
-                    <button type="submit" className="w-100 h-10 bg-green-400 text-white shadow-lg flex items-center justify-center">Submit</button>
+                    <InputField
+                        label="User Name"
+                        autoComplete="off"
+                        onChange={(e) => setUser_Name(e.target.value)}
+                        placeholder="User Name"
+                        icon={FiUser}
+                        required
+                    />
+                    <InputField
+                        label="Password"
+                        type="password"
+                        autoComplete="off"
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Password"
+                        icon={FiLock}
+                        required
+                    />
+                    <Button type="submit" className="w-full mt-2" rightIcon={FiLogIn}>
+                        Submit
+                    </Button>
                 </form>
-            </div>
+            </Card>
         </div>
     );
 }
