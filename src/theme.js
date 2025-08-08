@@ -16,6 +16,3 @@ export const darkTheme = createTheme({
   ...baseOptions,
   palette: { ...baseOptions.palette, mode: 'dark' },
 });
-
-export default { lightTheme, darkTheme };
-
