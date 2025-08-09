@@ -117,36 +117,53 @@ export default function AllVendors() {
       }));
   }, [customersList]);
 
-  const assignVendor = async () => {
-    if (!activeOrder || !activeStep) return;
+const assignVendor = async () => {
+  if (!activeOrder || !activeStep) return;
 
-    if (!selectedVendorUuid) {
-      alert("Please choose a vendor from the list.");
-      return;
-    }
-    const amt = Number(costAmount || 0);
-    if (Number.isNaN(amt) || amt < 0) {
-      alert("Invalid cost amount");
-      return;
-    }
-    if (!plannedDate) {
-      alert("Please select a date");
-      return;
-    }
+  if (!selectedVendorUuid) {
+    alert("Please choose a vendor from the list.");
+    return;
+  }
+  const amt = Number(costAmount || 0);
+  if (Number.isNaN(amt) || amt < 0) {
+    alert("Invalid cost amount");
+    return;
+  }
+  if (!plannedDate) {
+    alert("Please select a date");
+    return;
+  }
 
-    try {
-      setLoading(true);
-      const orderId = activeOrder._id || activeOrder.id;
+  try {
+    setLoading(true);
+    const orderId = activeOrder._id || activeOrder.id;
 
-      await axios.post(
-        `${ORDER_API}/orders/${orderId}/steps/${activeStep.stepId}/assign-vendor`,
-        {
-          vendorCustomerUuid: selectedVendorUuid,
-          costAmount: amt,
-          plannedDate, // YYYY-MM-DD
-          createdBy: localStorage.getItem("User_name") || "operator"
-        }
-      );
+    // Find vendor name from customersMap
+    const vendorName = customersMap[selectedVendorUuid] || "";
+
+    await axios.post(
+      `${ORDER_API}/orders/${orderId}/steps/${activeStep.stepId}/assign-vendor`,
+      {
+        vendorCustomerUuid: selectedVendorUuid,  // existing field
+        vendorId: selectedVendorUuid,            // same as Customer_uuid
+        vendorName: vendorName,                  // name from dropdown
+        costAmount: amt,
+        plannedDate, // YYYY-MM-DD
+        createdBy: localStorage.getItem("User_name") || "operator"
+      }
+    );
+
+    closeAssignModal();
+    fetchData({ search: searchOrder.trim() || undefined });
+    alert("Vendor assigned & transaction posted.");
+  } catch (e) {
+    console.error(e);
+    alert(e?.response?.data?.error || "Failed to assign vendor");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
       closeAssignModal();
       fetchData({ search: searchOrder.trim() || undefined });
