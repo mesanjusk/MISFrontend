@@ -91,6 +91,7 @@ export default function AllVendors() {
       .sort((a, b) => (b.Order_Number || 0) - (a.Order_Number || 0));
   };
 
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -273,7 +274,7 @@ export default function AllVendors() {
         data.push({
           "Order Number": order.Order_Number,
           "Customer Name": order.Customer_name,
-           "Step": s.label,
+          "Step": s.label,
           "Vendor UUID": s.vendorCustomerUuid || s.vendorId || "-",
           "Cost Amount": s.costAmount ?? 0,
           "Posted?": s.isPosted ? "Yes" : "No",
@@ -342,7 +343,7 @@ export default function AllVendors() {
                       >
                         <div className="min-w-0">
                           <div className="font-semibold truncate">{s.label || "—"}</div>
-                          
+
                         </div>
 
                         <button
