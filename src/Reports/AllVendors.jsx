@@ -56,22 +56,32 @@ export default function AllVendors() {
     return !hasVendor || !isPosted;
   };
 
-  const computeProjectedRows = (docs, search) => {
-    const text = (search || "").trim().toLowerCase();
-    let filtered = docs;
+const computeProjectedRows = (docs, search) => {
+  const text = (search || "").trim().toLowerCase();
 
-    if (text) {
-      filtered = docs.filter((o) => {
+  // keep only orders whose latest status is "delivered"
+  const deliveredOnly = (Array.isArray(docs) ? docs : []).filter((o) => {
+    if (!Array.isArray(o.Status) || o.Status.length === 0) return false;
+    const latest = o.Status[o.Status.length - 1];
+    return latest?.Task?.trim().toLowerCase() === "delivered";
+  });
+
+  // search filter (order # / customer uuid / remark)
+  const filtered = text
+    ? deliveredOnly.filter((o) => {
         const onum = String(o.Order_Number || "").toLowerCase();
         const cuid = String(o.Customer_uuid || "").toLowerCase();
         const remark = String(o.Remark || "").toLowerCase();
         return onum.includes(text) || cuid.includes(text) || remark.includes(text);
-      });
-    }
+      })
+    : deliveredOnly;
 
-    return filtered
-      .map((o) => {
-        const pending = (o.Steps || []).filter(isStepNeedingVendor).map((s) => ({
+  // project pending steps
+  return filtered
+    .map((o) => {
+      const pending = (o.Steps || [])
+        .filter(isStepNeedingVendor)
+        .map((s) => ({
           stepId: s?._id,
           label: s?.label || "",
           vendorId: s?.vendorId || "",
@@ -82,21 +92,20 @@ export default function AllVendors() {
           plannedDate: s?.plannedDate,
         }));
 
-        return {
-          ...o,
-          StepsPending: pending,
-        };
-      })
-      .filter((o) => (o.StepsPending || []).length > 0)
-      .sort((a, b) => (b.Order_Number || 0) - (a.Order_Number || 0));
-  };
+      return { ...o, StepsPending: pending };
+    })
+    .filter((o) => (o.StepsPending || []).length > 0)
+    .sort((a, b) => (b.Order_Number || 0) - (a.Order_Number || 0));
+};
+
 
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const [rawRes, customersRes] = await Promise.all([
-        axios.get(RAW_ENDPOINT),
+        axios.get(RAW_ENDPOINT, { params: { deliveredOnly: true } }),
+
         axios.get(`${CUSTOMER_API}/GetCustomersList`),
       ]);
 
