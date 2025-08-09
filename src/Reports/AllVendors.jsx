@@ -23,7 +23,7 @@ export default function AllVendors() {
   const [activeOrder, setActiveOrder] = useState(null);
   const [activeStep, setActiveStep] = useState(null);
 
-  // Assign form (dropdown + amount + date only)
+  // Assign form
   const [selectedVendorUuid, setSelectedVendorUuid] = useState("");
   const [costAmount, setCostAmount] = useState("");
   const [plannedDate, setPlannedDate] = useState(() => {
@@ -34,7 +34,7 @@ export default function AllVendors() {
   // ---- API roots (Vite-first, CRA fallback) ----
   const API_BASE = useMemo(() => {
     const vite = (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_API_BASE) || "";
-    const cra  = (typeof process !== "undefined" && process.env && process.env.REACT_APP_API) || "";
+    const cra = (typeof process !== "undefined" && process.env && process.env.REACT_APP_API) || "";
     const raw = vite || cra || "";
     return String(raw).replace(/\/$/, "");
   }, []);
@@ -47,7 +47,7 @@ export default function AllVendors() {
     try {
       const [vendorsRes, customersRes] = await Promise.all([
         axios.get(VENDORS_ENDPOINT, { params }),
-        axios.get(`${CUSTOMER_API}/GetCustomersList`)
+        axios.get(`${CUSTOMER_API}/GetCustomersList`),
       ]);
 
       const vendorRows = vendorsRes.data?.rows || vendorsRes.data || [];
@@ -73,21 +73,49 @@ export default function AllVendors() {
     }
   };
 
-  useEffect(() => { fetchData(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line
+  }, []);
 
   const onSearch = (e) => {
     e.preventDefault();
     fetchData({ search: searchOrder.trim() || undefined });
   };
 
+  const toISODateInput = (dateLike) => {
+    try {
+      if (!dateLike) return null;
+      const d = new Date(dateLike);
+      if (isNaN(d.getTime())) return null;
+      return d.toISOString().slice(0, 10);
+    } catch {
+      return null;
+    }
+  };
+
   const openAssignModal = (order, step) => {
     setActiveOrder(order);
     setActiveStep(step);
 
-    setSelectedVendorUuid(step.vendorCustomerUuid || "");
+    // Pre-fill vendor
+    setSelectedVendorUuid(step.vendorCustomerUuid || step.vendorId || "");
+
+    // Pre-fill amount
     setCostAmount(step.costAmount ?? "");
-    const d = step.plannedDate ? new Date(step.plannedDate) : new Date();
-    setPlannedDate(d.toISOString().slice(0, 10));
+
+    // Date precedence:
+    // 1) step.plannedDate (if exists)
+    // 2) order.Order_Date (if exists)
+    // 3) order.CreatedAt (fallback)
+    // 4) today
+    const stepISO = toISODateInput(step.plannedDate);
+    const orderISO =
+      toISODateInput(order?.Order_Date) ||
+      toISODateInput(order?.CreatedAt) ||
+      toISODateInput(new Date());
+
+    setPlannedDate(stepISO || orderISO);
 
     setShowAssignModal(true);
   };
@@ -102,68 +130,59 @@ export default function AllVendors() {
     setPlannedDate(d.toISOString().slice(0, 10));
   };
 
-  // Vendor dropdown: ONLY group === "Office & Vendor" (case-insensitive)
+  // Vendor dropdown: ONLY group === "Office & Vendor"
   const vendorOptions = useMemo(() => {
     const isOfficeVendor = (groupValue) => {
       if (!groupValue) return false;
       return String(groupValue).trim().toLowerCase() === "office & vendor";
     };
-
     return customersList
-      .filter(c => isOfficeVendor(c.Customer_group || c.Group || c.group))
-      .map(c => ({
+      .filter((c) => isOfficeVendor(c.Customer_group || c.Group || c.group))
+      .map((c) => ({
         uuid: c.Customer_uuid,
-        name: c.Customer_name
+        name: c.Customer_name,
       }));
   }, [customersList]);
 
-const assignVendor = async () => {
-  if (!activeOrder || !activeStep) return;
+  const assignVendor = async () => {
+    if (!activeOrder || !activeStep) return;
 
-  if (!selectedVendorUuid) {
-    alert("Please choose a vendor from the list.");
-    return;
-  }
-  const amt = Number(costAmount || 0);
-  if (Number.isNaN(amt) || amt < 0) {
-    alert("Invalid cost amount");
-    return;
-  }
-  if (!plannedDate) {
-    alert("Please select a date");
-    return;
-  }
+    if (!selectedVendorUuid) {
+      alert("Please choose a vendor from the list.");
+      return;
+    }
+    const amt = Number(costAmount || 0);
+    if (Number.isNaN(amt) || amt < 0) {
+      alert("Invalid cost amount");
+      return;
+    }
+    if (!plannedDate) {
+      alert("Please select a date");
+      return;
+    }
 
-  try {
-    setLoading(true);
-    const orderId = activeOrder._id || activeOrder.id;
+    try {
+      setLoading(true);
+      const orderId = activeOrder._id || activeOrder.id;
 
-    // Find vendor name from customersMap
-    const vendorName = customersMap[selectedVendorUuid] || "";
+      // Resolve vendorName from map (dropdown label)
+      const vendorName = customersMap[selectedVendorUuid] || "";
 
-    await axios.post(
-      `${ORDER_API}/orders/${orderId}/steps/${activeStep.stepId}/assign-vendor`,
-      {
-        vendorCustomerUuid: selectedVendorUuid,  // existing field
-        vendorId: selectedVendorUuid,            // same as Customer_uuid
-        vendorName: vendorName,                  // name from dropdown
-        costAmount: amt,
-        plannedDate, // YYYY-MM-DD
-        createdBy: localStorage.getItem("User_name") || "operator"
-      }
-    );
+      await axios.post(
+        `${ORDER_API}/orders/${orderId}/steps/${activeStep.stepId}/assign-vendor`,
+        {
+          // keep old field if backend already uses it
+          vendorCustomerUuid: selectedVendorUuid,
 
-    closeAssignModal();
-    fetchData({ search: searchOrder.trim() || undefined });
-    alert("Vendor assigned & transaction posted.");
-  } catch (e) {
-    console.error(e);
-    alert(e?.response?.data?.error || "Failed to assign vendor");
-  } finally {
-    setLoading(false);
-  }
-};
+          // new fields as requested
+          vendorId: selectedVendorUuid, // same as Customer_uuid
+          vendorName: vendorName, // dropdown label
 
+          costAmount: amt,
+          plannedDate, // YYYY-MM-DD
+          createdBy: localStorage.getItem("User_name") || "operator",
+        }
+      );
 
       closeAssignModal();
       fetchData({ search: searchOrder.trim() || undefined });
@@ -178,7 +197,7 @@ const assignVendor = async () => {
 
   const enriched = rows.map((order) => ({
     ...order,
-    Customer_name: customersMap[order.Customer_uuid] || "Unknown"
+    Customer_name: customersMap[order.Customer_uuid] || "Unknown",
   }));
 
   const exportToPDF = () => {
@@ -194,7 +213,7 @@ const assignVendor = async () => {
           s.label,
           s.vendorCustomerUuid || s.vendorId || "-",
           s.costAmount ?? 0,
-          s.isPosted ? "Yes" : "No"
+          s.isPosted ? "Yes" : "No",
         ]);
       });
     });
@@ -215,7 +234,7 @@ const assignVendor = async () => {
           "Vendor UUID": s.vendorCustomerUuid || s.vendorId || "-",
           "Cost Amount": s.costAmount ?? 0,
           "Posted?": s.isPosted ? "Yes" : "No",
-          Remark: order.Remark || "-"
+          Remark: order.Remark || "-",
         });
       });
     });
@@ -270,9 +289,7 @@ const assignVendor = async () => {
                 >
                   <div className="text-gray-900 font-bold text-lg">#{order.Order_Number}</div>
                   <div className="text-gray-700 font-medium">{order.Customer_name}</div>
-                  <div className="text-sm text-gray-600 italic mt-1">
-                    {order.Remark || "-"}
-                  </div>
+                  <div className="text-sm text-gray-600 italic mt-1">{order.Remark || "-"}</div>
 
                   <div className="mt-3 space-y-2">
                     {(order.StepsPending || []).map((s, i) => (
@@ -281,20 +298,19 @@ const assignVendor = async () => {
                         className="border rounded px-2 py-2 text-sm flex items-center justify-between gap-2"
                       >
                         <div className="min-w-0">
-                          {/* Step name visible */}
-                          <div className="font-semibold truncate">
-                            Step: {s.label || "—"}
-                          </div>
+                          <div className="font-semibold truncate">Step: {s.label || "—"}</div>
                           <div className={`text-xs ${s.isPosted ? "text-green-600" : "text-amber-600"}`}>
                             {s.isPosted ? "Posted" : "Not Posted"}
                           </div>
                         </div>
 
                         <button
-                          className="shrink-0 px-3 py-1 rounded bg-indigo-600 text-white text-xs hover:bg-indigo-700 disabled:opacity-50"
+                          className="shrink-0 w-7 h-7 rounded-full bg-indigo-600 text-white text-base leading-none grid place-items-center hover:bg-indigo-700 disabled:opacity-50"
+                          title={s.isPosted ? "Edit Vendor" : "Assign & Post"}
                           onClick={() => openAssignModal(order, s)}
                         >
-                          {s.isPosted ? "Edit Vendor" : "Assign & Post"}
+                          {/* Replace label with '+' as requested */}
+                          +
                         </button>
                       </div>
                     ))}
@@ -305,9 +321,7 @@ const assignVendor = async () => {
                 </div>
               ))
             ) : (
-              <div className="col-span-full text-center text-gray-500 py-10">
-                No vendor entries pending.
-              </div>
+              <div className="col-span-full text-center text-gray-500 py-10">No vendor entries pending.</div>
             )}
           </div>
         </main>
@@ -320,11 +334,13 @@ const assignVendor = async () => {
               <h3 className="text-lg font-semibold">
                 Assign Vendor & Post{activeStep?.label ? ` — ${activeStep.label}` : ""}
               </h3>
-              <button onClick={closeAssignModal} className="text-gray-500 hover:text-black">✕</button>
+              <button onClick={closeAssignModal} className="text-gray-500 hover:text-black">
+                ✕
+              </button>
             </div>
 
             <div className="space-y-3">
-              {/* Step (read-only) */}
+              {/* Step name: non-editable */}
               <div>
                 <label className="block text-sm mb-1">Step Name</label>
                 <input
@@ -343,15 +359,13 @@ const assignVendor = async () => {
                   onChange={(e) => setSelectedVendorUuid(e.target.value)}
                 >
                   <option value="">-- Choose vendor --</option>
-                  {vendorOptions.map(v => (
+                  {vendorOptions.map((v) => (
                     <option key={v.uuid} value={v.uuid}>
                       {v.name}
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Showing customers from group “Office & Vendor”.
-                </p>
+                <p className="text-xs text-gray-500 mt-1">Showing customers from group “Office & Vendor”.</p>
               </div>
 
               <div>
@@ -366,18 +380,23 @@ const assignVendor = async () => {
               </div>
 
               <div>
-                <label className="block text-sm mb-1">Date</label>
+                <label className="block text-sm mb-1">Must Do Date</label>
                 <input
                   type="date"
                   className="w-full border rounded px-3 py-2"
                   value={plannedDate}
                   onChange={(e) => setPlannedDate(e.target.value)}
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Defaults to the order’s date (or today if unavailable).
+                </p>
               </div>
             </div>
 
             <div className="mt-4 flex items-center justify-end gap-2">
-              <button className="px-3 py-2 border rounded" onClick={closeAssignModal}>Cancel</button>
+              <button className="px-3 py-2 border rounded" onClick={closeAssignModal}>
+                Cancel
+              </button>
               <button
                 className="px-3 py-2 rounded bg-black text-white disabled:opacity-50"
                 onClick={assignVendor}
