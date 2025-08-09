@@ -23,7 +23,7 @@ export default function AllVendors() {
   const [activeOrder, setActiveOrder] = useState(null);
   const [activeStep, setActiveStep] = useState(null);
 
-  // Assign form
+  // Assign form (dropdown + amount + date only)
   const [selectedVendorUuid, setSelectedVendorUuid] = useState("");
   const [costAmount, setCostAmount] = useState("");
   const [plannedDate, setPlannedDate] = useState(() => {
@@ -31,10 +31,20 @@ export default function AllVendors() {
     return d.toISOString().slice(0, 10);
   });
 
+  // Add Step modal
+  const [showAddStepModal, setShowAddStepModal] = useState(false);
+  const [addStepOrder, setAddStepOrder] = useState(null);
+  const [newStepLabel, setNewStepLabel] = useState("");
+  const [newStepCost, setNewStepCost] = useState("");
+  const [newStepDate, setNewStepDate] = useState(() => {
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
+  });
+
   // ---- API roots (Vite-first, CRA fallback) ----
   const API_BASE = useMemo(() => {
     const vite = (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_API_BASE) || "";
-    const cra = (typeof process !== "undefined" && process.env && process.env.REACT_APP_API) || "";
+    const cra  = (typeof process !== "undefined" && process.env && process.env.REACT_APP_API) || "";
     const raw = vite || cra || "";
     return String(raw).replace(/\/$/, "");
   }, []);
@@ -47,7 +57,7 @@ export default function AllVendors() {
     try {
       const [vendorsRes, customersRes] = await Promise.all([
         axios.get(VENDORS_ENDPOINT, { params }),
-        axios.get(`${CUSTOMER_API}/GetCustomersList`),
+        axios.get(`${CUSTOMER_API}/GetCustomersList`)
       ]);
 
       const vendorRows = vendorsRes.data?.rows || vendorsRes.data || [];
@@ -73,49 +83,21 @@ export default function AllVendors() {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line
-  }, []);
+  useEffect(() => { fetchData(); /* eslint-disable-next-line */ }, []);
 
   const onSearch = (e) => {
     e.preventDefault();
     fetchData({ search: searchOrder.trim() || undefined });
   };
 
-  const toISODateInput = (dateLike) => {
-    try {
-      if (!dateLike) return null;
-      const d = new Date(dateLike);
-      if (isNaN(d.getTime())) return null;
-      return d.toISOString().slice(0, 10);
-    } catch {
-      return null;
-    }
-  };
-
   const openAssignModal = (order, step) => {
     setActiveOrder(order);
     setActiveStep(step);
 
-    // Pre-fill vendor
-    setSelectedVendorUuid(step.vendorCustomerUuid || step.vendorId || "");
-
-    // Pre-fill amount
+    setSelectedVendorUuid(step.vendorCustomerUuid || "");
     setCostAmount(step.costAmount ?? "");
-
-    // Date precedence:
-    // 1) step.plannedDate (if exists)
-    // 2) order.Order_Date (if exists)
-    // 3) order.CreatedAt (fallback)
-    // 4) today
-    const stepISO = toISODateInput(step.plannedDate);
-    const orderISO =
-      toISODateInput(order?.Order_Date) ||
-      toISODateInput(order?.CreatedAt) ||
-      toISODateInput(new Date());
-
-    setPlannedDate(stepISO || orderISO);
+    const d = step.plannedDate ? new Date(step.plannedDate) : new Date();
+    setPlannedDate(d.toISOString().slice(0, 10));
 
     setShowAssignModal(true);
   };
@@ -130,17 +112,18 @@ export default function AllVendors() {
     setPlannedDate(d.toISOString().slice(0, 10));
   };
 
-  // Vendor dropdown: ONLY group === "Office & Vendor"
+  // Vendor dropdown: ONLY group === "Office & Vendor" (case-insensitive)
   const vendorOptions = useMemo(() => {
     const isOfficeVendor = (groupValue) => {
       if (!groupValue) return false;
       return String(groupValue).trim().toLowerCase() === "office & vendor";
     };
+
     return customersList
-      .filter((c) => isOfficeVendor(c.Customer_group || c.Group || c.group))
-      .map((c) => ({
+      .filter(c => isOfficeVendor(c.Customer_group || c.Group || c.group))
+      .map(c => ({
         uuid: c.Customer_uuid,
-        name: c.Customer_name,
+        name: c.Customer_name
       }));
   }, [customersList]);
 
@@ -165,22 +148,13 @@ export default function AllVendors() {
       setLoading(true);
       const orderId = activeOrder._id || activeOrder.id;
 
-      // Resolve vendorName from map (dropdown label)
-      const vendorName = customersMap[selectedVendorUuid] || "";
-
       await axios.post(
         `${ORDER_API}/orders/${orderId}/steps/${activeStep.stepId}/assign-vendor`,
         {
-          // keep old field if backend already uses it
           vendorCustomerUuid: selectedVendorUuid,
-
-          // new fields as requested
-          vendorId: selectedVendorUuid, // same as Customer_uuid
-          vendorName: vendorName, // dropdown label
-
           costAmount: amt,
           plannedDate, // YYYY-MM-DD
-          createdBy: localStorage.getItem("User_name") || "operator",
+          createdBy: localStorage.getItem("User_name") || "operator"
         }
       );
 
@@ -197,8 +171,84 @@ export default function AllVendors() {
 
   const enriched = rows.map((order) => ({
     ...order,
-    Customer_name: customersMap[order.Customer_uuid] || "Unknown",
+    Customer_name: customersMap[order.Customer_uuid] || "Unknown"
   }));
+
+  // ------- NEW: Add Step handlers -------
+  const openAddStepModal = (order) => {
+    setAddStepOrder(order);
+    setNewStepLabel("");
+    setNewStepCost("");
+    const d = new Date();
+    setNewStepDate(d.toISOString().slice(0, 10));
+    setShowAddStepModal(true);
+  };
+
+  const closeAddStepModal = () => {
+    setShowAddStepModal(false);
+    setAddStepOrder(null);
+    setNewStepLabel("");
+    setNewStepCost("");
+    const d = new Date();
+    setNewStepDate(d.toISOString().slice(0, 10));
+  };
+
+  const saveNewStep = async () => {
+    if (!addStepOrder) return;
+    const label = String(newStepLabel || "").trim();
+    if (!label) {
+      alert("Please enter a Step Name");
+      return;
+    }
+    const amt = Number(newStepCost || 0);
+    if (Number.isNaN(amt) || amt < 0) {
+      alert("Invalid cost amount");
+      return;
+    }
+    if (!newStepDate) {
+      alert("Please select a date");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const orderId = addStepOrder._id || addStepOrder.id;
+
+      // 1) Get full order (so we can append to Steps safely)
+      const fullOrderRes = await axios.get(`${ORDER_API}/${orderId}`);
+      const fullOrder = fullOrderRes.data;
+
+      const existingSteps = Array.isArray(fullOrder.Steps) ? fullOrder.Steps : [];
+
+      // 2) Build new step in your established shape
+      const d = new Date(newStepDate);
+      const newStep = {
+        label,
+        checked: false,
+        vendorId: null,
+        vendorName: null,
+        costAmount: amt,
+        status: "pending",
+        plannedDate: d, // keep for UI; backend won't transform it but will store in doc
+        posting: { isPosted: false, txnId: null, postedAt: null }
+      };
+
+      // 3) Update order with appended Steps (using your existing /updateOrder route)
+      await axios.put(`${ORDER_API}/updateOrder/${orderId}`, {
+        Steps: [...existingSteps, newStep]
+      });
+
+      closeAddStepModal();
+      // Refresh list
+      fetchData({ search: searchOrder.trim() || undefined });
+      alert("Step added successfully.");
+    } catch (e) {
+      console.error(e);
+      alert(e?.response?.data?.message || "Failed to add step");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const exportToPDF = () => {
     const doc = new jsPDF();
@@ -213,7 +263,7 @@ export default function AllVendors() {
           s.label,
           s.vendorCustomerUuid || s.vendorId || "-",
           s.costAmount ?? 0,
-          s.isPosted ? "Yes" : "No",
+          s.isPosted ? "Yes" : "No"
         ]);
       });
     });
@@ -234,7 +284,7 @@ export default function AllVendors() {
           "Vendor UUID": s.vendorCustomerUuid || s.vendorId || "-",
           "Cost Amount": s.costAmount ?? 0,
           "Posted?": s.isPosted ? "Yes" : "No",
-          Remark: order.Remark || "-",
+          Remark: order.Remark || "-"
         });
       });
     });
@@ -287,9 +337,20 @@ export default function AllVendors() {
                   key={order._id || order.Order_Number}
                   className="relative bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition"
                 >
-                  <div className="text-gray-900 font-bold text-lg">#{order.Order_Number}</div>
+                  <div className="text-gray-900 font-bold text-lg flex items-center justify-between">
+                    <span>#{order.Order_Number}</span>
+                    {/* NEW: Add Step button */}
+                    <button
+                      className="text-xs px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700"
+                      onClick={() => openAddStepModal(order)}
+                    >
+                      + Add Step
+                    </button>
+                  </div>
                   <div className="text-gray-700 font-medium">{order.Customer_name}</div>
-                  <div className="text-sm text-gray-600 italic mt-1">{order.Remark || "-"}</div>
+                  <div className="text-sm text-gray-600 italic mt-1">
+                    {order.Remark || "-"}
+                  </div>
 
                   <div className="mt-3 space-y-2">
                     {(order.StepsPending || []).map((s, i) => (
@@ -298,19 +359,19 @@ export default function AllVendors() {
                         className="border rounded px-2 py-2 text-sm flex items-center justify-between gap-2"
                       >
                         <div className="min-w-0">
-                          <div className="font-semibold truncate">Step: {s.label || "—"}</div>
+                          <div className="font-semibold truncate">
+                            Step: {s.label || "—"}
+                          </div>
                           <div className={`text-xs ${s.isPosted ? "text-green-600" : "text-amber-600"}`}>
                             {s.isPosted ? "Posted" : "Not Posted"}
                           </div>
                         </div>
 
                         <button
-                          className="shrink-0 w-7 h-7 rounded-full bg-indigo-600 text-white text-base leading-none grid place-items-center hover:bg-indigo-700 disabled:opacity-50"
-                          title={s.isPosted ? "Edit Vendor" : "Assign & Post"}
+                          className="shrink-0 px-3 py-1 rounded bg-indigo-600 text-white text-xs hover:bg-indigo-700 disabled:opacity-50"
                           onClick={() => openAssignModal(order, s)}
                         >
-                          {/* Replace label with '+' as requested */}
-                          +
+                          {s.isPosted ? "Edit Vendor" : "Assign & Post"}
                         </button>
                       </div>
                     ))}
@@ -321,12 +382,15 @@ export default function AllVendors() {
                 </div>
               ))
             ) : (
-              <div className="col-span-full text-center text-gray-500 py-10">No vendor entries pending.</div>
+              <div className="col-span-full text-center text-gray-500 py-10">
+                No vendor entries pending.
+              </div>
             )}
           </div>
         </main>
       </div>
 
+      {/* Assign Vendor Modal */}
       {showAssignModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-lg p-4 w-full max-w-md">
@@ -334,13 +398,11 @@ export default function AllVendors() {
               <h3 className="text-lg font-semibold">
                 Assign Vendor & Post{activeStep?.label ? ` — ${activeStep.label}` : ""}
               </h3>
-              <button onClick={closeAssignModal} className="text-gray-500 hover:text-black">
-                ✕
-              </button>
+              <button onClick={closeAssignModal} className="text-gray-500 hover:text-black">✕</button>
             </div>
 
             <div className="space-y-3">
-              {/* Step name: non-editable */}
+              {/* Step (read-only) */}
               <div>
                 <label className="block text-sm mb-1">Step Name</label>
                 <input
@@ -359,13 +421,15 @@ export default function AllVendors() {
                   onChange={(e) => setSelectedVendorUuid(e.target.value)}
                 >
                   <option value="">-- Choose vendor --</option>
-                  {vendorOptions.map((v) => (
+                  {vendorOptions.map(v => (
                     <option key={v.uuid} value={v.uuid}>
                       {v.name}
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-500 mt-1">Showing customers from group “Office & Vendor”.</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Showing customers from group “Office & Vendor”.
+                </p>
               </div>
 
               <div>
@@ -380,29 +444,83 @@ export default function AllVendors() {
               </div>
 
               <div>
-                <label className="block text-sm mb-1">Must Do Date</label>
+                <label className="block text-sm mb-1">Date</label>
                 <input
                   type="date"
                   className="w-full border rounded px-3 py-2"
                   value={plannedDate}
                   onChange={(e) => setPlannedDate(e.target.value)}
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Defaults to the order’s date (or today if unavailable).
-                </p>
               </div>
             </div>
 
             <div className="mt-4 flex items-center justify-end gap-2">
-              <button className="px-3 py-2 border rounded" onClick={closeAssignModal}>
-                Cancel
-              </button>
+              <button className="px-3 py-2 border rounded" onClick={closeAssignModal}>Cancel</button>
               <button
                 className="px-3 py-2 rounded bg-black text-white disabled:opacity-50"
                 onClick={assignVendor}
                 disabled={loading}
               >
                 Save & Post
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Step Modal */}
+      {showAddStepModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-lg p-4 w-full max-w-md">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">
+                + Add Step {addStepOrder?.Order_Number ? `— #${addStepOrder.Order_Number}` : ""}
+              </h3>
+              <button onClick={closeAddStepModal} className="text-gray-500 hover:text-black">✕</button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm mb-1">Step Name *</label>
+                <input
+                  className="w-full border rounded px-3 py-2"
+                  value={newStepLabel}
+                  onChange={(e) => setNewStepLabel(e.target.value)}
+                  placeholder="e.g., Design, Printing, Lamination"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm mb-1">Planned Date *</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={newStepDate}
+                  onChange={(e) => setNewStepDate(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm mb-1">Estimated Cost (₹) — optional</label>
+                <input
+                  type="number"
+                  className="w-full border rounded px-3 py-2"
+                  value={newStepCost}
+                  onChange={(e) => setNewStepCost(e.target.value)}
+                  min="0"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button className="px-3 py-2 border rounded" onClick={closeAddStepModal}>Cancel</button>
+              <button
+                className="px-3 py-2 rounded bg-emerald-600 text-white disabled:opacity-50"
+                onClick={saveNewStep}
+                disabled={loading}
+              >
+                Save Step
               </button>
             </div>
           </div>
