@@ -23,7 +23,7 @@ export default function AllVendors() {
   const [activeOrder, setActiveOrder] = useState(null);
   const [activeStep, setActiveStep] = useState(null);
 
-  // Assign form (vendor + cost + date + step-from-taskgroups)
+  // Assign form (vendor + amount + date + taskgroup step)
   const [selectedVendorUuid, setSelectedVendorUuid] = useState("");
   const [costAmount, setCostAmount] = useState("");
   const [plannedDate, setPlannedDate] = useState(() => {
@@ -31,8 +31,8 @@ export default function AllVendors() {
     return d.toISOString().slice(0, 10);
   });
 
-  // New: Taskgroup steps
-  const [taskStepOptions, setTaskStepOptions] = useState([]); // array of labels
+  // Taskgroup steps
+  const [taskStepOptions, setTaskStepOptions] = useState([]); // array of strings (labels)
   const [selectedStepLabel, setSelectedStepLabel] = useState("");
 
   // ---- API roots (Vite-first, CRA fallback) ----
@@ -46,7 +46,7 @@ export default function AllVendors() {
   const CUSTOMER_API = `${API_BASE}/customer`;
   const VENDORS_ENDPOINT = `${ORDER_API}/allvendors`;
 
-  // Try these taskgroup endpoints in order until one works
+  // Common taskgroup endpoints we’ve used in this project
   const TASKGROUP_ENDPOINTS = [
     `${API_BASE}/taskgroup/with-steps`,
     `${API_BASE}/taskgroup/withUsage`,
@@ -55,7 +55,7 @@ export default function AllVendors() {
     `${API_BASE}/taskgroup`
   ];
 
-  // Fetch Taskgroups → Flatten into list of step labels
+  // Fetch Taskgroups → flatten to unique step labels
   const fetchTaskSteps = async () => {
     for (const url of TASKGROUP_ENDPOINTS) {
       try {
@@ -63,26 +63,20 @@ export default function AllVendors() {
         const data = res?.data;
         if (!data) continue;
 
-        // Normalize possible shapes
         const groups = Array.isArray(data?.result) ? data.result
-                      : Array.isArray(data?.groups) ? data.groups
-                      : Array.isArray(data) ? data
-                      : [];
+                    : Array.isArray(data?.groups) ? data.groups
+                    : Array.isArray(data) ? data
+                    : [];
 
         const labels = new Set();
-
-        groups.forEach(g => {
-          // Common field names: Steps / steps / stepList
+        groups.forEach((g) => {
           const steps = g?.Steps || g?.steps || g?.stepList || [];
           if (Array.isArray(steps)) {
-            steps.forEach(s => {
-              // Common label keys: label / name / Step / Title
+            steps.forEach((s) => {
               const lbl = s?.label || s?.name || s?.Step || s?.Title || s?.title;
               if (lbl && String(lbl).trim()) labels.add(String(lbl).trim());
             });
-          }
-          // Some backends store as comma-delimited string
-          if (typeof g?.steps === "string") {
+          } else if (typeof g?.steps === "string") {
             g.steps.split(",").map(x => x.trim()).forEach(x => x && labels.add(x));
           }
         });
@@ -92,12 +86,11 @@ export default function AllVendors() {
           setTaskStepOptions(list.sort());
           return;
         }
-      } catch (e) {
+      } catch {
         // try next endpoint
       }
     }
-    // Fallback: empty (will show a free-text input instead)
-    setTaskStepOptions([]);
+    setTaskStepOptions([]); // none matched → allow free‑text fallback
   };
 
   const fetchData = async (params = {}) => {
@@ -151,7 +144,7 @@ export default function AllVendors() {
     const d = step.plannedDate ? new Date(step.plannedDate) : new Date();
     setPlannedDate(d.toISOString().slice(0, 10));
 
-    // Pre-select step label (or blank)
+    // Preselect dropdown to current label (if any)
     setSelectedStepLabel(step?.label || "");
 
     setShowAssignModal(true);
@@ -168,27 +161,22 @@ export default function AllVendors() {
     setSelectedStepLabel("");
   };
 
-  // Vendor dropdown: ONLY group === "Office & Vendor" (case-insensitive)
+  // Vendor dropdown: ONLY group === "Office & Vendor"
   const vendorOptions = useMemo(() => {
     const isOfficeVendor = (groupValue) => {
       if (!groupValue) return false;
       return String(groupValue).trim().toLowerCase() === "office & vendor";
     };
-
     return customersList
       .filter(c => isOfficeVendor(c.Customer_group || c.Group || c.group))
-      .map(c => ({
-        uuid: c.Customer_uuid,
-        name: c.Customer_name
-      }));
+      .map(c => ({ uuid: c.Customer_uuid, name: c.Customer_name }));
   }, [customersList]);
 
   const assignVendor = async () => {
     if (!activeOrder || !activeStep) return;
 
-    // Validate
-    const chosenLabel = (selectedStepLabel || "").trim();
-    if (!chosenLabel) {
+    const label = (selectedStepLabel || "").trim();
+    if (!label) {
       alert("Please choose a Step from Taskgroups (or type one).");
       return;
     }
@@ -209,18 +197,16 @@ export default function AllVendors() {
     try {
       setLoading(true);
       const orderId = activeOrder._id || activeOrder.id;
-      const stepId = activeStep.stepId ?? activeStep._id ?? ""; // be liberal
+      const stepId = activeStep.stepId ?? activeStep._id ?? "";
 
       await axios.post(
         `${ORDER_API}/orders/${orderId}/steps/${stepId}/assign-vendor`,
         {
-          // keep existing API payload
           vendorCustomerUuid: selectedVendorUuid,
           costAmount: amt,
           plannedDate, // YYYY-MM-DD
           createdBy: localStorage.getItem("User_name") || "operator",
-          // New: tell backend which standardized step label we selected
-          label: chosenLabel
+          label // send standardized step label
         }
       );
 
@@ -353,7 +339,7 @@ export default function AllVendors() {
                           onClick={() => openAssignModal(order, s)}
                           title={s.isPosted ? "Edit Vendor" : "Assign & Post"}
                         >
-                          {s.isPosted ? "Edit" : "+"}
+                          {s.isPosted ? "Edit Vendor" : "+"}
                         </button>
                       </div>
                     ))}
