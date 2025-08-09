@@ -273,7 +273,7 @@ export default function AllVendors() {
         data.push({
           "Order Number": order.Order_Number,
           "Customer Name": order.Customer_name,
-          Step: s.label,
+           s.label,
           "Vendor UUID": s.vendorCustomerUuid || s.vendorId || "-",
           "Cost Amount": s.costAmount ?? 0,
           "Posted?": s.isPosted ? "Yes" : "No",
