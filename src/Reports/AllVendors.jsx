@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import OrderStepsModal from "../Components/OrderStepsModal";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -13,53 +12,47 @@ export default function AllVendors() {
   // Data
   const [rows, setRows] = useState([]);
   const [customersMap, setCustomersMap] = useState({});
-  const [customersList, setCustomersList] = useState([]); // full list with groups for filtering
+  const [customersList, setCustomersList] = useState([]);
 
   // UI / search
   const [searchOrder, setSearchOrder] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Modals
-  const [showStepsModal, setShowStepsModal] = useState(false);
-  const [stepsOrder, setStepsOrder] = useState(null);
-
+  // Assign modal
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [activeOrder, setActiveOrder] = useState(null);
   const [activeStep, setActiveStep] = useState(null);
 
-  // Assign form (updated: no vendorId, add dropdown + description + date)
+  // Assign form (dropdown + amount + date only)
   const [selectedVendorUuid, setSelectedVendorUuid] = useState("");
-  const [vendorName, setVendorName] = useState(""); // free text override / display
   const [costAmount, setCostAmount] = useState("");
-  const [description, setDescription] = useState("");
   const [plannedDate, setPlannedDate] = useState(() => {
     const d = new Date();
     return d.toISOString().slice(0, 10);
   });
 
-  // ---- API roots ----
+  // ---- API roots (Vite-first, CRA fallback) ----
   const API_BASE = useMemo(() => {
-    const raw =
-      (typeof import.meta !== "undefined" ? import.meta.env.VITE_API_BASE : "") ||
-      process.env.REACT_APP_API ||
-      "";
+    const vite = (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_API_BASE) || "";
+    const cra  = (typeof process !== "undefined" && process.env && process.env.REACT_APP_API) || "";
+    const raw = vite || cra || "";
     return String(raw).replace(/\/$/, "");
   }, []);
   const ORDER_API = `${API_BASE}/order`;
   const CUSTOMER_API = `${API_BASE}/customer`;
+  const VENDORS_ENDPOINT = `${ORDER_API}/allvendors`;
 
   const fetchData = async (params = {}) => {
     setLoading(true);
     try {
       const [vendorsRes, customersRes] = await Promise.all([
-        axios.get(`${ORDER_API}/allvendors`, { params }),
+        axios.get(VENDORS_ENDPOINT, { params }),
         axios.get(`${CUSTOMER_API}/GetCustomersList`)
       ]);
 
       const vendorRows = vendorsRes.data?.rows || vendorsRes.data || [];
       setRows(Array.isArray(vendorRows) ? vendorRows : []);
 
-      // Build map (uuid -> name) for quick lookup AND keep original list for filtering vendors
       if (customersRes.data?.success && Array.isArray(customersRes.data.result)) {
         const list = customersRes.data.result;
         setCustomersList(list);
@@ -87,73 +80,48 @@ export default function AllVendors() {
     fetchData({ search: searchOrder.trim() || undefined });
   };
 
-  const openStepsModal = (e, order) => {
-    e.stopPropagation();
-    setStepsOrder(order);
-    setShowStepsModal(true);
-  };
-  const closeStepsModal = () => {
-    setShowStepsModal(false);
-    setStepsOrder(null);
-  };
-
   const openAssignModal = (order, step) => {
     setActiveOrder(order);
     setActiveStep(step);
 
-    // Prefill from existing values if present
     setSelectedVendorUuid(step.vendorCustomerUuid || "");
-    setVendorName(step.vendorName || "");
     setCostAmount(step.costAmount ?? "");
-    setDescription(step.vendorDescription || "");
     const d = step.plannedDate ? new Date(step.plannedDate) : new Date();
     setPlannedDate(d.toISOString().slice(0, 10));
 
     setShowAssignModal(true);
   };
+
   const closeAssignModal = () => {
     setShowAssignModal(false);
     setActiveOrder(null);
     setActiveStep(null);
     setSelectedVendorUuid("");
-    setVendorName("");
     setCostAmount("");
-    setDescription("");
     const d = new Date();
     setPlannedDate(d.toISOString().slice(0, 10));
   };
 
-  // Filter customers to only "office" or "vendor" groups (case-insensitive)
+  // Vendor dropdown: ONLY group === "Office & Vendor" (case-insensitive)
   const vendorOptions = useMemo(() => {
-    const isVendorish = (g) => {
-      if (!g) return false;
-      const s = String(g).toLowerCase();
-      return s.includes("office & Vendor") || s.includes("");
+    const isOfficeVendor = (groupValue) => {
+      if (!groupValue) return false;
+      return String(groupValue).trim().toLowerCase() === "office & vendor";
     };
+
     return customersList
-      .filter(c => isVendorish(c.Customer_group || c.Group || c.group))
+      .filter(c => isOfficeVendor(c.Customer_group || c.Group || c.group))
       .map(c => ({
         uuid: c.Customer_uuid,
         name: c.Customer_name
       }));
   }, [customersList]);
 
-  // Keep vendorName synced with dropdown (but allow manual override)
-  const handleVendorSelect = (uuid) => {
-    setSelectedVendorUuid(uuid);
-    if (!uuid) {
-      // If cleared, keep current manual name
-      return;
-    }
-    const found = vendorOptions.find(v => v.uuid === uuid);
-    if (found) setVendorName(found.name);
-  };
-
   const assignVendor = async () => {
     if (!activeOrder || !activeStep) return;
 
-    if (!selectedVendorUuid && !vendorName.trim()) {
-      alert("Please choose a vendor from the list or type a vendor name.");
+    if (!selectedVendorUuid) {
+      alert("Please choose a vendor from the list.");
       return;
     }
     const amt = Number(costAmount || 0);
@@ -170,16 +138,11 @@ export default function AllVendors() {
       setLoading(true);
       const orderId = activeOrder._id || activeOrder.id;
 
-      // NOTE: backend previously accepted { vendorId, vendorName, costAmount, createdBy }
-      // We now send without vendorId, plus description & plannedDate, and include vendorCustomerUuid for reference.
       await axios.post(
         `${ORDER_API}/orders/${orderId}/steps/${activeStep.stepId}/assign-vendor`,
         {
-          vendorId: null, // intentionally not used anymore
-          vendorCustomerUuid: selectedVendorUuid || null,
-          vendorName: vendorName?.trim() || null,
+          vendorCustomerUuid: selectedVendorUuid,
           costAmount: amt,
-          description: description?.trim() || null,
           plannedDate, // YYYY-MM-DD
           createdBy: localStorage.getItem("User_name") || "operator"
         }
@@ -203,7 +166,7 @@ export default function AllVendors() {
 
   const exportToPDF = () => {
     const doc = new jsPDF();
-    const tableColumn = ["Order #", "Customer", "Step", "Vendor", "Cost", "Posted?"];
+    const tableColumn = ["Order #", "Customer", "Step", "Vendor UUID", "Cost", "Posted?"];
     const tableRows = [];
 
     enriched.forEach((order) => {
@@ -212,7 +175,7 @@ export default function AllVendors() {
           order.Order_Number,
           order.Customer_name,
           s.label,
-          s.vendorName || s.vendorId || "-",
+          s.vendorCustomerUuid || s.vendorId || "-",
           s.costAmount ?? 0,
           s.isPosted ? "Yes" : "No"
         ]);
@@ -232,7 +195,7 @@ export default function AllVendors() {
           "Order Number": order.Order_Number,
           "Customer Name": order.Customer_name,
           Step: s.label,
-          Vendor: s.vendorName || s.vendorId || "-",
+          "Vendor UUID": s.vendorCustomerUuid || s.vendorId || "-",
           "Cost Amount": s.costAmount ?? 0,
           "Posted?": s.isPosted ? "Yes" : "No",
           Remark: order.Remark || "-"
@@ -283,18 +246,11 @@ export default function AllVendors() {
             {loading ? (
               <div className="col-span-full text-center text-gray-500 py-10">Loading…</div>
             ) : enriched.length > 0 ? (
-              enriched.map((order, idx) => (
+              enriched.map((order) => (
                 <div
-                  key={idx}
+                  key={order._id || order.Order_Number}
                   className="relative bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition"
                 >
-                  <button
-                    className="absolute top-2 right-2 text-xs bg-blue-500 text-white px-2 py-1 rounded"
-                    onClick={(e) => openStepsModal(e, order)}
-                  >
-                    Steps
-                  </button>
-
                   <div className="text-gray-900 font-bold text-lg">#{order.Order_Number}</div>
                   <div className="text-gray-700 font-medium">{order.Customer_name}</div>
                   <div className="text-sm text-gray-600 italic mt-1">
@@ -304,20 +260,14 @@ export default function AllVendors() {
                   <div className="mt-3 space-y-2">
                     {(order.StepsPending || []).map((s, i) => (
                       <div
-                        key={`${order._id}-${s.stepId}-${i}`}
+                        key={`${order._id || order.Order_Number}-${s.stepId || i}`}
                         className="border rounded px-2 py-2 text-sm flex items-center justify-between gap-2"
                       >
                         <div className="min-w-0">
-                          {/* Step name shown clearly */}
+                          {/* Step name visible */}
                           <div className="font-semibold truncate">
                             Step: {s.label || "—"}
                           </div>
-                          <div className="text-gray-500 truncate">
-                            {(s.vendorName || s.vendorId)
-                              ? (s.vendorName || s.vendorId)
-                              : "— Vendor not set —"}
-                          </div>
-                          <div className="text-gray-600">₹ {s.costAmount ?? 0}</div>
                           <div className={`text-xs ${s.isPosted ? "text-green-600" : "text-amber-600"}`}>
                             {s.isPosted ? "Posted" : "Not Posted"}
                           </div>
@@ -346,10 +296,6 @@ export default function AllVendors() {
         </main>
       </div>
 
-      {showStepsModal && (
-        <OrderStepsModal order={stepsOrder} onClose={closeStepsModal} />
-      )}
-
       {showAssignModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-lg p-4 w-full max-w-md">
@@ -361,13 +307,23 @@ export default function AllVendors() {
             </div>
 
             <div className="space-y-3">
-              {/* Vendor dropdown from customers having group 'office' or 'vendor' */}
+              {/* Step (read-only) */}
               <div>
-                <label className="block text-sm mb-1">Select Vendor (from Customers)</label>
+                <label className="block text-sm mb-1">Step Name</label>
+                <input
+                  className="w-full border rounded px-3 py-2 bg-gray-100"
+                  value={activeStep?.label || ""}
+                  readOnly
+                />
+              </div>
+
+              {/* Vendor dropdown (Office & Vendor group only) */}
+              <div>
+                <label className="block text-sm mb-1">Select Vendor</label>
                 <select
                   className="w-full border rounded px-3 py-2 bg-white"
                   value={selectedVendorUuid}
-                  onChange={(e) => handleVendorSelect(e.target.value)}
+                  onChange={(e) => setSelectedVendorUuid(e.target.value)}
                 >
                   <option value="">-- Choose vendor --</option>
                   {vendorOptions.map(v => (
@@ -377,19 +333,8 @@ export default function AllVendors() {
                   ))}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  List is filtered to customer group “office” or “vendor”.
+                  Showing customers from group “Office & Vendor”.
                 </p>
-              </div>
-
-              {/* Optional manual vendor name override */}
-              <div>
-                <label className="block text-sm mb-1">Vendor Name (optional override)</label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={vendorName}
-                  onChange={(e) => setVendorName(e.target.value)}
-                  placeholder="e.g., ABC Printers"
-                />
               </div>
 
               <div>
@@ -400,17 +345,6 @@ export default function AllVendors() {
                   value={costAmount}
                   onChange={(e) => setCostAmount(e.target.value)}
                   min="0"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm mb-1">Description</label>
-                <textarea
-                  className="w-full border rounded px-3 py-2"
-                  rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Work details / notes"
                 />
               </div>
 
