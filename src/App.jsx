@@ -66,7 +66,7 @@ import WhatsAppLogin from "./Pages/WhatsAppLogin";
 import WhatsAppSession from "./Pages/WhatsAppSession";
 import WhatsAppAdminPanel from "./Pages/WhatsAppAdminPanel";
 import PendingTasks from './Pages/PendingTasks';
-import AllAttandance from './Pages/AllAttandance';
+import AllVendors from './Reports/AllVendors';
 import CashLedger from "./Pages/CashLedger";
 import Vendor from "./Pages/vendor";
 import MigrateOrders from "./Pages/MigrateOrders";
@@ -153,6 +153,8 @@ function App() {
             <Route path="/WhatsAppSession" element={<WhatsAppSession />} />
             <Route path="/PendingTasks" element={<PendingTasks />} />
             <Route path="/AllAttandance" element={<AllAttandance />} />
+            <Route path="/AllVendors" element={<AllVendors />} />
+            
             {/* ✅ NEW route */}
             <Route path="/attendance-report" element={<AttendanceReport />} />
             <Route path="/CashLedger" element={<CashLedger />} />
