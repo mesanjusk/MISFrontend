@@ -9,16 +9,14 @@ import { saveAs } from "file-saver";
 
 export default function AllVendors() {
   const navigate = useNavigate();
-  const [rows, setRows] = useState([]); // server: [{ _id, Order_Number, Customer_uuid, Remark, StepsPending: [...] }]
+  const [rows, setRows] = useState([]);
   const [customers, setCustomers] = useState({});
   const [searchOrder, setSearchOrder] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Steps modal (view only, optional)
   const [showStepsModal, setShowStepsModal] = useState(false);
   const [stepsOrder, setStepsOrder] = useState(null);
 
-  // Assign Vendor modal
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [activeOrder, setActiveOrder] = useState(null);
   const [activeStep, setActiveStep] = useState(null);
@@ -58,7 +56,6 @@ export default function AllVendors() {
 
   const onSearch = (e) => {
     e.preventDefault();
-    // server supports search on order no / customer uuid / remark
     fetchData({ search: searchOrder.trim() });
   };
 
@@ -110,7 +107,6 @@ export default function AllVendors() {
         }
       );
       closeAssignModal();
-      // refresh list
       fetchData({ search: searchOrder.trim() || undefined });
       alert("Vendor assigned & transaction posted.");
     } catch (e) {
@@ -126,7 +122,6 @@ export default function AllVendors() {
     Customer_name: customers[order.Customer_uuid] || "Unknown",
   }));
 
-  // ----------- Export -----------
   const exportToPDF = () => {
     const doc = new jsPDF();
     const tableColumn = ["Order #", "Customer", "Step", "Vendor", "Cost", "Posted?"];
@@ -176,7 +171,6 @@ export default function AllVendors() {
   return (
     <>
       <div className="pt-14 pb-20 max-w-8xl mx-auto px-4">
-        {/* Toolbar */}
         <div className="flex flex-col md:flex-row justify-between gap-2 mb-4 items-center">
           <form className="w-full max-w-md" onSubmit={onSearch}>
             <input
@@ -205,7 +199,6 @@ export default function AllVendors() {
           </div>
         </div>
 
-        {/* Cards Grid (same vibe as your AllBills) */}
         <main className="p-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
             {loading ? (
@@ -271,12 +264,10 @@ export default function AllVendors() {
         </main>
       </div>
 
-      {/* Steps Viewer Modal (optional) */}
       {showStepsModal && (
         <OrderStepsModal order={stepsOrder} onClose={closeStepsModal} />
       )}
 
-      {/* Assign Vendor Modal */}
       {showAssignModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-lg p-4 w-full max-w-md">
