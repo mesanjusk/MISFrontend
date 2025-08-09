@@ -1,4 +1,4 @@
-/* eslint-disable react/prop-types */
+import PropTypes from 'prop-types';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -111,4 +111,29 @@ export default function InvoiceModal({
     </div>
   );
 }
+
+InvoiceModal.propTypes = {
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func,
+  invoiceRef: PropTypes.shape({ current: PropTypes.instanceOf(Element) }),
+  customerName: PropTypes.string,
+  customerMobile: PropTypes.string,
+  items: PropTypes.arrayOf(
+    PropTypes.shape({
+      Item: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      Quantity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      Rate: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      Amount: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    })
+  ),
+  remark: PropTypes.string,
+  orderId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onSendWhatsApp: PropTypes.func,
+};
+
+InvoiceModal.defaultProps = {
+  items: [],
+  remark: '',
+  orderId: '',
+};
 
