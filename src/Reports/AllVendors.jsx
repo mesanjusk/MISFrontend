@@ -48,6 +48,8 @@ export default function AllVendors() {
   const ORDER_API = `${API_BASE}/order`;
   const CUSTOMER_API = `${API_BASE}/customer`;
   const RAW_ENDPOINT = `${ORDER_API}/allvendors-raw`;
+  const TASKGROUPS_ENDPOINT = `${API_BASE}/taskgroup/GetTaskgroupList`;
+
 
   // Utilities
   const isStepNeedingVendor = (st) => {
@@ -66,6 +68,12 @@ const computeProjectedRows = (docs, search) => {
     return latest?.Task?.trim().toLowerCase() === "delivered";
   });
 
+const [taskGroups, setTaskGroups] = useState([]);              // [{ id, name }]
+const [newStepLabelChoice, setNewStepLabelChoice] = useState(""); // dropdown selection
+
+
+
+  
   // search filter (order # / customer uuid / remark)
   const filtered = text
     ? deliveredOnly.filter((o) => {
@@ -103,11 +111,11 @@ const computeProjectedRows = (docs, search) => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [rawRes, customersRes] = await Promise.all([
-        axios.get(RAW_ENDPOINT, { params: { deliveredOnly: true } }),
-
-        axios.get(`${CUSTOMER_API}/GetCustomersList`),
-      ]);
+     const [rawRes, customersRes, tgRes] = await Promise.all([
+  axios.get(RAW_ENDPOINT, { params: { deliveredOnly: true } }),
+  axios.get(`${CUSTOMER_API}/GetCustomersList`),
+  axios.get(TASKGROUPS_ENDPOINT),
+]);
 
       const docs = rawRes.data?.rows || [];
       setRawRows(Array.isArray(docs) ? docs : []);
@@ -125,6 +133,16 @@ const computeProjectedRows = (docs, search) => {
         setCustomersList([]);
         setCustomersMap({});
       }
+
+      const tgItems = Array.isArray(tgRes?.data?.result)
+  ? tgRes.data.result
+      .filter(x => x && typeof x.Task_group === "string" && x.Task_group.trim().length)
+      .map(x => ({
+        id: x.Task_group_uuid || x._id || x.Task_group,
+        name: x.Task_group.trim()
+      }))
+  : [];
+setTaskGroups(tgItems);
 
       // Initial projection
       setRows(computeProjectedRows(docs, ""));
@@ -214,6 +232,9 @@ const computeProjectedRows = (docs, search) => {
     setNewStepCost("");
     setNewStepPlannedDate(new Date().toISOString().slice(0, 10));
     setShowAddStepModal(true);
+    setNewStepLabelChoice("");
+setNewStepLabel("");
+
   };
 
   const closeAddStepModal = () => {
@@ -222,30 +243,40 @@ const computeProjectedRows = (docs, search) => {
   };
 
   const addStep = async () => {
-    if (!addStepOrder) return;
-    if (!newStepLabel.trim()) return alert("Step label is required");
+  if (!addStepOrder) return;
 
-    try {
-      setLoading(true);
-      const orderId = addStepOrder._id || addStepOrder.id;
-      await axios.post(`${ORDER_API}/orders/${orderId}/steps`, {
-        label: newStepLabel.trim(),
-        vendorCustomerUuid: newStepVendorUuid || null,
-        costAmount: Number(newStepCost || 0),
-        plannedDate: newStepPlannedDate || null,
-      });
+  // Resolve final label from dropdown or custom input
+  const resolvedLabel =
+    newStepLabelChoice === "__CUSTOM__"
+      ? newStepLabel.trim()
+      : newStepLabelChoice;
 
-      closeAddStepModal();
-      await fetchData();
-      setRows(computeProjectedRows(rawRows, searchText));
-      alert("Step added.");
-    } catch (e) {
-      console.error(e);
-      alert(e?.response?.data?.error || "Failed to add step");
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (!resolvedLabel) {
+    return alert("Please choose a task or enter a custom label.");
+  }
+
+  try {
+    setLoading(true);
+    const orderId = addStepOrder._id || addStepOrder.id;
+    await axios.post(`${ORDER_API}/orders/${orderId}/steps`, {
+      label: resolvedLabel,
+      vendorCustomerUuid: newStepVendorUuid || null,
+      costAmount: Number(newStepCost || 0),
+      plannedDate: newStepPlannedDate || null,
+    });
+
+    closeAddStepModal();
+    await fetchData();
+    setRows(computeProjectedRows(rawRows, searchText));
+    alert("Step added.");
+  } catch (e) {
+    console.error(e);
+    alert(e?.response?.data?.error || "Failed to add step");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   /* ---------------- Export ---------------- */
   const enriched = rows.map((order) => ({
@@ -459,15 +490,33 @@ const computeProjectedRows = (docs, search) => {
             </div>
 
             <div className="space-y-3">
-              <div>
-                <label className="block text-sm mb-1">Step Label</label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={newStepLabel}
-                  onChange={(e) => setNewStepLabel(e.target.value)}
-                  placeholder="e.g., Printing, Lamination"
-                />
-              </div>
+              {/* Step Label (Task Group dropdown + optional custom) */}
+<div>
+  <label className="block text-sm mb-1">Step Label</label>
+  <select
+    className="w-full border rounded px-3 py-2 bg-white"
+    value={newStepLabelChoice}
+    onChange={(e) => setNewStepLabelChoice(e.target.value)}
+  >
+    <option value="">-- Choose task --</option>
+    {taskGroups.map((tg) => (
+      <option key={tg.id} value={tg.name}>
+        {tg.name}
+      </option>
+    ))}
+    <option value="__CUSTOM__">Custom…</option>
+  </select>
+
+  {newStepLabelChoice === "__CUSTOM__" && (
+    <input
+      className="mt-2 w-full border rounded px-3 py-2"
+      value={newStepLabel}
+      onChange={(e) => setNewStepLabel(e.target.value)}
+      placeholder="Enter custom step label"
+    />
+  )}
+</div>
+
 
               <div>
                 <label className="block text-sm mb-1">Select Vendor (optional)</label>
