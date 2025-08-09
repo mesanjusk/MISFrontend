@@ -5,17 +5,15 @@ export default function MigrateOrders() {
   const [orders, setOrders] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [busyIds, setBusyIds] = useState({}); // per-row spinner
+  const [busyIds, setBusyIds] = useState({});
   const [error, setError] = useState("");
 
-  // Optional: centralize API base like the rest of your app
   const API_BASE = useMemo(() => {
-    const raw =
-      (typeof import.meta !== "undefined" ? import.meta.env.VITE_API_BASE : "") ||
-      process.env.REACT_APP_API ||
-      "";
-    return String(raw).replace(/\/$/, "");
-  }, []);
+  
+  const raw = import.meta.env.VITE_API_BASE || "";  // no process.env here
+  return String(raw).replace(/\/$/, "");
+}, []);
+
   const MIGRATE_API = `${API_BASE}/api/orders/migrate`;
 
   useEffect(() => {
@@ -55,7 +53,6 @@ export default function MigrateOrders() {
 
   const selectTop20 = () => {
     const top = orders.slice(0, 20).map((o) => o._id);
-    // toggle if already same set
     const isSame =
       selectedIds.length === top.length &&
       selectedIds.every((id) => top.includes(id));
@@ -114,7 +111,7 @@ export default function MigrateOrders() {
   return (
     <div className="p-4">
       <div className="flex items-center justify-between gap-2 mb-3">
-        <h2 className="text-xl font-bold">🛠️ Migrate Old Orders</h2>
+        <h2 className="text-xl font-bold">🛠️ Add “Print” Step (Delivered only)</h2>
         <div className="text-sm text-gray-500">
           {loading ? "Loading…" : `Rows: ${orders.length}`}
         </div>
@@ -166,8 +163,6 @@ export default function MigrateOrders() {
               </th>
               <th className="p-2">Order #</th>
               <th className="p-2">Customer</th>
-              <th className="p-2">Items Total</th>
-              <th className="p-2">Steps Cost</th>
               <th className="p-2">Steps</th>
               <th className="p-2">Format</th>
               <th className="p-2 text-center">Action</th>
@@ -181,10 +176,12 @@ export default function MigrateOrders() {
                 Array.isArray(o.Steps) && o.Steps.length
                   ? o.Steps.map((s) => s.label).join(", ")
                   : "—";
-              const isOld =
-                // Backend should mark a hint like o._isOld or give shape. Fallback: detect missing posting in any step
-                o._isOld ??
-                !!(o.Steps || []).find((s) => s && (s.posting === undefined || s.posting === null));
+
+              // OLD means: needs Print step
+              const hasPrint = (o.Steps || []).some(
+                (s) => String(s?.label).toLowerCase() === "print"
+              );
+              const isOld = o._isOld ?? !hasPrint;
 
               return (
                 <tr key={o._id} className="border-t">
@@ -197,17 +194,11 @@ export default function MigrateOrders() {
                   </td>
                   <td className="p-2 text-center">{o.Order_Number}</td>
                   <td className="p-2">{o.Customer_name || o.Customer_uuid || "Unknown"}</td>
-                  <td className="p-2 text-center">
-                    {o.saleSubtotal ?? o.Amount ?? 0}
-                  </td>
-                  <td className="p-2 text-center">
-                    {o.stepsCostTotal ?? 0}
-                  </td>
                   <td className="p-2 text-xs">{stepLabels}</td>
                   <td className="p-2">
                     {isOld ? (
                       <span className="inline-block px-2 py-0.5 text-xs rounded bg-amber-100 text-amber-700">
-                        OLD
+                        OLD (needs Print)
                       </span>
                     ) : (
                       <span className="inline-block px-2 py-0.5 text-xs rounded bg-green-100 text-green-700">
@@ -230,14 +221,14 @@ export default function MigrateOrders() {
 
             {orders.length === 0 && !loading && (
               <tr>
-                <td colSpan="8" className="text-center py-6 text-gray-500">
-                  ✅ All orders are already migrated.
+                <td colSpan="6" className="text-center py-6 text-gray-500">
+                  ✅ Nothing to migrate — all Delivered orders already have a “Print” step.
                 </td>
               </tr>
             )}
             {loading && (
               <tr>
-                <td colSpan="8" className="text-center py-6 text-gray-500">
+                <td colSpan="6" className="text-center py-6 text-gray-500">
                   Loading…
                 </td>
               </tr>
@@ -246,11 +237,7 @@ export default function MigrateOrders() {
         </table>
       </div>
 
-      {error && (
-        <div className="mt-3 text-sm text-red-600">
-          {error}
-        </div>
-      )}
+      {error && <div className="mt-3 text-sm text-red-600">{error}</div>}
     </div>
   );
 }

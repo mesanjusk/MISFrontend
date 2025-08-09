@@ -31,6 +31,9 @@ export default function AllVendors() {
 
   // Add Step modal
   const [showAddStepModal, setShowAddStepModal] = useState(false);
+  const [taskGroups, setTaskGroups] = useState([]);              // [{ id, name }]
+  const [newStepLabelChoice, setNewStepLabelChoice] = useState(""); // dropdown selection
+
   const [addStepOrder, setAddStepOrder] = useState(null);
   const [newStepLabel, setNewStepLabel] = useState("");
   const [newStepVendorUuid, setNewStepVendorUuid] = useState("");
@@ -58,64 +61,61 @@ export default function AllVendors() {
     return !hasVendor || !isPosted;
   };
 
-const computeProjectedRows = (docs, search) => {
-  const text = (search || "").trim().toLowerCase();
+  const computeProjectedRows = (docs, search) => {
+    const text = (search || "").trim().toLowerCase();
 
-  // keep only orders whose latest status is "delivered"
-  const deliveredOnly = (Array.isArray(docs) ? docs : []).filter((o) => {
-    if (!Array.isArray(o.Status) || o.Status.length === 0) return false;
-    const latest = o.Status[o.Status.length - 1];
-    return latest?.Task?.trim().toLowerCase() === "delivered";
-  });
-
-const [taskGroups, setTaskGroups] = useState([]);              // [{ id, name }]
-const [newStepLabelChoice, setNewStepLabelChoice] = useState(""); // dropdown selection
+    // keep only orders whose latest status is "delivered"
+    const deliveredOnly = (Array.isArray(docs) ? docs : []).filter((o) => {
+      if (!Array.isArray(o.Status) || o.Status.length === 0) return false;
+      const latest = o.Status[o.Status.length - 1];
+      return latest?.Task?.trim().toLowerCase() === "delivered";
+    });
 
 
 
-  
-  // search filter (order # / customer uuid / remark)
-  const filtered = text
-    ? deliveredOnly.filter((o) => {
+
+    // search filter (order # / customer uuid / remark)
+    const filtered = text
+      ? deliveredOnly.filter((o) => {
         const onum = String(o.Order_Number || "").toLowerCase();
         const cuid = String(o.Customer_uuid || "").toLowerCase();
         const remark = String(o.Remark || "").toLowerCase();
         return onum.includes(text) || cuid.includes(text) || remark.includes(text);
       })
-    : deliveredOnly;
+      : deliveredOnly;
 
-  // project pending steps
-  return filtered
-    .map((o) => {
-      const pending = (o.Steps || [])
-        .filter(isStepNeedingVendor)
-        .map((s) => ({
-          stepId: s?._id,
-          label: s?.label || "",
-          vendorId: s?.vendorId || "",
-          vendorCustomerUuid: s?.vendorCustomerUuid || "",
-          vendorName: s?.vendorName || "",
-          costAmount: Number(s?.costAmount || 0),
-          isPosted: !!s?.posting?.isPosted,
-          plannedDate: s?.plannedDate,
-        }));
+    // project pending steps
+    return filtered
+      .map((o) => {
+        const pending = (o.Steps || [])
+          .filter(isStepNeedingVendor)
+          .map((s) => ({
+            stepId: s?._id,
+            label: s?.label || "",
+            vendorId: s?.vendorId || "",
+            vendorCustomerUuid: s?.vendorCustomerUuid || "",
+            vendorName: s?.vendorName || "",
+            costAmount: Number(s?.costAmount || 0),
+            isPosted: !!s?.posting?.isPosted,
+            plannedDate: s?.plannedDate,
+          }));
 
-      return { ...o, StepsPending: pending };
-    })
-    .filter((o) => (o.StepsPending || []).length > 0)
-    .sort((a, b) => (b.Order_Number || 0) - (a.Order_Number || 0));
-};
+        return { ...o, StepsPending: pending };
+      })
+      .filter((o) => (o.StepsPending || []).length > 0)
+      .sort((a, b) => (b.Order_Number || 0) - (a.Order_Number || 0));
+  };
 
 
 
   const fetchData = async () => {
     setLoading(true);
     try {
-     const [rawRes, customersRes, tgRes] = await Promise.all([
-  axios.get(RAW_ENDPOINT, { params: { deliveredOnly: true } }),
-  axios.get(`${CUSTOMER_API}/GetCustomersList`),
-  axios.get(TASKGROUPS_ENDPOINT),
-]);
+      const [rawRes, customersRes, tgRes] = await Promise.all([
+        axios.get(RAW_ENDPOINT, { params: { deliveredOnly: true } }),
+        axios.get(`${CUSTOMER_API}/GetCustomersList`),
+        axios.get(TASKGROUPS_ENDPOINT),
+      ]);
 
       const docs = rawRes.data?.rows || [];
       setRawRows(Array.isArray(docs) ? docs : []);
@@ -134,15 +134,10 @@ const [newStepLabelChoice, setNewStepLabelChoice] = useState(""); // dropdown se
         setCustomersMap({});
       }
 
-      const tgItems = Array.isArray(tgRes?.data?.result)
-  ? tgRes.data.result
-      .filter(x => x && typeof x.Task_group === "string" && x.Task_group.trim().length)
-      .map(x => ({
-        id: x.Task_group_uuid || x._id || x.Task_group,
-        name: x.Task_group.trim()
-      }))
-  : [];
-setTaskGroups(tgItems);
+     const tgItems = Array.isArray(tgRes?.data?.result) ? tgRes.data.result : [];
+const filteredGroups = tgItems.filter((tg) => Number(tg?.Id) === 1);
+setTaskGroups(filteredGroups);
+
 
       // Initial projection
       setRows(computeProjectedRows(docs, ""));
@@ -233,7 +228,7 @@ setTaskGroups(tgItems);
     setNewStepPlannedDate(new Date().toISOString().slice(0, 10));
     setShowAddStepModal(true);
     setNewStepLabelChoice("");
-setNewStepLabel("");
+    setNewStepLabel("");
 
   };
 
@@ -243,39 +238,39 @@ setNewStepLabel("");
   };
 
   const addStep = async () => {
-  if (!addStepOrder) return;
+    if (!addStepOrder) return;
 
-  // Resolve final label from dropdown or custom input
-  const resolvedLabel =
-    newStepLabelChoice === "__CUSTOM__"
-      ? newStepLabel.trim()
-      : newStepLabelChoice;
+    // Resolve final label from dropdown or custom input
+    const resolvedLabel =
+      newStepLabelChoice === "__CUSTOM__"
+        ? newStepLabel.trim()
+        : newStepLabelChoice;
 
-  if (!resolvedLabel) {
-    return alert("Please choose a task or enter a custom label.");
-  }
+    if (!resolvedLabel) {
+      return alert("Please choose a task or enter a custom label.");
+    }
 
-  try {
-    setLoading(true);
-    const orderId = addStepOrder._id || addStepOrder.id;
-    await axios.post(`${ORDER_API}/orders/${orderId}/steps`, {
-      label: resolvedLabel,
-      vendorCustomerUuid: newStepVendorUuid || null,
-      costAmount: Number(newStepCost || 0),
-      plannedDate: newStepPlannedDate || null,
-    });
+    try {
+      setLoading(true);
+      const orderId = addStepOrder._id || addStepOrder.id;
+      await axios.post(`${ORDER_API}/orders/${orderId}/steps`, {
+        label: resolvedLabel,
+        vendorCustomerUuid: newStepVendorUuid || null,
+        costAmount: Number(newStepCost || 0),
+        plannedDate: newStepPlannedDate || null,
+      });
 
-    closeAddStepModal();
-    await fetchData();
-    setRows(computeProjectedRows(rawRows, searchText));
-    alert("Step added.");
-  } catch (e) {
-    console.error(e);
-    alert(e?.response?.data?.error || "Failed to add step");
-  } finally {
-    setLoading(false);
-  }
-};
+      closeAddStepModal();
+      await fetchData();
+      setRows(computeProjectedRows(rawRows, searchText));
+      alert("Step added.");
+    } catch (e) {
+      console.error(e);
+      alert(e?.response?.data?.error || "Failed to add step");
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   /* ---------------- Export ---------------- */
@@ -361,8 +356,8 @@ setNewStepLabel("");
           </div>
         </div>
 
-        <main className="p-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
+        <main className="p-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-3">
             {loading ? (
               <div className="col-span-full text-center text-gray-500 py-10">Loading…</div>
             ) : enriched.length > 0 ? (
@@ -491,31 +486,33 @@ setNewStepLabel("");
 
             <div className="space-y-3">
               {/* Step Label (Task Group dropdown + optional custom) */}
-<div>
-  <label className="block text-sm mb-1">Step Label</label>
-  <select
-    className="w-full border rounded px-3 py-2 bg-white"
-    value={newStepLabelChoice}
-    onChange={(e) => setNewStepLabelChoice(e.target.value)}
-  >
-    <option value="">-- Choose task --</option>
-    {taskGroups.map((tg) => (
-      <option key={tg.id} value={tg.name}>
-        {tg.name}
-      </option>
-    ))}
-    <option value="__CUSTOM__">Custom…</option>
-  </select>
+              <div>
+                <label className="block text-sm mb-1">Step Label</label>
+                <select
+                  className="w-full border rounded px-3 py-2 bg-white"
+                  value={newStepLabelChoice}
+                  onChange={(e) => setNewStepLabelChoice(e.target.value)}
+                >
+                  <option value="">-- Choose task --</option>
+                  {taskGroups.map((tg) => (
+                    <option
+                      key={tg.Task_group_uuid || tg._id}
+                      value={(tg.Task_group || "").trim()}
+                    >
+                      {tg.Task_group_name || tg.Task_group || "Unnamed Group"}
+                    </option>
+                  ))}
+                </select>
 
-  {newStepLabelChoice === "__CUSTOM__" && (
-    <input
-      className="mt-2 w-full border rounded px-3 py-2"
-      value={newStepLabel}
-      onChange={(e) => setNewStepLabel(e.target.value)}
-      placeholder="Enter custom step label"
-    />
-  )}
-</div>
+                {newStepLabelChoice === "__CUSTOM__" && (
+                  <input
+                    className="mt-2 w-full border rounded px-3 py-2"
+                    value={newStepLabel}
+                    onChange={(e) => setNewStepLabel(e.target.value)}
+                    placeholder="Enter custom step label"
+                  />
+                )}
+              </div>
 
 
               <div>
