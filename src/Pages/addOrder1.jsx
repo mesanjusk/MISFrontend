@@ -91,7 +91,7 @@ export default function AddOrder1() {
         return;
       }
 
-      const orderResponse = await axios.post("http://localhost:10000/order/addOrder", {
+      const orderResponse = await axios.post("https://misbackend-e078.onrender.com/order/addOrder", {
         Customer_uuid: customer.Customer_uuid,
         Remark,
         Task_groups: selectedTaskGroups,
