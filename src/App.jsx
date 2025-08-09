@@ -66,6 +66,7 @@ import WhatsAppLogin from "./Pages/WhatsAppLogin";
 import WhatsAppSession from "./Pages/WhatsAppSession";
 import WhatsAppAdminPanel from "./Pages/WhatsAppAdminPanel";
 import PendingTasks from './Pages/PendingTasks';
+import AllAttandance from './Pages/AllAttandance';
 import AllVendors from './Reports/AllVendors';
 import CashLedger from "./Pages/CashLedger";
 import Vendor from "./Pages/vendor";
