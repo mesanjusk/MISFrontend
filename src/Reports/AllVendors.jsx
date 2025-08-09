@@ -10,12 +10,13 @@ export default function AllVendors() {
   const navigate = useNavigate();
 
   // Data
-  const [rows, setRows] = useState([]);
+  const [rawRows, setRawRows] = useState([]);         // raw orders from backend
+  const [rows, setRows] = useState([]);               // filtered + projected
   const [customersMap, setCustomersMap] = useState({});
   const [customersList, setCustomersList] = useState([]);
 
   // UI / search
-  const [searchOrder, setSearchOrder] = useState("");
+  const [searchText, setSearchText] = useState("");
   const [loading, setLoading] = useState(false);
 
   // Assign modal
@@ -23,48 +24,100 @@ export default function AllVendors() {
   const [activeOrder, setActiveOrder] = useState(null);
   const [activeStep, setActiveStep] = useState(null);
 
-  // Assign form (dropdown + amount + date only)
+  // Assign form
   const [selectedVendorUuid, setSelectedVendorUuid] = useState("");
   const [costAmount, setCostAmount] = useState("");
-  const [plannedDate, setPlannedDate] = useState(() => {
-    const d = new Date();
-    return d.toISOString().slice(0, 10);
-  });
+  const [plannedDate, setPlannedDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+  // Add Step modal
+  const [showAddStepModal, setShowAddStepModal] = useState(false);
+  const [addStepOrder, setAddStepOrder] = useState(null);
+  const [newStepLabel, setNewStepLabel] = useState("");
+  const [newStepVendorUuid, setNewStepVendorUuid] = useState("");
+  const [newStepCost, setNewStepCost] = useState("");
+  const [newStepPlannedDate, setNewStepPlannedDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   // ---- API roots (Vite-first, CRA fallback) ----
   const API_BASE = useMemo(() => {
     const vite = (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_API_BASE) || "";
-    const cra  = (typeof process !== "undefined" && process.env && process.env.REACT_APP_API) || "";
+    const cra = (typeof process !== "undefined" && process.env && process.env.REACT_APP_API) || "";
     const raw = vite || cra || "";
     return String(raw).replace(/\/$/, "");
   }, []);
+
   const ORDER_API = `${API_BASE}/order`;
   const CUSTOMER_API = `${API_BASE}/customer`;
-  const VENDORS_ENDPOINT = `${ORDER_API}/allvendors`;
+  const RAW_ENDPOINT = `${ORDER_API}/allvendors-raw`;
 
-  const fetchData = async (params = {}) => {
+  // Utilities
+  const isStepNeedingVendor = (st) => {
+    const hasVendor = !!(st?.vendorId || st?.vendorCustomerUuid);
+    const isPosted = !!st?.posting?.isPosted;
+    return !hasVendor || !isPosted;
+  };
+
+  const computeProjectedRows = (docs, search) => {
+    const text = (search || "").trim().toLowerCase();
+    let filtered = docs;
+
+    if (text) {
+      filtered = docs.filter((o) => {
+        const onum = String(o.Order_Number || "").toLowerCase();
+        const cuid = String(o.Customer_uuid || "").toLowerCase();
+        const remark = String(o.Remark || "").toLowerCase();
+        return onum.includes(text) || cuid.includes(text) || remark.includes(text);
+      });
+    }
+
+    return filtered
+      .map((o) => {
+        const pending = (o.Steps || []).filter(isStepNeedingVendor).map((s) => ({
+          stepId: s?._id,
+          label: s?.label || "",
+          vendorId: s?.vendorId || "",
+          vendorCustomerUuid: s?.vendorCustomerUuid || "",
+          vendorName: s?.vendorName || "",
+          costAmount: Number(s?.costAmount || 0),
+          isPosted: !!s?.posting?.isPosted,
+          plannedDate: s?.plannedDate,
+        }));
+
+        return {
+          ...o,
+          StepsPending: pending,
+        };
+      })
+      .filter((o) => (o.StepsPending || []).length > 0)
+      .sort((a, b) => (b.Order_Number || 0) - (a.Order_Number || 0));
+  };
+
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const [vendorsRes, customersRes] = await Promise.all([
-        axios.get(VENDORS_ENDPOINT, { params }),
-        axios.get(`${CUSTOMER_API}/GetCustomersList`)
+      const [rawRes, customersRes] = await Promise.all([
+        axios.get(RAW_ENDPOINT),
+        axios.get(`${CUSTOMER_API}/GetCustomersList`),
       ]);
 
-      const vendorRows = vendorsRes.data?.rows || vendorsRes.data || [];
-      setRows(Array.isArray(vendorRows) ? vendorRows : []);
+      const docs = rawRes.data?.rows || [];
+      setRawRows(Array.isArray(docs) ? docs : []);
 
+      // Customers
       if (customersRes.data?.success && Array.isArray(customersRes.data.result)) {
         const list = customersRes.data.result;
         setCustomersList(list);
-        const map = list.reduce((acc, c) => {
+        const cmap = list.reduce((acc, c) => {
           if (c.Customer_uuid && c.Customer_name) acc[c.Customer_uuid] = c.Customer_name;
           return acc;
         }, {});
-        setCustomersMap(map);
+        setCustomersMap(cmap);
       } else {
         setCustomersList([]);
         setCustomersMap({});
       }
+
+      // Initial projection
+      setRows(computeProjectedRows(docs, ""));
     } catch (err) {
       console.error("Error fetching data:", err);
       alert(err?.response?.data?.error || "Failed to load vendor list.");
@@ -73,22 +126,34 @@ export default function AllVendors() {
     }
   };
 
-  useEffect(() => { fetchData(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line
+  }, []);
 
   const onSearch = (e) => {
     e.preventDefault();
-    fetchData({ search: searchOrder.trim() || undefined });
+    setRows(computeProjectedRows(rawRows, searchText));
   };
 
+  const vendorOptions = useMemo(() => {
+    const isOfficeVendor = (groupValue) => {
+      if (!groupValue) return false;
+      return String(groupValue).trim().toLowerCase() === "office & vendor";
+    };
+    return customersList
+      .filter((c) => isOfficeVendor(c.Customer_group || c.Group || c.group))
+      .map((c) => ({ uuid: c.Customer_uuid, name: c.Customer_name }));
+  }, [customersList]);
+
+  /* ---------------- Assign Vendor ---------------- */
   const openAssignModal = (order, step) => {
     setActiveOrder(order);
     setActiveStep(step);
-
-    setSelectedVendorUuid(step.vendorCustomerUuid || "");
+    setSelectedVendorUuid(step.vendorCustomerUuid || step.vendorId || "");
     setCostAmount(step.costAmount ?? "");
     const d = step.plannedDate ? new Date(step.plannedDate) : new Date();
     setPlannedDate(d.toISOString().slice(0, 10));
-
     setShowAssignModal(true);
   };
 
@@ -98,58 +163,30 @@ export default function AllVendors() {
     setActiveStep(null);
     setSelectedVendorUuid("");
     setCostAmount("");
-    const d = new Date();
-    setPlannedDate(d.toISOString().slice(0, 10));
+    setPlannedDate(new Date().toISOString().slice(0, 10));
   };
-
-  // Vendor dropdown: ONLY group === "Office & Vendor" (case-insensitive)
-  const vendorOptions = useMemo(() => {
-    const isOfficeVendor = (groupValue) => {
-      if (!groupValue) return false;
-      return String(groupValue).trim().toLowerCase() === "office & vendor";
-    };
-
-    return customersList
-      .filter(c => isOfficeVendor(c.Customer_group || c.Group || c.group))
-      .map(c => ({
-        uuid: c.Customer_uuid,
-        name: c.Customer_name
-      }));
-  }, [customersList]);
 
   const assignVendor = async () => {
     if (!activeOrder || !activeStep) return;
-
-    if (!selectedVendorUuid) {
-      alert("Please choose a vendor from the list.");
-      return;
-    }
+    if (!selectedVendorUuid) return alert("Please choose a vendor");
     const amt = Number(costAmount || 0);
-    if (Number.isNaN(amt) || amt < 0) {
-      alert("Invalid cost amount");
-      return;
-    }
-    if (!plannedDate) {
-      alert("Please select a date");
-      return;
-    }
+    if (Number.isNaN(amt) || amt < 0) return alert("Invalid cost amount");
+    if (!plannedDate) return alert("Please select a date");
 
     try {
       setLoading(true);
       const orderId = activeOrder._id || activeOrder.id;
 
-      await axios.post(
-        `${ORDER_API}/orders/${orderId}/steps/${activeStep.stepId}/assign-vendor`,
-        {
-          vendorCustomerUuid: selectedVendorUuid,
-          costAmount: amt,
-          plannedDate, // YYYY-MM-DD
-          createdBy: localStorage.getItem("User_name") || "operator"
-        }
-      );
+      await axios.post(`${ORDER_API}/orders/${orderId}/steps/${activeStep.stepId}/assign-vendor`, {
+        vendorCustomerUuid: selectedVendorUuid,
+        costAmount: amt,
+        plannedDate,
+        createdBy: localStorage.getItem("User_name") || "operator",
+      });
 
       closeAssignModal();
-      fetchData({ search: searchOrder.trim() || undefined });
+      await fetchData();
+      setRows(computeProjectedRows(rawRows, searchText));
       alert("Vendor assigned & transaction posted.");
     } catch (e) {
       console.error(e);
@@ -159,9 +196,51 @@ export default function AllVendors() {
     }
   };
 
+  /* ---------------- Add Step (missing steps) ---------------- */
+  const openAddStepModal = (order) => {
+    setAddStepOrder(order);
+    setNewStepLabel("");
+    setNewStepVendorUuid("");
+    setNewStepCost("");
+    setNewStepPlannedDate(new Date().toISOString().slice(0, 10));
+    setShowAddStepModal(true);
+  };
+
+  const closeAddStepModal = () => {
+    setShowAddStepModal(false);
+    setAddStepOrder(null);
+  };
+
+  const addStep = async () => {
+    if (!addStepOrder) return;
+    if (!newStepLabel.trim()) return alert("Step label is required");
+
+    try {
+      setLoading(true);
+      const orderId = addStepOrder._id || addStepOrder.id;
+      await axios.post(`${ORDER_API}/orders/${orderId}/steps`, {
+        label: newStepLabel.trim(),
+        vendorCustomerUuid: newStepVendorUuid || null,
+        costAmount: Number(newStepCost || 0),
+        plannedDate: newStepPlannedDate || null,
+      });
+
+      closeAddStepModal();
+      await fetchData();
+      setRows(computeProjectedRows(rawRows, searchText));
+      alert("Step added.");
+    } catch (e) {
+      console.error(e);
+      alert(e?.response?.data?.error || "Failed to add step");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ---------------- Export ---------------- */
   const enriched = rows.map((order) => ({
     ...order,
-    Customer_name: customersMap[order.Customer_uuid] || "Unknown"
+    Customer_name: customersMap[order.Customer_uuid] || "Unknown",
   }));
 
   const exportToPDF = () => {
@@ -177,7 +256,7 @@ export default function AllVendors() {
           s.label,
           s.vendorCustomerUuid || s.vendorId || "-",
           s.costAmount ?? 0,
-          s.isPosted ? "Yes" : "No"
+          s.isPosted ? "Yes" : "No",
         ]);
       });
     });
@@ -198,7 +277,7 @@ export default function AllVendors() {
           "Vendor UUID": s.vendorCustomerUuid || s.vendorId || "-",
           "Cost Amount": s.costAmount ?? 0,
           "Posted?": s.isPosted ? "Yes" : "No",
-          Remark: order.Remark || "-"
+          Remark: order.Remark || "-",
         });
       });
     });
@@ -219,8 +298,8 @@ export default function AllVendors() {
               type="text"
               placeholder="Search Order # / Customer UUID / Remark"
               className="form-control text-black bg-gray-100 rounded-full px-4 py-2 w-full"
-              value={searchOrder}
-              onChange={(e) => setSearchOrder(e.target.value)}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
             />
           </form>
           <div className="flex gap-2">
@@ -253,9 +332,7 @@ export default function AllVendors() {
                 >
                   <div className="text-gray-900 font-bold text-lg">#{order.Order_Number}</div>
                   <div className="text-gray-700 font-medium">{order.Customer_name}</div>
-                  <div className="text-sm text-gray-600 italic mt-1">
-                    {order.Remark || "-"}
-                  </div>
+                  <div className="text-sm text-gray-600 italic mt-1">{order.Remark || "-"}</div>
 
                   <div className="mt-3 space-y-2">
                     {(order.StepsPending || []).map((s, i) => (
@@ -264,10 +341,7 @@ export default function AllVendors() {
                         className="border rounded px-2 py-2 text-sm flex items-center justify-between gap-2"
                       >
                         <div className="min-w-0">
-                          {/* Step name visible */}
-                          <div className="font-semibold truncate">
-                            Step: {s.label || "—"}
-                          </div>
+                          <div className="font-semibold truncate">Step: {s.label || "—"}</div>
                           <div className={`text-xs ${s.isPosted ? "text-green-600" : "text-amber-600"}`}>
                             {s.isPosted ? "Posted" : "Not Posted"}
                           </div>
@@ -281,21 +355,24 @@ export default function AllVendors() {
                         </button>
                       </div>
                     ))}
-                    {(order.StepsPending || []).length === 0 && (
-                      <div className="text-gray-400 text-sm">No pending steps</div>
-                    )}
+
+                    <button
+                      className="w-full mt-2 text-xs px-2 py-2 border rounded hover:bg-gray-50"
+                      onClick={() => openAddStepModal(order)}
+                    >
+                      + Add Step
+                    </button>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="col-span-full text-center text-gray-500 py-10">
-                No vendor entries pending.
-              </div>
+              <div className="col-span-full text-center text-gray-500 py-10">No vendor entries pending.</div>
             )}
           </div>
         </main>
       </div>
 
+      {/* Assign Vendor Modal */}
       {showAssignModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-lg p-4 w-full max-w-md">
@@ -303,21 +380,16 @@ export default function AllVendors() {
               <h3 className="text-lg font-semibold">
                 Assign Vendor & Post{activeStep?.label ? ` — ${activeStep.label}` : ""}
               </h3>
-              <button onClick={closeAssignModal} className="text-gray-500 hover:text-black">✕</button>
+              <button onClick={closeAssignModal} className="text-gray-500 hover:text-black">
+                ✕
+              </button>
             </div>
 
             <div className="space-y-3">
-              {/* Step (read-only) */}
               <div>
                 <label className="block text-sm mb-1">Step Name</label>
-                <input
-                  className="w-full border rounded px-3 py-2 bg-gray-100"
-                  value={activeStep?.label || ""}
-                  readOnly
-                />
+                <input className="w-full border rounded px-3 py-2 bg-gray-100" value={activeStep?.label || ""} readOnly />
               </div>
-
-              {/* Vendor dropdown (Office & Vendor group only) */}
               <div>
                 <label className="block text-sm mb-1">Select Vendor</label>
                 <select
@@ -326,17 +398,14 @@ export default function AllVendors() {
                   onChange={(e) => setSelectedVendorUuid(e.target.value)}
                 >
                   <option value="">-- Choose vendor --</option>
-                  {vendorOptions.map(v => (
+                  {vendorOptions.map((v) => (
                     <option key={v.uuid} value={v.uuid}>
                       {v.name}
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Showing customers from group “Office & Vendor”.
-                </p>
+                <p className="text-xs text-gray-500 mt-1">Showing customers from group “Office & Vendor”.</p>
               </div>
-
               <div>
                 <label className="block text-sm mb-1">Cost Amount (₹)</label>
                 <input
@@ -347,7 +416,6 @@ export default function AllVendors() {
                   min="0"
                 />
               </div>
-
               <div>
                 <label className="block text-sm mb-1">Date</label>
                 <input
@@ -360,13 +428,84 @@ export default function AllVendors() {
             </div>
 
             <div className="mt-4 flex items-center justify-end gap-2">
-              <button className="px-3 py-2 border rounded" onClick={closeAssignModal}>Cancel</button>
-              <button
-                className="px-3 py-2 rounded bg-black text-white disabled:opacity-50"
-                onClick={assignVendor}
-                disabled={loading}
-              >
+              <button className="px-3 py-2 border rounded" onClick={closeAssignModal}>
+                Cancel
+              </button>
+              <button className="px-3 py-2 rounded bg-black text-white disabled:opacity-50" onClick={assignVendor} disabled={loading}>
                 Save & Post
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Step Modal */}
+      {showAddStepModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-lg p-4 w-full max-w-md">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Add Step to Order #{addStepOrder?.Order_Number}</h3>
+              <button onClick={closeAddStepModal} className="text-gray-500 hover:text-black">
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm mb-1">Step Label</label>
+                <input
+                  className="w-full border rounded px-3 py-2"
+                  value={newStepLabel}
+                  onChange={(e) => setNewStepLabel(e.target.value)}
+                  placeholder="e.g., Printing, Lamination"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm mb-1">Select Vendor (optional)</label>
+                <select
+                  className="w-full border rounded px-3 py-2 bg-white"
+                  value={newStepVendorUuid}
+                  onChange={(e) => setNewStepVendorUuid(e.target.value)}
+                >
+                  <option value="">-- Choose vendor --</option>
+                  {vendorOptions.map((v) => (
+                    <option key={v.uuid} value={v.uuid}>
+                      {v.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Only “Office & Vendor” group is listed.</p>
+              </div>
+
+              <div>
+                <label className="block text-sm mb-1">Estimated Cost (₹, optional)</label>
+                <input
+                  type="number"
+                  className="w-full border rounded px-3 py-2"
+                  value={newStepCost}
+                  onChange={(e) => setNewStepCost(e.target.value)}
+                  min="0"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm mb-1">Planned Date (optional)</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={newStepPlannedDate}
+                  onChange={(e) => setNewStepPlannedDate(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button className="px-3 py-2 border rounded" onClick={closeAddStepModal}>
+                Cancel
+              </button>
+              <button className="px-3 py-2 rounded bg-black text-white disabled:opacity-50" onClick={addStep} disabled={loading}>
+                Add Step
               </button>
             </div>
           </div>
@@ -374,4 +513,4 @@ export default function AllVendors() {
       )}
     </>
   );
-}  
+}
