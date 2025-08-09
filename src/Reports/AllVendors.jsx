@@ -9,22 +9,35 @@ import { saveAs } from "file-saver";
 
 export default function AllVendors() {
   const navigate = useNavigate();
+
+  // Data
   const [rows, setRows] = useState([]);
-  const [customers, setCustomers] = useState({});
+  const [customersMap, setCustomersMap] = useState({});
+  const [customersList, setCustomersList] = useState([]); // full list with groups for filtering
+
+  // UI / search
   const [searchOrder, setSearchOrder] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Modals
   const [showStepsModal, setShowStepsModal] = useState(false);
   const [stepsOrder, setStepsOrder] = useState(null);
 
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [activeOrder, setActiveOrder] = useState(null);
   const [activeStep, setActiveStep] = useState(null);
-  const [vendorId, setVendorId] = useState("");
-  const [vendorName, setVendorName] = useState("");
-  const [costAmount, setCostAmount] = useState("");
 
-  // ---- API roots (ensure your env has VITE_API_BASE or REACT_APP_API set) ----
+  // Assign form (updated: no vendorId, add dropdown + description + date)
+  const [selectedVendorUuid, setSelectedVendorUuid] = useState("");
+  const [vendorName, setVendorName] = useState(""); // free text override / display
+  const [costAmount, setCostAmount] = useState("");
+  const [description, setDescription] = useState("");
+  const [plannedDate, setPlannedDate] = useState(() => {
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
+  });
+
+  // ---- API roots ----
   const API_BASE = useMemo(() => {
     const raw =
       (typeof import.meta !== "undefined" ? import.meta.env.VITE_API_BASE : "") ||
@@ -40,18 +53,24 @@ export default function AllVendors() {
     try {
       const [vendorsRes, customersRes] = await Promise.all([
         axios.get(`${ORDER_API}/allvendors`, { params }),
-        axios.get(`${CUSTOMER_API}/GetCustomersList`),
+        axios.get(`${CUSTOMER_API}/GetCustomersList`)
       ]);
 
       const vendorRows = vendorsRes.data?.rows || vendorsRes.data || [];
       setRows(Array.isArray(vendorRows) ? vendorRows : []);
 
-      if (customersRes.data?.success) {
-        const map = customersRes.data.result.reduce((acc, c) => {
+      // Build map (uuid -> name) for quick lookup AND keep original list for filtering vendors
+      if (customersRes.data?.success && Array.isArray(customersRes.data.result)) {
+        const list = customersRes.data.result;
+        setCustomersList(list);
+        const map = list.reduce((acc, c) => {
           if (c.Customer_uuid && c.Customer_name) acc[c.Customer_uuid] = c.Customer_name;
           return acc;
         }, {});
-        setCustomers(map);
+        setCustomersMap(map);
+      } else {
+        setCustomersList([]);
+        setCustomersMap({});
       }
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -81,24 +100,60 @@ export default function AllVendors() {
   const openAssignModal = (order, step) => {
     setActiveOrder(order);
     setActiveStep(step);
-    setVendorId(step.vendorId || "");
+
+    // Prefill from existing values if present
+    setSelectedVendorUuid(step.vendorCustomerUuid || "");
     setVendorName(step.vendorName || "");
     setCostAmount(step.costAmount ?? "");
+    setDescription(step.vendorDescription || "");
+    const d = step.plannedDate ? new Date(step.plannedDate) : new Date();
+    setPlannedDate(d.toISOString().slice(0, 10));
+
     setShowAssignModal(true);
   };
   const closeAssignModal = () => {
     setShowAssignModal(false);
     setActiveOrder(null);
     setActiveStep(null);
-    setVendorId("");
+    setSelectedVendorUuid("");
     setVendorName("");
     setCostAmount("");
+    setDescription("");
+    const d = new Date();
+    setPlannedDate(d.toISOString().slice(0, 10));
+  };
+
+  // Filter customers to only "office" or "vendor" groups (case-insensitive)
+  const vendorOptions = useMemo(() => {
+    const isVendorish = (g) => {
+      if (!g) return false;
+      const s = String(g).toLowerCase();
+      return s.includes("office & Vendor") || s.includes("");
+    };
+    return customersList
+      .filter(c => isVendorish(c.Customer_group || c.Group || c.group))
+      .map(c => ({
+        uuid: c.Customer_uuid,
+        name: c.Customer_name
+      }));
+  }, [customersList]);
+
+  // Keep vendorName synced with dropdown (but allow manual override)
+  const handleVendorSelect = (uuid) => {
+    setSelectedVendorUuid(uuid);
+    if (!uuid) {
+      // If cleared, keep current manual name
+      return;
+    }
+    const found = vendorOptions.find(v => v.uuid === uuid);
+    if (found) setVendorName(found.name);
   };
 
   const assignVendor = async () => {
     if (!activeOrder || !activeStep) return;
-    if (!vendorId && !vendorName) {
-      alert("Enter Vendor ID or Vendor Name");
+
+    if (!selectedVendorUuid && !vendorName.trim()) {
+      alert("Please choose a vendor from the list or type a vendor name.");
       return;
     }
     const amt = Number(costAmount || 0);
@@ -106,19 +161,30 @@ export default function AllVendors() {
       alert("Invalid cost amount");
       return;
     }
+    if (!plannedDate) {
+      alert("Please select a date");
+      return;
+    }
 
     try {
       setLoading(true);
       const orderId = activeOrder._id || activeOrder.id;
+
+      // NOTE: backend previously accepted { vendorId, vendorName, costAmount, createdBy }
+      // We now send without vendorId, plus description & plannedDate, and include vendorCustomerUuid for reference.
       await axios.post(
         `${ORDER_API}/orders/${orderId}/steps/${activeStep.stepId}/assign-vendor`,
         {
-          vendorId: vendorId?.trim() || null,
+          vendorId: null, // intentionally not used anymore
+          vendorCustomerUuid: selectedVendorUuid || null,
           vendorName: vendorName?.trim() || null,
           costAmount: amt,
-          createdBy: localStorage.getItem("User_name") || "operator",
+          description: description?.trim() || null,
+          plannedDate, // YYYY-MM-DD
+          createdBy: localStorage.getItem("User_name") || "operator"
         }
       );
+
       closeAssignModal();
       fetchData({ search: searchOrder.trim() || undefined });
       alert("Vendor assigned & transaction posted.");
@@ -132,7 +198,7 @@ export default function AllVendors() {
 
   const enriched = rows.map((order) => ({
     ...order,
-    Customer_name: customers[order.Customer_uuid] || "Unknown",
+    Customer_name: customersMap[order.Customer_uuid] || "Unknown"
   }));
 
   const exportToPDF = () => {
@@ -148,7 +214,7 @@ export default function AllVendors() {
           s.label,
           s.vendorName || s.vendorId || "-",
           s.costAmount ?? 0,
-          s.isPosted ? "Yes" : "No",
+          s.isPosted ? "Yes" : "No"
         ]);
       });
     });
@@ -169,7 +235,7 @@ export default function AllVendors() {
           Vendor: s.vendorName || s.vendorId || "-",
           "Cost Amount": s.costAmount ?? 0,
           "Posted?": s.isPosted ? "Yes" : "No",
-          Remark: order.Remark || "-",
+          Remark: order.Remark || "-"
         });
       });
     });
@@ -242,7 +308,10 @@ export default function AllVendors() {
                         className="border rounded px-2 py-2 text-sm flex items-center justify-between gap-2"
                       >
                         <div className="min-w-0">
-                          <div className="font-medium truncate">{s.label}</div>
+                          {/* Step name shown clearly */}
+                          <div className="font-semibold truncate">
+                            Step: {s.label || "—"}
+                          </div>
                           <div className="text-gray-500 truncate">
                             {(s.vendorName || s.vendorId)
                               ? (s.vendorName || s.vendorId)
@@ -285,22 +354,36 @@ export default function AllVendors() {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-lg p-4 w-full max-w-md">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">Assign Vendor & Post</h3>
+              <h3 className="text-lg font-semibold">
+                Assign Vendor & Post{activeStep?.label ? ` — ${activeStep.label}` : ""}
+              </h3>
               <button onClick={closeAssignModal} className="text-gray-500 hover:text-black">✕</button>
             </div>
 
             <div className="space-y-3">
+              {/* Vendor dropdown from customers having group 'office' or 'vendor' */}
               <div>
-                <label className="block text-sm mb-1">Vendor ID (optional)</label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={vendorId}
-                  onChange={(e) => setVendorId(e.target.value)}
-                  placeholder="e.g., vendor uuid / code"
-                />
+                <label className="block text-sm mb-1">Select Vendor (from Customers)</label>
+                <select
+                  className="w-full border rounded px-3 py-2 bg-white"
+                  value={selectedVendorUuid}
+                  onChange={(e) => handleVendorSelect(e.target.value)}
+                >
+                  <option value="">-- Choose vendor --</option>
+                  {vendorOptions.map(v => (
+                    <option key={v.uuid} value={v.uuid}>
+                      {v.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  List is filtered to customer group “office” or “vendor”.
+                </p>
               </div>
+
+              {/* Optional manual vendor name override */}
               <div>
-                <label className="block text-sm mb-1">Vendor Name (optional)</label>
+                <label className="block text-sm mb-1">Vendor Name (optional override)</label>
                 <input
                   className="w-full border rounded px-3 py-2"
                   value={vendorName}
@@ -308,6 +391,7 @@ export default function AllVendors() {
                   placeholder="e.g., ABC Printers"
                 />
               </div>
+
               <div>
                 <label className="block text-sm mb-1">Cost Amount (₹)</label>
                 <input
@@ -316,6 +400,27 @@ export default function AllVendors() {
                   value={costAmount}
                   onChange={(e) => setCostAmount(e.target.value)}
                   min="0"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm mb-1">Description</label>
+                <textarea
+                  className="w-full border rounded px-3 py-2"
+                  rows={3}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Work details / notes"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm mb-1">Date</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-3 py-2"
+                  value={plannedDate}
+                  onChange={(e) => setPlannedDate(e.target.value)}
                 />
               </div>
             </div>
