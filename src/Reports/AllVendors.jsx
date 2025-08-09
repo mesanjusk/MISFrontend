@@ -23,7 +23,7 @@ export default function AllVendors() {
   const [activeOrder, setActiveOrder] = useState(null);
   const [activeStep, setActiveStep] = useState(null);
 
-  // Assign form (dropdown + amount + date only)
+  // Assign form (vendor + cost + date + step-from-taskgroups)
   const [selectedVendorUuid, setSelectedVendorUuid] = useState("");
   const [costAmount, setCostAmount] = useState("");
   const [plannedDate, setPlannedDate] = useState(() => {
@@ -31,15 +31,9 @@ export default function AllVendors() {
     return d.toISOString().slice(0, 10);
   });
 
-  // Add Step modal
-  const [showAddStepModal, setShowAddStepModal] = useState(false);
-  const [addStepOrder, setAddStepOrder] = useState(null);
-  const [newStepLabel, setNewStepLabel] = useState("");
-  const [newStepCost, setNewStepCost] = useState("");
-  const [newStepDate, setNewStepDate] = useState(() => {
-    const d = new Date();
-    return d.toISOString().slice(0, 10);
-  });
+  // New: Taskgroup steps
+  const [taskStepOptions, setTaskStepOptions] = useState([]); // array of labels
+  const [selectedStepLabel, setSelectedStepLabel] = useState("");
 
   // ---- API roots (Vite-first, CRA fallback) ----
   const API_BASE = useMemo(() => {
@@ -51,6 +45,60 @@ export default function AllVendors() {
   const ORDER_API = `${API_BASE}/order`;
   const CUSTOMER_API = `${API_BASE}/customer`;
   const VENDORS_ENDPOINT = `${ORDER_API}/allvendors`;
+
+  // Try these taskgroup endpoints in order until one works
+  const TASKGROUP_ENDPOINTS = [
+    `${API_BASE}/taskgroup/with-steps`,
+    `${API_BASE}/taskgroup/withUsage`,
+    `${API_BASE}/taskgroup/GetTaskgroupList`,
+    `${API_BASE}/taskgroup/list`,
+    `${API_BASE}/taskgroup`
+  ];
+
+  // Fetch Taskgroups → Flatten into list of step labels
+  const fetchTaskSteps = async () => {
+    for (const url of TASKGROUP_ENDPOINTS) {
+      try {
+        const res = await axios.get(url);
+        const data = res?.data;
+        if (!data) continue;
+
+        // Normalize possible shapes
+        const groups = Array.isArray(data?.result) ? data.result
+                      : Array.isArray(data?.groups) ? data.groups
+                      : Array.isArray(data) ? data
+                      : [];
+
+        const labels = new Set();
+
+        groups.forEach(g => {
+          // Common field names: Steps / steps / stepList
+          const steps = g?.Steps || g?.steps || g?.stepList || [];
+          if (Array.isArray(steps)) {
+            steps.forEach(s => {
+              // Common label keys: label / name / Step / Title
+              const lbl = s?.label || s?.name || s?.Step || s?.Title || s?.title;
+              if (lbl && String(lbl).trim()) labels.add(String(lbl).trim());
+            });
+          }
+          // Some backends store as comma-delimited string
+          if (typeof g?.steps === "string") {
+            g.steps.split(",").map(x => x.trim()).forEach(x => x && labels.add(x));
+          }
+        });
+
+        const list = Array.from(labels);
+        if (list.length) {
+          setTaskStepOptions(list.sort());
+          return;
+        }
+      } catch (e) {
+        // try next endpoint
+      }
+    }
+    // Fallback: empty (will show a free-text input instead)
+    setTaskStepOptions([]);
+  };
 
   const fetchData = async (params = {}) => {
     setLoading(true);
@@ -83,7 +131,11 @@ export default function AllVendors() {
     }
   };
 
-  useEffect(() => { fetchData(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => {
+    fetchData();
+    fetchTaskSteps();
+    // eslint-disable-next-line
+  }, []);
 
   const onSearch = (e) => {
     e.preventDefault();
@@ -99,6 +151,9 @@ export default function AllVendors() {
     const d = step.plannedDate ? new Date(step.plannedDate) : new Date();
     setPlannedDate(d.toISOString().slice(0, 10));
 
+    // Pre-select step label (or blank)
+    setSelectedStepLabel(step?.label || "");
+
     setShowAssignModal(true);
   };
 
@@ -110,6 +165,7 @@ export default function AllVendors() {
     setCostAmount("");
     const d = new Date();
     setPlannedDate(d.toISOString().slice(0, 10));
+    setSelectedStepLabel("");
   };
 
   // Vendor dropdown: ONLY group === "Office & Vendor" (case-insensitive)
@@ -130,6 +186,12 @@ export default function AllVendors() {
   const assignVendor = async () => {
     if (!activeOrder || !activeStep) return;
 
+    // Validate
+    const chosenLabel = (selectedStepLabel || "").trim();
+    if (!chosenLabel) {
+      alert("Please choose a Step from Taskgroups (or type one).");
+      return;
+    }
     if (!selectedVendorUuid) {
       alert("Please choose a vendor from the list.");
       return;
@@ -147,14 +209,18 @@ export default function AllVendors() {
     try {
       setLoading(true);
       const orderId = activeOrder._id || activeOrder.id;
+      const stepId = activeStep.stepId ?? activeStep._id ?? ""; // be liberal
 
       await axios.post(
-        `${ORDER_API}/orders/${orderId}/steps/${activeStep.stepId}/assign-vendor`,
+        `${ORDER_API}/orders/${orderId}/steps/${stepId}/assign-vendor`,
         {
+          // keep existing API payload
           vendorCustomerUuid: selectedVendorUuid,
           costAmount: amt,
           plannedDate, // YYYY-MM-DD
-          createdBy: localStorage.getItem("User_name") || "operator"
+          createdBy: localStorage.getItem("User_name") || "operator",
+          // New: tell backend which standardized step label we selected
+          label: chosenLabel
         }
       );
 
@@ -173,82 +239,6 @@ export default function AllVendors() {
     ...order,
     Customer_name: customersMap[order.Customer_uuid] || "Unknown"
   }));
-
-  // ------- NEW: Add Step handlers -------
-  const openAddStepModal = (order) => {
-    setAddStepOrder(order);
-    setNewStepLabel("");
-    setNewStepCost("");
-    const d = new Date();
-    setNewStepDate(d.toISOString().slice(0, 10));
-    setShowAddStepModal(true);
-  };
-
-  const closeAddStepModal = () => {
-    setShowAddStepModal(false);
-    setAddStepOrder(null);
-    setNewStepLabel("");
-    setNewStepCost("");
-    const d = new Date();
-    setNewStepDate(d.toISOString().slice(0, 10));
-  };
-
-  const saveNewStep = async () => {
-    if (!addStepOrder) return;
-    const label = String(newStepLabel || "").trim();
-    if (!label) {
-      alert("Please enter a Step Name");
-      return;
-    }
-    const amt = Number(newStepCost || 0);
-    if (Number.isNaN(amt) || amt < 0) {
-      alert("Invalid cost amount");
-      return;
-    }
-    if (!newStepDate) {
-      alert("Please select a date");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const orderId = addStepOrder._id || addStepOrder.id;
-
-      // 1) Get full order (so we can append to Steps safely)
-      const fullOrderRes = await axios.get(`${ORDER_API}/${orderId}`);
-      const fullOrder = fullOrderRes.data;
-
-      const existingSteps = Array.isArray(fullOrder.Steps) ? fullOrder.Steps : [];
-
-      // 2) Build new step in your established shape
-      const d = new Date(newStepDate);
-      const newStep = {
-        label,
-        checked: false,
-        vendorId: null,
-        vendorName: null,
-        costAmount: amt,
-        status: "pending",
-        plannedDate: d, // keep for UI; backend won't transform it but will store in doc
-        posting: { isPosted: false, txnId: null, postedAt: null }
-      };
-
-      // 3) Update order with appended Steps (using your existing /updateOrder route)
-      await axios.put(`${ORDER_API}/updateOrder/${orderId}`, {
-        Steps: [...existingSteps, newStep]
-      });
-
-      closeAddStepModal();
-      // Refresh list
-      fetchData({ search: searchOrder.trim() || undefined });
-      alert("Step added successfully.");
-    } catch (e) {
-      console.error(e);
-      alert(e?.response?.data?.message || "Failed to add step");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const exportToPDF = () => {
     const doc = new jsPDF();
@@ -337,16 +327,7 @@ export default function AllVendors() {
                   key={order._id || order.Order_Number}
                   className="relative bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition"
                 >
-                  <div className="text-gray-900 font-bold text-lg flex items-center justify-between">
-                    <span>#{order.Order_Number}</span>
-                    {/* NEW: Add Step button */}
-                    <button
-                      className="text-xs px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700"
-                      onClick={() => openAddStepModal(order)}
-                    >
-                      + Add Step
-                    </button>
-                  </div>
+                  <div className="text-gray-900 font-bold text-lg">#{order.Order_Number}</div>
                   <div className="text-gray-700 font-medium">{order.Customer_name}</div>
                   <div className="text-sm text-gray-600 italic mt-1">
                     {order.Remark || "-"}
@@ -370,8 +351,9 @@ export default function AllVendors() {
                         <button
                           className="shrink-0 px-3 py-1 rounded bg-indigo-600 text-white text-xs hover:bg-indigo-700 disabled:opacity-50"
                           onClick={() => openAssignModal(order, s)}
+                          title={s.isPosted ? "Edit Vendor" : "Assign & Post"}
                         >
-                          {s.isPosted ? "Edit Vendor" : "Assign & Post"}
+                          {s.isPosted ? "Edit" : "+"}
                         </button>
                       </div>
                     ))}
@@ -390,26 +372,43 @@ export default function AllVendors() {
         </main>
       </div>
 
-      {/* Assign Vendor Modal */}
       {showAssignModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-lg p-4 w-full max-w-md">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold">
-                Assign Vendor & Post{activeStep?.label ? ` — ${activeStep.label}` : ""}
+                {activeStep?.isPosted ? "Edit Vendor" : "Assign Vendor & Post"}
+                {activeStep?.label ? ` — ${activeStep.label}` : ""}
               </h3>
               <button onClick={closeAssignModal} className="text-gray-500 hover:text-black">✕</button>
             </div>
 
             <div className="space-y-3">
-              {/* Step (read-only) */}
+              {/* Step selection from Taskgroups */}
               <div>
-                <label className="block text-sm mb-1">Step Name</label>
-                <input
-                  className="w-full border rounded px-3 py-2 bg-gray-100"
-                  value={activeStep?.label || ""}
-                  readOnly
-                />
+                <label className="block text-sm mb-1">Step (from Taskgroups)</label>
+                {taskStepOptions.length ? (
+                  <select
+                    className="w-full border rounded px-3 py-2 bg-white"
+                    value={selectedStepLabel}
+                    onChange={(e) => setSelectedStepLabel(e.target.value)}
+                  >
+                    <option value="">-- Choose step --</option>
+                    {taskStepOptions.map(lbl => (
+                      <option key={lbl} value={lbl}>{lbl}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    className="w-full border rounded px-3 py-2"
+                    placeholder="Type step name"
+                    value={selectedStepLabel}
+                    onChange={(e) => setSelectedStepLabel(e.target.value)}
+                  />
+                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  Pick a standardized step from your Taskgroups. If none are loaded, you can type one.
+                </p>
               </div>
 
               {/* Vendor dropdown (Office & Vendor group only) */}
@@ -462,65 +461,6 @@ export default function AllVendors() {
                 disabled={loading}
               >
                 Save & Post
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Step Modal */}
-      {showAddStepModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg shadow-lg p-4 w-full max-w-md">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">
-                + Add Step {addStepOrder?.Order_Number ? `— #${addStepOrder.Order_Number}` : ""}
-              </h3>
-              <button onClick={closeAddStepModal} className="text-gray-500 hover:text-black">✕</button>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm mb-1">Step Name *</label>
-                <input
-                  className="w-full border rounded px-3 py-2"
-                  value={newStepLabel}
-                  onChange={(e) => setNewStepLabel(e.target.value)}
-                  placeholder="e.g., Design, Printing, Lamination"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm mb-1">Planned Date *</label>
-                <input
-                  type="date"
-                  className="w-full border rounded px-3 py-2"
-                  value={newStepDate}
-                  onChange={(e) => setNewStepDate(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm mb-1">Estimated Cost (₹) — optional</label>
-                <input
-                  type="number"
-                  className="w-full border rounded px-3 py-2"
-                  value={newStepCost}
-                  onChange={(e) => setNewStepCost(e.target.value)}
-                  min="0"
-                  placeholder="0"
-                />
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center justify-end gap-2">
-              <button className="px-3 py-2 border rounded" onClick={closeAddStepModal}>Cancel</button>
-              <button
-                className="px-3 py-2 rounded bg-emerald-600 text-white disabled:opacity-50"
-                onClick={saveNewStep}
-                disabled={loading}
-              >
-                Save Step
               </button>
             </div>
           </div>
