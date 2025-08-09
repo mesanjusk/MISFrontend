@@ -23,17 +23,13 @@ export default function AllVendors() {
   const [activeOrder, setActiveOrder] = useState(null);
   const [activeStep, setActiveStep] = useState(null);
 
-  // Assign form (vendor + amount + date + taskgroup step)
+  // Assign form (dropdown + amount + date only)
   const [selectedVendorUuid, setSelectedVendorUuid] = useState("");
   const [costAmount, setCostAmount] = useState("");
   const [plannedDate, setPlannedDate] = useState(() => {
     const d = new Date();
     return d.toISOString().slice(0, 10);
   });
-
-  // Taskgroup steps
-  const [taskStepOptions, setTaskStepOptions] = useState([]); // array of strings (labels)
-  const [selectedStepLabel, setSelectedStepLabel] = useState("");
 
   // ---- API roots (Vite-first, CRA fallback) ----
   const API_BASE = useMemo(() => {
@@ -45,53 +41,6 @@ export default function AllVendors() {
   const ORDER_API = `${API_BASE}/order`;
   const CUSTOMER_API = `${API_BASE}/customer`;
   const VENDORS_ENDPOINT = `${ORDER_API}/allvendors`;
-
-  // Common taskgroup endpoints we’ve used in this project
-  const TASKGROUP_ENDPOINTS = [
-    `${API_BASE}/taskgroup/with-steps`,
-    `${API_BASE}/taskgroup/withUsage`,
-    `${API_BASE}/taskgroup/GetTaskgroupList`,
-    `${API_BASE}/taskgroup/list`,
-    `${API_BASE}/taskgroup`
-  ];
-
-  // Fetch Taskgroups → flatten to unique step labels
-  const fetchTaskSteps = async () => {
-    for (const url of TASKGROUP_ENDPOINTS) {
-      try {
-        const res = await axios.get(url);
-        const data = res?.data;
-        if (!data) continue;
-
-        const groups = Array.isArray(data?.result) ? data.result
-                    : Array.isArray(data?.groups) ? data.groups
-                    : Array.isArray(data) ? data
-                    : [];
-
-        const labels = new Set();
-        groups.forEach((g) => {
-          const steps = g?.Steps || g?.steps || g?.stepList || [];
-          if (Array.isArray(steps)) {
-            steps.forEach((s) => {
-              const lbl = s?.label || s?.name || s?.Step || s?.Title || s?.title;
-              if (lbl && String(lbl).trim()) labels.add(String(lbl).trim());
-            });
-          } else if (typeof g?.steps === "string") {
-            g.steps.split(",").map(x => x.trim()).forEach(x => x && labels.add(x));
-          }
-        });
-
-        const list = Array.from(labels);
-        if (list.length) {
-          setTaskStepOptions(list.sort());
-          return;
-        }
-      } catch {
-        // try next endpoint
-      }
-    }
-    setTaskStepOptions([]); // none matched → allow free‑text fallback
-  };
 
   const fetchData = async (params = {}) => {
     setLoading(true);
@@ -124,11 +73,7 @@ export default function AllVendors() {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-    fetchTaskSteps();
-    // eslint-disable-next-line
-  }, []);
+  useEffect(() => { fetchData(); /* eslint-disable-next-line */ }, []);
 
   const onSearch = (e) => {
     e.preventDefault();
@@ -144,9 +89,6 @@ export default function AllVendors() {
     const d = step.plannedDate ? new Date(step.plannedDate) : new Date();
     setPlannedDate(d.toISOString().slice(0, 10));
 
-    // Preselect dropdown to current label (if any)
-    setSelectedStepLabel(step?.label || "");
-
     setShowAssignModal(true);
   };
 
@@ -158,28 +100,26 @@ export default function AllVendors() {
     setCostAmount("");
     const d = new Date();
     setPlannedDate(d.toISOString().slice(0, 10));
-    setSelectedStepLabel("");
   };
 
-  // Vendor dropdown: ONLY group === "Office & Vendor"
+  // Vendor dropdown: ONLY group === "Office & Vendor" (case-insensitive)
   const vendorOptions = useMemo(() => {
     const isOfficeVendor = (groupValue) => {
       if (!groupValue) return false;
       return String(groupValue).trim().toLowerCase() === "office & vendor";
     };
+
     return customersList
       .filter(c => isOfficeVendor(c.Customer_group || c.Group || c.group))
-      .map(c => ({ uuid: c.Customer_uuid, name: c.Customer_name }));
+      .map(c => ({
+        uuid: c.Customer_uuid,
+        name: c.Customer_name
+      }));
   }, [customersList]);
 
   const assignVendor = async () => {
     if (!activeOrder || !activeStep) return;
 
-    const label = (selectedStepLabel || "").trim();
-    if (!label) {
-      alert("Please choose a Step from Taskgroups (or type one).");
-      return;
-    }
     if (!selectedVendorUuid) {
       alert("Please choose a vendor from the list.");
       return;
@@ -197,16 +137,14 @@ export default function AllVendors() {
     try {
       setLoading(true);
       const orderId = activeOrder._id || activeOrder.id;
-      const stepId = activeStep.stepId ?? activeStep._id ?? "";
 
       await axios.post(
-        `${ORDER_API}/orders/${orderId}/steps/${stepId}/assign-vendor`,
+        `${ORDER_API}/orders/${orderId}/steps/${activeStep.stepId}/assign-vendor`,
         {
           vendorCustomerUuid: selectedVendorUuid,
           costAmount: amt,
           plannedDate, // YYYY-MM-DD
-          createdBy: localStorage.getItem("User_name") || "operator",
-          label // send standardized step label
+          createdBy: localStorage.getItem("User_name") || "operator"
         }
       );
 
@@ -326,6 +264,7 @@ export default function AllVendors() {
                         className="border rounded px-2 py-2 text-sm flex items-center justify-between gap-2"
                       >
                         <div className="min-w-0">
+                          {/* Step name visible */}
                           <div className="font-semibold truncate">
                             Step: {s.label || "—"}
                           </div>
@@ -337,7 +276,6 @@ export default function AllVendors() {
                         <button
                           className="shrink-0 px-3 py-1 rounded bg-indigo-600 text-white text-xs hover:bg-indigo-700 disabled:opacity-50"
                           onClick={() => openAssignModal(order, s)}
-                          title={s.isPosted ? "Edit Vendor" : "Assign & Post"}
                         >
                           {s.isPosted ? "Edit Vendor" : "+"}
                         </button>
@@ -363,38 +301,20 @@ export default function AllVendors() {
           <div className="bg-white rounded-lg shadow-lg p-4 w-full max-w-md">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold">
-                {activeStep?.isPosted ? "Edit Vendor" : "Assign Vendor & Post"}
-                {activeStep?.label ? ` — ${activeStep.label}` : ""}
+                Assign Vendor & Post{activeStep?.label ? ` — ${activeStep.label}` : ""}
               </h3>
               <button onClick={closeAssignModal} className="text-gray-500 hover:text-black">✕</button>
             </div>
 
             <div className="space-y-3">
-              {/* Step selection from Taskgroups */}
+              {/* Step (read-only) */}
               <div>
-                <label className="block text-sm mb-1">Step (from Taskgroups)</label>
-                {taskStepOptions.length ? (
-                  <select
-                    className="w-full border rounded px-3 py-2 bg-white"
-                    value={selectedStepLabel}
-                    onChange={(e) => setSelectedStepLabel(e.target.value)}
-                  >
-                    <option value="">-- Choose step --</option>
-                    {taskStepOptions.map(lbl => (
-                      <option key={lbl} value={lbl}>{lbl}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    className="w-full border rounded px-3 py-2"
-                    placeholder="Type step name"
-                    value={selectedStepLabel}
-                    onChange={(e) => setSelectedStepLabel(e.target.value)}
-                  />
-                )}
-                <p className="text-xs text-gray-500 mt-1">
-                  Pick a standardized step from your Taskgroups. If none are loaded, you can type one.
-                </p>
+                <label className="block text-sm mb-1">Step Name</label>
+                <input
+                  className="w-full border rounded px-3 py-2 bg-gray-100"
+                  value={activeStep?.label || ""}
+                  readOnly
+                />
               </div>
 
               {/* Vendor dropdown (Office & Vendor group only) */}
@@ -454,4 +374,4 @@ export default function AllVendors() {
       )}
     </>
   );
-}
+}  while adding steps choose steps from taskgroups in dropdown and Assign & Post button replace with '+' 
