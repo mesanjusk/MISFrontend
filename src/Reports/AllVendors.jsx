@@ -24,14 +24,23 @@ export default function AllVendors() {
   const [vendorName, setVendorName] = useState("");
   const [costAmount, setCostAmount] = useState("");
 
-  const baseURL = useMemo(() => process.env.REACT_APP_API || "", []);
+  // ---- API roots (ensure your env has VITE_API_BASE or REACT_APP_API set) ----
+  const API_BASE = useMemo(() => {
+    const raw =
+      (typeof import.meta !== "undefined" ? import.meta.env.VITE_API_BASE : "") ||
+      process.env.REACT_APP_API ||
+      "";
+    return String(raw).replace(/\/$/, "");
+  }, []);
+  const ORDER_API = `${API_BASE}/order`;
+  const CUSTOMER_API = `${API_BASE}/customer`;
 
   const fetchData = async (params = {}) => {
     setLoading(true);
     try {
       const [vendorsRes, customersRes] = await Promise.all([
-        axios.get(`${baseURL}/allvendors`, { params }),
-        axios.get(`${baseURL}/customer/GetCustomersList`),
+        axios.get(`${ORDER_API}/allvendors`, { params }),
+        axios.get(`${CUSTOMER_API}/GetCustomersList`),
       ]);
 
       const vendorRows = vendorsRes.data?.rows || vendorsRes.data || [];
@@ -46,7 +55,7 @@ export default function AllVendors() {
       }
     } catch (err) {
       console.error("Error fetching data:", err);
-      alert("Failed to load vendor list.");
+      alert(err?.response?.data?.error || "Failed to load vendor list.");
     } finally {
       setLoading(false);
     }
@@ -56,7 +65,7 @@ export default function AllVendors() {
 
   const onSearch = (e) => {
     e.preventDefault();
-    fetchData({ search: searchOrder.trim() });
+    fetchData({ search: searchOrder.trim() || undefined });
   };
 
   const openStepsModal = (e, order) => {
@@ -89,16 +98,20 @@ export default function AllVendors() {
   const assignVendor = async () => {
     if (!activeOrder || !activeStep) return;
     if (!vendorId && !vendorName) {
-      alert("Enter Vendor ID or Vendor Name"); return;
+      alert("Enter Vendor ID or Vendor Name");
+      return;
     }
     const amt = Number(costAmount || 0);
-    if (Number.isNaN(amt) || amt < 0) { alert("Invalid cost amount"); return; }
+    if (Number.isNaN(amt) || amt < 0) {
+      alert("Invalid cost amount");
+      return;
+    }
 
     try {
       setLoading(true);
       const orderId = activeOrder._id || activeOrder.id;
       await axios.post(
-        `${baseURL}/orders/${orderId}/steps/${activeStep.stepId}/assign-vendor`,
+        `${ORDER_API}/orders/${orderId}/steps/${activeStep.stepId}/assign-vendor`,
         {
           vendorId: vendorId?.trim() || null,
           vendorName: vendorName?.trim() || null,
@@ -152,11 +165,11 @@ export default function AllVendors() {
         data.push({
           "Order Number": order.Order_Number,
           "Customer Name": order.Customer_name,
-          "Step": s.label,
-          "Vendor": s.vendorName || s.vendorId || "-",
+          Step: s.label,
+          Vendor: s.vendorName || s.vendorId || "-",
           "Cost Amount": s.costAmount ?? 0,
           "Posted?": s.isPosted ? "Yes" : "No",
-          "Remark": order.Remark || "-",
+          Remark: order.Remark || "-",
         });
       });
     });
@@ -202,9 +215,7 @@ export default function AllVendors() {
         <main className="p-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
             {loading ? (
-              <div className="col-span-full text-center text-gray-500 py-10">
-                Loading…
-              </div>
+              <div className="col-span-full text-center text-gray-500 py-10">Loading…</div>
             ) : enriched.length > 0 ? (
               enriched.map((order, idx) => (
                 <div
@@ -233,7 +244,9 @@ export default function AllVendors() {
                         <div className="min-w-0">
                           <div className="font-medium truncate">{s.label}</div>
                           <div className="text-gray-500 truncate">
-                            {(s.vendorName || s.vendorId) ? (s.vendorName || s.vendorId) : "— Vendor not set —"}
+                            {(s.vendorName || s.vendorId)
+                              ? (s.vendorName || s.vendorId)
+                              : "— Vendor not set —"}
                           </div>
                           <div className="text-gray-600">₹ {s.costAmount ?? 0}</div>
                           <div className={`text-xs ${s.isPosted ? "text-green-600" : "text-amber-600"}`}>
