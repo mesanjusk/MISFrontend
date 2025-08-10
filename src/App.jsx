@@ -28,7 +28,7 @@ import AddOrder1 from "./Pages/addOrder1";
 import AllOrder from "./Reports/allOrder";
 import AllOrderMobile from "./Reports/allOrderMobile";
 import AllDelivery from "./Reports/allDelivery";
-import OrderUpdate from "./Reports/OrderUpdate";
+import OrderUpdate from "./Reports/OrderUpdate.jsx";
 import AddEnquiry from "./Pages/addEnquiry";
 import AddPayment from "./Pages/addPayment";
 import AddTransaction from "./Pages/AddTransaction";
