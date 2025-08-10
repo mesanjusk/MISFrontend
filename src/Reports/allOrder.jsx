@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import OrderUpdate from "./orderUpdate";
+import OrderUpdate from "./OrderUpdate";
 import { LoadingSpinner } from "../Components";
 
 export default function AllOrder() {
