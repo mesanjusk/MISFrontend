@@ -33,7 +33,6 @@ export default function AllVendors() {
   const [showAddStepModal, setShowAddStepModal] = useState(false);
   const [taskGroups, setTaskGroups] = useState([]);              // [{ id, name }]
   const [newStepLabelChoice, setNewStepLabelChoice] = useState(""); // dropdown selection
-
   const [addStepOrder, setAddStepOrder] = useState(null);
   const [newStepLabel, setNewStepLabel] = useState("");
   const [newStepVendorUuid, setNewStepVendorUuid] = useState("");
@@ -53,12 +52,21 @@ export default function AllVendors() {
   const RAW_ENDPOINT = `${ORDER_API}/allvendors-raw`;
   const TASKGROUPS_ENDPOINT = `${API_BASE}/taskgroup/GetTaskgroupList`;
 
-
-  // Utilities
+  // ---- Utils ----
   const isStepNeedingVendor = (st) => {
     const hasVendor = !!(st?.vendorId || st?.vendorCustomerUuid);
     const isPosted = !!st?.posting?.isPosted;
     return !hasVendor || !isPosted;
+  };
+
+  // NEW: combine per-item remarks for an order
+ const getOrderRemark = (order) => {
+    const perItem = (order?.Items || [])
+      .map((it) => String(it?.Remark || "").trim())
+      .filter(Boolean);
+    // Legacy order-level Remark (older docs)
+    const legacy = String(order?.Remark || "").trim();
+    return [...perItem, legacy].filter(Boolean).join(" | ");
   };
 
   const computeProjectedRows = (docs, search) => {
@@ -71,17 +79,16 @@ export default function AllVendors() {
       return latest?.Task?.trim().toLowerCase() === "delivered";
     });
 
-
-
-
-    // search filter (order # / customer uuid / remark)
+    // search filter (order # / customer uuid / per-item remark)
     const filtered = text
       ? deliveredOnly.filter((o) => {
-        const onum = String(o.Order_Number || "").toLowerCase();
-        const cuid = String(o.Customer_uuid || "").toLowerCase();
-        const remark = String(o.Remark || "").toLowerCase();
-        return onum.includes(text) || cuid.includes(text) || remark.includes(text);
-      })
+          const onum = String(o.Order_Number || "").toLowerCase();
+          const cuid = String(o.Customer_uuid || "").toLowerCase();
+          const anyRemark = (o.Items || []).some((it) =>
+            String(it?.Remark || "").toLowerCase().includes(text)
+          );
+          return onum.includes(text) || cuid.includes(text) || anyRemark;
+        })
       : deliveredOnly;
 
     // project pending steps
@@ -105,8 +112,6 @@ export default function AllVendors() {
       .filter((o) => (o.StepsPending || []).length > 0)
       .sort((a, b) => (b.Order_Number || 0) - (a.Order_Number || 0));
   };
-
-
 
   const fetchData = async () => {
     setLoading(true);
@@ -134,10 +139,10 @@ export default function AllVendors() {
         setCustomersMap({});
       }
 
-     const tgItems = Array.isArray(tgRes?.data?.result) ? tgRes.data.result : [];
-const filteredGroups = tgItems.filter((tg) => Number(tg?.Id) === 1);
-setTaskGroups(filteredGroups);
-
+      // Task groups (Id === 1 only)
+      const tgItems = Array.isArray(tgRes?.data?.result) ? tgRes.data.result : [];
+      const filteredGroups = tgItems.filter((tg) => Number(tg?.Id) === 1);
+      setTaskGroups(filteredGroups);
 
       // Initial projection
       setRows(computeProjectedRows(docs, ""));
@@ -163,6 +168,9 @@ setTaskGroups(filteredGroups);
     const isOfficeVendor = (groupValue) => {
       if (!groupValue) return false;
       return String(groupValue).trim().toLowerCase() === "office & vendor";
+      // or loosen:
+      // const g = String(groupValue || "").toLowerCase();
+      // return g.includes("office") && g.includes("vendor");
     };
     return customersList
       .filter((c) => isOfficeVendor(c.Customer_group || c.Group || c.group))
@@ -229,7 +237,6 @@ setTaskGroups(filteredGroups);
     setShowAddStepModal(true);
     setNewStepLabelChoice("");
     setNewStepLabel("");
-
   };
 
   const closeAddStepModal = () => {
@@ -272,7 +279,6 @@ setTaskGroups(filteredGroups);
     }
   };
 
-
   /* ---------------- Export ---------------- */
   const enriched = rows.map((order) => ({
     ...order,
@@ -281,10 +287,11 @@ setTaskGroups(filteredGroups);
 
   const exportToPDF = () => {
     const doc = new jsPDF();
-    const tableColumn = ["Order #", "Customer", "Step", "Vendor UUID", "Cost", "Posted?"];
+    const tableColumn = ["Order #", "Customer", "Step", "Vendor UUID", "Cost", "Posted?", "Remarks"];
     const tableRows = [];
 
     enriched.forEach((order) => {
+      const remark = getOrderRemark(order) || "-";
       (order.StepsPending || []).forEach((s) => {
         tableRows.push([
           order.Order_Number,
@@ -293,6 +300,7 @@ setTaskGroups(filteredGroups);
           s.vendorCustomerUuid || s.vendorId || "-",
           s.costAmount ?? 0,
           s.isPosted ? "Yes" : "No",
+          remark,
         ]);
       });
     });
@@ -305,6 +313,7 @@ setTaskGroups(filteredGroups);
   const exportToExcel = () => {
     const data = [];
     enriched.forEach((order) => {
+      const remark = getOrderRemark(order) || "-";
       (order.StepsPending || []).forEach((s) => {
         data.push({
           "Order Number": order.Order_Number,
@@ -313,7 +322,7 @@ setTaskGroups(filteredGroups);
           "Vendor UUID": s.vendorCustomerUuid || s.vendorId || "-",
           "Cost Amount": s.costAmount ?? 0,
           "Posted?": s.isPosted ? "Yes" : "No",
-          Remark: order.Items[i].Remark || "-",
+          "Remarks": remark,
         });
       });
     });
@@ -368,17 +377,18 @@ setTaskGroups(filteredGroups);
                 >
                   <div className="text-gray-900 font-bold text-lg">#{order.Order_Number}</div>
                   <div className="text-gray-700 font-medium">{order.Customer_name}</div>
-                  <div className="text-sm text-gray-600 italic mt-1">{order.Items[i].Remark || "-"}</div>
+                  <div className="text-sm text-gray-600 italic mt-1">
+                    {getOrderRemark(order) || "-"}
+                  </div>
 
                   <div className="mt-3 space-y-2">
-                    {(order.StepsPending || []).map((s, i) => (
+                    {(order.StepsPending || []).map((s, idx) => (
                       <div
-                        key={`${order._id || order.Order_Number}-${s.stepId || i}`}
+                        key={`${order._id || order.Order_Number}-${s.stepId || idx}`}
                         className="border rounded px-2 py-2 text-sm flex items-center justify-between gap-2"
                       >
                         <div className="min-w-0">
                           <div className="font-semibold truncate">{s.label || "—"}</div>
-
                         </div>
 
                         <button
@@ -502,18 +512,12 @@ setTaskGroups(filteredGroups);
                       {tg.Task_group_name || tg.Task_group || "Unnamed Group"}
                     </option>
                   ))}
+                  {/* NEW: explicit Custom option */}
+                  
                 </select>
 
-                {newStepLabelChoice === "__CUSTOM__" && (
-                  <input
-                    className="mt-2 w-full border rounded px-3 py-2"
-                    value={newStepLabel}
-                    onChange={(e) => setNewStepLabel(e.target.value)}
-                    placeholder="Enter custom step label"
-                  />
-                )}
+                
               </div>
-
 
               <div>
                 <label className="block text-sm mb-1">Select Vendor (optional)</label>
