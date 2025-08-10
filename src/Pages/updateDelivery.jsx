@@ -7,7 +7,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import normalizeWhatsAppNumber from "../utils/normalizeNumber";
 import { LoadingSpinner } from "../Components";
-import InvoiceModal from "../components/InvoiceModal";
+import InvoiceModal from "../Components/InvoiceModal";
 
 const BASE_URL = "https://misbackend-e078.onrender.com";
 // If you enforce Purchase in backend, keep this matching

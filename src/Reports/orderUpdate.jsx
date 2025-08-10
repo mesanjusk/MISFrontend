@@ -397,4 +397,4 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
     </div>
   );
 }
-export { default } from "../Pages/OrderUpdate.jsx";
+
