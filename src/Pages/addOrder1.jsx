@@ -7,6 +7,8 @@ import AddCustomer from "./addCustomer";
 import InvoiceModal from "../Components/InvoiceModal";
 import { LoadingSpinner } from "../Components";
 
+const BASE_URL = "https://misbackend-e078.onrender.com";
+
 export default function AddOrder1() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -21,12 +23,12 @@ export default function AddOrder1() {
   const [loggedInUser, setLoggedInUser] = useState("");
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [accountCustomerOptions, setAccountCustomerOptions] = useState([]);
-  const [group, setGroup] = useState("");
+  const [group, setGroup] = useState(""); // payment account uuid
 
   const [taskGroups, setTaskGroups] = useState([]);
   const [selectedTaskGroups, setSelectedTaskGroups] = useState([]);
-  const [whatsAppMessage, setWhatsAppMessage] = useState('');
-  const [mobileToSend, setMobileToSend] = useState('');
+  const [whatsAppMessage, setWhatsAppMessage] = useState("");
+  const [mobileToSend, setMobileToSend] = useState("");
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceItems, setInvoiceItems] = useState([]);
   const previewRef = useRef();
@@ -44,21 +46,24 @@ export default function AddOrder1() {
       setOptionsLoading(true);
       try {
         const [customerRes, taskRes] = await Promise.all([
-          axios.get("/customer/GetCustomersList"),
-          axios.get("/taskgroup/GetTaskgroupList"),
+          axios.get(`${BASE_URL}/customer/GetCustomersList`),
+          axios.get(`${BASE_URL}/taskgroup/GetTaskgroupList`),
         ]);
+
         if (customerRes.data.success) {
-          setCustomerOptions(customerRes.data.result);
-          const accountOptions = customerRes.data.result.filter(
-            (item) => item.Customer_group === "Bank and Account"
-          );
+          const all = customerRes.data.result || [];
+          setCustomerOptions(all);
+          const accountOptions = all.filter((item) => item.Customer_group === "Bank and Account");
           setAccountCustomerOptions(accountOptions);
         }
+
         if (taskRes.data.success) {
-          const filtered = taskRes.data.result.filter((tg) => tg.Id === 1);
+          // Only groups with Id === 1 (as per your rule)
+          const filtered = (taskRes.data.result || []).filter((tg) => tg.Id === 1);
           setTaskGroups(filtered);
         }
-      } catch {
+      } catch (e) {
+        console.error(e);
         toast.error("Error fetching data");
       } finally {
         setOptionsLoading(false);
@@ -69,40 +74,36 @@ export default function AddOrder1() {
 
   const handleTaskGroupToggle = (uuid) => {
     setSelectedTaskGroups((prev) =>
-      prev.includes(uuid)
-        ? prev.filter((id) => id !== uuid)
-        : [...prev, uuid]
+      prev.includes(uuid) ? prev.filter((id) => id !== uuid) : [...prev, uuid]
     );
   };
 
-
   const submit = async (e) => {
     e.preventDefault();
+
     try {
-      const customer = customerOptions.find(
-        (opt) => opt.Customer_name === Customer_name
-      );
-      const Group = accountCustomerOptions.find(
-        (opt) => opt.Customer_uuid === group
-      );
+      const customer = customerOptions.find((opt) => opt.Customer_name === Customer_name);
+      const payModeCustomer = accountCustomerOptions.find((opt) => opt.Customer_uuid === group);
 
       if (!customer) {
         toast.error("Invalid customer selection");
         return;
       }
 
-      const orderResponse = await axios.post("https://misbackend-e078.onrender.com/order/addOrder", {
-        Customer_uuid: customer.Customer_uuid,
-        Remark,
-        Task_groups: selectedTaskGroups,
-        Steps: selectedTaskGroups.map((uuid) => {
-  const group = taskGroups.find((tg) => tg.Task_group_uuid === uuid);
-  return {
-    label: group?.Task_group || "Unnamed Group",
-    checked: 'true',
-  };
-}),
+      // Build Steps array from selected task groups (checked must be boolean)
+      const steps = selectedTaskGroups.map((tgUuid) => {
+        const g = taskGroups.find((t) => t.Task_group_uuid === tgUuid);
+        return {
+          label: g?.Task_group_name || g?.Task_group || "Unnamed Group",
+          checked: true,
+        };
+      });
 
+      // Create Order (backend ignores order-level Remark now; Items will be added later in delivery)
+      const orderResponse = await axios.post(`${BASE_URL}/order/addOrder`, {
+        Customer_uuid: customer.Customer_uuid,
+        Steps: steps,
+        // Status is optional; backend sets sensible defaults
       });
 
       if (!orderResponse.data.success) {
@@ -110,18 +111,25 @@ export default function AddOrder1() {
         return;
       }
 
+      // Optional: create advance transaction
       if (isAdvanceChecked && Amount && group) {
+        const amt = Number(Amount || 0);
+        if (Number.isNaN(amt) || amt <= 0) {
+          toast.error("Enter a valid advance amount");
+          return;
+        }
+
         const journal = [
-          { Account_id: group, Type: "Debit", Amount: Number(Amount) },
-          { Account_id: customer.Customer_uuid, Type: "Credit", Amount: Number(Amount) },
+          { Account_id: group, Type: "Debit", Amount: amt },
+          { Account_id: customer.Customer_uuid, Type: "Credit", Amount: amt },
         ];
 
-        const transactionResponse = await axios.post("http://localhost:10000/transaction/addTransaction", {
-          Description: Remark,
+        const transactionResponse = await axios.post(`${BASE_URL}/transaction/addTransaction`, {
+          Description: Remark || "Advance received",
           Transaction_date: new Date().toISOString().split("T")[0],
-          Total_Credit: Number(Amount),
-          Total_Debit: Number(Amount),
-          Payment_mode: Group?.Customer_name,
+          Total_Credit: amt,
+          Total_Debit: amt,
+          Payment_mode: payModeCustomer?.Customer_name || "Advance",
           Journal_entry: journal,
           Created_by: loggedInUser,
         });
@@ -132,18 +140,18 @@ export default function AddOrder1() {
         }
 
         toast.success("Order & Payment Added");
+
+        // Prepare invoice modal with single Advance line
+        setInvoiceItems([{ Item: "Advance", Quantity: 1, Rate: amt, Amount: amt }]);
       } else {
         toast.success("Order Added");
+        setInvoiceItems([]); // no advance line
       }
 
+      // WhatsApp preview
       const message = `Dear ${customer.Customer_name}, your order has been booked successfully.`;
       setWhatsAppMessage(message);
-      setMobileToSend(customer.Mobile_number);
-      if (isAdvanceChecked && Amount) {
-        setInvoiceItems([{ Item: 'Advance', Quantity: 1, Rate: Amount, Amount: Amount }]);
-      } else {
-        setInvoiceItems([]);
-      }
+      setMobileToSend(customer.Mobile_number || "");
       setShowInvoiceModal(true);
     } catch (error) {
       console.error("Error during submit:", error);
@@ -153,7 +161,7 @@ export default function AddOrder1() {
 
   const sendMessageToAPI = async (name, phone, message) => {
     try {
-      const res = await fetch("https://misbackend-e078.onrender.com/usertask/send-message", {
+      const res = await fetch(`${BASE_URL}/usertask/send-message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -182,7 +190,7 @@ export default function AddOrder1() {
     setCustomer_Name(value);
     if (value) {
       const filtered = customerOptions.filter((opt) =>
-        opt.Customer_name.toLowerCase().includes(value.toLowerCase())
+        (opt.Customer_name || "").toLowerCase().includes(value.toLowerCase())
       );
       setFilteredOptions(filtered);
       setShowOptions(true);
@@ -209,7 +217,10 @@ export default function AddOrder1() {
     <>
       <InvoiceModal
         isOpen={showInvoiceModal}
-        onClose={() => { setShowInvoiceModal(false); navigate('/home'); }}
+        onClose={() => {
+          setShowInvoiceModal(false);
+          navigate("/home");
+        }}
         invoiceRef={previewRef}
         customerName={Customer_name}
         customerMobile={mobileToSend}
@@ -217,6 +228,7 @@ export default function AddOrder1() {
         remark={Remark}
         onSendWhatsApp={sendWhatsApp}
       />
+
       <div className="flex justify-center items-center bg-[#f0f2f5] min-h-screen text-[#111b21] px-4">
         <div className="bg-white w-full max-w-2xl rounded-xl shadow-xl p-6 relative">
           <button
@@ -253,7 +265,7 @@ export default function AddOrder1() {
                   +
                 </button>
                 {showOptions && filteredOptions.length > 0 && (
-                  <ul className="absolute z-10 w-full bg-white border mt-1 rounded-md shadow">
+                  <ul className="absolute z-10 w-full bg-white border mt-1 rounded-md shadow max-h-60 overflow-auto">
                     {filteredOptions.map((option, index) => (
                       <li
                         key={index}
@@ -268,13 +280,13 @@ export default function AddOrder1() {
               </div>
             )}
 
-            {/* Remark */}
+            {/* Order note (kept for WhatsApp/invoice text only; NOT sent to /addOrder) */}
             <div className="mb-4">
               <label className="block mb-1 font-medium">Order</label>
               <input
                 type="text"
                 className="w-full p-2 rounded-md border border-gray-300"
-                placeholder="Item Details"
+                placeholder="Item Details / Note"
                 value={Remark}
                 onChange={(e) => setRemark(e.target.value)}
               />
@@ -302,6 +314,8 @@ export default function AddOrder1() {
                     placeholder="Enter Amount"
                     value={Amount}
                     onChange={(e) => setAmount(e.target.value)}
+                    min="0"
+                    step="0.01"
                   />
                 </div>
 
@@ -329,7 +343,7 @@ export default function AddOrder1() {
               </>
             )}
 
-            {/* Task Groups */}
+            {/* Task Groups (Id === 1) */}
             {optionsLoading ? (
               <div className="flex justify-center items-center h-10 mb-4">
                 <LoadingSpinner />
@@ -355,8 +369,6 @@ export default function AddOrder1() {
                 </div>
               </div>
             )}
-
-
 
             <button
               type="submit"

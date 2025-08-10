@@ -80,7 +80,7 @@ export default function AllBills() {
         order.Order_Number,
         order.Customer_name,
         new Date(order.createdAt).toLocaleDateString(),
-        order.Remark || "-",
+        order.Items[i].Remark || "-",
         order.highestStatusTask?.Assigned || "",
         order.highestStatusTask?.Delivery_Date
           ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString()
@@ -102,7 +102,7 @@ export default function AllBills() {
       "Order Number": order.Order_Number,
       "Customer Name": order.Customer_name,
       "Created At": new Date(order.createdAt).toLocaleDateString(),
-      Remark: order.Remark || "-",
+      Remark: order.Items[i].Remark || "-",
       Assigned: order.highestStatusTask?.Assigned || "",
       "Delivery Date": order.highestStatusTask?.Delivery_Date
         ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString()
@@ -194,7 +194,7 @@ export default function AllBills() {
                     {new Date(order.createdAt).toLocaleDateString()}
                   </div>
                   <div className="text-sm text-gray-600 italic">
-                    {order.Remark || "-"}
+                    {order.Items[i].Remark || "-"}
                   </div>
                   <div className="mt-2 text-sm text-gray-600">
                     <p>👤 Assigned: {order.highestStatusTask?.Assigned || "N/A"}</p>

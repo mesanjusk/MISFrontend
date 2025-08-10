@@ -19,8 +19,8 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
 
   const [orderId, setOrderId] = useState('');
   const [Customer_uuid, setCustomer_uuid] = useState('');
-  const [items, setItems] = useState([{ Item: '', Quantity: '', Rate: '', Amount: 0 }]);
-  const [Remark, setRemark] = useState('');
+  // Each item now carries Priority & Remark per line
+  const [items, setItems] = useState([{ Item: '', Quantity: 0, Rate: 0, Amount: 0, Priority: 'Normal', Remark: '' }]);
   const [Customer_name, setCustomer_name] = useState('');
   const [customers, setCustomers] = useState([]);
   const [itemOptions, setItemOptions] = useState([]);
@@ -31,7 +31,6 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [invoiceUrl, setInvoiceUrl] = useState('');
-
 
   useEffect(() => {
     const userNameFromState = location.state?.id;
@@ -44,8 +43,18 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
     if (mode === 'edit' && (order?._id || order?.Order_id)) {
       setOrderId(order._id || order.Order_id);
       setCustomer_uuid(order.Customer_uuid || '');
-      setItems(order.Items || [{ Item: '', Quantity: '', Rate: '', Amount: 0 }]);
-      setRemark(order.Remark || '');
+      // fall back to default shape with Priority/Remark if missing
+      const seeded = Array.isArray(order.Items) && order.Items.length
+        ? order.Items.map(it => ({
+            Item: it.Item || '',
+            Quantity: Number(it.Quantity || 0),
+            Rate: Number(it.Rate || 0),
+            Amount: Number(it.Amount || 0),
+            Priority: it.Priority || 'Normal',
+            Remark: it.Remark || ''
+          }))
+        : [{ Item: '', Quantity: 0, Rate: 0, Amount: 0, Priority: 'Normal', Remark: '' }];
+      setItems(seeded);
       setCustomer_name(order.Customer_name || '');
     }
   }, [order, mode]);
@@ -85,6 +94,7 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
 
     fetchData();
   }, [Customer_uuid]);
+
   // 📌 Upload invoice after modal is shown and previewRef is ready
   useEffect(() => {
     const uploadInvoice = async () => {
@@ -127,52 +137,51 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
     if (showInvoiceModal) {
       uploadInvoice();
     }
-  }, [showInvoiceModal]);
-
-
-
+  }, [showInvoiceModal, order.Order_Number]);
 
   const handleItemChange = (index, key, value) => {
-  const updated = [...items];
+    const updated = [...items];
 
-  if (key === 'Quantity' || key === 'Rate') {
-    updated[index][key] = parseFloat(value) || 0;
-  } else {
-    updated[index][key] = value;
-  }
+    if (key === 'Quantity' || key === 'Rate') {
+      updated[index][key] = parseFloat(value) || 0;
+    } else {
+      updated[index][key] = value;
+    }
 
-  const qty = parseFloat(updated[index].Quantity) || 0;
-  const rate = parseFloat(updated[index].Rate) || 0;
-  updated[index].Amount = +(qty * rate).toFixed(2);
+    // Recalculate Amount
+    const qty = parseFloat(updated[index].Quantity) || 0;
+    const rate = parseFloat(updated[index].Rate) || 0;
+    updated[index].Amount = +(qty * rate).toFixed(2);
 
-  setItems(updated);
-};
-
+    setItems(updated);
+  };
 
   const addNewItem = () => {
     if (items.some(i => !i.Item || !i.Quantity || !i.Rate)) {
       toast.error('Please complete existing item rows first');
       return;
     }
-    setItems([...items, { Item: '', Quantity: '', Rate: '', Amount: 0 }]);
+    setItems([
+      ...items,
+      { Item: '', Quantity: 0, Rate: 0, Amount: 0, Priority: 'Normal', Remark: '' }
+    ]);
   };
 
   const validateForm = () => {
-  if (!Customer_uuid) {
-    toast.error('Please select a customer');
-    return false;
-  }
-
-  for (const item of items) {
-    if (!item.Item || item.Quantity <= 0 || item.Rate <= 0) {
-      toast.error('Each item must have a name, quantity > 0 and rate > 0');
+    if (!Customer_uuid) {
+      toast.error('Please select a customer');
       return false;
     }
-  }
 
-  return true;
-};
+    for (const item of items) {
+      if (!item.Item || item.Quantity <= 0 || item.Rate <= 0) {
+        toast.error('Each item must have a name, quantity > 0 and rate > 0');
+        return false;
+      }
+    }
 
+    return true;
+  };
 
   const submit = async () => {
     if (!validateForm()) return;
@@ -183,10 +192,10 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
         ? `${BASE_URL}/order/updateDelivery/${orderId}`
         : `${BASE_URL}/order/addDelivery`;
 
+      // Send Items with per-line Priority & Remark
       const payload = {
         Customer_uuid,
-        Items: items,
-        Remark
+        Items: items
       };
 
       const response = await axios[mode === 'edit' ? 'put' : 'post'](url, payload);
@@ -194,25 +203,27 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
         const totalAmount = items.reduce((sum, i) => sum + i.Amount, 0);
         const journal = [
           { Account_id: Customer_uuid, Type: 'Credit', Amount: +totalAmount },
+          // keep your configured sales (or revenue) account here
           { Account_id: '6c91bf35-e9c4-4732-a428-0310f56bd0a7', Type: 'Debit', Amount: +totalAmount },
         ];
 
-        const transaction = await axios.post(`http://localhost:10000/transaction/addTransaction`, {
-          Description: 'Delivered',
-          Order_number: order.Order_Number,
-          Transaction_date: new Date().toISOString(),
-          Total_Credit: +totalAmount,
-          Total_Debit: +totalAmount,
-          Payment_mode: 'Sale',
-          Journal_entry: journal,
-          Created_by: loggedInUser,
-        });
+        // use backend base URL (avoid localhost in production)
+        const transaction = await axios.post(
+          `${BASE_URL}/transaction/addTransaction`,
+          {
+            Description: 'Delivered',
+            Order_number: order.Order_Number,
+            Transaction_date: new Date().toISOString(),
+            Total_Credit: +totalAmount,
+            Total_Debit: +totalAmount,
+            Payment_mode: 'Sale',
+            Journal_entry: journal,
+            Created_by: loggedInUser,
+          }
+        );
 
         if (transaction.data.success) {
           toast.success('Order saved');
-
-
-
           setShowInvoiceModal(true);
         } else {
           toast.error('Transaction failed');
@@ -227,8 +238,6 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
 
     setIsSubmitting(false);
   };
-
-
 
   const sendWhatsApp = async (pdfUrl = '') => {
     const totalAmount = items.reduce((sum, i) => sum + i.Amount, 0);
@@ -248,7 +257,6 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
     }
 
     try {
-      console.log("📤 Sending WhatsApp payload:", payload);
       const res = await axios.post(`${BASE_URL}/whatsapp/send-test`, payload);
 
       if (res.data?.success || res.status === 200) {
@@ -263,11 +271,6 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
     }
   };
 
-
-
-
-
-
   const handlePrint = () => {
     const printContents = previewRef.current.innerHTML;
     const win = window.open('', '', 'height=600,width=800');
@@ -280,25 +283,15 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
 
   const handlePDF = async () => {
     const element = previewRef.current;
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true
-    });
+    const canvas = await html2canvas(element, { scale: 2, useCORS: true });
 
     const imgData = canvas.toDataURL('image/jpeg', 0.9);
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: [74, 105]
-    });
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [74, 105] });
 
     pdf.addImage(imgData, 'JPEG', 0, 0, 74, 105);
     const fileName = `${order.Order_Number || 'invoice'}.pdf`;
     pdf.save(fileName);
   };
-
-
-
 
   if (loading) {
     return (
@@ -318,43 +311,107 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
         <div className="bg-white p-6 rounded shadow-md w-full max-w-3xl">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">{mode === 'edit' ? 'Edit Order' : 'New Delivery'}</h2>
-            <button onClick={() => { setShowInvoiceModal(false); onClose(); }} className="text-gray-500 hover:text-red-600">✕</button>
-
+            <button
+              onClick={() => { setShowInvoiceModal(false); onClose(); }}
+              className="text-gray-500 hover:text-red-600"
+            >
+              ✕
+            </button>
           </div>
 
           <form className="grid grid-cols-1 gap-4">
             <div>
-              <label className="block font-semibold">Customer <span className="text-red-500">*</span></label>
-              <select value={Customer_uuid} onChange={(e) => setCustomer_uuid(e.target.value)} className="w-full border p-2 rounded">
+              <label className="block font-semibold">
+                Customer <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={Customer_uuid}
+                onChange={(e) => setCustomer_uuid(e.target.value)}
+                className="w-full border p-2 rounded"
+              >
                 <option value="">Select customer</option>
                 {customers.map(c => (
-                  <option key={c.Customer_uuid} value={c.Customer_uuid}>{c.Customer_name}</option>
+                  <option key={c.Customer_uuid} value={c.Customer_uuid}>
+                    {c.Customer_name}
+                  </option>
                 ))}
               </select>
             </div>
 
             {items.map((item, index) => (
-              <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
-               <Select
-  options={itemOptions.map(i => ({ label: i, value: i }))}
-  value={item.Item ? { label: item.Item, value: item.Item } : null}
-  onChange={(opt) => handleItemChange(index, 'Item', opt?.value || '')}
-  placeholder="Select item"
-/>
+              <div key={index} className="grid grid-cols-1 md:grid-cols-6 gap-2 items-center">
+                {/* Item */}
+                <Select
+                  className="md:col-span-2"
+                  options={itemOptions.map(i => ({ label: i, value: i }))}
+                  value={item.Item ? { label: item.Item, value: item.Item } : null}
+                  onChange={(opt) => handleItemChange(index, 'Item', opt?.value || '')}
+                  placeholder="Select item"
+                />
 
-                <input type="number" placeholder="Qty" value={item.Quantity} onChange={(e) => handleItemChange(index, 'Quantity', e.target.value)} className="border p-2 rounded" />
-                <input type="number" placeholder="Rate" value={item.Rate} onChange={(e) => handleItemChange(index, 'Rate', e.target.value)} className="border p-2 rounded" />
-                <input type="text" value={item.Amount} readOnly className="border p-2 bg-gray-100 rounded" />
+                {/* Qty */}
+                <input
+                  type="number"
+                  placeholder="Qty"
+                  value={item.Quantity}
+                  onChange={(e) => handleItemChange(index, 'Quantity', e.target.value)}
+                  className="border p-2 rounded"
+                />
+
+                {/* Rate */}
+                <input
+                  type="number"
+                  placeholder="Rate"
+                  value={item.Rate}
+                  onChange={(e) => handleItemChange(index, 'Rate', e.target.value)}
+                  className="border p-2 rounded"
+                />
+
+                {/* Amount */}
+                <input
+                  type="text"
+                  value={item.Amount}
+                  readOnly
+                  className="border p-2 bg-gray-100 rounded"
+                />
+
+                {/* Priority */}
+                <select
+                  value={item.Priority || 'Normal'}
+                  onChange={(e) => handleItemChange(index, 'Priority', e.target.value)}
+                  className="border p-2 rounded"
+                  title="Priority"
+                >
+                  <option value="Normal">Normal</option>
+                  <option value="Urgent">Urgent</option>
+                  <option value="Low">Low</option>
+                </select>
+
+                {/* Remark (full width under the row on mobile) */}
+                <input
+                  type="text"
+                  placeholder="Remark (this line)"
+                  value={item.Remark || ''}
+                  onChange={(e) => handleItemChange(index, 'Remark', e.target.value)}
+                  className="md:col-span-6 border p-2 rounded"
+                />
               </div>
             ))}
-            <button type="button" onClick={addNewItem} className="bg-green-500 text-white px-3 py-1 rounded">+ Add Item</button>
 
-            <div>
-              <label className="block font-semibold">Remark</label>
-              <input type="text" value={Remark} onChange={(e) => setRemark(e.target.value)} className="w-full border p-2 rounded" />
-            </div>
+            <button
+              type="button"
+              onClick={addNewItem}
+              className="bg-green-500 text-white px-3 py-1 rounded"
+            >
+              + Add Item
+            </button>
 
-            <button type="button" onClick={submit} disabled={isSubmitting} className={`py-2 rounded text-white ${isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}>
+            <button
+              type="button"
+              onClick={submit}
+              disabled={isSubmitting}
+              className={`py-2 rounded text-white ${isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+            >
               {isSubmitting ? 'Saving...' : 'Submit'}
             </button>
           </form>
@@ -365,10 +422,9 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white w-full max-w-3xl p-6 rounded-lg shadow-xl relative">
             <button className="absolute top-2 right-3 text-xl" onClick={() => setShowInvoiceModal(false)}>✕</button>
+
             <div ref={previewRef} className="mx-auto w-[320px] border bg-white p-4 text-[12px] rounded shadow-md">
-
               <div className="text-center border-b pb-2">
-
                 <h2 className="text-lg font-bold">S.K. Digital</h2>
                 <p>Infront of Santoshi Mata Mandir</p>
                 <p>Krishnapura Ward, Gondia</p>
@@ -379,7 +435,6 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
                 <p><strong>Date:</strong> {new Date().toLocaleDateString('en-GB')}</p>
               </div>
               <p className="mt-1 text-sm"><strong>Party:</strong> {customerMap[Customer_uuid] || Customer_name}</p>
-
 
               <table className="w-full text-left mt-2">
                 <thead>
@@ -393,14 +448,16 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
                 <tbody>
                   {items.map((item, idx) => (
                     <tr key={idx}>
-                      <td className="py-1">{item.Item}</td>
+                      <td className="py-1">
+                        {item.Item}
+                        {item.Remark ? <div className="text-[10px] text-gray-600 italic">({item.Remark})</div> : null}
+                      </td>
                       <td className="py-1 text-right">{item.Quantity}</td>
                       <td className="py-1 text-right">₹{item.Rate}</td>
                       <td className="py-1 text-right">₹{item.Amount}</td>
                     </tr>
                   ))}
                 </tbody>
-
               </table>
 
               <hr className="my-1" />
@@ -409,12 +466,12 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
                 <span>Total</span>
                 <span>₹{items.reduce((sum, i) => sum + i.Amount, 0)}</span>
               </div>
+
               <div className="mt-3 text-center">
                 <p className="text-sm font-semibold">Scan to Pay via UPI</p>
                 <img src="/qr.png" alt="UPI QR" className="mx-auto h-24" />
               </div>
             </div>
-
 
             <div className="mt-6 flex justify-end gap-3">
               <button
@@ -430,14 +487,12 @@ export default function UpdateDelivery({ onClose, order = {}, mode = 'edit' }) {
                 WhatsApp
               </button>
 
-
               <button onClick={handlePrint} className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
                 Print
               </button>
               <button onClick={handlePDF} className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
                 Download
               </button>
-
             </div>
           </div>
         </div>

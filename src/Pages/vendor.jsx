@@ -57,7 +57,7 @@ export default function Vendor({ onClose, order }) {
             setQuantity(order.Quantity);
             setRate(order.Rate);
             setAmount(order.Amount);
-            setRemark(order.Remark);
+            setRemark(order.Items[i].Remark);
             setOrder_uuid(order.Order_uuid);
         }
     }, [order]);

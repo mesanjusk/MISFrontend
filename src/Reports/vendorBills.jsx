@@ -100,7 +100,7 @@ export default function VendorBills() {
                                     <div className="text-md font-medium text-gray-700">
                                         {order.Customer_name}
                                     </div>
-                                    <div className="text-sm text-gray-600 mb-2">{order.Remark}</div>
+                                    <div className="text-sm text-gray-600 mb-2">{order.Items[i].Remark}</div>
                                     <div className="flex justify-between text-sm text-gray-600">
                                         <span>Assigned: {order.highestStatusTask?.Assigned || 'N/A'}</span>
                                         <span>

@@ -116,7 +116,7 @@ export default function AllBills() {
                 new Date(order.createdAt).toLocaleDateString(),
                 order.Customer_name,
                 order.Mobile,
-                order.Remark || ""
+                order.Items[i].Remark || ""
             ]);
         });
 
@@ -136,7 +136,7 @@ export default function AllBills() {
             "Date": new Date(order.createdAt).toLocaleDateString(),
             "Customer Name": order.Customer_name,
             "Mobile": order.Mobile,
-            "Remark": order.Remark || ""
+            "Remark": order.Items[i].Remark || ""
         }));
 
         const worksheet = XLSX.utils.json_to_sheet(data);
@@ -229,7 +229,7 @@ export default function AllBills() {
                                         <td className="p-2 text-sm">{new Date(order.createdAt).toLocaleDateString()}</td>
                                         <td className="p-2 text-sm">{order.Customer_name}</td>
                                         <td className="p-2 text-sm">{order.Mobile}</td>
-                                        <td className="p-2 text-sm">{order.Remark || "-"}</td>
+                                        <td className="p-2 text-sm">{order.Items[i].Remark || "-"}</td>
                                     </tr>
                                 ))
                             ) : (

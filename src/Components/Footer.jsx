@@ -15,9 +15,9 @@ export default function Footer() {
           <FiBarChart2 className="h-6 w-6 mb-1" />
           <span className="text-xs">Delivered</span>
         </button>
-        <button className="flex flex-col items-center" onClick={() => navigate('/allTransaction1')}>
+        <button className="flex flex-col items-center" onClick={() => navigate('/allvendors')}>
           <FiAlertCircle className="h-6 w-6 mb-1" />
-          <span className="text-xs">Outstanding</span>
+          <span className="text-xs">Vendor</span>
         </button>
         <button className="flex flex-col items-center" onClick={() => navigate('/allBills')}>
           <FiFileText className="h-6 w-6 mb-1" />

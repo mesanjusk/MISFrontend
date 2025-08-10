@@ -1,243 +1,269 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+const BASE_URL = "https://misbackend-e078.onrender.com";
 
 export default function MigrateOrders() {
-  const [orders, setOrders] = useState([]);
+  const [rows, setRows] = useState([]);
+  const [filtered, setFiltered] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
   const [loading, setLoading] = useState(false);
   const [busyIds, setBusyIds] = useState({});
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
 
-  const API_BASE = useMemo(() => {
-  
-  const raw = import.meta.env.VITE_API_BASE || "";  // no process.env here
-  return String(raw).replace(/\/$/, "");
-}, []);
-
-  const MIGRATE_API = `${API_BASE}/api/orders/migrate`;
-
-  useEffect(() => {
-    fetchFlatOrders();
-    // eslint-disable-next-line
-  }, []);
+  const reasonBadge = (r) => {
+    if (r.startsWith("steps:")) return "bg-amber-100 text-amber-800";
+    if (r.startsWith("items:")) return "bg-indigo-100 text-indigo-800";
+    if (r === "legacySingleLine") return "bg-rose-100 text-rose-800";
+    return "bg-gray-100 text-gray-800";
+    };
 
   const fetchFlatOrders = async () => {
+    setLoading(true);
+    setError("");
     try {
-      setLoading(true);
-      setError("");
-      setSelectedIds([]);
-      const res = await axios.get(`${MIGRATE_API}/flat`);
-      setOrders(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.error(err);
-      setError(err?.response?.data?.error || "Error fetching orders");
-      alert(err?.response?.data?.error || "Error fetching orders");
+      const { data } = await axios.get(`${BASE_URL}/api/orders/migrate/flat?limit=500`);
+      if (data?.success) {
+        setRows(data.rows || []);
+        setFiltered(data.rows || []);
+        setSelectedIds([]);
+        setSelectAll(false);
+      } else {
+        setError("Failed to load migration list");
+      }
+    } catch (e) {
+      console.error(e);
+      setError(e.message || "Failed to load");
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleSelect = (id) => {
+  useEffect(() => {
+    fetchFlatOrders();
+  }, []);
+
+  useEffect(() => {
+    const q = (search || "").trim().toLowerCase();
+    if (!q) {
+      setFiltered(rows);
+      return;
+    }
+    const num = Number(q);
+    const byNum = !Number.isNaN(num);
+    const res = rows.filter((r) => {
+      const hitNum = byNum && r.Order_Number === num;
+      const hitCust = (r.Customer_uuid || "").toLowerCase().includes(q);
+      const hitReasons = (r.reasons || []).some((x) => x.toLowerCase().includes(q));
+      return hitNum || hitCust || hitReasons;
+    });
+    setFiltered(res);
+  }, [search, rows]);
+
+  const toggleSelectAll = () => {
+    if (selectAll) {
+      setSelectedIds([]);
+      setSelectAll(false);
+    } else {
+      const ids = filtered.map((r) => r._id);
+      setSelectedIds(ids);
+      setSelectAll(true);
+    }
+  };
+
+  const toggleOne = (id) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
 
-  const toggleSelectAll = () => {
-    if (selectedIds.length === orders.length) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(orders.map((o) => o._id));
-    }
-  };
-
-  const selectTop20 = () => {
-    const top = orders.slice(0, 20).map((o) => o._id);
-    const isSame =
-      selectedIds.length === top.length &&
-      selectedIds.every((id) => top.includes(id));
-    setSelectedIds(isSame ? [] : top);
-  };
-
   const migrateSelected = async () => {
-    if (selectedIds.length === 0) return;
-    if (!window.confirm(`Migrate selected ${selectedIds.length} orders?`)) return;
-    try {
-      setLoading(true);
-      await axios.put(`${MIGRATE_API}/bulk`, { ids: selectedIds });
-      await fetchFlatOrders();
-      alert("Migration complete for selected orders.");
-    } catch (err) {
-      console.error(err);
-      alert(err?.response?.data?.error || "Bulk migration failed");
-    } finally {
-      setLoading(false);
+    if (selectedIds.length === 0) {
+      toast.error("Select at least one row");
+      return;
     }
-  };
-
-  const migrateVisible = async () => {
-    if (orders.length === 0) return;
-    if (!window.confirm(`Migrate ALL visible (${orders.length}) orders?`)) return;
     try {
-      setLoading(true);
-      await axios.put(`${MIGRATE_API}/bulk`, { ids: orders.map((o) => o._id) });
-      await fetchFlatOrders();
-      alert("Migration complete for visible orders.");
-    } catch (err) {
-      console.error(err);
-      alert(err?.response?.data?.error || "Bulk migration failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const migrateOne = async (id) => {
-    try {
-      setBusyIds((m) => ({ ...m, [id]: true }));
-      await axios.put(`${MIGRATE_API}/single/${id}`);
-      await fetchFlatOrders();
-    } catch (err) {
-      console.error(err);
-      alert(err?.response?.data?.error || "Single migration failed");
-    } finally {
-      setBusyIds((m) => {
-        const copy = { ...m };
-        delete copy[id];
-        return copy;
+      setBusyIds((p) => {
+        const c = { ...p };
+        selectedIds.forEach((id) => (c[id] = true));
+        return c;
       });
+      const { data } = await axios.post(`${BASE_URL}/api/orders/migrate/ids`, { ids: selectedIds });
+      if (data?.success) {
+        toast.success(`Migrated ${data.migrated} orders`);
+        await fetchFlatOrders();
+      } else {
+        toast.error("Migration failed");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error(e.message || "Migration failed");
+    } finally {
+      setBusyIds({});
+    }
+  };
+
+  const migrateAll = async () => {
+    if (!window.confirm("Migrate ALL old-format orders? This updates every matching order.")) return;
+    try {
+      setLoading(true);
+      const { data } = await axios.post(`${BASE_URL}/api/orders/migrate/all`);
+      if (data?.success) {
+        toast.success(`Migrated ${data.migrated} orders`);
+        await fetchFlatOrders();
+      } else {
+        toast.error("Migration failed");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error(e.message || "Migration failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="p-4">
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <h2 className="text-xl font-bold">🛠️ Add “Print” Step (Delivered only)</h2>
-        <div className="text-sm text-gray-500">
-          {loading ? "Loading…" : `Rows: ${orders.length}`}
+      <ToastContainer />
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-4">
+        <div>
+          <h2 className="text-xl font-semibold">Migrate Orders</h2>
+          <p className="text-sm text-gray-600">
+            Normalize old data → per‑item Priority/Remark, fixed Steps, recalculated totals.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <input
+            className="border rounded px-3 py-2"
+            placeholder="Search: Order # / Customer / reason"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <button
+            onClick={fetchFlatOrders}
+            className="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200"
+            disabled={loading}
+            title="Refresh list"
+          >
+            Refresh
+          </button>
+          <button
+            onClick={migrateSelected}
+            className="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+            disabled={loading || selectedIds.length === 0}
+          >
+            Migrate Selected ({selectedIds.length})
+          </button>
+          <button
+            onClick={migrateAll}
+            className="px-3 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
+            disabled={loading || filtered.length === 0}
+          >
+            Migrate All
+          </button>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-4">
-        <button
-          onClick={migrateSelected}
-          disabled={loading || selectedIds.length === 0}
-          className="bg-blue-600 text-white px-3 py-2 rounded disabled:opacity-50"
-        >
-          Migrate Selected ({selectedIds.length})
-        </button>
-        <button
-          onClick={migrateVisible}
-          disabled={loading || orders.length === 0}
-          className="bg-purple-700 text-white px-3 py-2 rounded disabled:opacity-50"
-        >
-          Migrate All (Visible)
-        </button>
-        <button
-          onClick={fetchFlatOrders}
-          disabled={loading}
-          className="bg-gray-200 px-3 py-2 rounded"
-        >
-          Refresh
-        </button>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="min-w-full border border-gray-300 text-sm">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-2 text-center">
-                <input
-                  type="checkbox"
-                  checked={orders.length > 0 && selectedIds.length === orders.length}
-                  onChange={toggleSelectAll}
-                />
-                <div>
-                  <button
-                    className="text-blue-600 text-xs underline mt-1"
-                    onClick={selectTop20}
-                    type="button"
-                  >
-                    Select Top 20
-                  </button>
-                </div>
-              </th>
-              <th className="p-2">Order #</th>
-              <th className="p-2">Customer</th>
-              <th className="p-2">Steps</th>
-              <th className="p-2">Format</th>
-              <th className="p-2 text-center">Action</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {orders.map((o) => {
-              const isSelected = selectedIds.includes(o._id);
-              const stepLabels =
-                Array.isArray(o.Steps) && o.Steps.length
-                  ? o.Steps.map((s) => s.label).join(", ")
-                  : "—";
-
-              // OLD means: needs Print step
-              const hasPrint = (o.Steps || []).some(
-                (s) => String(s?.label).toLowerCase() === "print"
-              );
-              const isOld = o._isOld ?? !hasPrint;
-
-              return (
-                <tr key={o._id} className="border-t">
-                  <td className="p-2 text-center">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleSelect(o._id)}
-                    />
-                  </td>
-                  <td className="p-2 text-center">{o.Order_Number}</td>
-                  <td className="p-2">{o.Customer_name || o.Customer_uuid || "Unknown"}</td>
-                  <td className="p-2 text-xs">{stepLabels}</td>
-                  <td className="p-2">
-                    {isOld ? (
-                      <span className="inline-block px-2 py-0.5 text-xs rounded bg-amber-100 text-amber-700">
-                        OLD (needs Print)
-                      </span>
-                    ) : (
-                      <span className="inline-block px-2 py-0.5 text-xs rounded bg-green-100 text-green-700">
-                        NEW
-                      </span>
-                    )}
-                  </td>
-                  <td className="p-2 text-center">
-                    <button
-                      onClick={() => migrateOne(o._id)}
-                      disabled={!!busyIds[o._id] || loading}
-                      className="bg-green-600 text-white px-3 py-1 rounded text-xs disabled:opacity-50"
-                    >
-                      {busyIds[o._id] ? "…" : "Migrate"}
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-
-            {orders.length === 0 && !loading && (
+      {loading ? (
+        <div className="flex items-center justify-center h-40">
+          <div className="animate-spin h-8 w-8 rounded-full border-2 border-gray-300 border-t-transparent" />
+        </div>
+      ) : error ? (
+        <div className="text-red-600">{error}</div>
+      ) : filtered.length === 0 ? (
+        <div className="text-gray-600">No orders need migration. ✅</div>
+      ) : (
+        <div className="bg-white overflow-x-auto w-full">
+          <table className="min-w-full text-sm text-left border">
+            <thead className="bg-gray-50">
               <tr>
-                <td colSpan="6" className="text-center py-6 text-gray-500">
-                  ✅ Nothing to migrate — all Delivered orders already have a “Print” step.
-                </td>
+                <th className="border px-2 py-2">
+                  <input type="checkbox" checked={selectAll} onChange={toggleSelectAll} />
+                </th>
+                <th className="border px-2 py-2">Order #</th>
+                <th className="border px-2 py-2">Customer UUID</th>
+                <th className="border px-2 py-2 text-center">Items</th>
+                <th className="border px-2 py-2 text-center">Steps</th>
+                <th className="border px-2 py-2">Reasons</th>
+                <th className="border px-2 py-2">Action</th>
               </tr>
-            )}
-            {loading && (
-              <tr>
-                <td colSpan="6" className="text-center py-6 text-gray-500">
-                  Loading…
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {filtered.map((r) => {
+                const busy = !!busyIds[r._id];
+                const checked = selectedIds.includes(r._id);
+                return (
+                  <tr key={r._id} className="hover:bg-gray-50 border-t">
+                    <td className="border px-2 py-2">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleOne(r._id)}
+                        disabled={busy}
+                      />
+                    </td>
+                    <td className="border px-2 py-2">{r.Order_Number}</td>
+                    <td className="border px-2 py-2">{r.Customer_uuid}</td>
+                    <td className="border px-2 py-2 text-center">{r.itemsCount}</td>
+                    <td className="border px-2 py-2 text-center">{r.stepsCount}</td>
+                    <td className="border px-2 py-2">
+                      <div className="flex flex-wrap gap-1">
+                        {(r.reasons || []).map((reason, i) => (
+                          <span
+                            key={i}
+                            className={`px-2 py-0.5 rounded text-xs ${reasonBadge(reason)}`}
+                          >
+                            {reason}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="border px-2 py-2">
+                      <button
+                        className="px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+                        onClick={async () => {
+                          try {
+                            setBusyIds((p) => ({ ...p, [r._id]: true }));
+                            const { data } = await axios.post(`${BASE_URL}/api/orders/migrate/ids`, {
+                              ids: [r._id],
+                            });
+                            if (data?.success) {
+                              toast.success(`Migrated 1 order (#${r.Order_Number})`);
+                              await fetchFlatOrders();
+                            } else {
+                              toast.error("Migration failed");
+                            }
+                          } catch (e) {
+                            console.error(e);
+                            toast.error(e.message || "Migration failed");
+                          } finally {
+                            setBusyIds((p) => {
+                              const copy = { ...p };
+                              delete copy[r._id];
+                              return copy;
+                            });
+                          }
+                        }}
+                        disabled={busy}
+                      >
+                        {busy ? "..." : "Migrate"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
 
-      {error && <div className="mt-3 text-sm text-red-600">{error}</div>}
+          <div className="text-xs text-gray-500 p-2">
+            Showing {filtered.length} / {rows.length} needing migration.
+          </div>
+        </div>
+      )}
     </div>
   );
 }

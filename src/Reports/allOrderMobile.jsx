@@ -160,7 +160,7 @@ export default function AllOrder() {
                                             <div className="p-2 col-start-2 col-end-8">
                                                 <strong className="text-l text-gray-900">{order.Customer_name}</strong><br />
                                                 <label className="text-xs">
-                                                    {order.highestStatusTask?.CreatedAt ? new Date(order.highestStatusTask.CreatedAt).toLocaleDateString() : ''} - {order.Remark}
+                                                    {order.highestStatusTask?.CreatedAt ? new Date(order.highestStatusTask.CreatedAt).toLocaleDateString() : ''} - {order.Items[i].Remark}
                                                 </label>
                                             </div>
                                             <div className="items-center justify-center text-right col-end-9 col-span-1">

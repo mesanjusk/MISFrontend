@@ -313,7 +313,7 @@ setTaskGroups(filteredGroups);
           "Vendor UUID": s.vendorCustomerUuid || s.vendorId || "-",
           "Cost Amount": s.costAmount ?? 0,
           "Posted?": s.isPosted ? "Yes" : "No",
-          Remark: order.Remark || "-",
+          Remark: order.Items[i].Remark || "-",
         });
       });
     });
@@ -368,7 +368,7 @@ setTaskGroups(filteredGroups);
                 >
                   <div className="text-gray-900 font-bold text-lg">#{order.Order_Number}</div>
                   <div className="text-gray-700 font-medium">{order.Customer_name}</div>
-                  <div className="text-sm text-gray-600 italic mt-1">{order.Remark || "-"}</div>
+                  <div className="text-sm text-gray-600 italic mt-1">{order.Items[i].Remark || "-"}</div>
 
                   <div className="mt-3 space-y-2">
                     {(order.StepsPending || []).map((s, i) => (
