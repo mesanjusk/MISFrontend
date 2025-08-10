@@ -58,7 +58,6 @@ export default function AddOrder1() {
         }
 
         if (taskRes.data.success) {
-          // Only groups with Id === 1 (as per your rule)
           const filtered = (taskRes.data.result || []).filter((tg) => tg.Id === 1);
           setTaskGroups(filtered);
         }
@@ -78,6 +77,22 @@ export default function AddOrder1() {
     );
   };
 
+  // ✅ Build Items so the note is saved as Items[0].Remark
+  const buildItemsFromRemark = (remark) => {
+    const r = String(remark || "").trim();
+    if (!r) return [];
+    return [
+      {
+        Item: "Order Note", // non-empty or backend will drop it
+        Quantity: 0,
+        Rate: 0,
+        Amount: 0,
+        Priority: "Normal",
+        Remark: r,
+      },
+    ];
+  };
+
   const submit = async (e) => {
     e.preventDefault();
 
@@ -90,7 +105,6 @@ export default function AddOrder1() {
         return;
       }
 
-      // Build Steps array from selected task groups (checked must be boolean)
       const steps = selectedTaskGroups.map((tgUuid) => {
         const g = taskGroups.find((t) => t.Task_group_uuid === tgUuid);
         return {
@@ -99,11 +113,11 @@ export default function AddOrder1() {
         };
       });
 
-      // Create Order (backend ignores order-level Remark now; Items will be added later in delivery)
+      // ✅ Send Items so remark persists
       const orderResponse = await axios.post(`${BASE_URL}/order/addOrder`, {
         Customer_uuid: customer.Customer_uuid,
         Steps: steps,
-        // Status is optional; backend sets sensible defaults
+        Items: buildItemsFromRemark(Remark),
       });
 
       if (!orderResponse.data.success) {
@@ -140,15 +154,12 @@ export default function AddOrder1() {
         }
 
         toast.success("Order & Payment Added");
-
-        // Prepare invoice modal with single Advance line
         setInvoiceItems([{ Item: "Advance", Quantity: 1, Rate: amt, Amount: amt }]);
       } else {
         toast.success("Order Added");
-        setInvoiceItems([]); // no advance line
+        setInvoiceItems([]);
       }
 
-      // WhatsApp preview
       const message = `Dear ${customer.Customer_name}, your order has been booked successfully.`;
       setWhatsAppMessage(message);
       setMobileToSend(customer.Mobile_number || "");
@@ -280,7 +291,7 @@ export default function AddOrder1() {
               </div>
             )}
 
-            {/* Order note (kept for WhatsApp/invoice text only; NOT sent to /addOrder) */}
+            {/* Order note (used for Items[0].Remark + WhatsApp) */}
             <div className="mb-4">
               <label className="block mb-1 font-medium">Order</label>
               <input

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
@@ -10,88 +10,139 @@ import { LoadingSpinner } from "../Components";
 
 export default function AllDelivery() {
   const navigate = useNavigate();
+
+  // 🔧 Central API base (env -> vite -> fallback)
+  const API_BASE = useMemo(() => {
+    const raw =
+      (typeof import.meta !== "undefined" ? import.meta.env.VITE_API_BASE : "") ||
+      process.env.REACT_APP_API ||
+      "http://localhost:10000";
+    return String(raw).replace(/\/$/, "");
+  }, []);
+
   const [orders, setOrders] = useState([]);
   const [searchOrder, setSearchOrder] = useState("");
-  const [filter, setFilter] = useState("");
+  const [filter, setFilter] = useState(""); // "", "delivered", "design", etc.
   const [customers, setCustomers] = useState({});
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const formatDateDDMMYYYY = (dateString) => {
+    if (!dateString) return "";
     const date = new Date(dateString);
     if (isNaN(date)) return "";
-    return `${String(date.getDate()).padStart(2, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${date.getFullYear()}`;
+    const dd = String(date.getDate()).padStart(2, "0");
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const yyyy = date.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+    // If you truly need dd-mm-yyyy (not dd/mm/yyyy), this is correct
   };
 
   useEffect(() => {
-    setLoading(true);
-    const fetchOrders = axios.get("http://localhost:10000/order/GetDeliveredList");
-    console.log(fetchOrders);
-    const fetchCustomers = axios.get("/customer/GetCustomersList");
+    let isMounted = true;
+    (async () => {
+      setLoading(true);
+      try {
+        // ✅ Use a single consistent base
+        const [ordersRes, customersRes] = await Promise.all([
+          axios.get(`${API_BASE}/order/GetDeliveredList`),
+          axios.get(`${API_BASE}/customer/GetCustomersList`),
+        ]);
 
-    Promise.all([fetchOrders, fetchCustomers])
-      .then(([ordersRes, customersRes]) => {
-        setOrders(ordersRes.data.success ? ordersRes.data.result : []);
-        if (customersRes.data.success) {
-          const customerMap = customersRes.data.result.reduce((acc, c) => {
-            if (c.Customer_uuid && c.Customer_name) {
-              acc[c.Customer_uuid] = c.Customer_name;
-            }
-            return acc;
-          }, {});
-          setCustomers(customerMap);
-        }
-      })
-      .catch((err) => console.log("Error fetching data:", err))
-      .finally(() => setLoading(false));
-  }, []);
+        if (!isMounted) return;
 
-  const filteredOrders = orders
-  .map((order) => {
-    const highestStatusTask =
-      order.Status?.reduce((prev, current) =>
-        prev.Status_number > current.Status_number ? prev : current
-      ) || {};
+        const orderRows = ordersRes?.data?.success ? ordersRes.data.result : [];
+        const custRows = customersRes?.data?.success ? customersRes.data.result : [];
 
-    return {
-      ...order,
-      highestStatusTask,
-      Customer_name: customers[order.Customer_uuid] || "Unknown",
+        const customerMap = Array.isArray(custRows)
+          ? custRows.reduce((acc, c) => {
+              if (c.Customer_uuid && c.Customer_name) {
+                acc[c.Customer_uuid] = c.Customer_name;
+              }
+              return acc;
+            }, {})
+          : {};
+
+        setCustomers(customerMap);
+        setOrders(Array.isArray(orderRows) ? orderRows : []);
+      } catch (err) {
+        console.error("Error fetching data:", err?.message || err);
+        setCustomers({});
+        setOrders([]);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    })();
+    return () => {
+      isMounted = false;
     };
-  })
-  .filter((order) => {
-    const matchesSearch = order.Customer_name
-      .toLowerCase()
-      .includes(searchOrder.toLowerCase());
+  }, [API_BASE]);
 
-    const task = (order.highestStatusTask.Task || "").toLowerCase().trim();
-    const filterValue = filter.toLowerCase().trim();
+  // Safely compute highest status
+  const getHighestStatus = (statusArr) => {
+    const list = Array.isArray(statusArr) ? statusArr : [];
+    if (list.length === 0) return {};
+    return list.reduce((prev, curr) => {
+      const prevNum = Number(prev?.Status_number || 0);
+      const currNum = Number(curr?.Status_number || 0);
+      return currNum > prevNum ? curr : prev;
+    }, list[0]);
+  };
 
-    const isDelivered = task === "delivered";
-    const hasItems = Array.isArray(order.Items) && order.Items.length > 0;
+  // 🔎 Derived filtered list
+  const filteredOrders = orders
+    .map((order) => {
+      const highestStatusTask = getHighestStatus(order.Status);
+      return {
+        ...order,
+        highestStatusTask,
+        Customer_name: customers[order.Customer_uuid] || "Unknown",
+      };
+    })
+    .filter((order) => {
+      const name = (order.Customer_name || "").toLowerCase();
+      const matchesSearch = name.includes(searchOrder.toLowerCase());
 
-    return (
-      matchesSearch &&
-      (filterValue === "" || task === filterValue) &&
-      isDelivered &&
-      hasItems
-    );
-  });
+      const task = (order.highestStatusTask?.Task || "").toLowerCase().trim();
+
+      // ⚠️ You are already using GetDeliveredList. Don’t force-delivered + items again.
+      // Keep optional filter only if user selected one.
+      const filterValue = (filter || "").toLowerCase().trim();
+      const matchesFilter = filterValue ? task === filterValue : true;
+
+      return matchesSearch && matchesFilter;
+    });
+
+  // 📄 Export helpers — safe handling of Items/Remark
+  const getFirstRemark = (order) => {
+    if (!Array.isArray(order?.Items) || order.Items.length === 0) return "";
+    return String(order.Items[0]?.Remark || "");
+  };
 
   const exportPDF = () => {
     const doc = new jsPDF();
     doc.text("Orders Report", 14, 15);
     doc.autoTable({
-      head: [["Order Number", "Customer Name", "Created Date", "Remark", "Delivery Date", "Assigned", "Highest Status Task"]],
+      head: [
+        [
+          "Order Number",
+          "Customer Name",
+          "Created Date",
+          "Remark",
+          "Delivery Date",
+          "Assigned",
+          "Highest Status Task",
+        ],
+      ],
       body: filteredOrders.map((order) => [
-        order.Order_Number,
-        order.Customer_name,
+        order.Order_Number || "",
+        order.Customer_name || "",
         formatDateDDMMYYYY(order.createdAt),
-        order.Items[i].Remark || "",
-        formatDateDDMMYYYY(order.highestStatusTask.Delivery_Date),
-        order.highestStatusTask.Assigned || "",
-        order.highestStatusTask.Task || "",
+        getFirstRemark(order),
+        formatDateDDMMYYYY(order.highestStatusTask?.Delivery_Date),
+        order.highestStatusTask?.Assigned || "",
+        order.highestStatusTask?.Task || "",
       ]),
       startY: 20,
     });
@@ -100,13 +151,13 @@ export default function AllDelivery() {
 
   const exportExcel = () => {
     const worksheetData = filteredOrders.map((order) => ({
-      "Order Number": order.Order_Number,
-      "Customer Name": order.Customer_name,
+      "Order Number": order.Order_Number || "",
+      "Customer Name": order.Customer_name || "",
       "Created Date": formatDateDDMMYYYY(order.createdAt),
-      Remark: order.Items[i].Remark || "",
-      "Delivery Date": formatDateDDMMYYYY(order.highestStatusTask.Delivery_Date),
-      Assigned: order.highestStatusTask.Assigned || "",
-      "Highest Status Task": order.highestStatusTask.Task || "",
+      Remark: getFirstRemark(order),
+      "Delivery Date": formatDateDDMMYYYY(order.highestStatusTask?.Delivery_Date),
+      Assigned: order.highestStatusTask?.Assigned || "",
+      "Highest Status Task": order.highestStatusTask?.Task || "",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(worksheetData);
@@ -143,6 +194,19 @@ export default function AllDelivery() {
               value={searchOrder}
               onChange={(e) => setSearchOrder(e.target.value)}
             />
+            {/* Optional: a quick filter dropdown */}
+            <select
+              className="bg-white shadow-sm border border-gray-300 rounded-full px-3 py-2"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              title="Filter by latest task"
+            >
+              <option value="">All</option>
+              <option value="delivered">Delivered</option>
+              <option value="design">Design</option>
+              <option value="print">Print</option>
+              {/* add more if you really store other tasks */}
+            </select>
           </div>
           <div className="flex gap-2 mt-2 md:mt-0">
             <button
@@ -162,7 +226,7 @@ export default function AllDelivery() {
           </div>
         </div>
 
-        {/* Loading Spinner */}
+        {/* Loading */}
         {loading ? (
           <div className="flex justify-center items-center h-40">
             <LoadingSpinner size={40} />
@@ -174,7 +238,7 @@ export default function AllDelivery() {
               {filteredOrders.length > 0 ? (
                 filteredOrders.map((order, index) => (
                   <div
-                    key={index}
+                    key={order._id || order.Order_id || index}
                     onClick={() => handleEditClick(order)}
                     className="bg-white border border-gray-200 hover:border-blue-500 rounded-lg p-2 shadow hover:shadow-md cursor-pointer transition"
                   >
@@ -185,7 +249,7 @@ export default function AllDelivery() {
                       {order.Customer_name}
                     </div>
                     <div className="text-gray-600 text-sm">
-                      Date {formatDateDDMMYYYY(order.highestStatusTask.Delivery_Date)}
+                      Date {formatDateDDMMYYYY(order.highestStatusTask?.Delivery_Date)}
                     </div>
                   </div>
                 ))
@@ -195,9 +259,6 @@ export default function AllDelivery() {
                 </div>
               )}
             </div>
-
-            {/* Load More */}
-           
           </>
         )}
       </div>

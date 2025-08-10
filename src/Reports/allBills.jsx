@@ -1,53 +1,99 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import BillUpdate from "../Reports/billUpdate";
-import AddOrder1 from "../Pages/addOrder1";
-import OrderStepsModal from "../Components/OrderStepsModal";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
 
-export default function AllBills() {
+import UpdateDelivery from "../Pages/updateDelivery";
+import { LoadingSpinner } from "../Components";
+
+export default function AllDelivery() {
   const navigate = useNavigate();
+
+  // 🔧 Central API base (env -> vite -> fallback)
+  const API_BASE = useMemo(() => {
+    const raw =
+      (typeof import.meta !== "undefined" ? import.meta.env.VITE_API_BASE : "") ||
+      process.env.REACT_APP_API ||
+      "http://localhost:10000";
+    return String(raw).replace(/\/$/, "");
+  }, []);
+
   const [orders, setOrders] = useState([]);
   const [searchOrder, setSearchOrder] = useState("");
-  const [filter, setFilter] = useState("");
+  const [filter, setFilter] = useState(""); // "", "delivered", "design", etc.
   const [customers, setCustomers] = useState({});
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [showOrderModal, setShowOrderModal] = useState(false);
-  const [showStepsModal, setShowStepsModal] = useState(false);
-  const [stepsOrder, setStepsOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const formatDateDDMMYYYY = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    if (isNaN(date)) return "";
+    const dd = String(date.getDate()).padStart(2, "0");
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const yyyy = date.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+    // If you truly need dd-mm-yyyy (not dd/mm/yyyy), this is correct
+  };
 
   useEffect(() => {
-    const fetchOrders = axios.get("/order/GetBillList");
-    const fetchCustomers = axios.get("/customer/GetCustomersList");
+    let isMounted = true;
+    (async () => {
+      setLoading(true);
+      try {
+        // ✅ Use a single consistent base
+        const [ordersRes, customersRes] = await Promise.all([
+          axios.get(`${API_BASE}/order/GetBillList`),
+          axios.get(`${API_BASE}/customer/GetCustomersList`),
+        ]);
 
-    Promise.all([fetchOrders, fetchCustomers])
-      .then(([ordersRes, customersRes]) => {
-        setOrders(ordersRes.data.success ? ordersRes.data.result : []);
-        if (customersRes.data.success) {
-          const customerMap = customersRes.data.result.reduce((acc, c) => {
-            if (c.Customer_uuid && c.Customer_name) {
-              acc[c.Customer_uuid] = c.Customer_name;
-            }
-            return acc;
-          }, {});
-          setCustomers(customerMap);
-        }
-      })
-      .catch((err) => console.log("Error fetching data:", err));
-  }, []);
+        if (!isMounted) return;
 
+        const orderRows = ordersRes?.data?.success ? ordersRes.data.result : [];
+        const custRows = customersRes?.data?.success ? customersRes.data.result : [];
+
+        const customerMap = Array.isArray(custRows)
+          ? custRows.reduce((acc, c) => {
+              if (c.Customer_uuid && c.Customer_name) {
+                acc[c.Customer_uuid] = c.Customer_name;
+              }
+              return acc;
+            }, {})
+          : {};
+
+        setCustomers(customerMap);
+        setOrders(Array.isArray(orderRows) ? orderRows : []);
+      } catch (err) {
+        console.error("Error fetching data:", err?.message || err);
+        setCustomers({});
+        setOrders([]);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, [API_BASE]);
+
+  // Safely compute highest status
+  const getHighestStatus = (statusArr) => {
+    const list = Array.isArray(statusArr) ? statusArr : [];
+    if (list.length === 0) return {};
+    return list.reduce((prev, curr) => {
+      const prevNum = Number(prev?.Status_number || 0);
+      const currNum = Number(curr?.Status_number || 0);
+      return currNum > prevNum ? curr : prev;
+    }, list[0]);
+  };
+
+  // 🔎 Derived filtered list
   const filteredOrders = orders
     .map((order) => {
-      const highestStatusTask = order.Status.reduce(
-        (prev, current) =>
-          prev.Status_number > current.Status_number ? prev : current,
-        {}
-      );
+      const highestStatusTask = getHighestStatus(order.Status);
       return {
         ...order,
         highestStatusTask,
@@ -55,76 +101,79 @@ export default function AllBills() {
       };
     })
     .filter((order) => {
-      const matchesSearch = order.Customer_name
-        .toLowerCase()
-        .includes(searchOrder.toLowerCase());
-      const task = (order.highestStatusTask.Task || "").toLowerCase().trim();
-      const filterValue = filter.toLowerCase().trim();
-      return matchesSearch && (filterValue === "" || task === filterValue);
+      const name = (order.Customer_name || "").toLowerCase();
+      const matchesSearch = name.includes(searchOrder.toLowerCase());
+
+      const task = (order.highestStatusTask?.Task || "").toLowerCase().trim();
+
+      // ⚠️ You are already using GetDeliveredList. Don’t force-delivered + items again.
+      // Keep optional filter only if user selected one.
+      const filterValue = (filter || "").toLowerCase().trim();
+      const matchesFilter = filterValue ? task === filterValue : true;
+
+      return matchesSearch && matchesFilter;
     });
 
-  const exportToPDF = () => {
-    const doc = new jsPDF();
-    const tableColumn = [
-      "Order #",
-      "Customer",
-      "Created At",
-      "Remark",
-      "Assigned",
-      "Delivery",
-    ];
-    const tableRows = [];
-
-    filteredOrders.forEach((order) => {
-      tableRows.push([
-        order.Order_Number,
-        order.Customer_name,
-        new Date(order.createdAt).toLocaleDateString(),
-        order.Items[i].Remark || "-",
-        order.highestStatusTask?.Assigned || "",
-        order.highestStatusTask?.Delivery_Date
-          ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString()
-          : "",
-      ]);
-    });
-
-    doc.text("Bill Report", 14, 15);
-    doc.autoTable({
-      head: [tableColumn],
-      body: tableRows,
-      startY: 20,
-    });
-    doc.save("bill_report.pdf");
+  // 📄 Export helpers — safe handling of Items/Remark
+  const getFirstRemark = (order) => {
+    if (!Array.isArray(order?.Items) || order.Items.length === 0) return "";
+    return String(order.Items[0]?.Remark || "");
   };
 
-  const exportToExcel = () => {
-    const data = filteredOrders.map((order) => ({
-      "Order Number": order.Order_Number,
-      "Customer Name": order.Customer_name,
-      "Created At": new Date(order.createdAt).toLocaleDateString(),
-      Remark: order.Items[i].Remark || "-",
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Orders Report", 14, 15);
+    doc.autoTable({
+      head: [
+        [
+          "Order Number",
+          "Customer Name",
+          "Created Date",
+          "Remark",
+          "Delivery Date",
+          "Assigned",
+          "Highest Status Task",
+        ],
+      ],
+      body: filteredOrders.map((order) => [
+        order.Order_Number || "",
+        order.Customer_name || "",
+        formatDateDDMMYYYY(order.createdAt),
+        getFirstRemark(order),
+        formatDateDDMMYYYY(order.highestStatusTask?.Delivery_Date),
+        order.highestStatusTask?.Assigned || "",
+        order.highestStatusTask?.Task || "",
+      ]),
+      startY: 20,
+    });
+    doc.save("orders_report.pdf");
+  };
+
+  const exportExcel = () => {
+    const worksheetData = filteredOrders.map((order) => ({
+      "Order Number": order.Order_Number || "",
+      "Customer Name": order.Customer_name || "",
+      "Created Date": formatDateDDMMYYYY(order.createdAt),
+      Remark: getFirstRemark(order),
+      "Delivery Date": formatDateDDMMYYYY(order.highestStatusTask?.Delivery_Date),
       Assigned: order.highestStatusTask?.Assigned || "",
-      "Delivery Date": order.highestStatusTask?.Delivery_Date
-        ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString()
-        : "",
+      "Highest Status Task": order.highestStatusTask?.Task || "",
     }));
-    const worksheet = XLSX.utils.json_to_sheet(data);
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Bills");
-    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-    const file = new Blob([excelBuffer], { type: "application/octet-stream" });
-    saveAs(file, "bill_report.xlsx");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
+    XLSX.writeFile(workbook, "orders_report.xlsx");
   };
 
   const handleEditClick = (order) => {
-    setSelectedOrder(order);
+    const id = order._id || order.Order_id || null;
+    if (!id) {
+      alert("⚠️ Invalid order ID. Cannot open edit modal.");
+      return;
+    }
+    setSelectedOrder({ ...order, _id: id });
     setShowEditModal(true);
-  };
-
-  const handleStepsClick = (e, order) => {
-    e.stopPropagation();
-    setStepsOrder(order);
-    setShowStepsModal(true);
   };
 
   const closeEditModal = () => {
@@ -132,109 +181,95 @@ export default function AllBills() {
     setSelectedOrder(null);
   };
 
-  const closeStepsModal = () => {
-    setShowStepsModal(false);
-    setStepsOrder(null);
-  };
-
-  const handleOrder = () => setShowOrderModal(true);
-  const closeModal = () => setShowOrderModal(false);
-
   return (
     <>
-      <div className="pt-14 pb-20 max-w-8xl mx-auto px-4">
-        {/* Toolbar */}
-        <div className="flex flex-col md:flex-row justify-between gap-2 mb-4 items-center">
-          <input
-            type="text"
-            placeholder="Search by customer name"
-            className="form-control text-black bg-gray-100 rounded-full px-4 py-2 w-full max-w-md"
-            value={searchOrder}
-            onChange={(e) => setSearchOrder(e.target.value)}
-          />
-          <div className="flex gap-2">
+      <div className="max-w-8xl mx-auto p-4">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-2">
+          <div className="flex flex-grow items-center gap-2">
+            <input
+              type="text"
+              placeholder="Search by customer name"
+              className="bg-white shadow-sm border border-gray-300 rounded-full px-4 py-2 w-full max-w-md focus:outline-none"
+              value={searchOrder}
+              onChange={(e) => setSearchOrder(e.target.value)}
+            />
+            {/* Optional: a quick filter dropdown */}
+            <select
+              className="bg-white shadow-sm border border-gray-300 rounded-full px-3 py-2"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              title="Filter by latest task"
+            >
+              <option value="">All</option>
+              <option value="delivered">Delivered</option>
+              <option value="design">Design</option>
+              <option value="print">Print</option>
+              {/* add more if you really store other tasks */}
+            </select>
+          </div>
+          <div className="flex gap-2 mt-2 md:mt-0">
             <button
-              onClick={exportToPDF}
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              onClick={exportPDF}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow transition"
+              title="Export as PDF"
             >
               Export PDF
             </button>
             <button
-              onClick={exportToExcel}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              onClick={exportExcel}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow transition"
+              title="Export as Excel"
             >
               Export Excel
             </button>
           </div>
         </div>
 
-        {/* Orders Grid */}
-        <main className="p-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
-            {filteredOrders.length > 0 ? (
-              filteredOrders.map((order, index) => (
-                <div
-                  key={index}
-                  onClick={() => handleEditClick(order)}
-                  className="relative bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition cursor-pointer"
-                >
-                  <button
-                    className="absolute top-2 right-2 text-xs bg-blue-500 text-white px-2 py-1 rounded"
-                    onClick={(e) => handleStepsClick(e, order)}
-                  >
-                    Steps
-                  </button>
-                  <div className="text-gray-900 font-bold text-lg">
-                    #{order.Order_Number}
-                  </div>
-                  <div className="text-gray-700 font-medium">
-                    {order.Customer_name}
-                  </div>
-                  <div className="text-gray-500 text-sm mb-2">
-                    {new Date(order.createdAt).toLocaleDateString()}
-                  </div>
-                  <div className="text-sm text-gray-600 italic">
-                    {order.Items[i].Remark || "-"}
-                  </div>
-                  <div className="mt-2 text-sm text-gray-600">
-                    <p>👤 Assigned: {order.highestStatusTask?.Assigned || "N/A"}</p>
-                    <p>
-                      📅 Delivery:{" "}
-                      {order.highestStatusTask?.Delivery_Date
-                        ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString()
-                        : "N/A"}
-                    </p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="col-span-full text-center text-gray-500 py-10">
-                No bills found
-              </div>
-            )}
+        {/* Loading */}
+        {loading ? (
+          <div className="flex justify-center items-center h-40">
+            <LoadingSpinner size={40} />
           </div>
-        </main>
-
-       
+        ) : (
+          <>
+            {/* Orders Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-9 gap-2">
+              {filteredOrders.length > 0 ? (
+                filteredOrders.map((order, index) => (
+                  <div
+                    key={order._id || order.Order_id || index}
+                    onClick={() => handleEditClick(order)}
+                    className="bg-white border border-gray-200 hover:border-blue-500 rounded-lg p-2 shadow hover:shadow-md cursor-pointer transition"
+                  >
+                    <div className="text-blue-600 font-bold text-xl mb-1">
+                      #{order.Order_Number}
+                    </div>
+                    <div className="text-gray-800 font-semibold text-md mb-1">
+                      {order.Customer_name}
+                    </div>
+                    <div className="text-gray-600 text-sm">
+                      Date {formatDateDDMMYYYY(order.highestStatusTask?.Delivery_Date)}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full text-center text-gray-500 py-10">
+                  No orders found
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Modals */}
-      {showOrderModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg shadow-lg p-4 max-w-2xl w-full">
-            <AddOrder1 closeModal={closeModal} />
-          </div>
-        </div>
-      )}
+      {/* Edit Modal */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-lg p-4 max-w-3xl w-full">
-            <BillUpdate order={selectedOrder} onClose={closeEditModal} />
+            <UpdateDelivery mode="edit" order={selectedOrder} onClose={closeEditModal} />
           </div>
         </div>
-      )}
-      {showStepsModal && (
-        <OrderStepsModal order={stepsOrder} onClose={closeStepsModal} />
       )}
     </>
   );

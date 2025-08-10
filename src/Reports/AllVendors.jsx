@@ -31,8 +31,8 @@ export default function AllVendors() {
 
   // Add Step modal
   const [showAddStepModal, setShowAddStepModal] = useState(false);
-  const [taskGroups, setTaskGroups] = useState([]);              // [{ id, name }]
-  const [newStepLabelChoice, setNewStepLabelChoice] = useState(""); // dropdown selection
+  const [taskGroups, setTaskGroups] = useState([]);
+  const [newStepLabelChoice, setNewStepLabelChoice] = useState("");
   const [addStepOrder, setAddStepOrder] = useState(null);
   const [newStepLabel, setNewStepLabel] = useState("");
   const [newStepVendorUuid, setNewStepVendorUuid] = useState("");
@@ -59,15 +59,12 @@ export default function AllVendors() {
     return !hasVendor || !isPosted;
   };
 
-  // NEW: combine per-item remarks for an order
- const getOrderRemark = (order) => {
-    const perItem = (order?.Items || [])
+  // Build a single remark string from Items[].Remark (fallback if RemarkText missing)
+  const buildRemarkFromItems = (order) =>
+    ((order?.Items || [])
       .map((it) => String(it?.Remark || "").trim())
-      .filter(Boolean);
-    // Legacy order-level Remark (older docs)
-    const legacy = String(order?.Remark || "").trim();
-    return [...perItem, legacy].filter(Boolean).join(" | ");
-  };
+      .filter(Boolean)
+      .join(" | ")) || "";
 
   const computeProjectedRows = (docs, search) => {
     const text = (search || "").trim().toLowerCase();
@@ -76,7 +73,7 @@ export default function AllVendors() {
     const deliveredOnly = (Array.isArray(docs) ? docs : []).filter((o) => {
       if (!Array.isArray(o.Status) || o.Status.length === 0) return false;
       const latest = o.Status[o.Status.length - 1];
-      return latest?.Task?.trim().toLowerCase() === "delivered";
+      return String(latest?.Task || "").trim().toLowerCase() === "delivered";
     });
 
     // search filter (order # / customer uuid / per-item remark)
@@ -84,14 +81,15 @@ export default function AllVendors() {
       ? deliveredOnly.filter((o) => {
           const onum = String(o.Order_Number || "").toLowerCase();
           const cuid = String(o.Customer_uuid || "").toLowerCase();
-          const anyRemark = (o.Items || []).some((it) =>
+          const anyRemarkText = String(o.RemarkText || buildRemarkFromItems(o)).toLowerCase();
+          const anyItemRemark = (o.Items || []).some((it) =>
             String(it?.Remark || "").toLowerCase().includes(text)
           );
-          return onum.includes(text) || cuid.includes(text) || anyRemark;
+          return onum.includes(text) || cuid.includes(text) || anyRemarkText.includes(text) || anyItemRemark;
         })
       : deliveredOnly;
 
-    // project pending steps
+    // project pending steps + a stable RemarkText (prefer backend field, else compute)
     return filtered
       .map((o) => {
         const pending = (o.Steps || [])
@@ -107,7 +105,9 @@ export default function AllVendors() {
             plannedDate: s?.plannedDate,
           }));
 
-        return { ...o, StepsPending: pending };
+        const remarkText = String(o.RemarkText || buildRemarkFromItems(o)).trim();
+
+        return { ...o, StepsPending: pending, RemarkText: remarkText };
       })
       .filter((o) => (o.StepsPending || []).length > 0)
       .sort((a, b) => (b.Order_Number || 0) - (a.Order_Number || 0));
@@ -168,9 +168,6 @@ export default function AllVendors() {
     const isOfficeVendor = (groupValue) => {
       if (!groupValue) return false;
       return String(groupValue).trim().toLowerCase() === "office & vendor";
-      // or loosen:
-      // const g = String(groupValue || "").toLowerCase();
-      // return g.includes("office") && g.includes("vendor");
     };
     return customersList
       .filter((c) => isOfficeVendor(c.Customer_group || c.Group || c.group))
@@ -247,11 +244,8 @@ export default function AllVendors() {
   const addStep = async () => {
     if (!addStepOrder) return;
 
-    // Resolve final label from dropdown or custom input
     const resolvedLabel =
-      newStepLabelChoice === "__CUSTOM__"
-        ? newStepLabel.trim()
-        : newStepLabelChoice;
+      newStepLabelChoice === "__CUSTOM__" ? newStepLabel.trim() : newStepLabelChoice;
 
     if (!resolvedLabel) {
       return alert("Please choose a task or enter a custom label.");
@@ -291,7 +285,7 @@ export default function AllVendors() {
     const tableRows = [];
 
     enriched.forEach((order) => {
-      const remark = getOrderRemark(order) || "-";
+      const remark = order.RemarkText || buildRemarkFromItems(order) || "-";
       (order.StepsPending || []).forEach((s) => {
         tableRows.push([
           order.Order_Number,
@@ -313,7 +307,7 @@ export default function AllVendors() {
   const exportToExcel = () => {
     const data = [];
     enriched.forEach((order) => {
-      const remark = getOrderRemark(order) || "-";
+      const remark = order.RemarkText || buildRemarkFromItems(order) || "-";
       (order.StepsPending || []).forEach((s) => {
         data.push({
           "Order Number": order.Order_Number,
@@ -377,8 +371,10 @@ export default function AllVendors() {
                 >
                   <div className="text-gray-900 font-bold text-lg">#{order.Order_Number}</div>
                   <div className="text-gray-700 font-medium">{order.Customer_name}</div>
+
+                  {/* ✅ Remarks from backend RemarkText or fallback from Items */}
                   <div className="text-sm text-gray-600 italic mt-1">
-                    {getOrderRemark(order) || "-"}
+                    {order.RemarkText?.trim() || buildRemarkFromItems(order) || "-"}
                   </div>
 
                   <div className="mt-3 space-y-2">
@@ -495,7 +491,6 @@ export default function AllVendors() {
             </div>
 
             <div className="space-y-3">
-              {/* Step Label (Task Group dropdown + optional custom) */}
               <div>
                 <label className="block text-sm mb-1">Step Label</label>
                 <select
@@ -512,11 +507,17 @@ export default function AllVendors() {
                       {tg.Task_group_name || tg.Task_group || "Unnamed Group"}
                     </option>
                   ))}
-                  {/* NEW: explicit Custom option */}
-                  
+                  <option value="__CUSTOM__">Custom…</option>
                 </select>
 
-                
+                {newStepLabelChoice === "__CUSTOM__" && (
+                  <input
+                    className="mt-2 w-full border rounded px-3 py-2"
+                    value={newStepLabel}
+                    onChange={(e) => setNewStepLabel(e.target.value)}
+                    placeholder="Enter custom step label"
+                  />
+                )}
               </div>
 
               <div>
