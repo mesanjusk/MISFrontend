@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from 'axios';
-import OrderUpdate from '../Reports/OrderUpdate'; 
+import OrderUpdate from './OrderUpdate'; 
 import AllOrder from "../Reports/allOrder";
 import UserTask from "./userTask";
 import { format } from 'date-fns';
