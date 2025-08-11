@@ -25,21 +25,22 @@ export default function AddOrder1() {
   const [showOptions, setShowOptions] = useState(false);
 
   const [accountCustomerOptions, setAccountCustomerOptions] = useState([]);
-  const [group, setGroup] = useState(""); // payment account uuid
+  const [group, setGroup] = useState("");
 
   // Advance
   const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
   const [Amount, setAmount] = useState("");
 
   // Task Groups / Steps
-  const [taskGroups, setTaskGroups] = useState([]); // ALL groups (no fetch filter)
-  const [selectedTaskGroups, setSelectedTaskGroups] = useState([]); // uuids checked
+  const [taskGroups, setTaskGroups] = useState([]);
+  const [selectedTaskGroups, setSelectedTaskGroups] = useState([]);
 
   // WhatsApp + invoice
   const [whatsAppMessage, setWhatsAppMessage] = useState("");
   const [mobileToSend, setMobileToSend] = useState("");
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceItems, setInvoiceItems] = useState([]);
+  const [createdOrder, setCreatedOrder] = useState(null); // keep created order data for preview if needed
 
   // UX
   const [optionsLoading, setOptionsLoading] = useState(true);
@@ -60,7 +61,7 @@ export default function AddOrder1() {
       try {
         const [customerRes, taskRes] = await Promise.all([
           axios.get(`${BASE_URL}/customer/GetCustomersList`),
-          axios.get(`${BASE_URL}/taskgroup/GetTaskgroupList`), // no Id filter here
+          axios.get(`${BASE_URL}/taskgroup/GetTaskgroupList`),
         ]);
 
         if (customerRes.data?.success) {
@@ -76,7 +77,6 @@ export default function AddOrder1() {
           const allGroups = taskRes.data.result || [];
           setTaskGroups(allGroups);
 
-          // ✅ Default select: all groups with Id === 1
           const defaults = allGroups
             .filter((tg) => tg.Id === 1)
             .map((tg) => tg.Task_group_uuid)
@@ -103,7 +103,6 @@ export default function AddOrder1() {
     );
   };
 
-  // Put the order note into Items[0].Remark so backend keeps it
   const buildItemsFromRemark = (remark) => {
     const r = String(remark || "").trim();
     if (!r) return [];
@@ -146,17 +145,12 @@ export default function AddOrder1() {
   const handleCustomer = () => setShowCustomerModal(true);
   const exitModal = () => setShowCustomerModal(false);
 
-  const closeModal = () => navigate("/home");
-
   /* ----------- Submit ----------- */
   const canSubmit = useMemo(() => {
     const hasCustomer = Boolean(
       customerOptions.find((c) => c.Customer_name === Customer_name)
     );
-    // If advance checked, require valid amount + payment account
-    const advanceOk = !isAdvanceChecked
-      ? true
-      : Number(Amount) > 0 && Boolean(group);
+    const advanceOk = !isAdvanceChecked ? true : Number(Amount) > 0 && Boolean(group);
     return hasCustomer && advanceOk;
   }, [Customer_name, customerOptions, isAdvanceChecked, Amount, group]);
 
@@ -172,7 +166,6 @@ export default function AddOrder1() {
         return;
       }
 
-      // Build steps from selected task group uuids (label + checked)
       const steps = selectedTaskGroups.map((tgUuid) => {
         const g = taskGroups.find((t) => t.Task_group_uuid === tgUuid);
         return {
@@ -182,19 +175,35 @@ export default function AddOrder1() {
         };
       });
 
-      // Create order (include Items so note persists)
-      const orderResponse = await axios.post(`${BASE_URL}/order/addOrder`, {
+      // Create order
+      const orderRes = await axios.post(`${BASE_URL}/order/addOrder`, {
         Customer_uuid: customer.Customer_uuid,
         Steps: steps,
         Items: buildItemsFromRemark(Remark),
       });
 
-      if (!orderResponse.data?.success) {
+      if (!orderRes.data?.success) {
         toast.error("Failed to add order");
         return;
       }
 
-      // Optional: create advance transaction
+      // Keep created order (if needed in preview)
+      setCreatedOrder(orderRes.data.result || null);
+
+      // Prepare invoice items
+      const baseItems = buildItemsFromRemark(Remark);
+      setInvoiceItems(baseItems);
+
+      // WhatsApp message + phone
+      const message = `Dear ${customer.Customer_name}, your order has been booked successfully.`;
+      setWhatsAppMessage(message);
+      setMobileToSend(customer.Mobile_number || "");
+
+      // ✅ Open invoice modal immediately after submit
+      setShowInvoiceModal(true);
+      toast.success("Order Added");
+
+      // Optional: record advance in background, then append to invoice list
       if (isAdvanceChecked && Amount && group) {
         const amt = Number(Amount || 0);
         if (Number.isNaN(amt) || amt <= 0) {
@@ -211,35 +220,33 @@ export default function AddOrder1() {
           { Account_id: customer.Customer_uuid, Type: "Credit", Amount: amt },
         ];
 
-        const transactionResponse = await axios.post(
-          `${BASE_URL}/transaction/addTransaction`,
-          {
-            Description: Remark || "Advance received",
-            Transaction_date: new Date().toISOString().split("T")[0],
-            Total_Credit: amt,
-            Total_Debit: amt,
-            Payment_mode: payModeCustomer?.Customer_name || "Advance",
-            Journal_entry: journal,
-            Created_by: loggedInUser,
+        try {
+          const txnRes = await axios.post(
+            `${BASE_URL}/transaction/addTransaction`,
+            {
+              Description: Remark || "Advance received",
+              Transaction_date: new Date().toISOString().split("T")[0],
+              Total_Credit: amt,
+              Total_Debit: amt,
+              Payment_mode: payModeCustomer?.Customer_name || "Advance",
+              Journal_entry: journal,
+              Created_by: loggedInUser,
+            }
+          );
+
+          if (txnRes.data?.success) {
+            setInvoiceItems((prev) => [
+              ...prev,
+              { Item: "Advance", Quantity: 1, Rate: amt, Amount: amt },
+            ]);
+            toast.success("Advance payment recorded");
+          } else {
+            toast.error("Transaction failed");
           }
-        );
-
-        if (!transactionResponse.data?.success) {
+        } catch {
           toast.error("Transaction failed");
-          return;
         }
-
-        toast.success("Order & Payment Added");
-        setInvoiceItems([{ Item: "Advance", Quantity: 1, Rate: amt, Amount: amt }]);
-      } else {
-        toast.success("Order Added");
-        setInvoiceItems([]);
       }
-
-      const message = `Dear ${customer.Customer_name}, your order has been booked successfully.`;
-      setWhatsAppMessage(message);
-      setMobileToSend(customer.Mobile_number || "");
-      setShowInvoiceModal(true);
     } catch (error) {
       console.error("Error during submit:", error);
       toast.error("Something went wrong");
@@ -275,9 +282,9 @@ export default function AddOrder1() {
   /* ----------- UI ----------- */
   return (
     <>
-      {/* Invoice Modal */}
+      {/* 🔁 IMPORTANT: use `open` prop (not isOpen) so the modal actually appears */}
       <InvoiceModal
-        isOpen={showInvoiceModal}
+        open={showInvoiceModal}
         onClose={() => {
           setShowInvoiceModal(false);
           navigate("/home");
@@ -287,27 +294,23 @@ export default function AddOrder1() {
         customerMobile={mobileToSend}
         items={invoiceItems}
         remark={Remark}
+        order={createdOrder} // optional: pass created order to preview if your modal supports it
         onSendWhatsApp={sendWhatsApp}
       />
 
       <div className="flex justify-center items-center bg-[#f0f2f5] min-h-screen text-[#111b21] px-4">
         <div className="bg-white w-full max-w-2xl rounded-xl shadow-xl p-6 relative">
-          {/* Close */}
           <button
             onClick={() => navigate("/home")}
             className="absolute right-2 top-2 text-xl text-gray-400 hover:text-green-500"
             type="button"
-            aria-label="Close"
           >
             ×
           </button>
 
-          {/* Title */}
           <h2 className="text-xl font-semibold mb-4 text-center">New Order</h2>
 
-          {/* Form */}
           <form onSubmit={submit} className="space-y-4">
-            {/* Customer Search */}
             {optionsLoading ? (
               <div className="flex justify-center items-center h-10">
                 <LoadingSpinner />
@@ -327,9 +330,8 @@ export default function AddOrder1() {
                 />
                 <button
                   type="button"
-                  onClick={() => setShowCustomerModal(true)}
+                  onClick={handleCustomer}
                   className="absolute top-7 right-1 bg-[#25D366] text-white w-8 h-8 rounded-full flex items-center justify-center"
-                  title="Add Customer"
                 >
                   +
                 </button>
@@ -349,7 +351,6 @@ export default function AddOrder1() {
               </div>
             )}
 
-            {/* Order note (goes into Items[0].Remark + used in invoice) */}
             <div>
               <label className="block font-medium text-gray-700 mb-1">Order</label>
               <input
@@ -361,18 +362,14 @@ export default function AddOrder1() {
               />
             </div>
 
-            {/* Steps (Task Groups) — ONLY Id === 1, all pre-checked by default */}
             <div>
               <label className="block mb-1 font-medium">Steps</label>
               <div className="flex flex-wrap gap-2">
                 {taskGroups
                   .filter((tg) => tg.Id === 1)
                   .map((tg) => {
-                    const name =
-                      tg.Task_group_name || tg.Task_group || "Unnamed Group";
                     const uuid = tg.Task_group_uuid;
                     const checked = selectedTaskGroups.includes(uuid);
-
                     return (
                       <label
                         key={uuid}
@@ -384,24 +381,20 @@ export default function AddOrder1() {
                           onChange={() => handleTaskGroupToggle(uuid)}
                           className="accent-[#25D366]"
                         />
-                        <span>{name}</span>
+                        <span>{tg.Task_group_name || tg.Task_group}</span>
                       </label>
                     );
                   })}
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Steps are pre-selected. Uncheck to exclude from this order.
-              </p>
             </div>
 
-            {/* Advance Section */}
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 id="advanceCheckbox"
                 checked={isAdvanceChecked}
                 onChange={handleAdvanceCheckboxChange}
-                className="h-4 w-4 text-[#25d366] focus:ring-[#25d366] border-gray-300 rounded"
+                className="h-4 w-4 text-[#25d366] border-gray-300 rounded"
               />
               <label htmlFor="advanceCheckbox" className="text-gray-700">
                 Advance
@@ -420,38 +413,29 @@ export default function AddOrder1() {
                     placeholder="Enter Amount"
                     value={Amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    min="0"
-                    step="0.01"
                   />
                 </div>
 
-                {optionsLoading ? (
-                  <div className="flex justify-center items-center h-10">
-                    <LoadingSpinner />
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block font-medium text-gray-700 mb-1">
-                      Payment Mode
-                    </label>
-                    <select
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-                      value={group}
-                      onChange={(e) => setGroup(e.target.value)}
-                    >
-                      <option value="">Select Payment</option>
-                      {accountCustomerOptions.map((c, i) => (
-                        <option key={i} value={c.Customer_uuid}>
-                          {c.Customer_name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">
+                    Payment Mode
+                  </label>
+                  <select
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
+                    value={group}
+                    onChange={(e) => setGroup(e.target.value)}
+                  >
+                    <option value="">Select Payment</option>
+                    {accountCustomerOptions.map((c, i) => (
+                      <option key={i} value={c.Customer_uuid}>
+                        {c.Customer_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </>
             )}
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={!canSubmit}
@@ -467,9 +451,8 @@ export default function AddOrder1() {
         </div>
       </div>
 
-      {/* Add Customer Modal */}
       {showCustomerModal && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
           <AddCustomer onClose={exitModal} />
         </div>
       )}

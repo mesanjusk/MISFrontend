@@ -5,8 +5,6 @@ import { useNavigate } from "react-router-dom";
 
 import OrderHeader from "../Components/OrderHeader";
 import StatusTable from "../Components/StatusTable";
-
-// ⬇️ Add your existing components
 import InvoiceModal from "../Components/InvoiceModal";
 import InvoicePreview from "../Components/InvoicePreview";
 
@@ -25,7 +23,7 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
 
   const [notes, setNotes] = useState([]);
   const [taskGroups, setTaskGroups] = useState([]); // [{ Id, Task_group_uuid, Task_group_name || Task_group }]
-  const [selectedTaskGroups, setSelectedTaskGroups] = useState([]); // uuids currently ON
+  const [selectedTaskGroups, setSelectedTaskGroups] = useState([]); // uuids currently ON (no preselect)
   const [taskOptions, setTaskOptions] = useState([]); // for "Task" dropdown (ALL groups)
   const [userOptions, setUserOptions] = useState({}); // { TaskName: [usernames] }
   const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
@@ -98,31 +96,7 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
       .catch(() => setUserOptions({}));
   }, []);
 
-  /* ---------------- Pre-check steps from existing order.Steps ----------------
-     Prefer UUID matches; fallback to label. We compute against ALL groups —
-     the checkbox render will filter to Id === 1.
-  --------------------------------------------------------------------------- */
-  useEffect(() => {
-    if (!taskGroups.length) return setSelectedTaskGroups([]);
-
-    const saved = Array.isArray(values.Steps) ? values.Steps : [];
-    const savedUuidSet = new Set(
-      saved.map((s) => (s?.uuid || "").trim()).filter(Boolean)
-    );
-    const savedLabelSet = new Set(
-      saved.map((s) => (s?.label || "").trim()).filter(Boolean)
-    );
-
-    const uuids = taskGroups
-      .filter((tg) => {
-        const uuid = (tg.Task_group_uuid || "").trim();
-        const label = (tg.Task_group_name || tg.Task_group || "").trim();
-        return (uuid && savedUuidSet.has(uuid)) || (label && savedLabelSet.has(label));
-      })
-      .map((tg) => tg.Task_group_uuid);
-
-    setSelectedTaskGroups(uuids);
-  }, [values.Steps, taskGroups]);
+  /* ---------------- ❌ Removed pre-check of steps ---------------- */
 
   /* ---------------- Notes for this order ---------------- */
   useEffect(() => {
@@ -132,6 +106,19 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
       .then((res) => setNotes(res.data?.success ? res.data.result : []))
       .catch(() => setNotes([]));
   }, [values.Order_uuid]);
+
+  /* ---------------- Item Remarks just below the name ---------------- */
+  const itemRemarks = useMemo(() => {
+    const items = Array.isArray(values.Items) ? values.Items : [];
+    return items
+      .map((it, idx) => {
+        const itemName =
+          String(it?.Item ?? it?.item ?? "").trim() || `Item ${idx + 1}`;
+        const remark = String(it?.Remark ?? it?.remark ?? "").trim();
+        return remark ? { itemName, remark } : null;
+      })
+      .filter(Boolean);
+  }, [values.Items]);
 
   /* ---------------- Handlers ---------------- */
   const handleChangeTask = (task) => {
@@ -256,6 +243,20 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
       {/* Header */}
       <OrderHeader values={values} notes={notes} />
 
+      {/* Item Remarks (from Items[].Remark) */}
+      {itemRemarks.length > 0 && (
+        <div className="mt-3 mb-4">
+          
+          <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
+            {itemRemarks.map((r, i) => (
+              <li key={i}>
+                <span className="font-medium">{r.itemName}:</span> {r.remark}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Status Table */}
       <StatusTable status={values.Status} />
 
@@ -319,12 +320,12 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
           </div>
         )}
 
-        {/* Steps (Task Groups) — ONLY Id === 1 */}
+        {/* Steps (Task Groups) — ONLY Id === 1, and NOT pre-selected */}
         <div>
           <label className="block mb-1 font-medium">Steps</label>
           <div className="flex flex-wrap gap-2">
             {taskGroups
-              .filter((tg) => tg.Id === 1) // ✅ checkbox list restricted to Id === 1
+              .filter((tg) => tg.Id === 1)
               .map((tg) => {
                 const name = tg.Task_group_name || tg.Task_group || "Unnamed Group";
                 const uuid = tg.Task_group_uuid;
@@ -379,7 +380,6 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
 
       {/* Invoice Modal */}
       <InvoiceModal open={showInvoice} onClose={closeInvoice}>
-        {/* Pass whatever your InvoicePreview expects; adjust props if needed */}
         <InvoicePreview
           order={{
             ...order,
@@ -397,4 +397,3 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
     </div>
   );
 }
-
