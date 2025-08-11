@@ -18,6 +18,12 @@ const AllTransaction = () => {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
+  // Multi-select state
+  const [selectedIds, setSelectedIds] = useState([]);
+  const allVisibleSelected =
+    filteredEntries.length > 0 &&
+    filteredEntries.every((t) => selectedIds.includes(t.Transaction_id));
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -25,8 +31,8 @@ const AllTransaction = () => {
           axios.get('/transaction/GetFilteredTransactions'),
           axios.get('/customer/GetCustomersList'),
         ]);
-        if (txnRes.data.success) setTransactions(txnRes.data.result);
-        if (custRes.data.success) setCustomers(custRes.data.result);
+        if (txnRes.data?.success) setTransactions(txnRes.data.result || []);
+        if (custRes.data?.success) setCustomers(custRes.data.result || []);
       } catch (error) {
         console.error('Error fetching data:', error);
         toast.error('Error fetching data');
@@ -50,11 +56,21 @@ const AllTransaction = () => {
 
   useEffect(() => {
     let grouped = transactions.map((txn) => {
-      const credit = txn.Journal_entry?.find((e) => e.Type?.toLowerCase() === 'credit');
-      const debit = txn.Journal_entry?.find((e) => e.Type?.toLowerCase() === 'debit');
+      const credit = txn.Journal_entry?.find((e) => String(e.Type || '').toLowerCase() === 'credit');
+      const debit = txn.Journal_entry?.find((e) => String(e.Type || '').toLowerCase() === 'debit');
+
+      // Normalize possible order number keys
+      const orderNo =
+        txn.Order_number ??
+        txn.Order_Number ??
+        txn.order_number ??
+        txn.orderNo ??
+        '';
+
       return {
         Transaction_id: txn.Transaction_id,
         Transaction_date: txn.Transaction_date,
+        Order_number: orderNo,
         Description: txn.Description || '',
         CreditAmount: credit?.Amount || 0,
         DebitAmount: debit?.Amount || 0,
@@ -65,18 +81,27 @@ const AllTransaction = () => {
     });
 
     if (searchQuery) {
+      const q = searchQuery.toLowerCase();
       grouped = grouped.filter((txn) => {
-        const creditName = customerMap[txn.Credit_id] || '';
-        const debitName = customerMap[txn.Debit_id] || '';
-        return creditName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-               debitName.toLowerCase().includes(searchQuery.toLowerCase());
+        const creditName = (customerMap[txn.Credit_id] || '').toLowerCase();
+        const debitName = (customerMap[txn.Debit_id] || '').toLowerCase();
+        const orderNo = String(txn.Order_number || '').toLowerCase();
+        return (
+          creditName.includes(q) ||
+          debitName.includes(q) ||
+          orderNo.includes(q)
+        );
       });
     }
 
     if (dateFrom && dateTo) {
+      const from = new Date(dateFrom);
+      const to = new Date(dateTo);
+      // include the full end day
+      to.setHours(23, 59, 59, 999);
       grouped = grouped.filter((txn) => {
         const txnDate = new Date(txn.Transaction_date);
-        return txnDate >= new Date(dateFrom) && txnDate <= new Date(dateTo);
+        return txnDate >= from && txnDate <= to;
       });
     }
 
@@ -84,14 +109,29 @@ const AllTransaction = () => {
       grouped.sort((a, b) => {
         const aValue = a[sortConfig.key];
         const bValue = b[sortConfig.key];
-        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+
+        // numeric vs string safe compare
+        const isNum = (v) => typeof v === 'number' || (!isNaN(v) && v !== null && v !== '');
+        if (isNum(aValue) && isNum(bValue)) {
+          const an = Number(aValue);
+          const bn = Number(bValue);
+          if (an < bn) return sortConfig.direction === 'asc' ? -1 : 1;
+          if (an > bn) return sortConfig.direction === 'asc' ? 1 : -1;
+          return 0;
+        }
+
+        const as = String(aValue || '');
+        const bs = String(bValue || '');
+        if (as < bs) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (as > bs) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
     }
 
     setFilteredEntries(grouped);
-  }, [transactions, searchQuery, dateFrom, dateTo, sortConfig]);
+    // Clean up selections that are no longer visible
+    setSelectedIds((prev) => prev.filter((id) => grouped.some((g) => g.Transaction_id === id)));
+  }, [transactions, searchQuery, dateFrom, dateTo, sortConfig, customerMap]);
 
   const handleSort = (key) => {
     setSortConfig((prev) => ({
@@ -101,7 +141,16 @@ const AllTransaction = () => {
   };
 
   const exportToExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(filteredEntries);
+    const exportRows = filteredEntries.map((txn) => ({
+      No: txn.Transaction_id,
+      'Order No': txn.Order_number || '',
+      Date: formatDate(txn.Transaction_date),
+      'Credit Name': customerMap[txn.Credit_id] || '-',
+      Credit: txn.CreditAmount,
+      'Debit Name': customerMap[txn.Debit_id] || '-',
+      Debit: txn.DebitAmount,
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportRows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
     XLSX.writeFile(wb, 'Transactions.xlsx');
@@ -110,15 +159,18 @@ const AllTransaction = () => {
   const exportToPDF = () => {
     const doc = new jsPDF();
     doc.autoTable({
-      head: [['No', 'Date', 'Credit Name', 'Credit', 'Debit Name', 'Debit']],
-      body: filteredEntries.map(txn => [
+      head: [['No', 'Order No', 'Date', 'Credit Name', 'Credit', 'Debit Name', 'Debit']],
+      body: filteredEntries.map((txn) => [
         txn.Transaction_id,
+        txn.Order_number || '',
         formatDate(txn.Transaction_date),
         customerMap[txn.Credit_id] || '-',
         txn.CreditAmount.toFixed(2),
         customerMap[txn.Debit_id] || '-',
         txn.DebitAmount.toFixed(2),
-      ])
+      ]),
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [46, 125, 50] },
     });
     doc.save('Transactions.pdf');
   };
@@ -137,10 +189,31 @@ const AllTransaction = () => {
         creditAccountId: editingTxn.Credit_id,
         debitAccountId: editingTxn.Debit_id,
       });
-      if (res.data.success) {
+      if (res.data?.success) {
         toast.success('Transaction updated');
         setShowEditModal(false);
-        setTransactions((prev) => prev.map(txn => txn.Transaction_id === editingTxn.Transaction_id ? { ...txn, ...editingTxn } : txn));
+        // Merge local list
+        setTransactions((prev) =>
+          prev.map((txn) =>
+            txn.Transaction_id === editingTxn.Transaction_id
+              ? {
+                  ...txn,
+                  Transaction_date: editingTxn.Transaction_date,
+                  Description: editingTxn.Description,
+                  // Rebuild journal entries to reflect amount change locally
+                  Journal_entry: (txn.Journal_entry || []).map((e) => {
+                    if (String(e.Type || '').toLowerCase() === 'credit') {
+                      return { ...e, Account_id: editingTxn.Credit_id, Amount: editingTxn.Amount };
+                    }
+                    if (String(e.Type || '').toLowerCase() === 'debit') {
+                      return { ...e, Account_id: editingTxn.Debit_id, Amount: editingTxn.Amount };
+                    }
+                    return e;
+                  }),
+                }
+              : txn
+          )
+        );
       } else {
         toast.error('Update failed');
       }
@@ -154,9 +227,10 @@ const AllTransaction = () => {
     if (!window.confirm('Are you sure you want to delete this transaction?')) return;
     try {
       const res = await axios.delete(`/transaction/deleteByTransactionId/${txnId}`);
-      if (res.data.success) {
+      if (res.data?.success) {
         toast.success('Transaction deleted');
-        setTransactions((prev) => prev.filter(txn => txn.Transaction_id !== txnId));
+        setTransactions((prev) => prev.filter((txn) => txn.Transaction_id !== txnId));
+        setSelectedIds((prev) => prev.filter((id) => id !== txnId));
       } else {
         toast.error('Delete failed');
       }
@@ -166,19 +240,105 @@ const AllTransaction = () => {
     }
   };
 
+  const toggleSelectAllVisible = () => {
+    if (allVisibleSelected) {
+      // unselect all visible
+      const visibleIds = new Set(filteredEntries.map((t) => t.Transaction_id));
+      setSelectedIds((prev) => prev.filter((id) => !visibleIds.has(id)));
+    } else {
+      // add all visible
+      const idsToAdd = filteredEntries
+        .map((t) => t.Transaction_id)
+        .filter((id) => !selectedIds.includes(id));
+      setSelectedIds((prev) => [...prev, ...idsToAdd]);
+    }
+  };
+
+  const toggleRow = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`Delete ${selectedIds.length} selected transaction(s)?`)) return;
+
+    try {
+      const results = await Promise.allSettled(
+        selectedIds.map((id) => axios.delete(`/transaction/deleteByTransactionId/${id}`))
+      );
+
+      const successCount = results.filter((r) => r.status === 'fulfilled' && r.value?.data?.success).length;
+      const failCount = selectedIds.length - successCount;
+
+      if (successCount > 0) {
+        setTransactions((prev) => prev.filter((t) => !selectedIds.includes(t.Transaction_id)));
+        setSelectedIds([]);
+        toast.success(`Deleted ${successCount} transaction(s)`);
+      }
+      if (failCount > 0) {
+        toast.error(`${failCount} deletion(s) failed`);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Bulk delete failed');
+    }
+  };
+
   return (
     <div className="p-4">
       <ToastContainer />
 
       <div className="mb-4 flex flex-wrap gap-4 justify-between">
         <div className="flex gap-2">
-          <input type="text" placeholder="Search customer" className="border p-2 rounded" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="border p-2 rounded" />
-          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="border p-2 rounded" />
+          <input
+            type="text"
+            placeholder="Search customer or order no"
+            className="border p-2 rounded"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="border p-2 rounded"
+          />
+            <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="border p-2 rounded"
+          />
         </div>
         <div className="flex gap-2">
-          <button onClick={exportToExcel} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Export Excel</button>
-          <button onClick={exportToPDF} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Export PDF</button>
+          <button
+            onClick={exportToExcel}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          >
+            Export Excel
+          </button>
+          <button
+            onClick={exportToPDF}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Export PDF
+          </button>
+
+          {userRole === 'Admin User' && (
+            <button
+              onClick={handleDeleteSelected}
+              disabled={selectedIds.length === 0}
+              className={`px-4 py-2 rounded ${
+                selectedIds.length === 0
+                  ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                  : 'bg-red-700 text-white hover:bg-red-800'
+              }`}
+            >
+              Delete Selected ({selectedIds.length})
+            </button>
+          )}
         </div>
       </div>
 
@@ -186,7 +346,15 @@ const AllTransaction = () => {
         <table className="min-w-full text-sm">
           <thead className="bg-green-100 text-green-900">
             <tr>
+              <th className="px-3 py-2 w-10 text-center">
+                <input
+                  type="checkbox"
+                  checked={allVisibleSelected}
+                  onChange={toggleSelectAllVisible}
+                />
+              </th>
               <th onClick={() => handleSort('Transaction_id')} className="cursor-pointer px-4 py-2">No</th>
+              <th onClick={() => handleSort('Order_number')} className="cursor-pointer px-4 py-2">Order No</th>
               <th onClick={() => handleSort('Transaction_date')} className="cursor-pointer px-4 py-2">Date</th>
               <th onClick={() => handleSort('Credit_id')} className="cursor-pointer px-4 py-2">Credit Name</th>
               <th onClick={() => handleSort('CreditAmount')} className="cursor-pointer px-4 py-2">Credit</th>
@@ -197,11 +365,23 @@ const AllTransaction = () => {
           </thead>
           <tbody>
             {filteredEntries.length === 0 ? (
-              <tr><td colSpan="7" className="text-center py-6 text-gray-500">No transactions found.</td></tr>
+              <tr>
+                <td colSpan="9" className="text-center py-6 text-gray-500">
+                  No transactions found.
+                </td>
+              </tr>
             ) : (
-              filteredEntries.map((txn, i) => (
-                <tr key={i} className="border-t hover:bg-gray-50">
+              filteredEntries.map((txn) => (
+                <tr key={txn.Transaction_id} className="border-t hover:bg-gray-50">
+                  <td className="px-3 py-2 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(txn.Transaction_id)}
+                      onChange={() => toggleRow(txn.Transaction_id)}
+                    />
+                  </td>
                   <td className="px-4 py-2">{txn.Transaction_id}</td>
+                  <td className="px-4 py-2">{txn.Order_number || '-'}</td>
                   <td className="px-4 py-2">{formatDate(txn.Transaction_date)}</td>
                   <td className="px-4 py-2">{customerMap[txn.Credit_id] || '-'}</td>
                   <td className="px-4 py-2 text-right text-green-700">₹{txn.CreditAmount.toFixed(2)}</td>
@@ -210,8 +390,18 @@ const AllTransaction = () => {
                   <td className="px-4 py-2 text-center">
                     {userRole === 'Admin User' && (
                       <>
-                        <button className="text-blue-600 hover:underline mr-2" onClick={() => openEdit(txn)}>Edit</button>
-                        <button className="text-red-600 hover:underline" onClick={() => handleDelete(txn.Transaction_id)}>Delete</button>
+                        <button
+                          className="text-blue-600 hover:underline mr-2"
+                          onClick={() => openEdit(txn)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="text-red-600 hover:underline"
+                          onClick={() => handleDelete(txn.Transaction_id)}
+                        >
+                          Delete
+                        </button>
                       </>
                     )}
                   </td>
@@ -227,28 +417,80 @@ const AllTransaction = () => {
           <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-xl">
             <h3 className="text-lg font-semibold mb-4">Edit Transaction</h3>
             <div className="space-y-4">
-              <label className="block text-sm">Date:
-                <input type="date" value={editingTxn.Transaction_date?.split('T')[0]} onChange={(e) => setEditingTxn({ ...editingTxn, Transaction_date: e.target.value })} className="w-full mt-1 border p-2 rounded" />
+              <label className="block text-sm">
+                Date:
+                <input
+                  type="date"
+                  value={editingTxn.Transaction_date?.split('T')[0]}
+                  onChange={(e) =>
+                    setEditingTxn({ ...editingTxn, Transaction_date: e.target.value })
+                  }
+                  className="w-full mt-1 border p-2 rounded"
+                />
               </label>
-              <label className="block text-sm">Amount:
-                <input type="number" value={editingTxn.Amount} onChange={(e) => setEditingTxn({ ...editingTxn, Amount: Number(e.target.value) })} className="w-full mt-1 border p-2 rounded" />
+              <label className="block text-sm">
+                Amount:
+                <input
+                  type="number"
+                  value={editingTxn.Amount}
+                  onChange={(e) =>
+                    setEditingTxn({ ...editingTxn, Amount: Number(e.target.value) })
+                  }
+                  className="w-full mt-1 border p-2 rounded"
+                />
               </label>
-              <label className="block text-sm">Credit Name:
-                <select value={editingTxn.Credit_id} onChange={(e) => setEditingTxn({ ...editingTxn, Credit_id: e.target.value })} className="w-full mt-1 border p-2 rounded">
+              <label className="block text-sm">
+                Credit Name:
+                <select
+                  value={editingTxn.Credit_id}
+                  onChange={(e) =>
+                    setEditingTxn({ ...editingTxn, Credit_id: e.target.value })
+                  }
+                  className="w-full mt-1 border p-2 rounded"
+                >
                   <option value="">Select Account</option>
-                  {customers.map(c => (<option key={c.Customer_uuid} value={c.Customer_uuid}>{c.Customer_name}</option>))}
+                  {customers.map((c) => (
+                    <option key={c.Customer_uuid} value={c.Customer_uuid}>
+                      {c.Customer_name}
+                    </option>
+                  ))}
                 </select>
               </label>
-              <label className="block text-sm">Debit Name:
-                <select value={editingTxn.Debit_id} onChange={(e) => setEditingTxn({ ...editingTxn, Debit_id: e.target.value })} className="w-full mt-1 border p-2 rounded">
+              <label className="block text-sm">
+                Debit Name:
+                <select
+                  value={editingTxn.Debit_id}
+                  onChange={(e) =>
+                    setEditingTxn({ ...editingTxn, Debit_id: e.target.value })
+                  }
+                  className="w-full mt-1 border p-2 rounded"
+                >
                   <option value="">Select Account</option>
-                  {customers.map(c => (<option key={c.Customer_uuid} value={c.Customer_uuid}>{c.Customer_name}</option>))}
+                  {customers.map((c) => (
+                    <option key={c.Customer_uuid} value={c.Customer_uuid}>
+                      {c.Customer_name}
+                    </option>
+                  ))}
                 </select>
               </label>
             </div>
             <div className="mt-6 flex justify-end gap-3">
-              <button className="px-4 py-2 bg-gray-300 rounded" onClick={() => setShowEditModal(false)}>Cancel</button>
-              <button className={`px-4 py-2 rounded ${!editingTxn.Transaction_date || !editingTxn.Amount || !editingTxn.Credit_id || !editingTxn.Debit_id ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`} disabled={!editingTxn.Transaction_date || !editingTxn.Amount || !editingTxn.Credit_id || !editingTxn.Debit_id} onClick={handleUpdate}>Save</button>
+              <button className="px-4 py-2 bg-gray-300 rounded" onClick={() => setShowEditModal(false)}>
+                Cancel
+              </button>
+              <button
+                className={`px-4 py-2 rounded ${
+                  !editingTxn.Transaction_date || !editingTxn.Amount || !editingTxn.Credit_id || !editingTxn.Debit_id
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+                disabled={
+                  !editingTxn.Transaction_date || !editingTxn.Amount || !editingTxn.Credit_id || !editingTxn.Debit_id
+                }
+                onClick={handleUpdate}
+              >
+                Save
+              </button>
             </div>
           </div>
         </div>

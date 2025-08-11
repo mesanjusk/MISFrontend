@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -12,28 +12,40 @@ const BASE_URL = "https://misbackend-e078.onrender.com";
 export default function AddOrder1() {
   const navigate = useNavigate();
   const location = useLocation();
+  const previewRef = useRef();
 
+  // Auth / user
+  const [loggedInUser, setLoggedInUser] = useState("");
+
+  // Customers (search + accounts list)
   const [Customer_name, setCustomer_Name] = useState("");
   const [Remark, setRemark] = useState("");
   const [customerOptions, setCustomerOptions] = useState([]);
   const [filteredOptions, setFilteredOptions] = useState([]);
   const [showOptions, setShowOptions] = useState(false);
-  const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
-  const [Amount, setAmount] = useState("");
-  const [loggedInUser, setLoggedInUser] = useState("");
-  const [showCustomerModal, setShowCustomerModal] = useState(false);
+
   const [accountCustomerOptions, setAccountCustomerOptions] = useState([]);
   const [group, setGroup] = useState(""); // payment account uuid
 
-  const [taskGroups, setTaskGroups] = useState([]);
-  const [selectedTaskGroups, setSelectedTaskGroups] = useState([]);
+  // Advance
+  const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
+  const [Amount, setAmount] = useState("");
+
+  // Task Groups / Steps
+  const [taskGroups, setTaskGroups] = useState([]); // ALL groups (no fetch filter)
+  const [selectedTaskGroups, setSelectedTaskGroups] = useState([]); // uuids checked
+
+  // WhatsApp + invoice
   const [whatsAppMessage, setWhatsAppMessage] = useState("");
   const [mobileToSend, setMobileToSend] = useState("");
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceItems, setInvoiceItems] = useState([]);
-  const previewRef = useRef();
-  const [optionsLoading, setOptionsLoading] = useState(true);
 
+  // UX
+  const [optionsLoading, setOptionsLoading] = useState(true);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+
+  /* ----------- auth init ----------- */
   useEffect(() => {
     const userNameFromState = location.state?.id;
     const logInUser = userNameFromState || localStorage.getItem("User_name");
@@ -41,25 +53,38 @@ export default function AddOrder1() {
     else navigate("/login");
   }, [location.state, navigate]);
 
+  /* ----------- Load customers + ALL task groups ----------- */
   useEffect(() => {
     const fetchData = async () => {
       setOptionsLoading(true);
       try {
         const [customerRes, taskRes] = await Promise.all([
           axios.get(`${BASE_URL}/customer/GetCustomersList`),
-          axios.get(`${BASE_URL}/taskgroup/GetTaskgroupList`),
+          axios.get(`${BASE_URL}/taskgroup/GetTaskgroupList`), // no Id filter here
         ]);
 
-        if (customerRes.data.success) {
+        if (customerRes.data?.success) {
           const all = customerRes.data.result || [];
           setCustomerOptions(all);
-          const accountOptions = all.filter((item) => item.Customer_group === "Bank and Account");
+          const accountOptions = all.filter(
+            (item) => item.Customer_group === "Bank and Account"
+          );
           setAccountCustomerOptions(accountOptions);
         }
 
-        if (taskRes.data.success) {
-          const filtered = (taskRes.data.result || []).filter((tg) => tg.Id === 1);
-          setTaskGroups(filtered);
+        if (taskRes.data?.success) {
+          const allGroups = taskRes.data.result || [];
+          setTaskGroups(allGroups);
+
+          // ✅ Default select: all groups with Id === 1
+          const defaults = allGroups
+            .filter((tg) => tg.Id === 1)
+            .map((tg) => tg.Task_group_uuid)
+            .filter(Boolean);
+          setSelectedTaskGroups(defaults);
+        } else {
+          setTaskGroups([]);
+          setSelectedTaskGroups([]);
         }
       } catch (e) {
         console.error(e);
@@ -71,19 +96,20 @@ export default function AddOrder1() {
     fetchData();
   }, []);
 
+  /* ----------- Handlers ----------- */
   const handleTaskGroupToggle = (uuid) => {
     setSelectedTaskGroups((prev) =>
       prev.includes(uuid) ? prev.filter((id) => id !== uuid) : [...prev, uuid]
     );
   };
 
-  // ✅ Build Items so the note is saved as Items[0].Remark
+  // Put the order note into Items[0].Remark so backend keeps it
   const buildItemsFromRemark = (remark) => {
     const r = String(remark || "").trim();
     if (!r) return [];
     return [
       {
-        Item: "Order Note", // non-empty or backend will drop it
+        Item: "Order Note",
         Quantity: 0,
         Rate: 0,
         Amount: 0,
@@ -93,34 +119,77 @@ export default function AddOrder1() {
     ];
   };
 
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setCustomer_Name(value);
+    if (value) {
+      const filtered = customerOptions.filter((opt) =>
+        (opt.Customer_name || "").toLowerCase().includes(value.toLowerCase())
+      );
+      setFilteredOptions(filtered);
+      setShowOptions(true);
+    } else {
+      setShowOptions(false);
+    }
+  };
+
+  const handleOptionClick = (opt) => {
+    setCustomer_Name(opt.Customer_name);
+    setShowOptions(false);
+  };
+
+  const handleAdvanceCheckboxChange = () => {
+    setIsAdvanceChecked((prev) => !prev);
+    setAmount("");
+  };
+
+  const handleCustomer = () => setShowCustomerModal(true);
+  const exitModal = () => setShowCustomerModal(false);
+
+  const closeModal = () => navigate("/home");
+
+  /* ----------- Submit ----------- */
+  const canSubmit = useMemo(() => {
+    const hasCustomer = Boolean(
+      customerOptions.find((c) => c.Customer_name === Customer_name)
+    );
+    // If advance checked, require valid amount + payment account
+    const advanceOk = !isAdvanceChecked
+      ? true
+      : Number(Amount) > 0 && Boolean(group);
+    return hasCustomer && advanceOk;
+  }, [Customer_name, customerOptions, isAdvanceChecked, Amount, group]);
+
   const submit = async (e) => {
     e.preventDefault();
 
     try {
-      const customer = customerOptions.find((opt) => opt.Customer_name === Customer_name);
-      const payModeCustomer = accountCustomerOptions.find((opt) => opt.Customer_uuid === group);
-
+      const customer = customerOptions.find(
+        (opt) => opt.Customer_name === Customer_name
+      );
       if (!customer) {
         toast.error("Invalid customer selection");
         return;
       }
 
+      // Build steps from selected task group uuids (label + checked)
       const steps = selectedTaskGroups.map((tgUuid) => {
         const g = taskGroups.find((t) => t.Task_group_uuid === tgUuid);
         return {
+          uuid: tgUuid,
           label: g?.Task_group_name || g?.Task_group || "Unnamed Group",
           checked: true,
         };
       });
 
-      // ✅ Send Items so remark persists
+      // Create order (include Items so note persists)
       const orderResponse = await axios.post(`${BASE_URL}/order/addOrder`, {
         Customer_uuid: customer.Customer_uuid,
         Steps: steps,
         Items: buildItemsFromRemark(Remark),
       });
 
-      if (!orderResponse.data.success) {
+      if (!orderResponse.data?.success) {
         toast.error("Failed to add order");
         return;
       }
@@ -133,22 +202,29 @@ export default function AddOrder1() {
           return;
         }
 
+        const payModeCustomer = accountCustomerOptions.find(
+          (opt) => opt.Customer_uuid === group
+        );
+
         const journal = [
           { Account_id: group, Type: "Debit", Amount: amt },
           { Account_id: customer.Customer_uuid, Type: "Credit", Amount: amt },
         ];
 
-        const transactionResponse = await axios.post(`${BASE_URL}/transaction/addTransaction`, {
-          Description: Remark || "Advance received",
-          Transaction_date: new Date().toISOString().split("T")[0],
-          Total_Credit: amt,
-          Total_Debit: amt,
-          Payment_mode: payModeCustomer?.Customer_name || "Advance",
-          Journal_entry: journal,
-          Created_by: loggedInUser,
-        });
+        const transactionResponse = await axios.post(
+          `${BASE_URL}/transaction/addTransaction`,
+          {
+            Description: Remark || "Advance received",
+            Transaction_date: new Date().toISOString().split("T")[0],
+            Total_Credit: amt,
+            Total_Debit: amt,
+            Payment_mode: payModeCustomer?.Customer_name || "Advance",
+            Journal_entry: journal,
+            Created_by: loggedInUser,
+          }
+        );
 
-        if (!transactionResponse.data.success) {
+        if (!transactionResponse.data?.success) {
           toast.error("Transaction failed");
           return;
         }
@@ -196,36 +272,10 @@ export default function AddOrder1() {
     navigate("/home");
   };
 
-  const handleInputChange = (e) => {
-    const value = e.target.value;
-    setCustomer_Name(value);
-    if (value) {
-      const filtered = customerOptions.filter((opt) =>
-        (opt.Customer_name || "").toLowerCase().includes(value.toLowerCase())
-      );
-      setFilteredOptions(filtered);
-      setShowOptions(true);
-    } else {
-      setShowOptions(false);
-    }
-  };
-
-  const handleOptionClick = (opt) => {
-    setCustomer_Name(opt.Customer_name);
-    setShowOptions(false);
-  };
-
-  const handleAdvanceCheckboxChange = () => {
-    setIsAdvanceChecked((prev) => !prev);
-    setAmount("");
-  };
-
-  const handleCustomer = () => setShowCustomerModal(true);
-  const exitModal = () => setShowCustomerModal(false);
-  const closeModal = () => navigate("/home");
-
+  /* ----------- UI ----------- */
   return (
     <>
+      {/* Invoice Modal */}
       <InvoiceModal
         isOpen={showInvoiceModal}
         onClose={() => {
@@ -242,35 +292,43 @@ export default function AddOrder1() {
 
       <div className="flex justify-center items-center bg-[#f0f2f5] min-h-screen text-[#111b21] px-4">
         <div className="bg-white w-full max-w-2xl rounded-xl shadow-xl p-6 relative">
+          {/* Close */}
           <button
-            onClick={closeModal}
-            className="absolute right-2 top-2 text-xl text-gray-400 hover:text-red-600"
+            onClick={() => navigate("/home")}
+            className="absolute right-2 top-2 text-xl text-gray-400 hover:text-green-500"
+            type="button"
+            aria-label="Close"
           >
             ×
           </button>
 
+          {/* Title */}
           <h2 className="text-xl font-semibold mb-4 text-center">New Order</h2>
 
-          <form onSubmit={submit}>
+          {/* Form */}
+          <form onSubmit={submit} className="space-y-4">
             {/* Customer Search */}
             {optionsLoading ? (
-              <div className="flex justify-center items-center h-10 mb-4">
+              <div className="flex justify-center items-center h-10">
                 <LoadingSpinner />
               </div>
             ) : (
-              <div className="mb-4 relative">
+              <div className="relative">
+                <label className="block font-medium text-gray-700 mb-1">
+                  Customer
+                </label>
                 <input
                   type="text"
                   placeholder="Search by Customer Name"
-                  className="w-full p-2 rounded-md border border-gray-300 focus:outline-none"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
                   value={Customer_name}
                   onChange={handleInputChange}
                   onFocus={() => setShowOptions(true)}
                 />
                 <button
                   type="button"
-                  onClick={handleCustomer}
-                  className="absolute top-1 right-1 bg-[#25D366] text-white w-8 h-8 rounded-full flex items-center justify-center"
+                  onClick={() => setShowCustomerModal(true)}
+                  className="absolute top-7 right-1 bg-[#25D366] text-white w-8 h-8 rounded-full flex items-center justify-center"
                   title="Add Customer"
                 >
                   +
@@ -291,37 +349,74 @@ export default function AddOrder1() {
               </div>
             )}
 
-            {/* Order note (used for Items[0].Remark + WhatsApp) */}
-            <div className="mb-4">
-              <label className="block mb-1 font-medium">Order</label>
+            {/* Order note (goes into Items[0].Remark + used in invoice) */}
+            <div>
+              <label className="block font-medium text-gray-700 mb-1">Order</label>
               <input
                 type="text"
-                className="w-full p-2 rounded-md border border-gray-300"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
                 placeholder="Item Details / Note"
                 value={Remark}
                 onChange={(e) => setRemark(e.target.value)}
               />
             </div>
 
-            {/* Advance */}
-            <div className="mb-4 flex items-center gap-2">
+            {/* Steps (Task Groups) — ONLY Id === 1, all pre-checked by default */}
+            <div>
+              <label className="block mb-1 font-medium">Steps</label>
+              <div className="flex flex-wrap gap-2">
+                {taskGroups
+                  .filter((tg) => tg.Id === 1)
+                  .map((tg) => {
+                    const name =
+                      tg.Task_group_name || tg.Task_group || "Unnamed Group";
+                    const uuid = tg.Task_group_uuid;
+                    const checked = selectedTaskGroups.includes(uuid);
+
+                    return (
+                      <label
+                        key={uuid}
+                        className="flex items-center gap-2 border px-2 py-1 rounded-md shadow-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => handleTaskGroupToggle(uuid)}
+                          className="accent-[#25D366]"
+                        />
+                        <span>{name}</span>
+                      </label>
+                    );
+                  })}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Steps are pre-selected. Uncheck to exclude from this order.
+              </p>
+            </div>
+
+            {/* Advance Section */}
+            <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 id="advanceCheckbox"
-                className="accent-[#25D366]"
                 checked={isAdvanceChecked}
                 onChange={handleAdvanceCheckboxChange}
+                className="h-4 w-4 text-[#25d366] focus:ring-[#25d366] border-gray-300 rounded"
               />
-              <label htmlFor="advanceCheckbox">Advance</label>
+              <label htmlFor="advanceCheckbox" className="text-gray-700">
+                Advance
+              </label>
             </div>
 
             {isAdvanceChecked && (
               <>
-                <div className="mb-4">
-                  <label className="block mb-1 font-medium">Amount</label>
+                <div>
+                  <label className="block font-medium text-gray-700 mb-1">
+                    Amount
+                  </label>
                   <input
                     type="number"
-                    className="w-full p-2 rounded-md border border-gray-300"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
                     placeholder="Enter Amount"
                     value={Amount}
                     onChange={(e) => setAmount(e.target.value)}
@@ -331,14 +426,16 @@ export default function AddOrder1() {
                 </div>
 
                 {optionsLoading ? (
-                  <div className="flex justify-center items-center h-10 mb-4">
+                  <div className="flex justify-center items-center h-10">
                     <LoadingSpinner />
                   </div>
                 ) : (
-                  <div className="mb-4">
-                    <label className="block mb-1 font-medium">Payment Mode</label>
+                  <div>
+                    <label className="block font-medium text-gray-700 mb-1">
+                      Payment Mode
+                    </label>
                     <select
-                      className="w-full p-2 rounded-md border border-gray-300"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
                       value={group}
                       onChange={(e) => setGroup(e.target.value)}
                     >
@@ -354,36 +451,15 @@ export default function AddOrder1() {
               </>
             )}
 
-            {/* Task Groups (Id === 1) */}
-            {optionsLoading ? (
-              <div className="flex justify-center items-center h-10 mb-4">
-                <LoadingSpinner />
-              </div>
-            ) : (
-              <div className="mb-4">
-                <label className="block mb-1 font-medium">Task Groups</label>
-                <div className="flex flex-wrap gap-2">
-                  {taskGroups.map((tg) => (
-                    <label
-                      key={tg.Task_group_uuid}
-                      className="flex items-center gap-2 border px-2 py-1 rounded-md shadow-sm"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedTaskGroups.includes(tg.Task_group_uuid)}
-                        onChange={() => handleTaskGroupToggle(tg.Task_group_uuid)}
-                        className="accent-[#25D366]"
-                      />
-                      <span>{tg.Task_group_name || tg.Task_group || "Unnamed Group"}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
+            {/* Submit */}
             <button
               type="submit"
-              className="w-full bg-[#25D366] py-2 rounded-md font-medium text-white hover:bg-[#20c95c]"
+              disabled={!canSubmit}
+              className={`w-full text-white font-medium py-2 rounded-lg transition ${
+                canSubmit
+                  ? "bg-[#25d366] hover:bg-[#128c7e]"
+                  : "bg-gray-300 cursor-not-allowed"
+              }`}
             >
               Submit
             </button>
@@ -391,6 +467,7 @@ export default function AddOrder1() {
         </div>
       </div>
 
+      {/* Add Customer Modal */}
       {showCustomerModal && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
           <AddCustomer onClose={exitModal} />
