@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from 'react';
 import axios from 'axios';
 import Layout from './Pages/Layout';
@@ -155,12 +155,18 @@ function App() {
             <Route path="/PendingTasks" element={<PendingTasks />} />
             <Route path="/AllAttandance" element={<AllAttandance />} />
             <Route path="/AllVendors" element={<AllVendors />} />
-            
+
             {/* ✅ NEW route */}
             <Route path="/attendance-report" element={<AttendanceReport />} />
             <Route path="/CashLedger" element={<CashLedger />} />
             <Route path="/addVendor" element={<Vendor />} />
             <Route path="/migrate-orders" element={<MigrateOrders />} />
+
+            {/* ✅ Fix: redirect misspelled legacy path to the correct one */}
+            <Route path="/alltranscation1" element={<Navigate to="/allTransaction1" replace />} />
+
+            {/* (Optional) Catch-all 404 */}
+            <Route path="*" element={<div style={{ padding: 24 }}>404 Not Found</div>} />
           </Route>
         </Routes>
       </div>
