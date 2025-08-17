@@ -199,15 +199,14 @@ export default function AddCustomer({ onClose }) {
 
                     {/* Buttons */}
                     <div className="flex gap-4 mt-6">
-                <button
-                    type="submit"
-                    disabled={!canSubmit}
-                    className={`w-full text-white py-2 rounded-lg transition font-medium ${
-                        canSubmit ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-300 cursor-not-allowed'
-                    }`}
-                >
-                    Submit
-                </button>
+                {canSubmit && (
+                    <button
+                        type="submit"
+                        className="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition font-medium"
+                    >
+                        Submit
+                    </button>
+                )}
                 <button
                     type="button"
                     onClick={handleCancel}

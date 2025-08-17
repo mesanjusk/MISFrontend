@@ -6,7 +6,7 @@ export default function LoadingSpinner({ size = 24, className = '' }) {
     <CircularProgress
       size={size}
       className={className}
-      sx={{ animationDuration: '800ms' }}
+      sx={{ animationDuration: '500ms' }}
     />
   );
 }
