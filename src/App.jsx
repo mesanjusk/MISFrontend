@@ -12,7 +12,7 @@ import Register from "./Pages/Register";
 import Planner from "./Pages/Planner";
 import Review from "./Pages/Review";
 import Team from "./Pages/Team";
-import Home from './Pages/home';
+import Dashboard from './Pages/Dashboard';
 import AddCustomer from "./Pages/addCustomer";
 import AddCustGroup from "./Pages/addCustomergroup";
 import AddUser from "./Pages/addUser";
@@ -99,7 +99,7 @@ function App() {
             <Route path="/planner" element={<Planner />} />
             <Route path="/review" element={<Review />} />
             <Route path="/team" element={<Team />} />
-            <Route path="/home" element={<Home />} />
+            <Route path="/home" element={<Dashboard />} />
             <Route path="/adminHome" element={<AdminHome />} />
             <Route path="/vendorHome" element={<VendorHome />} />
             <Route path="/addCustomer" element={<AddCustomer />} />
