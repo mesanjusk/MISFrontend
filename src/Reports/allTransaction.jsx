@@ -315,7 +315,7 @@ const AllTransaction = () => {
         <div className="flex gap-2">
           <button
             onClick={exportToExcel}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
             Export Excel
           </button>
@@ -344,7 +344,7 @@ const AllTransaction = () => {
 
       <div className="overflow-auto bg-white shadow rounded">
         <table className="min-w-full text-sm">
-          <thead className="bg-green-100 text-green-900">
+          <thead className="bg-blue-100 text-blue-900">
             <tr>
               <th className="px-3 py-2 w-10 text-center">
                 <input
@@ -384,7 +384,7 @@ const AllTransaction = () => {
                   <td className="px-4 py-2">{txn.Order_number || '-'}</td>
                   <td className="px-4 py-2">{formatDate(txn.Transaction_date)}</td>
                   <td className="px-4 py-2">{customerMap[txn.Credit_id] || '-'}</td>
-                  <td className="px-4 py-2 text-right text-green-700">₹{txn.CreditAmount.toFixed(2)}</td>
+                  <td className="px-4 py-2 text-right text-blue-700">₹{txn.CreditAmount.toFixed(2)}</td>
                   <td className="px-4 py-2">{customerMap[txn.Debit_id] || '-'}</td>
                   <td className="px-4 py-2 text-right text-red-600">₹{txn.DebitAmount.toFixed(2)}</td>
                   <td className="px-4 py-2 text-center">

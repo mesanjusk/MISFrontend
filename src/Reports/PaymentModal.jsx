@@ -73,7 +73,7 @@ export default function PaymentModal({ isOpen, onClose, isEdit, existingData, on
             </button>
             <button
               type="submit"
-              className="bg-green-500 text-white px-4 py-2 rounded"
+              className="bg-blue-500 text-white px-4 py-2 rounded"
             >
               {isEdit ? 'Update' : 'Add'}
             </button>

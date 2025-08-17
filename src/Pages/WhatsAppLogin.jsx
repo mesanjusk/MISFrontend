@@ -59,7 +59,7 @@ export default function WhatsAppLogin() {
       )}
       
       {isReady ? (
-        <p className="text-green-600 text-xl">✅ WhatsApp is connected!</p>
+        <p className="text-blue-600 text-xl">✅ WhatsApp is connected!</p>
       ) : qrCode ? (
         <>
           <p className="text-gray-700 mb-4">Scan this QR with your phone</p>

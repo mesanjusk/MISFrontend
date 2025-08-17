@@ -196,10 +196,10 @@ export default function AllOrder() {
                   return (
                     <div key={taskGroup} className="mb-4 p-3 rounded-lg ">
                       <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-semibold text-lg text-green-700">
+                        <h3 className="font-semibold text-lg text-blue-700">
                           {taskGroup}
                         </h3>
-                        <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
+                        <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
                           {taskGroupOrders.length} orders
                         </span>
                       </div>
@@ -224,7 +224,7 @@ export default function AllOrder() {
 
                           const chipClass =
                             timeDifference === 0
-                              ? "bg-green-200 text-green-800"
+                              ? "bg-blue-200 text-blue-800"
                               : timeDifference === 1
                               ? "bg-yellow-200 text-yellow-800"
                               : "bg-red-200 text-red-800";
@@ -243,7 +243,7 @@ export default function AllOrder() {
                               {/* Edit icon — opens UpdateDelivery (stop propagation) */}
                               <button
                                 type="button"
-                                className="absolute top-2 right-2 inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md border border-green-600 text-green-700 hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500"
+                                className="absolute top-2 right-2 inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md border border-blue-600 text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 onClick={(e) => {
                                   e.stopPropagation(); // prevent card click
                                   handleEditClick(order);
@@ -270,7 +270,7 @@ export default function AllOrder() {
                                     {order.Customer_name}
                                   </div>
                                   <div className="mt-1 flex items-center justify-between">
-                                    <span className="text-sm font-semibold text-green-700">
+                                    <span className="text-sm font-semibold text-blue-700">
                                       {order.Order_Number || "-"}
                                     </span>
                                     <span
@@ -330,7 +330,7 @@ function Modal({ onClose, children }) {
     >
       <div className="bg-white rounded-xl p-6 w-full max-w-3xl mx-4 relative max-h-[90vh] overflow-y-auto">
         <button
-          className="absolute right-2 top-2 text-xl text-gray-400 hover:text-green-500"
+          className="absolute right-2 top-2 text-xl text-gray-400 hover:text-blue-500"
           onClick={onClose}
           aria-label="Close"
           type="button"

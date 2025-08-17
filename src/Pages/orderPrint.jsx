@@ -55,7 +55,7 @@ const OrderPrint = ({ order, onClose }) => {
   return (
     <div className="p-4 text-center">
       <div className="flex flex-wrap justify-center gap-3 mb-4">
-        <button onClick={handlePrint} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Print</button>
+        <button onClick={handlePrint} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Print</button>
         <button onClick={handleDownloadPDF} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Download PDF</button>
         <button onClick={onClose} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Cancel</button>
       </div>

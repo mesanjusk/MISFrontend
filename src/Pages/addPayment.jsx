@@ -52,7 +52,7 @@ export default function AddPayment() {
                    
                     <button 
                         type="submit" 
-                        className="btn bg-green-500 w-100 text-white rounded-0"
+                        className="btn bg-blue-500 w-100 text-white rounded-0"
                     >
                         Submit
                     </button>

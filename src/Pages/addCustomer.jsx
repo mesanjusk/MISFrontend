@@ -110,12 +110,12 @@ export default function AddCustomer({ onClose }) {
             <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-[90vw] max-h-[90vh] overflow-y-auto relative">
                 <button
                     onClick={handleCancel}
-                    className="absolute right-2 top-2 text-xl text-gray-400 hover:text-green-500"
+                    className="absolute right-2 top-2 text-xl text-gray-400 hover:text-blue-500"
                     type="button"
                 >
                     ×
                 </button>
-                <h2 className="text-2xl font-semibold text-green-600 mb-4 text-center">Add Customer</h2>
+                <h2 className="text-2xl font-semibold text-blue-600 mb-4 text-center">Add Customer</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
 
                     {/* Customer Name */}
@@ -126,7 +126,7 @@ export default function AddCustomer({ onClose }) {
                             value={form.Customer_name}
                             onChange={(e) => handleChange('Customer_name', e.target.value)}
                             placeholder="Customer Name"
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-green-500"
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500"
                             required
                         />
                         {duplicateNameError && <p className="text-red-500 text-sm">{duplicateNameError}</p>}
@@ -145,7 +145,7 @@ export default function AddCustomer({ onClose }) {
                                 }
                             }}
                             placeholder="Mobile Number"
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-green-500"
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
 
@@ -155,7 +155,7 @@ export default function AddCustomer({ onClose }) {
                         <select
                             value={form.Customer_group}
                             onChange={(e) => handleChange('Customer_group', e.target.value)}
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-green-500"
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500"
                             required
                         >
                             <option value="">Select Group</option>
@@ -171,7 +171,7 @@ export default function AddCustomer({ onClose }) {
                         <select
                             value={form.Status}
                             onChange={(e) => handleChange('Status', e.target.value)}
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-green-500"
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500"
                         >
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
@@ -186,11 +186,11 @@ export default function AddCustomer({ onClose }) {
                             value={form.Tags.join(", ")}
                             onChange={(e) => handleChange('Tags', e.target.value)}
                             placeholder="Enter tags separated by commas"
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-green-500"
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500"
                         />
                         <div className="flex flex-wrap gap-2 mt-2">
                             {form.Tags.map((tag, index) => (
-                                <span key={index} className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs">{tag}</span>
+                                <span key={index} className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">{tag}</span>
                             ))}
                         </div>
                     </div>
@@ -202,7 +202,7 @@ export default function AddCustomer({ onClose }) {
                             type="datetime-local"
                             value={formatDateForInput(form.LastInteraction)}
                             onChange={(e) => handleChange('LastInteraction', e.target.value)}
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-green-500"
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
 
@@ -212,7 +212,7 @@ export default function AddCustomer({ onClose }) {
                     type="submit"
                     disabled={!canSubmit}
                     className={`w-full text-white py-2 rounded-lg transition font-medium ${
-                        canSubmit ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-300 cursor-not-allowed'
+                        canSubmit ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-300 cursor-not-allowed'
                     }`}
                 >
                     Submit

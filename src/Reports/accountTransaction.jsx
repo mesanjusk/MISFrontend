@@ -223,7 +223,7 @@ const AccountTransaction = () => {
                 <div className="mt-4 text-center">
                     <button
                         onClick={handleSearch}
-                        className="bg-green-600 text-white px-4 py-2 rounded-md shadow-md hover:bg-green-700"
+                        className="bg-blue-600 text-white px-4 py-2 rounded-md shadow-md hover:bg-blue-700"
                     >
                         Search
                     </button>
@@ -311,7 +311,7 @@ const AccountTransaction = () => {
                 <div className="fixed bottom-6 right-6">
                     <button
                         onClick={handleOrder}
-                        className="w-14 h-14 bg-green-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-green-700"
+                        className="w-14 h-14 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-blue-700"
                     >
                         <svg
                             className="h-8 w-8"

@@ -23,7 +23,7 @@ export default function Register() {
         <input placeholder="Name" className="p-2 border rounded" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
         <input placeholder="Email" className="p-2 border rounded" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
         <input placeholder="Password" className="p-2 border rounded" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
-        <button type="submit" className="bg-green-500 text-white p-2 rounded hover:bg-green-600">Register</button>
+        <button type="submit" className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Register</button>
       </form>
     </div>
   );

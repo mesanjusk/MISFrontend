@@ -57,7 +57,7 @@ export default function TaskUpdate({ task, onClose }) {
     <>
 <div className=" max-w-lg " >
       <div className="w-4/4 vh-100 pt-10 flex flex-col">
-        <div className="px-1 pt-4 bg-green-200 grid grid-cols-12  items-center h-18"  >
+        <div className="px-1 pt-4 bg-blue-200 grid grid-cols-12  items-center h-18"  >
           
           <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
             <strong className="text-l text-gray-500">{values.Usertask_Number}</strong>
@@ -73,7 +73,7 @@ export default function TaskUpdate({ task, onClose }) {
         </div>
 
         <div className="flex-1 overflow-y-scroll bg-gray-100 p-4">
-          <div className="bg-green-100 p-3 mb-2 text-right-xs rounded-lg shadow-lg w-3/4 ml-auto">
+          <div className="bg-blue-100 p-3 mb-2 text-right-xs rounded-lg shadow-lg w-3/4 ml-auto">
             <p className="text-sm text-gray-600">{values.Remark}</p>
           </div>
 
@@ -105,10 +105,10 @@ export default function TaskUpdate({ task, onClose }) {
                 
               </div>
               <div className="flex items-center">
-              <button type="submit" className="ml-2 bg-green-500 text-white p-2 rounded-lg">
+              <button type="submit" className="ml-2 bg-blue-500 text-white p-2 rounded-lg">
                   UPDATE
                 </button>
-                <button type="button" className="ml-2 bg-green-500 text-white p-2 rounded-lg" onClick={onClose}>Cancel</button>
+                <button type="button" className="ml-2 bg-blue-500 text-white p-2 rounded-lg" onClick={onClose}>Cancel</button>
                 </div>
             </div>
           </form>

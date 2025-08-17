@@ -104,7 +104,7 @@ export default function WhatsAppAdminPanel() {
           onChange={(e) => setNewSessionId(e.target.value)}
         />
         <button
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
           onClick={() => startSession(newSessionId)}
           disabled={loading}
         >
@@ -128,7 +128,7 @@ export default function WhatsAppAdminPanel() {
               <td className="p-2 border">{s.sessionId}</td>
               <td className="p-2 border">
                 {s.ready ? (
-                  <span className="text-green-600 font-medium">✅ Ready</span>
+                  <span className="text-blue-600 font-medium">✅ Ready</span>
                 ) : (
                   <span className="text-yellow-600 font-medium">🕓 Not Ready</span>
                 )}

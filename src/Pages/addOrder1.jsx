@@ -298,7 +298,7 @@ export default function AddOrder1() {
         <div className="bg-white w-full max-w-2xl justify-between rounded-xl shadow-xl p-6 relative">
           <button
             onClick={() => navigate("/home")}
-            className="absolute right-2 top-2 text-xl text-gray-400 hover:text-green-500"
+            className="absolute right-2 top-2 text-xl text-gray-400 hover:text-blue-500"
             type="button"
           >
             ×

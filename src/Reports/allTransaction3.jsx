@@ -192,7 +192,7 @@ const AllTransaction3 = () => {
                     </div>
                     <div className="space-x-2">
                         <button onClick={handleExportPDF} className="px-4 py-1 bg-red-500 text-white rounded">PDF</button>
-                        <button onClick={handleExportExcel} className="px-4 py-1 bg-green-600 text-white rounded">Excel</button>
+                        <button onClick={handleExportExcel} className="px-4 py-1 bg-blue-600 text-white rounded">Excel</button>
                     </div>
                 </div>
 
@@ -271,7 +271,7 @@ const AllTransaction3 = () => {
                                                         <td className="py-2 px-4">{transaction.Description}</td>
                                                         <td className="py-2 px-4">{entry.Type === 'Debit' ? entry.Amount : ''}</td>
                                                         <td className="py-2 px-4">{entry.Type === 'Credit' ? entry.Amount : ''}</td>
-                                                        <td className={`py-2 px-4 ${runningBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                        <td className={`py-2 px-4 ${runningBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
                                                             {runningBalance.toFixed(2)}
                                                         </td>
                                                     </tr>
@@ -280,7 +280,7 @@ const AllTransaction3 = () => {
                                     );
                                 })()}
                                 <tr
-                                    className="bg-green-100 font-semibold">
+                                    className="bg-blue-100 font-semibold">
                                     <td className="py-2 px-4" ></td>
                                     <td className="py-2 px-4" ></td>
                                     <td className="py-2 px-4" colSpan={1}>Closing Balance</td>

@@ -211,7 +211,7 @@ export default function AddTransaction() {
           className="w-full p-2 border border-gray-300 rounded-md"
         />
                        
-                    <button type="submit" className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center">
+                    <button type="submit" className="w-100 h-10 bg-blue-500 text-white shadow-lg flex items-center justify-center">
                         Submit
                     </button>
                     <button type="button" className="w-100 h-10 bg-red-500 text-white shadow-lg flex items-center justify-center" onClick={closeModal}>Close</button>

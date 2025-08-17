@@ -130,7 +130,7 @@ const AllTransaction1 = () => {
     <div className="pt-04 pb-12 max-w-8xl mx-auto px-4">
       {/* Header & Toolbar */}
       <div className="flex flex-col md:flex-row justify-between gap-3 mb-4 items-center">
-        <h2 className="text-xl font-semibold text-green-700">Outstanding Report</h2>
+        <h2 className="text-xl font-semibold text-blue-700">Outstanding Report</h2>
         <div className="flex gap-2">
           <button onClick={exportToExcel} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
             Export Excel
@@ -146,7 +146,7 @@ const AllTransaction1 = () => {
         <input
           type="text"
           placeholder="Search customer name..."
-          className="flex-1 p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-300"
+          className="flex-1 p-2 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -158,14 +158,14 @@ const AllTransaction1 = () => {
               className={`px-4 py-2 rounded transition ${
                 filterType === type
                   ? type === 'receivable'
-                    ? 'bg-green-600 text-white'
+                    ? 'bg-blue-600 text-white'
                     : type === 'payable'
                     ? 'bg-red-600 text-white'
                     : type === 'zero'
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-700 text-white'
                   : type === 'receivable'
-                  ? 'bg-green-100 text-green-700'
+                  ? 'bg-blue-100 text-blue-700'
                   : type === 'payable'
                   ? 'bg-red-100 text-red-700'
                   : type === 'zero'
@@ -182,7 +182,7 @@ const AllTransaction1 = () => {
       {/* Table */}
       <div className="overflow-auto">
         <table className="w-full table-auto text-sm border shadow-sm rounded bg-white">
-          <thead className="bg-green-100 text-green-900">
+          <thead className="bg-blue-100 text-blue-900">
             <tr>
               <th onClick={() => handleSort('name')} className="border px-3 py-2 cursor-pointer text-left">
                 Customer {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? <FaSortUp className="inline ml-1" /> : <FaSortDown className="inline ml-1" />)}
@@ -206,17 +206,17 @@ const AllTransaction1 = () => {
             ) : (
               sortedReport.map((item, index) => (
                 <tr key={index} className="border-t hover:bg-gray-50 transition">
-                  <td onClick={() => viewTransactions(item)} className="px-3 py-2 text-green-700 cursor-pointer">
+                  <td onClick={() => viewTransactions(item)} className="px-3 py-2 text-blue-700 cursor-pointer">
                     {item.name}
                   </td>
                   <td className="px-3 py-2">{item.mobile}</td>
-                  <td className={`px-3 py-2 text-right font-semibold ${item.balance < 0 ? 'text-red-600' : 'text-green-700'}`}>
+                  <td className={`px-3 py-2 text-right font-semibold ${item.balance < 0 ? 'text-red-600' : 'text-blue-700'}`}>
                     ₹{Math.abs(item.balance)}
                   </td>
                   <td className="px-3 py-2 text-center">
                     {item.mobile !== 'No phone number' && (
                       <button onClick={() => sendWhatsApp(item.name, item.mobile, item.balance)}>
-                        <FaWhatsapp className="text-green-600 text-lg hover:text-green-700 transition" />
+                        <FaWhatsapp className="text-blue-600 text-lg hover:text-blue-700 transition" />
                       </button>
                     )}
                   </td>

@@ -83,7 +83,7 @@ export default function CallLogs() {
                                 />
                             </div>
 
-                            <button type="submit" className="btn bg-green-500 w-100 text-white rounded-0">
+                            <button type="submit" className="btn bg-blue-500 w-100 text-white rounded-0">
                                 Submit
                             </button>
                             <button type="button" className="btn bg-red-500 w-100 text-white rounded-0" onClick={closeModal}>

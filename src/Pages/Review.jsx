@@ -52,7 +52,7 @@ export default function Review() {
                     onChange={e => setReview(e.target.value)}
                   />
                   <button
-                    className="bg-green-500 text-white px-3 py-1 rounded"
+                    className="bg-blue-500 text-white px-3 py-1 rounded"
                     onClick={() => submitReview(t._id)}
                   >
                     Save

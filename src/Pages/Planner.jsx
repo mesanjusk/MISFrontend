@@ -118,7 +118,7 @@ export default function Planner() {
         <h2 className="text-2xl font-bold mb-2">Planner for {date}</h2>
         <input type="date" value={date} onChange={e => setDate(e.target.value)} className="mb-4 p-1 border" />
         <button
-          className="mb-4 px-4 py-2 bg-green-700 text-white rounded"
+          className="mb-4 px-4 py-2 bg-blue-700 text-white rounded"
           onClick={() => openBlockModal(null)}
         >
           + Add Time Block
@@ -151,7 +151,7 @@ export default function Planner() {
                     <div className="ml-3 w-32">
                       <div className="w-full bg-gray-200 rounded h-2">
                         <div
-                          className="bg-green-500 h-2 rounded"
+                          className="bg-blue-500 h-2 rounded"
                           style={{ width: `${progress[taskName] || 0}%` }}
                         />
                       </div>
@@ -189,7 +189,7 @@ export default function Planner() {
                 className="p-2 border rounded"
               />
               <div className="flex gap-2 mt-2">
-                <button type="submit" className="bg-green-600 text-white px-4 py-1 rounded">
+                <button type="submit" className="bg-blue-600 text-white px-4 py-1 rounded">
                   Save
                 </button>
                 <button type="button" className="bg-gray-300 px-4 py-1 rounded" onClick={closeBlockModal}>

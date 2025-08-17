@@ -177,7 +177,7 @@ export default function AllBills() {
                     </button>
                     <button
                         onClick={exportToExcel}
-                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                     >
                         Excel
                     </button>
@@ -246,7 +246,7 @@ export default function AllBills() {
                 <div className="fixed bottom-20 right-8">
                     <button
                         onClick={handleOrder}
-                        className="w-12 h-12 bg-green-500 text-white rounded-full shadow-lg flex items-center justify-center"
+                        className="w-12 h-12 bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center"
                     >
                         <svg
                             className="h-8 w-8"

@@ -65,13 +65,13 @@ export default function EditCustomer({ customerId, closeModal }) {
     return (
         <div className="flex justify-center items-center bg-[#eae6df] min-h-screen">
             <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
-                <h2 className="text-2xl font-semibold text-green-600 mb-4 text-center">Edit Customer</h2>
+                <h2 className="text-2xl font-semibold text-blue-600 mb-4 text-center">Edit Customer</h2>
                 <form onSubmit={handleSaveChanges} className="space-y-4">
                     <div>
                         <label className="block text-gray-700 text-sm mb-1">Customer Name</label>
                         <input
                             type="text"
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             value={values.Customer_name}
                             onChange={(e) => setValues({ ...values, Customer_name: e.target.value })}
                             required
@@ -81,7 +81,7 @@ export default function EditCustomer({ customerId, closeModal }) {
                         <label className="block text-gray-700 text-sm mb-1">Mobile Number</label>
                         <input
                             type="text"
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             value={values.Mobile_number}
                             onChange={(e) => setValues({ ...values, Mobile_number: e.target.value })}
                         />
@@ -89,7 +89,7 @@ export default function EditCustomer({ customerId, closeModal }) {
                     <div>
                         <label className="block text-gray-700 text-sm mb-1">Customer Group</label>
                         <select
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             value={values.Customer_group}
                             onChange={(e) => setValues({ ...values, Customer_group: e.target.value })}
                             required
@@ -103,7 +103,7 @@ export default function EditCustomer({ customerId, closeModal }) {
                     <div>
                         <label className="block text-gray-700 text-sm mb-1">Status</label>
                         <select
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             value={values.Status}
                             onChange={(e) => setValues({ ...values, Status: e.target.value })}
                             required
@@ -116,7 +116,7 @@ export default function EditCustomer({ customerId, closeModal }) {
                         <label className="block text-gray-700 text-sm mb-1">Tags</label>
                         <input
                             type="text"
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             value={values.Tags.join(", ")}
                             onChange={(e) => setValues({ ...values, Tags: e.target.value.split(",") })}
                         />
@@ -126,7 +126,7 @@ export default function EditCustomer({ customerId, closeModal }) {
                         <label className="block text-gray-700 text-sm mb-1">Last Interaction</label>
                         <input
                             type="datetime-local"
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             value={values.LastInteraction}
                             onChange={(e) => setValues({ ...values, LastInteraction: e.target.value })}
                         />
@@ -134,7 +134,7 @@ export default function EditCustomer({ customerId, closeModal }) {
                     <div className="flex gap-4 mt-6">
                         <button
                             type="submit"
-                            className="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition"
+                            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition"
                         >
                             Save
                         </button>

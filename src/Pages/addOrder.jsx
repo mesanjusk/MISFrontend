@@ -192,7 +192,7 @@ export default function AddOrder() {
                         </select>
                     </div>
 
-                    <button type="submit" className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center">
+                    <button type="submit" className="w-100 h-10 bg-blue-500 text-white shadow-lg flex items-center justify-center">
                         Submit
                     </button>
                 </form>

@@ -114,7 +114,7 @@ const PriorityReport = () => {
                         </button>
                 </div>
                 <div className="d-flex flex-wrap bg-white w-100 max-w-md p-2 mx-auto">
-                    <button onClick={handleAddPriority} type="button" className="p-3 rounded-full text-white bg-green-500 mb-3">
+                    <button onClick={handleAddPriority} type="button" className="p-3 rounded-full text-white bg-blue-500 mb-3">
                         <svg className="h-8 w-8 text-white-500" width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round">  
                             <path stroke="none" d="M0 0h24v24H0z"/>  
                             <circle cx="12" cy="12" r="9" />  

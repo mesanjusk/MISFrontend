@@ -169,7 +169,7 @@ const CashLedger = () => {
                             </select>
                         </div>
                         <div className="flex items-end gap-2">
-                            <button onClick={exportToExcel} className="bg-green-600 text-white px-4 py-2 rounded">Export</button>
+                            <button onClick={exportToExcel} className="bg-blue-600 text-white px-4 py-2 rounded">Export</button>
                             <button onClick={handlePrint} className="bg-blue-600 text-white px-4 py-2 rounded">Print</button>
                             <button onClick={resetFilters} className="bg-gray-600 text-white px-4 py-2 rounded">Reset</button>
                         </div>
@@ -204,7 +204,7 @@ const CashLedger = () => {
                                                 <td className="border px-4 py-2">{new Date(entry.Transaction_date).toLocaleDateString()}</td>
                                                 <td className="border px-4 py-2">{entry.Description}</td>
                                                 <td className="border px-4 py-2">{entry.Account}</td>
-                                                <td className="border px-4 py-2 text-green-600">
+                                                <td className="border px-4 py-2 text-blue-600">
                                                     {entry.Type === 'Credit' ? entry.Amount : ''}
                                                 </td>
                                                 <td className="border px-4 py-2 text-red-600">

@@ -171,7 +171,7 @@ export default function WhatsAppClient() {
       {/* Sidebar */}
       <div className={`${darkMode ? 'bg-[#202c33]' : 'bg-white'} md:w-80 w-full md:border-r border-b md:border-b-0 flex flex-col`}>
         <div className="p-4 flex justify-between items-center border-b">
-          <div className="text-lg font-bold text-green-600">WhatsApp</div>
+          <div className="text-lg font-bold text-blue-600">WhatsApp</div>
           <button onClick={() => setDarkMode(!darkMode)} className="text-sm text-gray-500">{darkMode ? '🌞' : '🌙'}</button>
         </div>
         <div className="p-2 flex gap-2">
@@ -184,7 +184,7 @@ export default function WhatsAppClient() {
           />
           <button
             onClick={handleSearchNumber}
-            className="px-2 text-sm bg-green-600 text-white rounded"
+            className="px-2 text-sm bg-blue-600 text-white rounded"
           >
             Go
           </button>
@@ -196,7 +196,7 @@ export default function WhatsAppClient() {
               onClick={() => openChat(c)}
               className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${selectedCustomer?._id === c._id ? 'bg-gray-200' : ''}`}
             >
-              <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-bold">
+              <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">
                 {c.Customer_name?.[0] || '+'}
               </div>
               <div className="ml-3">
@@ -228,7 +228,7 @@ export default function WhatsAppClient() {
           {selectedCustomer && messages.length ? messages.map((msg, i) => (
             <div
               key={i}
-              className={`max-w-sm px-4 py-2 rounded-lg text-sm ${msg.from === 'me' ? 'bg-green-100 ml-auto' : 'bg-white'} shadow-sm`}
+              className={`max-w-sm px-4 py-2 rounded-lg text-sm ${msg.from === 'me' ? 'bg-blue-100 ml-auto' : 'bg-white'} shadow-sm`}
             >
               <div>{msg.text}</div>
               <div className="text-right text-xs text-gray-400 mt-1">
@@ -252,7 +252,7 @@ export default function WhatsAppClient() {
             <button
               onClick={sendMessage}
               disabled={sending}
-              className="bg-green-600 text-white px-4 py-2 rounded-full hover:bg-green-700 text-sm"
+              className="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 text-sm"
             >
               {sending ? '...' : 'Send'}
             </button>

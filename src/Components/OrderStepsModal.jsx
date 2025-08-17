@@ -194,7 +194,7 @@ if (savedSteps.length > 0) {
 
                 <div className="flex justify-end">
                <button
-  className="bg-green-500 text-white px-3 py-1 rounded"
+  className="bg-blue-500 text-white px-3 py-1 rounded"
   onClick={() => {
     if (step.completed || step.charge || step.paymentMode) {
       openDetailModal(idx);

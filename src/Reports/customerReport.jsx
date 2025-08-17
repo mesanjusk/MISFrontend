@@ -101,7 +101,7 @@ const CustomerReport = () => {
                             className="w-full sm:w-2/3 border border-gray-300 rounded-md p-2 focus:outline-none"
                         />
                         <div className="flex gap-2">
-                            <button onClick={() => window.print()} className="text-green-600 hover:text-green-700">🖨️ Print</button>
+                            <button onClick={() => window.print()} className="text-blue-600 hover:text-blue-700">🖨️ Print</button>
                             <button onClick={() => setShowAddModal(true)} className="bg-[#25D366] hover:bg-[#20c95c] text-white font-medium py-2 px-4 rounded-md">
                                 ➕ Add Customer
                             </button>

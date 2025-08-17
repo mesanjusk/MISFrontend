@@ -153,14 +153,14 @@ const AllTransaction2 = () => {
             </div>
             <div className="pt-12 pb-20">
                 <div className="mt-6 max-w-4xl mx-auto bg-white p-4 rounded shadow">
-                    <h2 className="text-lg font-semibold mb-4 text-center text-green-700">Outstanding Report</h2>
+                    <h2 className="text-lg font-semibold mb-4 text-center text-blue-700">Outstanding Report</h2>
 
                     {/* Search and Filter Buttons */}
                     <div className="mb-4 flex flex-col md:flex-row gap-3 md:items-center">
                         <input
                             type="text"
                             placeholder="Search customer name..."
-                            className="flex-1 p-2 border border-green-300 rounded focus:outline-none focus:ring-2 focus:ring-green-300"
+                            className="flex-1 p-2 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -168,7 +168,7 @@ const AllTransaction2 = () => {
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setFilterType('receivable')}
-                                className={`px-4 py-2 rounded ${filterType === 'receivable' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-700'} hover:bg-green-200`}
+                                className={`px-4 py-2 rounded ${filterType === 'receivable' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700'} hover:bg-blue-200`}
                             >
                                 Receivable
                             </button>
@@ -189,7 +189,7 @@ const AllTransaction2 = () => {
 
                     {/* Table */}
                     <table className="w-full table-auto text-sm border">
-                        <thead className="bg-green-100 text-green-900">
+                        <thead className="bg-blue-100 text-blue-900">
                             <tr>
                                 <th onClick={() => handleSort('name')} className="border px-3 py-2 cursor-pointer text-left">
                                     Customer {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? <FaSortUp className="inline ml-1" /> : <FaSortDown className="inline ml-1" />)}
@@ -214,19 +214,19 @@ const AllTransaction2 = () => {
                                 sortedReport.map((item, index) => (
                                     <tr key={index} className="border-t hover:bg-gray-50">
                                         <td
-                                            className="px-3 py-2 cursor-pointer text-green-600"
+                                            className="px-3 py-2 cursor-pointer text-blue-600"
                                             onClick={() => viewTransactions(item)} // Make name clickable
                                         >
                                             {item.name}
                                         </td>
                                         <td className="px-3 py-2">{item.mobile}</td>
-                                        <td className={`px-3 py-2 text-right ${item.balance < 0 ? 'text-red-600' : 'text-green-700'}`}>
+                                        <td className={`px-3 py-2 text-right ${item.balance < 0 ? 'text-red-600' : 'text-blue-700'}`}>
                                             ₹{Math.abs(item.balance)}
                                         </td>
                                         <td className="px-3 py-2 text-center">
                                             {item.mobile !== 'No phone number' && (
                                                 <button onClick={() => sendWhatsApp(item.name, item.mobile, item.balance)}>
-                                                    <FaWhatsapp className="text-green-600 text-lg" />
+                                                    <FaWhatsapp className="text-blue-600 text-lg" />
                                                 </button>
                                             )}
                                         </td>

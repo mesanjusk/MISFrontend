@@ -377,7 +377,7 @@ export default function UserTask() {
       disabled={!showButtons}
       className={`w-full text-white font-semibold py-3 rounded-md transition-all ${
         showButtons
-          ? "bg-green-500 hover:bg-green-600 cursor-pointer"
+          ? "bg-blue-500 hover:bg-blue-400 cursor-pointer"
           : "bg-gray-400 cursor-not-allowed"
       }`}
     >

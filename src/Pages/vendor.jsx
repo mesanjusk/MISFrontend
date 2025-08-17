@@ -241,7 +241,7 @@ export default function Vendor({ onClose, order }) {
                                 ))}
                             </ul>
                         )}
-                        <button onClick={handleItem} type="button" className="text-white p-2 rounded-full bg-green-500 mb-3">
+                        <button onClick={handleItem} type="button" className="text-white p-2 rounded-full bg-blue-500 mb-3">
                             <svg className="h-8 w-8" width="20" height="20" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none">
                                 <path stroke="none" d="M0 0h24v24H0z"/>  
                                 <circle cx="12" cy="12" r="9" />  
@@ -276,7 +276,7 @@ export default function Vendor({ onClose, order }) {
                         <input type="text" value={Amount} className="form-control rounded-0" readOnly />
                     </div>
 
-                    <button type="submit" className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center">
+                    <button type="submit" className="w-100 h-10 bg-blue-500 text-white shadow-lg flex items-center justify-center">
                         Submit
                     </button>
                 </form>

@@ -57,7 +57,7 @@ export default function AddItem() {
             <div className="bg-white w-full max-w-md rounded-xl shadow-xl p-6 relative">
                 <button
                     onClick={closeModal}
-                    className="absolute right-2 top-2 text-xl text-gray-400 hover:text-green-500"
+                    className="absolute right-2 top-2 text-xl text-gray-400 hover:text-blue-500"
                     type="button"
                 >
                     ×

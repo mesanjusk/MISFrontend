@@ -44,7 +44,7 @@ export default function CallUpdate({ log, onClose }) {
     <>
 <div className=" max-w-lg " >
       <div className="w-4/4 vh-100 pt-10 flex flex-col">
-        <div className="px-1 pt-4 bg-green-200 grid grid-cols-12  items-center h-18"  >
+        <div className="px-1 pt-4 bg-blue-200 grid grid-cols-12  items-center h-18"  >
           
           <div className="w-12 h-12 p-2 col-start-1 col-end-1 bg-gray-100 rounded-full flex items-center justify-center">
             <strong className="text-l text-gray-500">{values.duration}</strong>
@@ -62,7 +62,7 @@ export default function CallUpdate({ log, onClose }) {
         </div>
 
         <div className="flex-1 overflow-y-scroll bg-gray-100 p-4">
-          <div className="bg-green-100 p-3 mb-2 text-right-xs rounded-lg shadow-lg w-3/4 ml-auto">
+          <div className="bg-blue-100 p-3 mb-2 text-right-xs rounded-lg shadow-lg w-3/4 ml-auto">
             <p className="text-sm text-gray-600">{values.type}</p>
           </div>
 
@@ -86,7 +86,7 @@ export default function CallUpdate({ log, onClose }) {
             <div className="pb-14 border-t border-gray-300">
              
               <div className="flex items-center">
-              <button type="submit" className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center">
+              <button type="submit" className="w-100 h-10 bg-blue-500 text-white shadow-lg flex items-center justify-center">
                  Save
                 </button>
                 <button type="button" className="w-100 h-10 bg-red-500 text-white shadow-lg flex items-center justify-center" onClick={onClose}>Cancel</button>

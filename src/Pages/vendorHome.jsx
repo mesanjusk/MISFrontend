@@ -60,7 +60,7 @@ export default function VendorHome() {
         <div className="absolute right-10 top-10 p-2">
           <button
             onClick={handleInClick}
-            className={`sanju ${showOutButton ? 'hidden' : 'visible'} bg-green-500 text-white px-2 py-2 mr-2 rounded`}
+            className={`sanju ${showOutButton ? 'hidden' : 'visible'} bg-blue-500 text-white px-2 py-2 mr-2 rounded`}
           >
             In
           </button>

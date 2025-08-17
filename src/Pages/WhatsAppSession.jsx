@@ -63,7 +63,7 @@ const WhatsAppSession = () => {
       <ToastContainer />
 
       {/* ✅ Status Banner */}
-      <div className={`w-full max-w-md text-center py-2 rounded mb-4 ${isConnected ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+      <div className={`w-full max-w-md text-center py-2 rounded mb-4 ${isConnected ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
         {isConnected ? '🟢 WhatsApp Connected' : '🔴 WhatsApp Not Connected'}
       </div>
 
@@ -90,7 +90,7 @@ const WhatsAppSession = () => {
           <button
             type="submit"
             disabled={sending}
-            className={`w-full py-2 rounded text-white ${sending ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`}
+            className={`w-full py-2 rounded text-white ${sending ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}
           >
             {sending ? 'Sending...' : 'Send Message'}
           </button>

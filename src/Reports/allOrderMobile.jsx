@@ -133,7 +133,7 @@ export default function AllOrder() {
                                     onClick={() => {
                                         setFilter(taskGroup);
                                     }}
-                                    className={`sanju ${filter === taskGroup ? "bg-green-200" : "bg-gray-100"} uppercase rounded-full text-black p-2 text-xs me-1`}
+                                    className={`sanju ${filter === taskGroup ? "bg-blue-200" : "bg-gray-100"} uppercase rounded-full text-black p-2 text-xs me-1`}
                                 >
                                     {taskGroup}
                                 </button>
@@ -167,7 +167,7 @@ export default function AllOrder() {
                                                 <label className="text-xs pr-2">
                                                     {order.highestStatusTask?.Delivery_Date ? new Date(order.highestStatusTask.Delivery_Date).toLocaleDateString() : ''}
                                                 </label><br />
-                                                <label className="text-s text-green-500 pr-2">
+                                                <label className="text-s text-blue-500 pr-2">
                                                     {order.highestStatusTask?.Assigned}
                                                 </label>
                                             </div>

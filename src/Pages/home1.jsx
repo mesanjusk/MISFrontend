@@ -141,7 +141,7 @@ const closeModal = () => {
                   </div>
                   <div className="items-center justify-center text-right col-end-9 col-span-1">
                         <label className="text-xs pr-2">{order.highestStatusTask.Assigned}</label><br />
-                        <label className="text-s text-green-500 pr-2">{order.highestStatusTask.Task}</label>
+                        <label className="text-s text-blue-500 pr-2">{order.highestStatusTask.Task}</label>
                   </div>
 
                </div>
