@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -14,6 +15,12 @@ function StatCard({ label, value, onClick }) {
     </div>
   );
 }
+
+StatCard.propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  onClick: PropTypes.func
+};
 
 export default function Dashboard() {
   const navigate = useNavigate();
