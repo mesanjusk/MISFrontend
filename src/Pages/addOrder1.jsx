@@ -278,7 +278,7 @@ export default function AddOrder1() {
   /* ----------- UI ----------- */
   return (
     <>
-      {/* 🔁 IMPORTANT: use `open` prop (not isOpen) so the modal actually appears */}
+      {/* 🔁 IMPORTANT: use `open` prop (not isOpen) so the modal  appears */}
       <InvoiceModal
         open={showInvoiceModal}
         onClose={() => {
@@ -294,8 +294,8 @@ export default function AddOrder1() {
         onSendWhatsApp={sendWhatsApp}
       />
 
-      <div className="flex justify-center items-center bg-[#f0f2f5] min-h-screen text-[#111b21] px-4">
-        <div className="bg-white w-full max-w-2xl rounded-xl shadow-xl p-6 relative">
+       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+        <div className="bg-white w-full max-w-2xl justify-between rounded-xl shadow-xl p-6 relative">
           <button
             onClick={() => navigate("/home")}
             className="absolute right-2 top-2 text-xl text-gray-400 hover:text-green-500"

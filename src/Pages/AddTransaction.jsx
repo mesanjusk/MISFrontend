@@ -184,7 +184,8 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
   const addCustomer = () => navigate("/addCustomer");
 
   return (
-    <div className="flex items-center justify-center bg-secondary min-h-screen p-4">
+    <div className="flex items-center justify-center  bg-secondary min-h-screen p-4">
+      
       <ToastContainer />
 
       <InvoiceModal
@@ -199,13 +200,9 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
       />
 
       <Card className="relative">
-        <Button
-          variant="secondary"
-          className="absolute top-2 right-2 px-2 py-1"
-          onClick={closeModal}
-        >
+        <button onClick={closeModal} className="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2 px-2 py-0">
           ✕
-        </Button>
+        </button>
 
         <h2 className="text-xl font-semibold mb-4">{editMode ? "Edit Receipt" : "Add Receipt"}</h2>
 
@@ -236,13 +233,19 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
                   ))}
                 </ul>
               )}
+
+              <button
+            type="button"
+            onClick={addCustomer}
+            className="absolute top-7 right-1 bg-[#25D366] text-white w-8 h-8 rounded-full flex items-center justify-center"
+          >
+            +
+          </button>
             </div>
           )}
 
-          <Button onClick={addCustomer} type="button" className="mb-4" fullWidth>
-            Add Customer
-          </Button>
 
+          
           <InputField
             label="Description"
             value={Description}
