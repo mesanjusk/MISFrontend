@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
 import OrderUpdate from "../Pages/OrderUpdate";
-import UpdateDelivery from "../Pages/UpdateDelivery";
+import UpdateDelivery from "../Pages/updateDelivery";
 import { LoadingSpinner } from "../Components";
 
 export default function AllOrder() {

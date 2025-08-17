@@ -77,11 +77,7 @@ export default function AddOrder1() {
           const allGroups = taskRes.data.result || [];
           setTaskGroups(allGroups);
 
-          const defaults = allGroups
-            .filter((tg) => tg.Id === 1)
-            .map((tg) => tg.Task_group_uuid)
-            .filter(Boolean);
-          setSelectedTaskGroups(defaults);
+         setSelectedTaskGroups([]);
         } else {
           setTaskGroups([]);
           setSelectedTaskGroups([]);
