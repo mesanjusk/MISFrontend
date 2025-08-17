@@ -104,10 +104,18 @@ export default function AddCustomer({ onClose }) {
         else navigate("/home");
     };
 
-    const content = (
-        <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-[90vw] max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-semibold text-green-600 mb-4 text-center">Add Customer</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+    return (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+            <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-[90vw] max-h-[90vh] overflow-y-auto relative">
+                <button
+                    onClick={handleCancel}
+                    className="absolute right-2 top-2 text-xl text-gray-400 hover:text-green-500"
+                    type="button"
+                >
+                    ×
+                </button>
+                <h2 className="text-2xl font-semibold text-green-600 mb-4 text-center">Add Customer</h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
 
                     {/* Customer Name */}
                     <div>
@@ -216,15 +224,8 @@ export default function AddCustomer({ onClose }) {
                     Cancel
                 </button>
             </div>
-        </form>
-        </div>
-    );
-
-    if (onClose) return content;
-
-    return (
-        <div className="flex justify-center items-center bg-[#eae6df] min-h-screen">
-            {content}
+                </form>
+            </div>
         </div>
     );
 }

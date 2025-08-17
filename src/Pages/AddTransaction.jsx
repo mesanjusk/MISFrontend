@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
-import { Button, InputField, Card, ToastContainer, toast, LoadingSpinner } from "../Components";
+import { Button, InputField, ToastContainer, toast, LoadingSpinner } from "../Components";
 import InvoiceModal from "../Components/InvoiceModal";
 
 export default function AddTransaction({ editMode, existingData, onClose, onSuccess }) {
@@ -184,13 +184,16 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
   const addCustomer = () => navigate("/addCustomer");
 
   return (
-    <div className="flex items-center justify-center  bg-secondary min-h-screen p-4">
-      
+    <>
       <ToastContainer />
 
       <InvoiceModal
-        isOpen={showInvoiceModal}
-        onClose={() => { setShowInvoiceModal(false); onSuccess?.(); onClose?.(); }}
+        open={showInvoiceModal}
+        onClose={() => {
+          setShowInvoiceModal(false);
+          onSuccess?.();
+          onClose?.();
+        }}
         invoiceRef={previewRef}
         customerName={Customer_name}
         customerMobile={mobileToSend}
@@ -199,14 +202,21 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
         onSendWhatsApp={sendWhatsApp}
       />
 
-      <Card className="relative">
-        <button onClick={closeModal} className="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2 px-2 py-0">
-          ✕
-        </button>
+      <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+        <div className="bg-white w-full max-w-2xl rounded-xl shadow-xl p-6 relative">
+          <button
+            onClick={closeModal}
+            className="absolute right-2 top-2 text-xl text-gray-400 hover:text-green-500"
+            type="button"
+          >
+            ×
+          </button>
 
-        <h2 className="text-xl font-semibold mb-4">{editMode ? "Edit Receipt" : "Add Receipt"}</h2>
+          <h2 className="text-xl font-semibold mb-4 text-center">
+            {editMode ? "Edit Receipt" : "Add Receipt"}
+          </h2>
 
-        <form onSubmit={submit}>
+          <form onSubmit={submit} className="space-y-4">
           {optionsLoading ? (
             <div className="flex justify-center items-center h-12 mb-4">
               <LoadingSpinner />
@@ -330,8 +340,9 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
             )}
           </Button>
         </form>
-      </Card>
-    </div>
+      </div>
+      </div>
+    </>
   );
 }
 

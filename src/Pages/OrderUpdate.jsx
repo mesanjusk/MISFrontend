@@ -230,170 +230,172 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
   const closeInvoice = () => setShowInvoice(false);
 
   return (
-    <div className="">
-      <button
-        className="absolute right-2 top-2 text-xl text-gray-400 hover:text-green-500"
-        onClick={onClose}
-        type="button"
-        aria-label="Close"
-      >
-        ×
-      </button>
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+      <div className="bg-white w-full max-w-3xl rounded-xl shadow-xl p-6 relative">
+        <button
+          className="absolute right-2 top-2 text-xl text-gray-400 hover:text-green-500"
+          onClick={onClose}
+          type="button"
+          aria-label="Close"
+        >
+          ×
+        </button>
 
-      {/* Header */}
-      <OrderHeader values={values} notes={notes} />
+        {/* Header */}
+        <OrderHeader values={values} notes={notes} />
 
-      {/* Item Remarks (from Items[].Remark) */}
-      {itemRemarks.length > 0 && (
-        <div className="mt-3 mb-4">
-          
-          <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
-            {itemRemarks.map((r, i) => (
-              <li key={i}>
-                <span className="font-medium">{r.itemName}:</span> {r.remark}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+        {/* Item Remarks (from Items[].Remark) */}
+        {itemRemarks.length > 0 && (
+          <div className="mt-3 mb-4">
 
-      {/* Status Table */}
-      <StatusTable status={values.Status} />
-
-      {/* Update Form */}
-      <form onSubmit={handleSaveChanges} className="space-y-4">
-        <div>
-          <label className="block font-medium text-gray-700 mb-1">Update Job Status</label>
-          <select
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-            value={values.Task}
-            onChange={(e) => handleChangeTask(e.target.value)}
-          >
-            <option value="">Select Task</option>
-            {taskOptions.map((option, i) => (
-              <option key={i} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block font-medium text-gray-700 mb-1">Assign User</label>
-          <select
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-            value={values.Assigned}
-            onChange={(e) => setValues({ ...values, Assigned: e.target.value })}
-            disabled={!values.Task}
-          >
-            <option value="">Select User</option>
-            {(userOptions[values.Task] || []).map((user, i) => (
-              <option key={i} value={user}>
-                {user}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="advanceCheckbox"
-            checked={isAdvanceChecked}
-            onChange={handleAdvanceCheckboxChange}
-            className="h-4 w-4 text-[#25d366] focus:ring-[#25d366] border-gray-300 rounded"
-          />
-          <label htmlFor="advanceCheckbox" className="text-gray-700">
-            Update Date
-          </label>
-        </div>
-
-        {isAdvanceChecked && (
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">Delivery Date</label>
-            <input
-              type="date"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-              value={values.Delivery_Date}
-              onChange={(e) => setValues({ ...values, Delivery_Date: e.target.value })}
-            />
+            <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
+              {itemRemarks.map((r, i) => (
+                <li key={i}>
+                  <span className="font-medium">{r.itemName}:</span> {r.remark}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 
-        {/* Steps (Task Groups) — ONLY Id === 1, and NOT pre-selected */}
-        <div>
-          <label className="block mb-1 font-medium">Steps</label>
-          <div className="flex flex-wrap gap-2">
-            {taskGroups
-              .filter((tg) => tg.Id === 1)
-              .map((tg) => {
-                const name = tg.Task_group_name || tg.Task_group || "Unnamed Group";
-                const uuid = tg.Task_group_uuid;
-                const checked = selectedTaskGroups.includes(uuid);
-                const loading = !!busyStep[uuid];
+        {/* Status Table */}
+        <StatusTable status={values.Status} />
 
-                return (
-                  <label
-                    key={uuid}
-                    className={`flex items-center gap-2 border px-2 py-1 rounded-md shadow-sm ${
-                      loading ? "opacity-60 cursor-not-allowed" : ""
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => !loading && toggleStep(tg)}
-                      className="accent-[#25D366]"
-                      disabled={loading}
-                    />
-                    <span>{name}</span>
-                  </label>
-                );
-              })}
+        {/* Update Form */}
+        <form onSubmit={handleSaveChanges} className="space-y-4">
+          <div>
+            <label className="block font-medium text-gray-700 mb-1">Update Job Status</label>
+            <select
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
+              value={values.Task}
+              onChange={(e) => handleChangeTask(e.target.value)}
+            >
+              <option value="">Select Task</option>
+              {taskOptions.map((option, i) => (
+                <option key={i} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </div>
-          <p className="text-xs text-gray-500 mt-1">
-            Checking/unchecking updates the order immediately.
-          </p>
-        </div>
 
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            className={`flex-1 text-white font-medium py-2 rounded-lg transition ${
-              canSubmit ? "bg-[#25d366] hover:bg-[#128c7e]" : "bg-gray-300 cursor-not-allowed"
-            }`}
-          >
-            Update Status
-          </button>
+          <div>
+            <label className="block font-medium text-gray-700 mb-1">Assign User</label>
+            <select
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
+              value={values.Assigned}
+              onChange={(e) => setValues({ ...values, Assigned: e.target.value })}
+              disabled={!values.Task}
+            >
+              <option value="">Select User</option>
+              {(userOptions[values.Task] || []).map((user, i) => (
+                <option key={i} value={user}>
+                  {user}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          {/* Preview Invoice button */}
-          <button
-            type="button"
-            onClick={openInvoice}
-            className="flex-1 border border-gray-300 hover:border-[#25d366] text-gray-700 hover:text-[#128c7e] font-medium py-2 rounded-lg transition"
-          >
-            Preview Invoice
-          </button>
-        </div>
-      </form>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="advanceCheckbox"
+              checked={isAdvanceChecked}
+              onChange={handleAdvanceCheckboxChange}
+              className="h-4 w-4 text-[#25d366] focus:ring-[#25d366] border-gray-300 rounded"
+            />
+            <label htmlFor="advanceCheckbox" className="text-gray-700">
+              Update Date
+            </label>
+          </div>
 
-      {/* Invoice Modal */}
-      <InvoiceModal open={showInvoice} onClose={closeInvoice}>
-        <InvoicePreview
-          order={{
-            ...order,
-            // keep latest values overrides
-            Status: values.Status,
-            Items: values.Items,
-            Customer_name: values.Customer_name,
-            Order_Number: values.Order_Number,
-            Order_uuid: values.Order_uuid,
-            Customer_uuid: values.Customer_uuid,
-          }}
-          onClose={closeInvoice}
-        />
-      </InvoiceModal>
+          {isAdvanceChecked && (
+            <div>
+              <label className="block font-medium text-gray-700 mb-1">Delivery Date</label>
+              <input
+                type="date"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
+                value={values.Delivery_Date}
+                onChange={(e) => setValues({ ...values, Delivery_Date: e.target.value })}
+              />
+            </div>
+          )}
+
+          {/* Steps (Task Groups) — ONLY Id === 1, and NOT pre-selected */}
+          <div>
+            <label className="block mb-1 font-medium">Steps</label>
+            <div className="flex flex-wrap gap-2">
+              {taskGroups
+                .filter((tg) => tg.Id === 1)
+                .map((tg) => {
+                  const name = tg.Task_group_name || tg.Task_group || "Unnamed Group";
+                  const uuid = tg.Task_group_uuid;
+                  const checked = selectedTaskGroups.includes(uuid);
+                  const loading = !!busyStep[uuid];
+
+                  return (
+                    <label
+                      key={uuid}
+                      className={`flex items-center gap-2 border px-2 py-1 rounded-md shadow-sm ${
+                        loading ? "opacity-60 cursor-not-allowed" : ""
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => !loading && toggleStep(tg)}
+                        className="accent-[#25D366]"
+                        disabled={loading}
+                      />
+                      <span>{name}</span>
+                    </label>
+                  );
+                })}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Checking/unchecking updates the order immediately.
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={!canSubmit}
+              className={`flex-1 text-white font-medium py-2 rounded-lg transition ${
+                canSubmit ? "bg-[#25d366] hover:bg-[#128c7e]" : "bg-gray-300 cursor-not-allowed"
+              }`}
+            >
+              Update Status
+            </button>
+
+            {/* Preview Invoice button */}
+            <button
+              type="button"
+              onClick={openInvoice}
+              className="flex-1 border border-gray-300 hover:border-[#25d366] text-gray-700 hover:text-[#128c7e] font-medium py-2 rounded-lg transition"
+            >
+              Preview Invoice
+            </button>
+          </div>
+        </form>
+
+        {/* Invoice Modal */}
+        <InvoiceModal open={showInvoice} onClose={closeInvoice}>
+          <InvoicePreview
+            order={{
+              ...order,
+              // keep latest values overrides
+              Status: values.Status,
+              Items: values.Items,
+              Customer_name: values.Customer_name,
+              Order_Number: values.Order_Number,
+              Order_uuid: values.Order_uuid,
+              Customer_uuid: values.Customer_uuid,
+            }}
+            onClose={closeInvoice}
+          />
+        </InvoiceModal>
+      </div>
     </div>
   );
 }

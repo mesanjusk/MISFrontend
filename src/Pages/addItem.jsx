@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import { useNavigate } from "react-router-dom";
-import axios from "axios"
+import axios from "axios";
 
 export default function AddItem() {
     const navigate = useNavigate();
@@ -53,36 +53,56 @@ export default function AddItem() {
      };
 
     return (
-        <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
-           
-            <div className="bg-white p-3 rounded w-90">
-            <h2>Add Item</h2>
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+            <div className="bg-white w-full max-w-md rounded-xl shadow-xl p-6 relative">
+                <button
+                    onClick={closeModal}
+                    className="absolute right-2 top-2 text-xl text-gray-400 hover:text-green-500"
+                    type="button"
+                >
+                    ×
+                </button>
+                <h2 className="text-xl font-semibold mb-4 text-center">Add Item</h2>
 
-            <form action="POST">
-                <div className="mb-3">
-                    <label htmlFor="Itemname"><strong>Item Name</strong></label>
-                <input type="Itemname" autoComplete="off" onChange={(e) => { setItem_Name(e.target.value) }} placeholder="Item Name" className="form-control rounded-0" />
-                </div>              
-                <div className="mb-3">
-                <label htmlFor="Itemgroup"><strong>Item Group</strong></label>
-                <select className="form-control rounded-0" onChange={(e) => setItem_Group(e.target.value)} value={Item_group}>
+                <form action="POST" className="space-y-4">
+                    <div>
+                        <label htmlFor="Itemname" className="block font-medium text-gray-700 mb-1">Item Name</label>
+                        <input
+                            type="text"
+                            autoComplete="off"
+                            onChange={(e) => { setItem_Name(e.target.value) }}
+                            placeholder="Item Name"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="Itemgroup" className="block font-medium text-gray-700 mb-1">Item Group</label>
+                        <select
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
+                            onChange={(e) => setItem_Group(e.target.value)}
+                            value={Item_group}
+                        >
                             <option value="">Select Group</option>
-                           
-                               { groupOptions.map((option, index) => (
-                                    <option key={index} value={option}>{option}</option>
-                                ))
-                            }
+                            {groupOptions.map((option, index) => (
+                                <option key={index} value={option}>{option}</option>
+                            ))}
                         </select>
-                </div>
-                <button type="submit" onClick={submit} className="w-100 h-10 bg-green-500 text-white shadow-lg flex items-center justify-center"> Submit </button>
-                <button 
-                        type="button" 
-                        className="w-100 h-10 bg-red-500 text-white shadow-lg flex items-center justify-center"
+                    </div>
+                    <button
+                        type="submit"
+                        onClick={submit}
+                        className="w-full bg-[#25d366] hover:bg-[#128c7e] text-white font-medium py-2 rounded-lg transition"
+                    >
+                        Submit
+                    </button>
+                    <button
+                        type="button"
+                        className="w-full bg-gray-400 hover:bg-gray-600 text-white font-medium py-2 rounded-lg transition"
                         onClick={closeModal}
                     >
                         Close
                     </button>
-            </form>
+                </form>
             </div>
         </div>
     );
