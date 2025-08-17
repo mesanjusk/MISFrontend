@@ -3,9 +3,10 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from 'axios';
 import OrderUpdate from './OrderUpdate'; 
 import AllOrder from "../Reports/allOrder";
-import UserTask from "./userTask";
+
 import { format } from 'date-fns';
 import TaskUpdate from "./taskUpdate";
+import UserTask from "./userTask";
 import PendingTasks from './PendingTasks';
 import AllAttandance from "./AllAttandance";
 
@@ -151,25 +152,7 @@ export default function Home() {
       <PendingTasks tasks={  userGroup === "Admin User" ? task  : task.filter(t => t.User === loggedInUser) } isLoading={isLoading} onTaskClick={handleTaskClick} />
 
       <AllOrder />
-      {showOrderModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <AddOrder1 closeModal={closeModal} />
-          </div>
-        </div>
-      )}
-
-      {showEditModal && (
-        <div className="modal-overlay fixed inset-0  flex items-center justify-center">
-          <OrderUpdate order={selectedOrderId} onClose={closeEditModal} />
-        </div>
-      )}
-
-      {showTaskModal && (
-        <div className="modal-overlay fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center">
-          <TaskUpdate task={selectedTaskId} onClose={closeTaskModal} />
-        </div>
-      )}
+      
 
     </>
   );

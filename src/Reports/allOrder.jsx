@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 import OrderUpdate from "../Pages/OrderUpdate";
+import UpdateDelivery from "../Pages/UpdateDelivery";
 import { LoadingSpinner } from "../Components";
 
 export default function AllOrder() {
-  const navigate = useNavigate();
-
   const [orders, setOrders] = useState([]);
   const [searchOrder, setSearchOrder] = useState("");
   const [tasks, setTasks] = useState([]);
-  const [showEditModal, setShowEditModal] = useState(false);
+  const [showOrderModal, setShowOrderModal] = useState(false);       // OrderUpdate
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false); // UpdateDelivery
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [customers, setCustomers] = useState({});
   const [isOrdersLoading, setIsOrdersLoading] = useState(true);
@@ -20,6 +19,7 @@ export default function AllOrder() {
     const n = Number(v);
     return Number.isNaN(n) ? 0 : n;
   };
+
   const fmtDDMMYYYY = (date) => {
     if (!date) return "";
     const d = new Date(date);
@@ -73,7 +73,10 @@ export default function AllOrder() {
         const res = await axios.get("/taskgroup/GetTaskgroupList");
         if (res?.data?.success) {
           const filteredTasks = (res.data.result ?? []).filter(
-            (task) => !["delivered", "cancel"].includes((task.Task_group || "").trim().toLowerCase())
+            (task) =>
+              !["delivered", "cancel"].includes(
+                (task.Task_group || "").trim().toLowerCase()
+              )
           );
           setTasks(filteredTasks);
         } else {
@@ -122,18 +125,30 @@ export default function AllOrder() {
 
     return normalized.filter((order) => {
       const byName = (order.Customer_name || "").toLowerCase().includes(q);
-      const byNo = (String(order.Order_Number || "")).toLowerCase().includes(q);
+      const byNo = String(order.Order_Number || "").toLowerCase().includes(q);
       return byName || byNo;
     });
   }, [orders, customers, searchOrder]);
 
-  const handleEditClick = useCallback((order) => {
+  // Open OrderUpdate on whole card click
+  const handleCardClick = useCallback((order) => {
     setSelectedOrder(order);
-    setShowEditModal(true);
+    setShowOrderModal(true);
   }, []);
 
-  const closeEditModal = useCallback(() => {
-    setShowEditModal(false);
+  // Open UpdateDelivery on edit icon/button click
+  const handleEditClick = useCallback((order) => {
+    setSelectedOrder(order);
+    setShowDeliveryModal(true);
+  }, []);
+
+  const closeOrderModal = useCallback(() => {
+    setShowOrderModal(false);
+    setSelectedOrder(null);
+  }, []);
+
+  const closeDeliveryModal = useCallback(() => {
+    setShowDeliveryModal(false);
     setSelectedOrder(null);
   }, []);
 
@@ -144,8 +159,8 @@ export default function AllOrder() {
       <div className="order-update-content min-h-screen">
         <div className="pt-2 pb-2">
           {/* Search bar */}
-          <div className="flex flex-wrap items-center justify-center gap-2 w-full max-w-3xl mx-auto mb-2">
-            <div className="flex bg-white flex-1 min-w-[240px] p-2 rounded-full shadow-sm">
+          <div className="flex flex-wrap items-center justify-center gap-2 w-full max-w-3xl mx-auto mb-3">
+            <div className="flex bg-white flex-1 min-w-[240px] p-2 rounded-full ">
               <input
                 type="text"
                 placeholder="Search by Customer Name or Order No."
@@ -159,11 +174,13 @@ export default function AllOrder() {
           <main className="flex flex-1 p-2 overflow-y-auto">
             <div className="w-full mx-auto">
               {allLoading ? (
-                <div className="flex justify-center py-4">
+                <div className="flex justify-center py-6">
                   <LoadingSpinner />
                 </div>
               ) : taskOptions.length === 0 ? (
-                <div className="text-center text-gray-400 py-10">No tasks found.</div>
+                <div className="text-center text-gray-400 py-10">
+                  No tasks found.
+                </div>
               ) : (
                 taskOptions.map((taskGroup) => {
                   const taskGroupOrders = filteredOrders
@@ -177,9 +194,17 @@ export default function AllOrder() {
                   if (taskGroupOrders.length === 0) return null;
 
                   return (
-                    <div key={taskGroup} className="mb-2 p-2 rounded-lg">
-                      <h3 className="font-semibold text-lg text-green-700 mb-3">{taskGroup}</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-10 gap-2">
+                    <div key={taskGroup} className="mb-4 p-3 rounded-lg ">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-semibold text-lg text-green-700">
+                          {taskGroup}
+                        </h3>
+                        <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
+                          {taskGroupOrders.length} orders
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
                         {taskGroupOrders.map((order) => {
                           const latestStatusDate = order?.highestStatusTask?.CreatedAt
                             ? new Date(order.highestStatusTask.CreatedAt)
@@ -197,43 +222,72 @@ export default function AllOrder() {
                             formattedDate = fmtDDMMYYYY(latestStatusDate);
                           }
 
-                          let cardClass = "bg-white";
-                          if (timeDifference === 0) cardClass = "bg-green-100";
-                          else if (timeDifference === 1) cardClass = "bg-yellow-100";
-                          else if (timeDifference >= 2) cardClass = "bg-red-100";
+                          const chipClass =
+                            timeDifference === 0
+                              ? "bg-green-200 text-green-800"
+                              : timeDifference === 1
+                              ? "bg-yellow-200 text-yellow-800"
+                              : "bg-red-200 text-red-800";
 
                           return (
                             <div
                               key={order.Order_uuid || order._id}
-                              className={`${cardClass} rounded-lg p-2 cursor-pointer hover:bg-green-50 transition-all`}
-                              onClick={() => handleEditClick(order)}
+                              className="relative rounded-xl border border-gray-200 bg-white p-3 hover:shadow-md transition cursor-pointer"
+                              onClick={() => handleCardClick(order)}  // WHOLE CARD → OrderUpdate
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") handleCardClick(order);
+                              }}
                             >
-                              <div className="font-medium text-gray-800 truncate mb-1 text-sm">
-                                {order.Customer_name}
-                              </div>
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="text-sm font-semibold text-green-700">
-                                  {order.Order_Number || "-"}
-                                </span>
-                                <span
-                                  className={`text-xs font-semibold px-2 py-0.5 rounded-full
-                                    ${
-                                      timeDifference === 0
-                                        ? "bg-green-200 text-green-800"
-                                        : timeDifference === 1
-                                        ? "bg-yellow-200 text-yellow-800"
-                                        : "bg-red-200 text-red-800"
-                                    }
-                                  `}
+                              {/* Edit icon — opens UpdateDelivery (stop propagation) */}
+                              <button
+                                type="button"
+                                className="absolute top-2 right-2 inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md border border-green-600 text-green-700 hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500"
+                                onClick={(e) => {
+                                  e.stopPropagation(); // prevent card click
+                                  handleEditClick(order);
+                                }}
+                                title="Edit (Update Delivery)"
+                                aria-label="Edit order"
+                              >
+                                {/* simple pencil svg icon */}
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                  className="w-3.5 h-3.5"
+                                  aria-hidden="true"
                                 >
-                                  {timeDifference === 0
-                                    ? "Today"
-                                    : timeDifference === 1
-                                    ? "1 day"
-                                    : `${timeDifference} days`}
-                                </span>
+                                  <path d="M13.586 3.586a2 2 0 0 1 2.828 2.828l-8.486 8.486a2 2 0 0 1-.878.506l-3.182.91a.5.5 0 0 1-.62-.62l.91-3.182a2 2 0 0 1 .506-.878l8.486-8.486Zm1.414 1.414L7.5 12.5l-1 1 1-1 7.5-7.5Z" />
+                                </svg>
+                                
+                              </button>
+
+                              <div className="flex items-start gap-2 pr-12">
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-900 truncate text-sm">
+                                    {order.Customer_name}
+                                  </div>
+                                  <div className="mt-1 flex items-center justify-between">
+                                    <span className="text-sm font-semibold text-green-700">
+                                      {order.Order_Number || "-"}
+                                    </span>
+                                    <span
+                                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${chipClass}`}
+                                    >
+                                      {timeDifference === 0
+                                        ? "Today"
+                                        : timeDifference === 1
+                                        ? "1 day"
+                                        : `${timeDifference} days`}
+                                    </span>
+                                  </div>
+                                  <div className="mt-1 text-[11px] text-gray-500">
+                                    {formattedDate}
+                                  </div>
+                                </div>
                               </div>
-                              <div className="text-xs text-gray-500 text-right">{formattedDate}</div>
                             </div>
                           );
                         })}
@@ -246,9 +300,17 @@ export default function AllOrder() {
           </main>
         </div>
 
-        {showEditModal && (
-          <Modal onClose={closeEditModal}>
-            <OrderUpdate order={selectedOrder} onClose={closeEditModal} />
+        {/* OrderUpdate modal (whole card) */}
+        {showOrderModal && (
+          <Modal onClose={closeOrderModal}>
+            <OrderUpdate order={selectedOrder} onClose={closeOrderModal} />
+          </Modal>
+        )}
+
+        {/* UpdateDelivery modal (edit icon) */}
+        {showDeliveryModal && (
+          <Modal onClose={closeDeliveryModal}>
+            <UpdateDelivery order={selectedOrder} onClose={closeDeliveryModal} />
           </Modal>
         )}
       </div>
@@ -266,7 +328,7 @@ function Modal({ onClose, children }) {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 relative max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl p-6 w-full max-w-3xl mx-4 relative max-h-[90vh] overflow-y-auto">
         <button
           className="absolute right-2 top-2 text-xl text-gray-400 hover:text-green-500"
           onClick={onClose}
