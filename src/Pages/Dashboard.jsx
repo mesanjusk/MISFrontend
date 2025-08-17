@@ -1,31 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { format } from 'date-fns';
+import {
+  TrendingUp,
+  Package,
+  Wallet,
+  Users,
+  ReceiptIndianRupee,
+  CalendarClock,
+  Activity
+} from 'lucide-react';
 
+import MetricCard from '../Components/MetricCard';
 import UserTask from './userTask';
 import PendingTasks from './PendingTasks';
 import AllAttandance from './AllAttandance';
-
-// Simple card component used on the dashboard
-function StatCard({ label, value, onClick }) {
-  return (
-    <div
-      onClick={onClick}
-      className="p-4 bg-white rounded shadow cursor-pointer hover:shadow-md transition-shadow"
-    >
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold">{value ?? 0}</p>
-    </div>
-  );
-}
-
-StatCard.propTypes = {
-  label: PropTypes.string.isRequired,
-  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  onClick: PropTypes.func
-};
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -49,15 +39,29 @@ export default function Dashboard() {
 
   const current = stats[period] ?? {};
 
-  const cards = [
-    { key: 'collection',       label: "Today's Collection",      route: '/allTransaction' },
-    { key: 'receivable',       label: "Today's Receivable",      route: '/addRecievable' },
-    { key: 'newOrders',        label: 'New Orders Today',        route: '/allOrder' },
-    { key: 'completedOrders',  label: 'Completed Orders Today',  route: '/allOrder' },
-    { key: 'attendance',       label: "Employees Attendance",    route: '/AllAttandance' },
-    { key: 'followups',        label: "Today's Follow-ups",      route: '/addUsertask' },
-    { key: 'enquiries',        label: 'New Enquiries',           route: '/addEnquiry' },
-    { key: 'targets',          label: 'Target Achievements',     route: '/taskReport' }
+  const sampleChart = [
+    { value: 0 },
+    { value: 5 },
+    { value: 3 },
+    { value: 8 },
+    { value: 4 }
+  ];
+
+  const metrics = [
+    { key: 'revenueMtd', label: 'Revenue (MTD)', icon: TrendingUp, data: sampleChart },
+    { key: 'ordersToday', label: 'Orders Today', icon: Package, data: sampleChart },
+    { key: 'collectionsToday', label: 'Collections Today', icon: Wallet, data: sampleChart },
+    { key: 'activeFreelancers', label: 'Active Freelancers', icon: Users, data: sampleChart },
+    { key: 'arOutstanding', label: 'AR Outstanding', icon: ReceiptIndianRupee, data: sampleChart },
+    { key: 'apOutstanding', label: 'AP Outstanding', icon: ReceiptIndianRupee, data: sampleChart },
+    { key: 'payrollDue7d', label: 'Payroll Due (7d)', icon: CalendarClock, data: sampleChart },
+    {
+      key: 'conversionRate',
+      label: 'Conversion Rate',
+      icon: Activity,
+      data: sampleChart,
+      format: (v) => (v == null ? '--' : v)
+    }
   ];
 
   // ---- Home-page parity logic (user/task/attendance) ----
@@ -213,13 +217,15 @@ export default function Dashboard() {
       </div>
 
       {/* Statistics cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {cards.map((card) => (
-          <StatCard
-            key={card.key}
-            label={card.label}
-            value={current[card.key]}
-            onClick={() => navigate(card.route)}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {metrics.map((m) => (
+          <MetricCard
+            key={m.key}
+            label={m.label}
+            value={m.format ? m.format(current[m.key]) : current[m.key] ?? 0}
+            icon={m.icon}
+            data={m.data}
+            onClick={m.route ? () => navigate(m.route) : undefined}
           />
         ))}
       </div>
