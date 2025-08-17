@@ -2,12 +2,15 @@ import PropTypes from 'prop-types';
 import { ResponsiveContainer, LineChart, Line } from 'recharts';
 
 export default function MetricCard({ label, value, icon: Icon, data, onClick }) {
+  const Component = onClick ? 'button' : 'article';
   return (
-    <div
-      role="article"
+    <Component
       aria-label={label}
       onClick={onClick}
-      className="flex flex-col justify-between p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
+      type={onClick ? 'button' : undefined}
+      className={`flex flex-col justify-between p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow ${
+        onClick ? 'cursor-pointer' : ''
+      }`}
     >
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{label}</p>
@@ -23,7 +26,7 @@ export default function MetricCard({ label, value, icon: Icon, data, onClick }) 
           </ResponsiveContainer>
         </div>
       )}
-    </div>
+    </Component>
   );
 }
 

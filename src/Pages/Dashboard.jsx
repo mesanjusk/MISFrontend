@@ -60,7 +60,7 @@ export default function Dashboard() {
       label: 'Conversion Rate',
       icon: Activity,
       data: sampleChart,
-      format: (v) => (v == null ? '--' : v)
+      format: (v) => (v == null ? '—' : v)
     }
   ];
 
