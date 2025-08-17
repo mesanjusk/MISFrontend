@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-export default function AddCustomer() {
+export default function AddCustomer({ onClose }) {
     const navigate = useNavigate();
 
     const [form, setForm] = useState({
@@ -16,6 +16,8 @@ export default function AddCustomer() {
 
     const [groupOptions, setGroupOptions] = useState([]);
     const [duplicateNameError, setDuplicateNameError] = useState('');
+
+    const canSubmit = Boolean(form.Customer_name.trim()) && Boolean(form.Customer_group.trim());
 
     useEffect(() => {
         axios.get("/customergroup/GetCustomergroupList")
@@ -77,7 +79,8 @@ export default function AddCustomer() {
             const res = await axios.post("/customer/addCustomer", payload);
             if (res.data.success) {
                 alert("Customer added successfully");
-                navigate("/home");
+                if (onClose) onClose();
+                else navigate("/home");
             } else {
                 alert("Failed to add Customer.");
             }
@@ -96,11 +99,15 @@ export default function AddCustomer() {
         }));
     };
 
-    return (
-        <div className="flex justify-center items-center bg-[#eae6df] min-h-screen">
-            <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md">
-                <h2 className="text-2xl font-semibold text-green-600 mb-4 text-center">Add Customer</h2>
-                <form onSubmit={handleSubmit} className="space-y-4">
+    const handleCancel = () => {
+        if (onClose) onClose();
+        else navigate("/home");
+    };
+
+    const content = (
+        <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-[90vw] max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-semibold text-green-600 mb-4 text-center">Add Customer</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
 
                     {/* Customer Name */}
                     <div>
@@ -192,22 +199,32 @@ export default function AddCustomer() {
 
                     {/* Buttons */}
                     <div className="flex gap-4 mt-6">
-                        <button
-                            type="submit"
-                            className="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition"
-                        >
-                            Submit
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => navigate("/home")}
-                            className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg transition"
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                </form>
+                <button
+                    type="submit"
+                    disabled={!canSubmit}
+                    className={`w-full text-white py-2 rounded-lg transition font-medium ${
+                        canSubmit ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-300 cursor-not-allowed'
+                    }`}
+                >
+                    Submit
+                </button>
+                <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg transition"
+                >
+                    Cancel
+                </button>
             </div>
+        </form>
+        </div>
+    );
+
+    if (onClose) return content;
+
+    return (
+        <div className="flex justify-center items-center bg-[#eae6df] min-h-screen">
+            {content}
         </div>
     );
 }
