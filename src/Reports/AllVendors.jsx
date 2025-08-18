@@ -1,35 +1,39 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import OrderUpdate from "../Pages/OrderUpdate";
 
 export default function AllVendors() {
-  const navigate = useNavigate();
+  // ---------- Helpers ----------
+  const getLocalYMD = (d = new Date()) => d.toLocaleDateString("en-CA");
+  const norm = (s) => String(s || "").trim().toLowerCase();
+  const buildRemarkFromItems = (order) =>
+    ((order?.Items || [])
+      .map((it) => String(it?.Remark || "").trim())
+      .filter(Boolean)
+      .join(" | ")) || "";
 
-  // Data
-  const [rawRows, setRawRows] = useState([]);         // raw orders from backend
-  const [rows, setRows] = useState([]);               // filtered + projected
+  // ---------- Data ----------
+  const [rawRows, setRawRows] = useState([]); // raw orders from backend
   const [customersMap, setCustomersMap] = useState({});
   const [customersList, setCustomersList] = useState([]);
 
-  // UI / search
+  // ---------- UI / search ----------
   const [searchText, setSearchText] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Assign modal
+  // ---------- Assign modal ----------
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [activeOrder, setActiveOrder] = useState(null);
   const [activeStep, setActiveStep] = useState(null);
-
-  // Assign form
   const [selectedVendorUuid, setSelectedVendorUuid] = useState("");
   const [costAmount, setCostAmount] = useState("");
-  const [plannedDate, setPlannedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [plannedDate, setPlannedDate] = useState(getLocalYMD());
 
-  // Add Step modal
+  // ---------- Add Step modal ----------
   const [showAddStepModal, setShowAddStepModal] = useState(false);
   const [taskGroups, setTaskGroups] = useState([]);
   const [newStepLabelChoice, setNewStepLabelChoice] = useState("");
@@ -37,7 +41,13 @@ export default function AllVendors() {
   const [newStepLabel, setNewStepLabel] = useState("");
   const [newStepVendorUuid, setNewStepVendorUuid] = useState("");
   const [newStepCost, setNewStepCost] = useState("");
-  const [newStepPlannedDate, setNewStepPlannedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [newStepPlannedDate, setNewStepPlannedDate] = useState(getLocalYMD());
+
+  // ---------- OrderUpdate modal + Steps checklist ----------
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedStepLabels, setSelectedStepLabels] = useState(new Set()); // local selection snapshot
+  const [togglingLabel, setTogglingLabel] = useState(""); // show tiny spinner on that row
 
   // ---- API roots (Vite-first, CRA fallback) ----
   const API_BASE = useMemo(() => {
@@ -58,13 +68,6 @@ export default function AllVendors() {
     const isPosted = !!st?.posting?.isPosted;
     return !hasVendor || !isPosted;
   };
-
-  // Build a single remark string from Items[].Remark (fallback if RemarkText missing)
-  const buildRemarkFromItems = (order) =>
-    ((order?.Items || [])
-      .map((it) => String(it?.Remark || "").trim())
-      .filter(Boolean)
-      .join(" | ")) || "";
 
   const computeProjectedRows = (docs, search) => {
     const text = (search || "").trim().toLowerCase();
@@ -89,7 +92,7 @@ export default function AllVendors() {
         })
       : deliveredOnly;
 
-    // project pending steps + a stable RemarkText (prefer backend field, else compute)
+    // project pending steps + stable RemarkText
     return filtered
       .map((o) => {
         const pending = (o.Steps || [])
@@ -113,6 +116,7 @@ export default function AllVendors() {
       .sort((a, b) => (b.Order_Number || 0) - (a.Order_Number || 0));
   };
 
+  // ---------- Fetch ----------
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -139,13 +143,9 @@ export default function AllVendors() {
         setCustomersMap({});
       }
 
-      // Task groups (Id === 1 only)
+      // Task groups
       const tgItems = Array.isArray(tgRes?.data?.result) ? tgRes.data.result : [];
-      const filteredGroups = tgItems.filter((tg) => Number(tg?.Id) === 1);
-      setTaskGroups(filteredGroups);
-
-      // Initial projection
-      setRows(computeProjectedRows(docs, ""));
+      setTaskGroups(tgItems);
     } catch (err) {
       console.error("Error fetching data:", err);
       alert(err?.response?.data?.error || "Failed to load vendor list.");
@@ -159,20 +159,41 @@ export default function AllVendors() {
     // eslint-disable-next-line
   }, []);
 
-  const onSearch = (e) => {
-    e.preventDefault();
-    setRows(computeProjectedRows(rawRows, searchText));
-  };
-
+  // derive vendor options
   const vendorOptions = useMemo(() => {
     const isOfficeVendor = (groupValue) => {
       if (!groupValue) return false;
-      return String(groupValue).trim().toLowerCase() === "office & vendor";
+      return norm(groupValue) === "office & vendor";
     };
     return customersList
       .filter((c) => isOfficeVendor(c.Customer_group || c.Group || c.group))
       .map((c) => ({ uuid: c.Customer_uuid, name: c.Customer_name }));
   }, [customersList]);
+
+  // derive projected/filtered rows
+  const rows = useMemo(() => computeProjectedRows(rawRows, searchText), [rawRows, searchText]);
+
+  // add Customer_name for export/render
+  const enriched = useMemo(
+    () =>
+      rows.map((order) => ({
+        ...order,
+        Customer_name: customersMap[order.Customer_uuid] || "Unknown",
+      })),
+    [rows, customersMap]
+  );
+
+  // ---------- Step choices (checkbox list) ----------
+  // Use all task groups except delivered/cancel, de-duplicated by Task_group/Task_group_name
+  const stepChoices = useMemo(() => {
+    const names = new Set(
+      (taskGroups || [])
+        .map((tg) => (tg.Task_group_name || tg.Task_group || "").trim())
+        .filter(Boolean)
+        .filter((n) => !["delivered", "cancel"].includes(norm(n)))
+    );
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [taskGroups]);
 
   /* ---------------- Assign Vendor ---------------- */
   const openAssignModal = (order, step) => {
@@ -181,19 +202,17 @@ export default function AllVendors() {
     setSelectedVendorUuid(step.vendorCustomerUuid || step.vendorId || "");
     setCostAmount(step.costAmount ?? "");
     const d = step.plannedDate ? new Date(step.plannedDate) : new Date();
-    setPlannedDate(d.toISOString().slice(0, 10));
+    setPlannedDate(getLocalYMD(d));
     setShowAssignModal(true);
   };
-
   const closeAssignModal = () => {
     setShowAssignModal(false);
     setActiveOrder(null);
     setActiveStep(null);
     setSelectedVendorUuid("");
     setCostAmount("");
-    setPlannedDate(new Date().toISOString().slice(0, 10));
+    setPlannedDate(getLocalYMD());
   };
-
   const assignVendor = async () => {
     if (!activeOrder || !activeStep) return;
     if (!selectedVendorUuid) return alert("Please choose a vendor");
@@ -204,17 +223,14 @@ export default function AllVendors() {
     try {
       setLoading(true);
       const orderId = activeOrder._id || activeOrder.id;
-
       await axios.post(`${ORDER_API}/orders/${orderId}/steps/${activeStep.stepId}/assign-vendor`, {
         vendorCustomerUuid: selectedVendorUuid,
         costAmount: amt,
         plannedDate,
         createdBy: localStorage.getItem("User_name") || "operator",
       });
-
       closeAssignModal();
       await fetchData();
-      setRows(computeProjectedRows(rawRows, searchText));
       alert("Vendor assigned & transaction posted.");
     } catch (e) {
       console.error(e);
@@ -224,33 +240,26 @@ export default function AllVendors() {
     }
   };
 
-  /* ---------------- Add Step (missing steps) ---------------- */
+  /* ---------------- Add Step ---------------- */
   const openAddStepModal = (order) => {
     setAddStepOrder(order);
     setNewStepLabel("");
     setNewStepVendorUuid("");
     setNewStepCost("");
-    setNewStepPlannedDate(new Date().toISOString().slice(0, 10));
+    setNewStepPlannedDate(getLocalYMD());
     setShowAddStepModal(true);
     setNewStepLabelChoice("");
     setNewStepLabel("");
   };
-
   const closeAddStepModal = () => {
     setShowAddStepModal(false);
     setAddStepOrder(null);
   };
-
   const addStep = async () => {
     if (!addStepOrder) return;
-
     const resolvedLabel =
       newStepLabelChoice === "__CUSTOM__" ? newStepLabel.trim() : newStepLabelChoice;
-
-    if (!resolvedLabel) {
-      return alert("Please choose a task or enter a custom label.");
-    }
-
+    if (!resolvedLabel) return alert("Please choose a task or enter a custom label.");
     try {
       setLoading(true);
       const orderId = addStepOrder._id || addStepOrder.id;
@@ -260,10 +269,8 @@ export default function AllVendors() {
         costAmount: Number(newStepCost || 0),
         plannedDate: newStepPlannedDate || null,
       });
-
       closeAddStepModal();
       await fetchData();
-      setRows(computeProjectedRows(rawRows, searchText));
       alert("Step added.");
     } catch (e) {
       console.error(e);
@@ -273,12 +280,94 @@ export default function AllVendors() {
     }
   };
 
-  /* ---------------- Export ---------------- */
-  const enriched = rows.map((order) => ({
-    ...order,
-    Customer_name: customersMap[order.Customer_uuid] || "Unknown",
-  }));
+  /* ---------------- OrderUpdate + Steps checklist ---------------- */
+  const openOrderUpdate = (order) => {
+    setSelectedOrder(order);
 
+    // snapshot of currently present step labels in the order
+    const labels = new Set(
+      (order?.Steps || [])
+        .map((s) => (s?.label || "").trim())
+        .filter(Boolean)
+    );
+    setSelectedStepLabels(labels);
+
+    setShowOrderModal(true);
+  };
+  const closeOrderModal = () => {
+    setShowOrderModal(false);
+    setSelectedOrder(null);
+    setSelectedStepLabels(new Set());
+    setTogglingLabel("");
+  };
+
+  // helper to get stepId by label in current selectedOrder
+  const getStepIdByLabel = (label) => {
+    const l = (label || "").trim();
+    const found = (selectedOrder?.Steps || []).find((s) => (s?.label || "").trim() === l);
+    return found?._id || found?.id || null;
+    };
+
+  const refreshSelectedOrderFromStore = () => {
+    if (!selectedOrder) return;
+    const id = selectedOrder._id || selectedOrder.id || selectedOrder.Order_uuid;
+    // find latest copy from rawRows after fetch
+    const updated = (rawRows || []).find(
+      (o) => (o._id || o.id || o.Order_uuid) === id
+    );
+    if (updated) setSelectedOrder(updated);
+  };
+
+  const toggleStep = async (label, checked) => {
+    if (!selectedOrder) return;
+    const orderId = selectedOrder._id || selectedOrder.id;
+    const tidy = (label || "").trim();
+    if (!tidy) return;
+
+    setTogglingLabel(tidy);
+
+    // optimistic UI update
+    setSelectedStepLabels((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(tidy);
+      else next.delete(tidy);
+      return next;
+    });
+
+    try {
+      if (checked) {
+        // ADD step
+        await axios.post(`${ORDER_API}/orders/${orderId}/steps`, {
+          label: tidy,
+        });
+      } else {
+        // REMOVE step
+        const stepId = getStepIdByLabel(tidy);
+        if (stepId) {
+          await axios.delete(`${ORDER_API}/orders/${orderId}/steps/${stepId}`);
+        } else {
+          // if we don't have id, fetch to resync (backend might already be in sync)
+        }
+      }
+
+      // refresh data + keep modal in sync
+      await fetchData();
+      refreshSelectedOrderFromStore();
+    } catch (e) {
+      // revert on error
+      setSelectedStepLabels((prev) => {
+        const next = new Set(prev);
+        if (checked) next.delete(tidy);
+        else next.add(tidy);
+        return next;
+      });
+      alert(e?.response?.data?.error || "Failed to update steps");
+    } finally {
+      setTogglingLabel("");
+    }
+  };
+
+  /* ---------------- Export ---------------- */
   const exportToPDF = () => {
     const doc = new jsPDF();
     const tableColumn = ["Order #", "Customer", "Step", "Vendor UUID", "Cost", "Posted?", "Remarks"];
@@ -332,7 +421,10 @@ export default function AllVendors() {
     <>
       <div className="pt-14 pb-20 max-w-8xl mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between gap-2 mb-4 items-center">
-          <form className="w-full max-w-md" onSubmit={onSearch}>
+          <form
+            className="w-full max-w-md"
+            onSubmit={(e) => e.preventDefault()}
+          >
             <input
               type="text"
               placeholder="Search Order # / Customer UUID / Remark"
@@ -369,10 +461,32 @@ export default function AllVendors() {
                   key={order._id || order.Order_Number}
                   className="relative bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition"
                 >
+                  {/* Edit icon — opens OrderUpdate + Steps checklist */}
+                  <button
+                    type="button"
+                    className="absolute top-2 right-2 inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md border border-blue-600 text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openOrderUpdate(order);
+                    }}
+                    title="Edit (Order Update)"
+                    aria-label="Edit order"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="w-3.5 h-3.5"
+                      aria-hidden="true"
+                    >
+                      <path d="M13.586 3.586a2 2 0 0 1 2.828 2.828l-8.486 8.486a2 2 0 0 1-.878.506l-3.182.91a.5.5 0 0 1-.62-.62l.91-3.182a2 2 0 0 1 .506-.878l8.486-8.486Zm1.414 1.414L7.5 12.5l-1 1 1-1 7.5-7.5Z" />
+                    </svg>
+                  </button>
+
                   <div className="text-gray-900 font-bold text-lg">#{order.Order_Number}</div>
                   <div className="text-gray-700 font-medium">{order.Customer_name}</div>
 
-                  {/* ✅ Remarks from backend RemarkText or fallback from Items */}
+                  {/* Remarks */}
                   <div className="text-sm text-gray-600 italic mt-1">
                     {order.RemarkText?.trim() || buildRemarkFromItems(order) || "-"}
                   </div>
@@ -499,13 +613,8 @@ export default function AllVendors() {
                   onChange={(e) => setNewStepLabelChoice(e.target.value)}
                 >
                   <option value="">-- Choose task --</option>
-                  {taskGroups.map((tg) => (
-                    <option
-                      key={tg.Task_group_uuid || tg._id}
-                      value={(tg.Task_group || "").trim()}
-                    >
-                      {tg.Task_group_name || tg.Task_group || "Unnamed Group"}
-                    </option>
+                  {stepChoices.map((name) => (
+                    <option key={name} value={name}>{name}</option>
                   ))}
                   <option value="__CUSTOM__">Custom…</option>
                 </select>
@@ -570,6 +679,95 @@ export default function AllVendors() {
           </div>
         </div>
       )}
+
+      {/* OrderUpdate modal WITH steps checklist */}
+      {showOrderModal && selectedOrder && (
+        <Modal onClose={closeOrderModal}>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+            {/* Left: your existing OrderUpdate UI */}
+            <div className="lg:col-span-3">
+              <OrderUpdate order={selectedOrder} onClose={closeOrderModal} />
+            </div>
+
+            {/* Right: Steps checklist */}
+            <div className="lg:col-span-2">
+              <div className="border rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-semibold">Steps</h4>
+                  {togglingLabel ? (
+                    <span className="text-xs text-gray-500">Updating…</span>
+                  ) : null}
+                </div>
+                <div className="max-h-[55vh] overflow-y-auto pr-1 space-y-2">
+                  {stepChoices.length === 0 ? (
+                    <div className="text-sm text-gray-500">No steps found.</div>
+                  ) : (
+                    stepChoices.map((name) => {
+                      const checked = selectedStepLabels.has(name);
+                      const busy = togglingLabel === name;
+                      return (
+                        <label
+                          key={name}
+                          className="flex items-center gap-2 text-sm border rounded px-2 py-1 hover:bg-gray-50"
+                        >
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4"
+                            checked={checked}
+                            onChange={(e) => toggleStep(name, e.target.checked)}
+                            disabled={busy}
+                          />
+                          <span className="flex-1">{name}</span>
+                          {busy && (
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              className="w-4 h-4 animate-spin"
+                            >
+                              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="4" />
+                              <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="4" />
+                            </svg>
+                          )}
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+                <p className="mt-2 text-[11px] text-gray-500">
+                  Check to add a step; uncheck to remove it. “Delivered” and “Cancel” are hidden.
+                </p>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
     </>
+  );
+}
+
+/* Reusable Modal (same look/logic as AllOrder) */
+function Modal({ onClose, children }) {
+  return (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
+      aria-modal="true"
+      role="dialog"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-white rounded-xl p-6 w-full max-w-5xl mx-4 relative max-h-[90vh] overflow-y-auto">
+        <button
+          className="absolute right-2 top-2 text-xl text-gray-400 hover:text-blue-500"
+          onClick={onClose}
+          aria-label="Close"
+          type="button"
+        >
+          ×
+        </button>
+        {children}
+      </div>
+    </div>
   );
 }

@@ -19,12 +19,14 @@ function toYmd(v) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+const norm = (s) => String(s || "").trim().toLowerCase();
+
 export default function OrderUpdate({ order = {}, onClose = () => {} }) {
   const navigate = useNavigate();
 
   const [notes, setNotes] = useState([]);
   const [taskGroups, setTaskGroups] = useState([]); // [{ Id, Task_group_uuid, Task_group_name || Task_group }]
-  const [selectedTaskGroups, setSelectedTaskGroups] = useState([]); // uuids currently ON (no preselect)
+  const [selectedTaskGroups, setSelectedTaskGroups] = useState([]); // uuids that are ON
   const [taskOptions, setTaskOptions] = useState([]); // for "Task" dropdown (ALL groups)
   const [userOptions, setUserOptions] = useState({}); // { TaskName: [usernames] }
   const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
@@ -45,11 +47,11 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
     Task: order?.highestStatusTask?.Task || "",
     CreatedAt: toYmd(order?.highestStatusTask?.CreatedAt) || toYmd(new Date()),
     Status: Array.isArray(order?.Status) ? order.Status : [],
-    Steps: Array.isArray(order?.Steps) ? order.Steps : [], // saved steps on the order
-    Items: Array.isArray(order?.Items) ? order.Items : [], // used by invoice preview
+    Steps: Array.isArray(order?.Steps) ? order.Steps : [], // saved steps (DB)
+    Items: Array.isArray(order?.Items) ? order.Items : [],
   });
 
-  /* ---------------- Load ALL task groups (no Id filter for dropdown) ---------------- */
+  /* ---------------- Load ALL task groups ---------------- */
   useEffect(() => {
     axios
       .get("/taskgroup/GetTaskgroupList")
@@ -62,7 +64,7 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
         const groups = res.data.result || [];
         setTaskGroups(groups);
 
-        // Build Task dropdown using ALL groups (no Id === 1 filter here)
+        // Build Task dropdown using ALL groups
         const opts =
           groups
             .map((tg) => tg.Task_group_name || tg.Task_group)
@@ -97,8 +99,6 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
       .catch(() => setUserOptions({}));
   }, []);
 
-  /* ---------------- ❌ Removed pre-check of steps ---------------- */
-
   /* ---------------- Notes for this order ---------------- */
   useEffect(() => {
     if (!values.Order_uuid) return setNotes([]);
@@ -121,6 +121,49 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
       .filter(Boolean);
   }, [values.Items]);
 
+  /* ---------------- PRE-SELECT steps from DB (uuid or normalized label) ---------------- */
+  useEffect(() => {
+    const groups = (taskGroups || []).filter((tg) => Number(tg.Id) === 1);
+    const steps = Array.isArray(values.Steps) ? values.Steps : [];
+
+    if (!groups.length || !steps.length) {
+      setSelectedTaskGroups([]);
+      return;
+    }
+
+    const stepUuidSet = new Set(
+      steps
+        .map((s) => String(s?.uuid || s?.Task_group_uuid || s?._id || "").trim())
+        .filter(Boolean)
+    );
+
+    const stepLabelNormSet = new Set(
+      steps
+        .map((s) =>
+          norm(
+            s?.label ||
+              s?.Task_group_name ||
+              s?.Task_group ||
+              s?.normLabel ||
+              ""
+          )
+        )
+        .filter(Boolean)
+    );
+
+    const preselected = [];
+    for (const tg of groups) {
+      const uuid = String(tg.Task_group_uuid || "").trim();
+      if (!uuid) continue;
+      const lblNorm = norm(tg.Task_group_name || tg.Task_group || "");
+      if (stepUuidSet.has(uuid) || stepLabelNormSet.has(lblNorm)) {
+        preselected.push(uuid);
+      }
+    }
+
+    setSelectedTaskGroups(preselected);
+  }, [taskGroups, values.Steps]);
+
   /* ---------------- Handlers ---------------- */
   const handleChangeTask = (task) => {
     setValues((prev) => {
@@ -141,48 +184,56 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
     });
   };
 
-  // Toggle a single step immediately: add on check, remove on uncheck
+  // 🔁 Toggle a single step immediately: add on check, remove on uncheck (DB writes)
   const toggleStep = async (tg) => {
     const uuid = tg.Task_group_uuid;
     if (!uuid || busyStep[uuid]) return;
 
     const label = tg.Task_group_name || tg.Task_group || "Unnamed Group";
-    const nextChecked = !selectedTaskGroups.includes(uuid);
+    const willCheck = !selectedTaskGroups.includes(uuid);
 
     // Optimistic UI
     setBusyStep((b) => ({ ...b, [uuid]: true }));
     setSelectedTaskGroups((prev) =>
-      nextChecked ? [...prev, uuid] : prev.filter((id) => id !== uuid)
+      willCheck ? [...prev, uuid] : prev.filter((id) => id !== uuid)
     );
 
     try {
       await axios.post("/order/steps/toggle", {
         orderId: values.id,
         step: { uuid, label },
-        checked: nextChecked,
+        checked: willCheck,
       });
 
-      // Keep local Steps mirror in sync
+      // Keep local Steps mirror in sync for UI
       setValues((v) => {
         const curr = Array.isArray(v.Steps) ? v.Steps : [];
-        if (nextChecked) {
-          if (!curr.some((s) => (s?.uuid || "") === uuid || (s?.label || "") === label)) {
-            return { ...v, Steps: [...curr, { uuid, label, checked: true }] };
+        if (willCheck) {
+          if (
+            !curr.some(
+              (s) =>
+                (s?.uuid || s?.Task_group_uuid) === uuid ||
+                norm(s?.label) === norm(label)
+            )
+          ) {
+            return { ...v, Steps: [...curr, { uuid, label }] };
           }
           return v;
-        } else {
-          return {
-            ...v,
-            Steps: curr.filter(
-              (s) => (s?.uuid || "") !== uuid && (s?.label || "") !== label
-            ),
-          };
         }
+        return {
+          ...v,
+          Steps: curr.filter(
+            (s) =>
+              (s?.uuid || s?.Task_group_uuid) !== uuid &&
+              norm(s?.label || s?.Task_group_name || s?.Task_group) !==
+                norm(label)
+          ),
+        };
       });
     } catch (err) {
       // Revert on failure
       setSelectedTaskGroups((prev) =>
-        nextChecked ? prev.filter((id) => id !== uuid) : [...prev, uuid]
+        willCheck ? prev.filter((id) => id !== uuid) : [...prev, uuid]
       );
       console.error("toggleStep error:", err);
       alert("Failed to update step. Please try again.");
@@ -248,7 +299,6 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
         {/* Item Remarks (from Items[].Remark) */}
         {itemRemarks.length > 0 && (
           <div className="mt-3 mb-4">
-
             <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
               {itemRemarks.map((r, i) => (
                 <li key={i}>
@@ -265,7 +315,9 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
         {/* Update Form */}
         <form onSubmit={handleSaveChanges} className="space-y-4">
           <div>
-            <label className="block font-medium text-gray-700 mb-1">Update Job Status</label>
+            <label className="block font-medium text-gray-700 mb-1">
+              Update Job Status
+            </label>
             <select
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
               value={values.Task}
@@ -281,11 +333,15 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
           </div>
 
           <div>
-            <label className="block font-medium text-gray-700 mb-1">Assign User</label>
+            <label className="block font-medium text-gray-700 mb-1">
+              Assign User
+            </label>
             <select
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
               value={values.Assigned}
-              onChange={(e) => setValues({ ...values, Assigned: e.target.value })}
+              onChange={(e) =>
+                setValues({ ...values, Assigned: e.target.value })
+              }
               disabled={!values.Task}
             >
               <option value="">Select User</option>
@@ -312,24 +368,29 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
 
           {isAdvanceChecked && (
             <div>
-              <label className="block font-medium text-gray-700 mb-1">Delivery Date</label>
+              <label className="block font-medium text-gray-700 mb-1">
+                Delivery Date
+              </label>
               <input
                 type="date"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
                 value={values.Delivery_Date}
-                onChange={(e) => setValues({ ...values, Delivery_Date: e.target.value })}
+                onChange={(e) =>
+                  setValues({ ...values, Delivery_Date: e.target.value })
+                }
               />
             </div>
           )}
 
-          {/* Steps (Task Groups) — ONLY Id === 1, and NOT pre-selected */}
+          {/* Steps (Task Groups) — ONLY Id === 1, pre-selected from DB */}
           <div>
             <label className="block mb-1 font-medium">Steps</label>
             <div className="flex flex-wrap gap-2">
               {taskGroups
-                .filter((tg) => tg.Id === 1)
+                .filter((tg) => Number(tg.Id) === 1)
                 .map((tg) => {
-                  const name = tg.Task_group_name || tg.Task_group || "Unnamed Group";
+                  const name =
+                    tg.Task_group_name || tg.Task_group || "Unnamed Group";
                   const uuid = tg.Task_group_uuid;
                   const checked = selectedTaskGroups.includes(uuid);
                   const loading = !!busyStep[uuid];
@@ -354,7 +415,8 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
                 })}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Checking/unchecking updates the order immediately.
+              Already-saved steps are preselected. Checking/unchecking writes to
+              the database immediately.
             </p>
           </div>
 
@@ -363,7 +425,9 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
               type="submit"
               disabled={!canSubmit}
               className={`flex-1 text-white font-medium py-2 rounded-lg transition ${
-                canSubmit ? "bg-[#25d366] hover:bg-[#128c7e]" : "bg-gray-300 cursor-not-allowed"
+                canSubmit
+                  ? "bg-[#25d366] hover:bg-[#128c7e]"
+                  : "bg-gray-300 cursor-not-allowed"
               }`}
             >
               Update Status

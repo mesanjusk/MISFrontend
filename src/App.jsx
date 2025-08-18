@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import axios from 'axios';
 import Layout from './Pages/Layout';
 import { initVersionChecker } from './utils/versionChecker';
+import { ToastContainer } from './Components';
 
 // Public pages
 import Login from "./Pages/login";
@@ -87,6 +88,7 @@ function App() {
 
   return (
     <Router>
+      <ToastContainer />
       <div className="min-h-screen bg-background text-gray-900">
         <Routes>
           {/* Public routes - no Layout */}
