@@ -9,13 +9,17 @@ import {
   Users,
   ReceiptIndianRupee,
   CalendarClock,
-  Activity
+  Activity,
+  RefreshCw,
+  CheckCircle2
 } from 'lucide-react';
 
 import MetricCard from '../Components/MetricCard';
 import UserTask from './userTask';
 import PendingTasks from './PendingTasks';
 import AllAttandance from './AllAttandance';
+
+const ymd = (d) => new Date(d).toLocaleDateString('en-CA'); // yyyy-mm-dd
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -39,13 +43,7 @@ export default function Dashboard() {
 
   const current = stats[period] ?? {};
 
-  const sampleChart = [
-    { value: 0 },
-    { value: 5 },
-    { value: 3 },
-    { value: 8 },
-    { value: 4 }
-  ];
+  const sampleChart = [{ value: 0 }, { value: 5 }, { value: 3 }, { value: 8 }, { value: 4 }];
 
   const metrics = [
     { key: 'revenueMtd', label: 'Revenue (MTD)', icon: TrendingUp, data: sampleChart },
@@ -55,13 +53,7 @@ export default function Dashboard() {
     { key: 'arOutstanding', label: 'AR Outstanding', icon: ReceiptIndianRupee, data: sampleChart },
     { key: 'apOutstanding', label: 'AP Outstanding', icon: ReceiptIndianRupee, data: sampleChart },
     { key: 'payrollDue7d', label: 'Payroll Due (7d)', icon: CalendarClock, data: sampleChart },
-    {
-      key: 'conversionRate',
-      label: 'Conversion Rate',
-      icon: Activity,
-      data: sampleChart,
-      format: (v) => (v == null ? '—' : v)
-    }
+    { key: 'conversionRate', label: 'Conversion Rate', icon: Activity, data: sampleChart, format: (v) => (v == null ? '—' : v) }
   ];
 
   // ---- Home-page parity logic (user/task/attendance) ----
@@ -183,10 +175,75 @@ export default function Dashboard() {
       ? task
       : task.filter(t => t.User === loggedInUser);
 
+  /* ===================== Payment Follow-ups (Today, Pending) ===================== */
+  const [followupsToday, setFollowupsToday] = useState([]);
+  const [loadingFollowups, setLoadingFollowups] = useState(true);
+  const [updatingIds, setUpdatingIds] = useState(new Set());
+
+  const refreshFollowups = async () => {
+    setLoadingFollowups(true);
+    try {
+      // Expect backend to return { success: true, result: [...] }
+      const res = await axios.get('/paymentfollowup/list');
+      const list = Array.isArray(res.data) ? res.data : (res.data?.result || []);
+      const today = ymd(new Date());
+
+      const pendingToday = (list || []).filter((f) => {
+        const status = (f.status || f.Status || '').toLowerCase();
+        const dateRaw = f.followup_date || f.Followup_date || f.date;
+        const dateStr = dateRaw ? ymd(dateRaw) : null;
+        return (status === 'pending' || status === '') && dateStr === today;
+      });
+
+      // sort by amount desc then name
+      pendingToday.sort((a, b) => {
+        const aAmt = Number(a.amount ?? a.Amount) || 0;
+        const bAmt = Number(b.amount ?? b.Amount) || 0;
+        if (bAmt !== aAmt) return bAmt - aAmt;
+        const an = (a.customer_name || a.Customer || '').toString();
+        const bn = (b.customer_name || b.Customer || '').toString();
+        return an.localeCompare(bn);
+      });
+
+      setFollowupsToday(pendingToday);
+    } catch (e) {
+      console.error('Error fetching payment follow-ups:', e?.response?.data || e);
+      setFollowupsToday([]);
+    } finally {
+      setLoadingFollowups(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshFollowups();
+  }, []);
+
+  const totalPendingToday = followupsToday.reduce(
+    (sum, f) => sum + (Number(f.amount ?? f.Amount) || 0),
+    0
+  );
+
+  const markDone = async (row) => {
+    const id = row._id || row.id;
+    if (!id) return alert('Missing id on follow-up item.');
+    const s = new Set(updatingIds);
+    s.add(id);
+    setUpdatingIds(s);
+    try {
+      await axios.patch(`/paymentfollowup/${id}/status`, { status: 'done' });
+      await refreshFollowups();
+    } catch (e) {
+      console.error('Failed to update status:', e?.response?.data || e);
+      alert('Failed to mark as done.');
+    } finally {
+      s.delete(id);
+      setUpdatingIds(new Set(s));
+    }
+  };
+
   return (
-    
     <div className="p-2">
-       <div className="pt-2 max-w-6xl mx-auto px-2">
+      <div className="pt-2 max-w-6xl mx-auto px-2">
         {/* Admin: attendance widget (same as Home’s conditional) */}
         {userGroup === 'Admin User' && <AllAttandance />}
 
@@ -194,13 +251,14 @@ export default function Dashboard() {
         {userGroup === 'Office User' && <UserTask onClose={closeUserModal} />}
 
         {/* Pending tasks (same filtering & loading props as Home) */}
-       
       </div>
-       <PendingTasks
-          tasks={tasksForView}
-          isLoading={isLoading}
-          onTaskClick={handleTaskClick}
-        />
+
+      <PendingTasks
+        tasks={tasksForView}
+        isLoading={isLoading}
+        onTaskClick={handleTaskClick}
+      />
+
       {/* Period selector */}
       <div className="flex space-x-2 mb-4">
         {['today', 'week', 'month'].map((p) => (
@@ -230,8 +288,94 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Home-like sections */}
-     
+      {/* ===================== Today's Payment Follow-ups (Pending) ===================== */}
+      <div className="max-w-6xl mx-auto mt-6">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-lg font-semibold text-gray-800">
+            Today’s Payment Follow-ups (Pending)
+          </h3>
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full">
+              <ReceiptIndianRupee size={16} />
+              <span className="font-medium">
+                ₹{totalPendingToday.toLocaleString('en-IN')}
+              </span>
+            </span>
+            <button
+              onClick={refreshFollowups}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              <RefreshCw size={16} />
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto border border-gray-200 rounded-xl bg-white">
+          <table className="min-w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr className="text-left text-gray-600">
+                <th className="px-3 py-2 font-medium">Customer</th>
+                <th className="px-3 py-2 font-medium">Amount (₹)</th>
+                <th className="px-3 py-2 font-medium">Title / Reason</th>
+                <th className="px-3 py-2 font-medium">Remark</th>
+                <th className="px-3 py-2 font-medium">Follow-up Date</th>
+                <th className="px-3 py-2 font-medium">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loadingFollowups ? (
+                <tr>
+                  <td className="px-3 py-4 text-center text-gray-500" colSpan={6}>
+                    Loading…
+                  </td>
+                </tr>
+              ) : followupsToday.length === 0 ? (
+                <tr>
+                  <td className="px-3 py-6 text-center text-gray-500" colSpan={6}>
+                    No pending follow-ups for today.
+                  </td>
+                </tr>
+              ) : (
+                followupsToday.map((row) => {
+                  const id = row._id || row.id || '';
+                  const name = row.customer_name || row.Customer || '';
+                  const amt = Number(row.amount ?? row.Amount) || 0;
+                  const title = row.title || row.Title || '';
+                  const remark = row.remark || row.Remark || '';
+                  const d = row.followup_date || row.Followup_date || row.date;
+                  const dStr = d ? ymd(d) : '—';
+
+                  return (
+                    <tr key={id} className="border-t border-gray-100 hover:bg-gray-50">
+                      <td className="px-3 py-2">{name || '—'}</td>
+                      <td className="px-3 py-2 font-medium">₹{amt.toLocaleString('en-IN')}</td>
+                      <td className="px-3 py-2">{title || '—'}</td>
+                      <td className="px-3 py-2 text-gray-600">{remark || '—'}</td>
+                      <td className="px-3 py-2">{dStr}</td>
+                      <td className="px-3 py-2">
+                        <button
+                          onClick={() => markDone(row)}
+                          disabled={!id || updatingIds.has(id)}
+                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-white ${
+                            updatingIds.has(id)
+                              ? 'bg-gray-400 cursor-not-allowed'
+                              : 'bg-emerald-600 hover:bg-emerald-700'
+                          }`}
+                          title="Mark as done"
+                        >
+                          <CheckCircle2 size={16} />
+                          {updatingIds.has(id) ? 'Updating…' : 'Done'}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* Optional: if you actually render a modal in Dashboard like Home does,
           plug your modal component here and use showTaskModal/selectedTaskId */}
