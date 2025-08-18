@@ -72,6 +72,7 @@ import AllVendors from './Reports/AllVendors';
 import CashLedger from "./Pages/CashLedger";
 import Vendor from "./Pages/vendor";
 import MigrateOrders from "./Pages/MigrateOrders";
+import PaymentFollowup from "./Pages/PaymentFollowup";
 
 // ✅ NEW: Attendance Report page
 import AttendanceReport from "./Pages/AttendanceReport";
@@ -157,6 +158,7 @@ function App() {
             <Route path="/PendingTasks" element={<PendingTasks />} />
             <Route path="/AllAttandance" element={<AllAttandance />} />
             <Route path="/AllVendors" element={<AllVendors />} />
+            <Route path="/Followups" element={<PaymentFollowup />} />
 
             {/* ✅ NEW route */}
             <Route path="/attendance-report" element={<AttendanceReport />} />
