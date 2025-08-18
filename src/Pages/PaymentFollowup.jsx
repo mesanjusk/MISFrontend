@@ -1,76 +1,227 @@
 /* eslint-disable react/prop-types */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+const todayISO = () => new Date().toLocaleDateString("en-CA"); // yyyy-mm-dd
+
+/* ---------------- SearchableSelect (no extra libs) ---------------- */
+function SearchableSelect({
+  options = [],
+  value = "",
+  onChange,
+  placeholder = "Select...",
+  searchPlaceholder = "Search...",
+  disabled = false,
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState(value || "");
+  const [hi, setHi] = useState(0); // highlighted index
+  const rootRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // keep input text in sync with external value
+  useEffect(() => {
+    setQuery(value || "");
+  }, [value]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((o) => o.toLowerCase().includes(q));
+  }, [query, options]);
+
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (!rootRef.current) return;
+      if (!rootRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  const commitSelect = (val) => {
+    onChange?.(val);
+    setQuery(val);
+    setOpen(false);
+    inputRef.current?.blur();
+  };
+
+  return (
+    <div ref={rootRef} className="relative">
+      <div
+        className={`flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-[#25d366] ${
+          disabled ? "opacity-60 cursor-not-allowed" : "cursor-text"
+        }`}
+        onClick={() => !disabled && setOpen(true)}
+      >
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+            setHi(0);
+          }}
+          onKeyDown={(e) => {
+            if (disabled) return;
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setOpen(true);
+              setHi((i) => Math.min(i + 1, Math.max(filtered.length - 1, 0)));
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setOpen(true);
+              setHi((i) => Math.max(i - 1, 0));
+            } else if (e.key === "Enter") {
+              e.preventDefault();
+              if (open && filtered.length > 0) {
+                commitSelect(filtered[hi]);
+              }
+            } else if (e.key === "Escape") {
+              setOpen(false);
+            }
+          }}
+          placeholder={searchPlaceholder}
+          className="flex-1 outline-none"
+          disabled={disabled}
+          aria-autocomplete="list"
+          aria-expanded={open}
+          role="combobox"
+        />
+        {value ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              commitSelect("");
+            }}
+            className="text-gray-500 hover:text-gray-700"
+            title="Clear"
+          >
+            ×
+          </button>
+        ) : (
+          <span className="text-gray-400 select-none">{placeholder}</span>
+        )}
+        <span className="ml-auto text-gray-400">▾</span>
+      </div>
+
+      {open && (
+        <ul
+          className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg"
+          role="listbox"
+        >
+          {filtered.length === 0 ? (
+            <li className="px-3 py-2 text-sm text-gray-500 select-none">
+              No matches
+            </li>
+          ) : (
+            filtered.map((opt, idx) => (
+              <li
+                key={opt + idx}
+                role="option"
+                aria-selected={value === opt}
+                onMouseEnter={() => setHi(idx)}
+                onMouseDown={(e) => {
+                  // prevent input blur before click handles
+                  e.preventDefault();
+                  commitSelect(opt);
+                }}
+                className={`px-3 py-2 cursor-pointer ${
+                  idx === hi ? "bg-gray-100" : ""
+                } ${value === opt ? "font-medium" : ""}`}
+              >
+                {opt}
+              </li>
+            ))
+          )}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------- Page Component ---------------------- */
 export default function PaymentFollowup() {
   const navigate = useNavigate();
 
   const [Customer, setCustomer] = useState("");
   const [Amount, setAmount] = useState("");
-  const [Title, setTitle] = useState(""); // short reason/subject
+  const [Title, setTitle] = useState("");
   const [Remark, setRemark] = useState("");
+
   const [customerOptions, setCustomerOptions] = useState([]);
 
-  const [isDeadlineChecked, setIsDeadlineChecked] = useState(false);
-  const [Deadline, setDeadline] = useState("");
+  // Follow-up date ALWAYS visible; default today
+  const [Deadline, setDeadline] = useState(todayISO());
+
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    // Expecting your existing endpoint that returns customer list.
-    // Shape is flexible; we try common fields.
-    axios
-      .get("/customer/GetCustomerList")
-      .then((res) => {
-        if (res.data?.success && Array.isArray(res.data?.result)) {
-          const opts = res.data.result
-            .filter(Boolean)
-            .map((it) => {
-              // Try common naming variants your app might use
-              return (
-                it.Customer_name ||
-                it.customer_name ||
-                it.Name ||
-                it.name ||
-                it.title ||
-                ""
-              );
-            })
-            .filter(Boolean);
-          setCustomerOptions([...new Set(opts)]);
+    const loadCustomers = async () => {
+      const normalizeNames = (arr) =>
+        Array.from(
+          new Set(
+            (arr || [])
+              .map((it) =>
+                (it.Customer_name ||
+                  it.User_name ||
+                  it.name ||
+                  it.Name ||
+                  "").toString().trim()
+              )
+              .filter(Boolean)
+          )
+        );
+
+      try {
+        // Try singular
+        const r1 = await axios.get("/customer/GetCustomerList");
+        if (r1?.data?.success && Array.isArray(r1.data.result)) {
+          setCustomerOptions(normalizeNames(r1.data.result));
+          return;
         }
-      })
-      .catch((err) => {
-        console.error("Error fetching customers:", err);
-      });
+        throw new Error("Singular route returned unexpected response");
+      } catch {
+        try {
+          // Fallback to plural
+          const r2 = await axios.get("/customer/GetCustomersList");
+          if (r2?.data?.success && Array.isArray(r2.data.result)) {
+            setCustomerOptions(normalizeNames(r2.data.result));
+            return;
+          }
+          throw new Error("Plural route returned unexpected response");
+        } catch (err2) {
+          const msg =
+            err2?.response?.data?.message || err2?.message || "Unknown error";
+          console.error("Error fetching customers:", msg, err2?.response?.data);
+          alert("Unable to load customers: " + msg);
+        }
+      }
+    };
+
+    loadCustomers();
   }, []);
 
-  const closeModal = () => {
-    navigate("/Home");
-  };
-
-  const handleDeadlineCheckboxChange = () => {
-    setIsDeadlineChecked((p) => !p);
-    setDeadline("");
-  };
+  const closeModal = () => navigate("/Home");
 
   const submit = async (e) => {
     e.preventDefault();
 
-    if (!Customer) {
-      alert("Please select a customer.");
-      return;
+    // Require selection from the list
+    if (!Customer) return alert("Please select a customer.");
+    if (!customerOptions.includes(Customer)) {
+      return alert("Please pick a customer from the suggestions.");
     }
-    if (!Amount || Number(Amount) <= 0) {
-      alert("Please enter a valid amount.");
-      return;
-    }
+    if (!Amount || Number(Amount) <= 0)
+      return alert("Please enter a valid amount.");
 
-    const finalDate =
-      isDeadlineChecked && Deadline
-        ? Deadline
-        : new Date().toLocaleDateString("en-CA"); // yyyy-mm-dd
+    const finalDate = Deadline || todayISO();
 
     try {
+      setSubmitting(true);
       const res = await axios.post("/paymentfollowup/add", {
         Customer,
         Amount: Number(Amount),
@@ -80,19 +231,18 @@ export default function PaymentFollowup() {
       });
 
       if (res.data === "exist") {
-        alert("A similar follow-up already exists for this customer and date.");
-      } else if (res.data === "notexist") {
-        alert("Payment follow-up added.");
-        navigate("/Home");
-      } else if (res.data?.success) {
-        alert("Payment follow-up added.");
-        navigate("/Home");
+        alert("A similar follow-up already exists for this customer/date.");
       } else {
-        alert("Unexpected response from server.");
+        alert("Payment follow-up added.");
+        navigate("/Home");
       }
     } catch (err) {
-      console.error(err);
-      alert("Something went wrong while saving the follow-up.");
+      const msg =
+        err?.response?.data?.message || err?.message || "Unknown error";
+      console.error("Save follow-up error:", msg, err?.response?.data);
+      alert("Something went wrong: " + msg);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -112,23 +262,22 @@ export default function PaymentFollowup() {
         </h2>
 
         <form onSubmit={submit} className="space-y-4">
-          {/* Customer */}
+          {/* Customer (searchable dropdown) */}
           <div>
             <label className="block font-medium text-gray-700 mb-1">
               Select Customer
             </label>
-            <select
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
+            <SearchableSelect
+              options={customerOptions}
               value={Customer}
-              onChange={(e) => setCustomer(e.target.value)}
-            >
-              <option value="">-- Select Customer --</option>
-              {customerOptions.map((c, idx) => (
-                <option key={idx} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+              onChange={setCustomer}
+              placeholder="Select customer"
+              searchPlaceholder="Search customer..."
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {customerOptions.length} customer
+              {customerOptions.length === 1 ? "" : "s"} available
+            </p>
           </div>
 
           {/* Amount */}
@@ -146,8 +295,19 @@ export default function PaymentFollowup() {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
             />
           </div>
-
-          {/* Title/Reason */}
+{/* Follow-up Date (always visible) */}
+          <div>
+            <label className="block font-medium text-gray-700 mb-1">
+              Follow-up Date
+            </label>
+            <input
+              type="date"
+              value={Deadline}
+              onChange={(e) => setDeadline(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
+            />
+          </div>
+          {/* Title */}
           <div>
             <label className="block font-medium text-gray-700 mb-1">
               Short Title / Reason
@@ -161,33 +321,7 @@ export default function PaymentFollowup() {
             />
           </div>
 
-          {/* Deadline / Follow-up date */}
-          <div className="flex items-center space-x-2">
-            <input
-              id="deadlineToggle"
-              type="checkbox"
-              checked={isDeadlineChecked}
-              onChange={handleDeadlineCheckboxChange}
-              className="h-4 w-4 text-[#25d366] focus:ring-[#25d366] border-gray-300 rounded"
-            />
-            <label htmlFor="deadlineToggle" className="text-gray-700">
-              Set Follow-up Date
-            </label>
-          </div>
-
-          {isDeadlineChecked && (
-            <div>
-              <label className="block font-medium text-gray-700 mb-1">
-                Follow-up Date
-              </label>
-              <input
-                type="date"
-                value={Deadline}
-                onChange={(e) => setDeadline(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-              />
-            </div>
-          )}
+          
 
           {/* Remark */}
           <div>
@@ -207,17 +341,14 @@ export default function PaymentFollowup() {
           <div className="flex flex-col space-y-2">
             <button
               type="submit"
-              className="bg-[#25d366] hover:bg-[#128c7e] text-white font-medium py-2 rounded-lg transition"
+              disabled={submitting}
+              className={`${
+                submitting ? "opacity-70 cursor-not-allowed" : ""
+              } bg-[#25d366] hover:bg-[#128c7e] text-white font-medium py-2 rounded-lg transition`}
             >
-              Submit
+              {submitting ? "Saving..." : "Submit"}
             </button>
-            <button
-              type="button"
-              className="bg-gray-400 hover:bg-gray-600 text-white font-medium py-2 rounded-lg transition"
-              onClick={closeModal}
-            >
-              Close
-            </button>
+            
           </div>
         </form>
       </div>

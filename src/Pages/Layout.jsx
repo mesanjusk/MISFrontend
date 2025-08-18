@@ -11,7 +11,7 @@ const Layout = () => {
     { onClick: () => navigate('/addOrder1'), label: 'Order' },
     { onClick: () => navigate('/addTransaction'), label: 'Receipt' },
     { onClick: () => navigate('/addTransaction1'), label: 'Payment' },
-    
+    { onClick: () => navigate('/Followups'), label: 'Followups' },
     { onClick: () => navigate('/addUsertask'), label: 'Task' },
   ];
 
