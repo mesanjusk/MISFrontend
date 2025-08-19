@@ -20,7 +20,9 @@ export async function addRequest(request) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
-    tx.objectStore(STORE_NAME).add(request);
+    tx
+      .objectStore(STORE_NAME)
+      .add({ ...request, timestamp: Date.now() });
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
@@ -31,7 +33,8 @@ export async function getAllRequests() {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readonly");
     const req = tx.objectStore(STORE_NAME).getAll();
-    req.onsuccess = () => resolve(req.result || []);
+    req.onsuccess = () =>
+      resolve((req.result || []).sort((a, b) => a.timestamp - b.timestamp));
     req.onerror = () => reject(req.error);
   });
 }

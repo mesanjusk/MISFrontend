@@ -5,9 +5,11 @@ import { ThemeProvider, CssBaseline } from '@mui/material'
 import { lightTheme } from './theme.js'
 import './index.css'
 import { toast } from './Components'
-import './utils/offlineQueue.js'
+import { initOfflineQueue } from './utils/offlineQueue.js'
 
 window.alert = (msg) => toast(msg)
+
+initOfflineQueue()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
