@@ -18,3 +18,8 @@ The service worker uses a `stale-while-revalidate` strategy for same‑origin
 requests. Cached resources are served instantly while an update runs in the
 background to refresh the cache. All PWA icons and the manifest are preloaded so
 the app remains installable even when offline.
+
+Any non-GET requests made while the device is offline are stored in an
+IndexedDB database and are retried automatically once connectivity returns. This
+ensures user actions are preserved and synchronized with the server when a
+connection is available.

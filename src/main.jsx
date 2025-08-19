@@ -5,6 +5,7 @@ import { ThemeProvider, CssBaseline } from '@mui/material'
 import { lightTheme } from './theme.js'
 import './index.css'
 import { toast } from './Components'
+import './utils/offlineQueue.js'
 
 window.alert = (msg) => toast(msg)
 
