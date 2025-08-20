@@ -5,7 +5,7 @@ import UpdateDelivery from "../Pages/updateDelivery";
 import { LoadingSpinner } from "../Components";
 
 export default function AllOrder() {
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState([]);                 // single source of truth (loaded once)
   const [searchOrder, setSearchOrder] = useState("");
   const [tasks, setTasks] = useState([]);
   const [showOrderModal, setShowOrderModal] = useState(false);       // OrderUpdate
@@ -29,9 +29,9 @@ export default function AllOrder() {
     return `${dd}-${mm}-${yyyy}`;
   };
 
-  // Fetch orders + customers
+  /* ---------------------------- Load once ---------------------------- */
   useEffect(() => {
-    const fetchData = async () => {
+    (async () => {
       setIsOrdersLoading(true);
       try {
         const [ordersRes, customersRes] = await Promise.all([
@@ -60,44 +60,72 @@ export default function AllOrder() {
       } finally {
         setIsOrdersLoading(false);
       }
-    };
-
-    fetchData();
+    })();
   }, []);
 
-  // Fetch tasks
   useEffect(() => {
-    const fetchTasks = async () => {
+    (async () => {
       setIsTasksLoading(true);
       try {
         const res = await axios.get("/taskgroup/GetTaskgroupList");
         if (res?.data?.success) {
           const filteredTasks = (res.data.result ?? []).filter(
             (task) =>
-              !["delivered", "cancel"].includes(
-                (task.Task_group || "").trim().toLowerCase()
-              )
+              !["delivered", "cancel"].includes((task.Task_group || "").trim().toLowerCase())
           );
           setTasks(filteredTasks);
         } else {
           setTasks([]);
         }
-      } catch (err) {
+      } catch {
         setTasks([]);
       } finally {
         setIsTasksLoading(false);
       }
-    };
-
-    fetchTasks();
+    })();
   }, []);
 
-  const taskOptions = useMemo(() => {
-    const set = new Set(
-      tasks
-        .map((t) => (t?.Task_group || "").trim())
-        .filter(Boolean)
+  /* ----------------------- Local update helpers ---------------------- */
+  const upsertOrderReplace = useCallback((nextOrder) => {
+    if (!nextOrder) return;
+    setOrders((prev) => {
+      const key = nextOrder.Order_uuid || nextOrder._id;
+      const idx = prev.findIndex(
+        (o) => (o.Order_uuid || o._id) === key
+      );
+      if (idx === -1) return [nextOrder, ...prev];
+      const copy = prev.slice();
+      copy[idx] = { ...prev[idx], ...nextOrder };
+      return copy;
+    });
+  }, []);
+
+  const upsertOrderPatch = useCallback((orderId, patch) => {
+    if (!orderId || !patch) return;
+    setOrders((prev) =>
+      prev.map((o) =>
+        (o.Order_uuid || o._id) === orderId ? { ...o, ...patch } : o
+      )
     );
+  }, []);
+
+  // Optional: event bridge for children that can't accept props yet
+  useEffect(() => {
+    const handler = (ev) => {
+      const { type, orderId, patch, order } = ev.detail || {};
+      if (type === "patch") {
+        upsertOrderPatch(orderId, patch);
+      } else if (type === "replace") {
+        upsertOrderReplace(order);
+      }
+    };
+    window.addEventListener("order:updated", handler);
+    return () => window.removeEventListener("order:updated", handler);
+  }, [upsertOrderPatch, upsertOrderReplace]);
+
+  /* ------------------------ Derived view model ----------------------- */
+  const taskOptions = useMemo(() => {
+    const set = new Set(tasks.map((t) => (t?.Task_group || "").trim()).filter(Boolean));
     return Array.from(set);
   }, [tasks]);
 
@@ -112,12 +140,7 @@ export default function AllOrder() {
           : null;
 
       const customerName = customers[order.Customer_uuid] || "Unknown";
-
-      return {
-        ...order,
-        highestStatusTask,
-        Customer_name: customerName,
-      };
+      return { ...order, highestStatusTask, Customer_name: customerName };
     });
 
     const q = (searchOrder || "").trim().toLowerCase();
@@ -130,13 +153,12 @@ export default function AllOrder() {
     });
   }, [orders, customers, searchOrder]);
 
-  // Open OrderUpdate on whole card click
+  /* -------------------------- Modal handlers ------------------------- */
   const handleCardClick = useCallback((order) => {
     setSelectedOrder(order);
     setShowOrderModal(true);
   }, []);
 
-  // Open UpdateDelivery on edit icon/button click
   const handleEditClick = useCallback((order) => {
     setSelectedOrder(order);
     setShowDeliveryModal(true);
@@ -178,9 +200,7 @@ export default function AllOrder() {
                   <LoadingSpinner />
                 </div>
               ) : taskOptions.length === 0 ? (
-                <div className="text-center text-gray-400 py-10">
-                  No tasks found.
-                </div>
+                <div className="text-center text-gray-400 py-10">No tasks found.</div>
               ) : (
                 taskOptions.map((taskGroup) => {
                   const taskGroupOrders = filteredOrders
@@ -196,9 +216,7 @@ export default function AllOrder() {
                   return (
                     <div key={taskGroup} className="mb-4 p-3 rounded-lg ">
                       <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-semibold text-lg text-blue-700">
-                          {taskGroup}
-                        </h3>
+                        <h3 className="font-semibold text-lg text-blue-700">{taskGroup}</h3>
                         <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
                           {taskGroupOrders.length} orders
                         </span>
@@ -251,7 +269,6 @@ export default function AllOrder() {
                                 title="Edit (Update Delivery)"
                                 aria-label="Edit order"
                               >
-                                {/* simple pencil svg icon */}
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
                                   viewBox="0 0 20 20"
@@ -261,7 +278,6 @@ export default function AllOrder() {
                                 >
                                   <path d="M13.586 3.586a2 2 0 0 1 2.828 2.828l-8.486 8.486a2 2 0 0 1-.878.506l-3.182.91a.5.5 0 0 1-.62-.62l.91-3.182a2 2 0 0 1 .506-.878l8.486-8.486Zm1.414 1.414L7.5 12.5l-1 1 1-1 7.5-7.5Z" />
                                 </svg>
-                                
                               </button>
 
                               <div className="flex items-start gap-2 pr-12">
@@ -303,14 +319,26 @@ export default function AllOrder() {
         {/* OrderUpdate modal (whole card) */}
         {showOrderModal && (
           <Modal onClose={closeOrderModal}>
-            <OrderUpdate order={selectedOrder} onClose={closeOrderModal} />
+            <OrderUpdate
+              order={selectedOrder}
+              onClose={closeOrderModal}
+              /* Call this with changed fields: onOrderPatched(orderId, patch) */
+              onOrderPatched={(orderId, patch) => upsertOrderPatch(orderId, patch)}
+              /* Or if you have the full updated order: onOrderReplaced(order) */
+              onOrderReplaced={(order) => upsertOrderReplace(order)}
+            />
           </Modal>
         )}
 
         {/* UpdateDelivery modal (edit icon) */}
         {showDeliveryModal && (
           <Modal onClose={closeDeliveryModal}>
-            <UpdateDelivery order={selectedOrder} onClose={closeDeliveryModal} />
+            <UpdateDelivery
+              order={selectedOrder}
+              onClose={closeDeliveryModal}
+              onOrderPatched={(orderId, patch) => upsertOrderPatch(orderId, patch)}
+              onOrderReplaced={(order) => upsertOrderReplace(order)}
+            />
           </Modal>
         )}
       </div>

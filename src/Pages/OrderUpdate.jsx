@@ -2,7 +2,6 @@
 // src/Pages/OrderUpdate.jsx
 import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 
 import OrderHeader from "../Components/OrderHeader";
 import StatusTable from "../Components/StatusTable";
@@ -22,13 +21,10 @@ function toYmd(v) {
 const norm = (s) => String(s || "").trim().toLowerCase();
 
 export default function OrderUpdate({ order = {}, onClose = () => {} }) {
-  const navigate = useNavigate();
-
   const [notes, setNotes] = useState([]);
   const [taskGroups, setTaskGroups] = useState([]); // [{ Id, Task_group_uuid, Task_group_name || Task_group }]
   const [selectedTaskGroups, setSelectedTaskGroups] = useState([]); // uuids that are ON
   const [taskOptions, setTaskOptions] = useState([]); // for "Task" dropdown (ALL groups)
-  const [userOptions, setUserOptions] = useState({}); // { TaskName: [usernames] }
   const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
   const [busyStep, setBusyStep] = useState({}); // { uuid: true } while toggling
 
@@ -43,7 +39,6 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
     Customer_uuid: order?.Customer_uuid || "",
     Remark: order?.Remark || "",
     Delivery_Date: toYmd(order?.highestStatusTask?.Delivery_Date) || "",
-    Assigned: order?.highestStatusTask?.Assigned || "",
     Task: order?.highestStatusTask?.Task || "",
     CreatedAt: toYmd(order?.highestStatusTask?.CreatedAt) || toYmd(new Date()),
     Status: Array.isArray(order?.Status) ? order.Status : [],
@@ -75,28 +70,6 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
         setTaskGroups([]);
         setTaskOptions(["Packing", "Delivery", "Billing"]);
       });
-  }, []);
-
-  /* ---------------- Users by Allowed_Task_Groups -> map to task name ---------------- */
-  useEffect(() => {
-    axios
-      .get("/user/GetUserList")
-      .then((res) => {
-        if (!res.data?.success) return setUserOptions({});
-        const list = res.data.result || [];
-        const map = {};
-        list.forEach((u) => {
-          const allowed = Array.isArray(u.Allowed_Task_Groups)
-            ? u.Allowed_Task_Groups
-            : [];
-          allowed.forEach((groupName) => {
-            if (!map[groupName]) map[groupName] = [];
-            map[groupName].push(u.User_name);
-          });
-        });
-        setUserOptions(map);
-      })
-      .catch(() => setUserOptions({}));
   }, []);
 
   /* ---------------- Notes for this order ---------------- */
@@ -166,11 +139,7 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
 
   /* ---------------- Handlers ---------------- */
   const handleChangeTask = (task) => {
-    setValues((prev) => {
-      const validUsers = userOptions[task] || [];
-      const newAssigned = validUsers.includes(prev.Assigned) ? prev.Assigned : "";
-      return { ...prev, Task: task, Assigned: newAssigned };
-    });
+    setValues((prev) => ({ ...prev, Task: task }));
   };
 
   const handleAdvanceCheckboxChange = () => {
@@ -242,10 +211,7 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
     }
   };
 
-  const canSubmit = useMemo(
-    () => Boolean(values.Task && values.Assigned),
-    [values.Task, values.Assigned]
-  );
+  const canSubmit = useMemo(() => Boolean(values.Task), [values.Task]);
 
   const handleSaveChanges = async (e) => {
     e.preventDefault();
@@ -258,7 +224,6 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
         orderId: values.id,
         newStatus: {
           Task: values.Task,
-          Assigned: values.Assigned,
           Delivery_Date: values.Delivery_Date || today,
           CreatedAt: new Date().toISOString(),
         },
@@ -267,7 +232,8 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
       if (res.data?.success) {
         alert("Order updated successfully!");
         onClose?.();
-        navigate("/home");
+        // 🔄 hard refresh as requested
+        window.location.reload();
       } else {
         alert("Update failed.");
       }
@@ -327,27 +293,6 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
               {taskOptions.map((option, i) => (
                 <option key={i} value={option}>
                   {option}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">
-              Assign User
-            </label>
-            <select
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-              value={values.Assigned}
-              onChange={(e) =>
-                setValues({ ...values, Assigned: e.target.value })
-              }
-              disabled={!values.Task}
-            >
-              <option value="">Select User</option>
-              {(userOptions[values.Task] || []).map((user, i) => (
-                <option key={i} value={user}>
-                  {user}
                 </option>
               ))}
             </select>
