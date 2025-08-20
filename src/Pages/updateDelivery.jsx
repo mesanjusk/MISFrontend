@@ -12,7 +12,7 @@ import InvoiceModal from "../Components/InvoiceModal";
 
 const BASE_URL = "https://misbackend-e078.onrender.com";
 // If you enforce Purchase in backend, keep this matching
-const PURCHASE_ACCOUNT_ID = "PURCHASE_ACCOUNT_ID_HERE";
+const PURCHASE_ACCOUNT_ID = "6c91bf35-e9c4-4732-a428-0310f56bd0a7";
 
 export default function UpdateDelivery({ onClose, order = {}, mode = "edit" }) {
   const navigate = useNavigate();
