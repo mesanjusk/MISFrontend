@@ -306,7 +306,7 @@ export default function Dashboard() {
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               <RefreshCw size={16} />
-              Refresh
+              
             </button>
           </div>
         </div>

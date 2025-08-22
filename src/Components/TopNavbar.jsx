@@ -148,9 +148,9 @@ const TopNavbar = () => {
       ],
     },
     {
-      group: "Other",
+      group: "Admin",
       icon: FiMoreHorizontal,
-      items: userGroup === "Office User" ? [{ label: "Call Logs", path: "/calllogs" }] : [],
+      items: userGroup === "Admin User" ? [{ label: "Call Logs", path: "/calllogs" }] : [],
     },
   ];
 

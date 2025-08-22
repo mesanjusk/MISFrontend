@@ -7,6 +7,9 @@ import 'jspdf-autotable';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+// NEW: reusable modal
+import TransactionEditModal from '../Components/TransactionEditModal';
+
 const AllTransaction = () => {
   const [transactions, setTransactions] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -18,9 +21,8 @@ const AllTransaction = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-
-  // Multi-select state
   const [selectedIds, setSelectedIds] = useState([]);
+
   const allVisibleSelected =
     filteredEntries.length > 0 &&
     filteredEntries.every((t) => selectedIds.includes(t.Transaction_id));
@@ -44,18 +46,10 @@ const AllTransaction = () => {
     fetchData();
   }, []);
 
-  // Map for quick lookups
   const customerMap = useMemo(() => {
     const map = {};
     for (const c of customers) map[c.Customer_uuid] = c.Customer_name;
     return map;
-  }, [customers]);
-
-  // Sorted customers (alphabetical by name) for dropdowns
-  const sortedCustomers = useMemo(() => {
-    return [...customers].sort((a, b) =>
-      String(a.Customer_name || '').localeCompare(String(b.Customer_name || ''), 'en', { sensitivity: 'base' })
-    );
   }, [customers]);
 
   const formatDate = (date) => {
@@ -64,19 +58,11 @@ const AllTransaction = () => {
     return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
   };
 
-  // Helper used by modal date input
-  const getDateInputValue = (date) => {
-    if (!date) return '';
-    const d = new Date(date);
-    return d.toISOString().split('T')[0]; // yyyy-MM-dd
-  };
-
   useEffect(() => {
     let grouped = transactions.map((txn) => {
       const credit = txn.Journal_entry?.find((e) => String(e.Type || '').toLowerCase() === 'credit');
-      const debit = txn.Journal_entry?.find((e) => String(e.Type || '').toLowerCase() === 'debit');
+      const debit  = txn.Journal_entry?.find((e) => String(e.Type || '').toLowerCase() === 'debit');
 
-      // Normalize possible order number keys
       const orderNo =
         txn.Order_number ??
         txn.Order_Number ??
@@ -101,20 +87,16 @@ const AllTransaction = () => {
       const q = searchQuery.toLowerCase();
       grouped = grouped.filter((txn) => {
         const creditName = (customerMap[txn.Credit_id] || '').toLowerCase();
-        const debitName = (customerMap[txn.Debit_id] || '').toLowerCase();
-        const orderNo = String(txn.Order_number || '').toLowerCase();
-        return (
-          creditName.includes(q) ||
-          debitName.includes(q) ||
-          orderNo.includes(q)
-        );
+        const debitName  = (customerMap[txn.Debit_id]  || '').toLowerCase();
+        const orderNo    = String(txn.Order_number || '').toLowerCase();
+        return creditName.includes(q) || debitName.includes(q) || orderNo.includes(q);
       });
     }
 
     if (dateFrom && dateTo) {
       const from = new Date(dateFrom);
-      const to = new Date(dateTo);
-      to.setHours(23, 59, 59, 999); // include full end day
+      const to   = new Date(dateTo);
+      to.setHours(23, 59, 59, 999);
       grouped = grouped.filter((txn) => {
         const txnDate = new Date(txn.Transaction_date);
         return txnDate >= from && txnDate <= to;
@@ -126,7 +108,6 @@ const AllTransaction = () => {
         const aValue = a[sortConfig.key];
         const bValue = b[sortConfig.key];
 
-        // numeric vs string safe compare
         const isNum = (v) => typeof v === 'number' || (!isNaN(v) && v !== null && v !== '');
         if (isNum(aValue) && isNum(bValue)) {
           const an = Number(aValue);
@@ -145,7 +126,6 @@ const AllTransaction = () => {
     }
 
     setFilteredEntries(grouped);
-    // Clean up selections that are no longer visible
     setSelectedIds((prev) => prev.filter((id) => grouped.some((g) => g.Transaction_id === id)));
   }, [transactions, searchQuery, dateFrom, dateTo, sortConfig, customerMap]);
 
@@ -181,9 +161,9 @@ const AllTransaction = () => {
         txn.Order_number || '',
         formatDate(txn.Transaction_date),
         customerMap[txn.Credit_id] || '-',
-        txn.CreditAmount.toFixed(2),
+        Number(txn.CreditAmount || 0).toFixed(2),
         customerMap[txn.Debit_id] || '-',
-        txn.DebitAmount.toFixed(2),
+        Number(txn.DebitAmount || 0).toFixed(2),
       ]),
       styles: { fontSize: 8 },
       headStyles: { fillColor: [46, 125, 50] },
@@ -196,32 +176,38 @@ const AllTransaction = () => {
     setShowEditModal(true);
   };
 
-  const handleUpdate = async () => {
+  // Called by the reusable modal
+  const saveEditedTransaction = async (payload) => {
     try {
-      const res = await axios.put(`/transaction/updateByTransactionId/${editingTxn.Transaction_id}`, {
-        updatedDescription: editingTxn.Description || '',
-        updatedAmount: editingTxn.Amount,
-        updatedDate: editingTxn.Transaction_date,
-        creditAccountId: editingTxn.Credit_id,
-        debitAccountId: editingTxn.Debit_id,
-      });
+      const res = await axios.put(
+        `/transaction/updateByTransactionId/${payload.Transaction_id}`,
+        {
+          updatedDescription: payload.Description || '',
+          updatedAmount: payload.Amount,
+          updatedDate: payload.Transaction_date,
+          creditAccountId: payload.Credit_id,
+          debitAccountId: payload.Debit_id,
+        }
+      );
+
       if (res.data?.success) {
         toast.success('Transaction updated');
         setShowEditModal(false);
-        // Merge local list
+
+        // Merge changes locally into original transaction structure
         setTransactions((prev) =>
           prev.map((txn) =>
-            txn.Transaction_id === editingTxn.Transaction_id
+            txn.Transaction_id === payload.Transaction_id
               ? {
                   ...txn,
-                  Transaction_date: editingTxn.Transaction_date,
-                  Description: editingTxn.Description,
+                  Transaction_date: payload.Transaction_date,
+                  Description: payload.Description,
                   Journal_entry: (txn.Journal_entry || []).map((e) => {
                     if (String(e.Type || '').toLowerCase() === 'credit') {
-                      return { ...e, Account_id: editingTxn.Credit_id, Amount: editingTxn.Amount };
+                      return { ...e, Account_id: payload.Credit_id, Amount: payload.Amount };
                     }
                     if (String(e.Type || '').toLowerCase() === 'debit') {
-                      return { ...e, Account_id: editingTxn.Debit_id, Amount: editingTxn.Amount };
+                      return { ...e, Account_id: payload.Debit_id, Amount: payload.Amount };
                     }
                     return e;
                   }),
@@ -257,11 +243,9 @@ const AllTransaction = () => {
 
   const toggleSelectAllVisible = () => {
     if (allVisibleSelected) {
-      // unselect all visible
       const visibleIds = new Set(filteredEntries.map((t) => t.Transaction_id));
       setSelectedIds((prev) => prev.filter((id) => !visibleIds.has(id)));
     } else {
-      // add all visible
       const idsToAdd = filteredEntries
         .map((t) => t.Transaction_id)
         .filter((id) => !selectedIds.includes(id));
@@ -427,117 +411,14 @@ const AllTransaction = () => {
         </table>
       </div>
 
-      {/* Edit Modal with ALPHABETICAL dropdowns (no separate search box) */}
-      {showEditModal && editingTxn && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-xl">
-            <h3 className="text-lg font-semibold mb-4">Edit Transaction</h3>
-            <div className="space-y-4">
-              <label className="block text-sm">
-                Date:
-                <input
-                  type="date"
-                  value={getDateInputValue(editingTxn.Transaction_date)}
-                  onChange={(e) =>
-                    setEditingTxn({ ...editingTxn, Transaction_date: e.target.value })
-                  }
-                  className="w-full mt-1 border p-2 rounded"
-                />
-              </label>
-
-              <label className="block text-sm">
-                Amount:
-                <input
-                  type="number"
-                  value={editingTxn.Amount}
-                  onChange={(e) =>
-                    setEditingTxn({ ...editingTxn, Amount: Number(e.target.value) })
-                  }
-                  className="w-full mt-1 border p-2 rounded"
-                />
-              </label>
-
-              <label className="block text-sm">
-                Description:
-                <input
-                  type="text"
-                  value={editingTxn.Description}
-                  onChange={(e) =>
-                    setEditingTxn({ ...editingTxn, Description: e.target.value })
-                  }
-                  className="w-full mt-1 border p-2 rounded"
-                />
-              </label>
-
-              {/* Credit dropdown (alphabetical, native type-to-search supported) */}
-              <label className="block text-sm">
-                Credit Name:
-                <select
-                  value={editingTxn.Credit_id}
-                  onChange={(e) =>
-                    setEditingTxn({ ...editingTxn, Credit_id: e.target.value })
-                  }
-                  className="w-full mt-1 border p-2 rounded"
-                >
-                  <option value="">Select Account</option>
-                  {sortedCustomers.map((c) => (
-                    <option key={c.Customer_uuid} value={c.Customer_uuid}>
-                      {c.Customer_name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              {/* Debit dropdown (alphabetical, native type-to-search supported) */}
-              <label className="block text-sm">
-                Debit Name:
-                <select
-                  value={editingTxn.Debit_id}
-                  onChange={(e) =>
-                    setEditingTxn({ ...editingTxn, Debit_id: e.target.value })
-                  }
-                  className="w-full mt-1 border p-2 rounded"
-                >
-                  <option value="">Select Account</option>
-                  {sortedCustomers.map((c) => (
-                    <option key={c.Customer_uuid} value={c.Customer_uuid}>
-                      {c.Customer_name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                className="px-4 py-2 bg-gray-300 rounded"
-                onClick={() => setShowEditModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className={`px-4 py-2 rounded ${
-                  !editingTxn.Transaction_date ||
-                  !editingTxn.Amount ||
-                  !editingTxn.Credit_id ||
-                  !editingTxn.Debit_id
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
-                disabled={
-                  !editingTxn.Transaction_date ||
-                  !editingTxn.Amount ||
-                  !editingTxn.Credit_id ||
-                  !editingTxn.Debit_id
-                }
-                onClick={handleUpdate}
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Reusable Edit Modal */}
+      <TransactionEditModal
+        open={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSave={saveEditedTransaction}
+        initialData={editingTxn}
+        customers={customers}
+      />
     </div>
   );
 };
