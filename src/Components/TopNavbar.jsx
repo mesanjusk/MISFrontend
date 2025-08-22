@@ -130,10 +130,9 @@ const TopNavbar = () => {
       items: [
         { label: "Payment Report", path: "/paymentReport" },
         { label: "Priority Report", path: "/priorityReport" },
-        { label: "Add Payable", path: "/addpayble" },
-        { label: "Add Receivable", path: "/addrecivable" },
-        { label: "Add Payment", path: "/addpayment" },
-        { label: "Add Receipt", path: "/addreciept" },
+        { label: "Add Payable", path: "/addPayble" },
+        { label: "Add Receivable", path: "/addRecievable" },
+        
       ],
     },
     {

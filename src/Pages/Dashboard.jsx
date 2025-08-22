@@ -292,7 +292,7 @@ export default function Dashboard() {
       <div className="max-w-6xl mx-auto mt-6">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-lg font-semibold text-gray-800">
-            Today’s Payment Follow-ups (Pending)
+            Today’s (Pending)
           </h3>
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full">
@@ -315,11 +315,11 @@ export default function Dashboard() {
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50">
               <tr className="text-left text-gray-600">
-                <th className="px-3 py-2 font-medium">Customer</th>
-                <th className="px-3 py-2 font-medium">Amount (₹)</th>
-                <th className="px-3 py-2 font-medium">Title / Reason</th>
+                <th className="px-3 py-2 font-medium">Name</th>
+                <th className="px-3 py-2 font-medium">(₹)</th>
+                <th className="px-3 py-2 font-medium">Details</th>
                 <th className="px-3 py-2 font-medium">Remark</th>
-                <th className="px-3 py-2 font-medium">Follow-up Date</th>
+                <th className="px-3 py-2 font-medium">Date</th>
                 <th className="px-3 py-2 font-medium">Action</th>
               </tr>
             </thead>
