@@ -1,6 +1,9 @@
 /* eslint-disable react/prop-types */
-// Import statements remain mostly unchanged
-import { useEffect, useState } from "react";
+// src/Pages/UpdateDelivery.jsx
+// ✅ Uses Mongo _id in URL (backend expects findById)
+// ✅ Preflight GET to verify the id and better error surfacing
+// ✅ No-reload; updates parent via onOrderPatched/onOrderReplaced
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import Select from "react-select";
@@ -11,14 +14,20 @@ import { LoadingSpinner } from "../Components";
 import InvoiceModal from "../Components/InvoiceModal";
 
 const BASE_URL = "https://misbackend-e078.onrender.com";
-// If you enforce Purchase in backend, keep this matching
 const PURCHASE_ACCOUNT_ID = "6c91bf35-e9c4-4732-a428-0310f56bd0a7";
+const MIN_SAVE_MS = 600;
 
-export default function UpdateDelivery({ onClose, order = {}, mode = "edit" }) {
+export default function UpdateDelivery({
+  onClose,
+  order = {},
+  mode = "edit",
+  onOrderPatched = () => {},
+  onOrderReplaced = () => {},
+}) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [orderId, setOrderId] = useState("");
+  const [orderId, setOrderId] = useState(""); // Mongo _id for API
   const [Customer_uuid, setCustomer_uuid] = useState("");
   const [items, setItems] = useState([
     { Item: "", Quantity: 0, Rate: 0, Amount: 0, Priority: "Normal", Remark: "" },
@@ -31,10 +40,9 @@ export default function UpdateDelivery({ onClose, order = {}, mode = "edit" }) {
   const [customerMap, setCustomerMap] = useState({});
   const [customerMobile, setCustomerMobile] = useState("");
   const [loading, setLoading] = useState(true);
-
-  // Modal state
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
+  /* ---------------------- auth ---------------------- */
   useEffect(() => {
     const userNameFromState = location.state?.id;
     const logInUser = userNameFromState || localStorage.getItem("User_name");
@@ -42,9 +50,13 @@ export default function UpdateDelivery({ onClose, order = {}, mode = "edit" }) {
     else navigate("/login");
   }, [location.state, navigate]);
 
+  /* -------------------- seed form -------------------- */
   useEffect(() => {
-    if (mode === "edit" && (order?._id || order?.Order_id)) {
-      setOrderId(order._id || order.Order_id);
+    if (mode === "edit" && (order?._id || order?.Order_id || order?.Order_uuid)) {
+      // IMPORTANT: backend wants Mongo _id for findById
+      const mongoId = order?._id || order?.Order_id || "";
+      setOrderId(mongoId);
+
       setCustomer_uuid(order.Customer_uuid || "");
       const seeded =
         Array.isArray(order.Items) && order.Items.length
@@ -62,7 +74,9 @@ export default function UpdateDelivery({ onClose, order = {}, mode = "edit" }) {
     }
   }, [order, mode]);
 
+  /* --------------- load customers/items --------------- */
   useEffect(() => {
+    let mounted = true;
     const fetchData = async () => {
       try {
         const [custRes, itemRes] = await Promise.all([
@@ -70,7 +84,7 @@ export default function UpdateDelivery({ onClose, order = {}, mode = "edit" }) {
           axios.get(`${BASE_URL}/item/GetItemList`),
         ]);
 
-        if (custRes.data.success) {
+        if (mounted && custRes.data.success) {
           setCustomers(custRes.data.result);
           const map = {};
           custRes.data.result.forEach((c) => (map[c.Customer_uuid] = c.Customer_name));
@@ -82,19 +96,33 @@ export default function UpdateDelivery({ onClose, order = {}, mode = "edit" }) {
           }
         }
 
-        if (itemRes.data.success) {
+        if (mounted && itemRes.data.success) {
           const options = itemRes.data.result.map((item) => item.Item_name);
           setItemOptions(options);
         }
       } catch {
-        toast.error("Error loading data");
+        if (mounted) toast.error("Error loading data");
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
     fetchData();
+    return () => {
+      mounted = false;
+    };
   }, [Customer_uuid]);
+
+  /* --------------------- helpers --------------------- */
+  const extractServerMessage = (err) => {
+    const d = err?.response?.data;
+    return (
+      (d && (d.error || d.message || d.msg)) ||
+      (typeof d === "string" ? d : "") ||
+      err?.message ||
+      "Unknown error"
+    );
+  };
 
   const handleItemChange = (index, key, value) => {
     const updated = [...items];
@@ -137,56 +165,126 @@ export default function UpdateDelivery({ onClose, order = {}, mode = "edit" }) {
     return true;
   };
 
-  const submit = async () => {
-    if (!validateForm()) return;
+  const smoothSave = useCallback(async (fn) => {
     setIsSubmitting(true);
-
+    const start = Date.now();
     try {
-      const url =
-        mode === "edit"
-          ? `${BASE_URL}/order/updateDelivery/${orderId}`
-          : `${BASE_URL}/order/addDelivery`;
+      await fn();
+    } finally {
+      const elapsed = Date.now() - start;
+      if (elapsed < MIN_SAVE_MS) {
+        await new Promise((r) => setTimeout(r, MIN_SAVE_MS - elapsed));
+      }
+      setIsSubmitting(false);
+    }
+  }, []);
 
-      const payload = { Customer_uuid, Items: items };
+  /* ---------------------- submit ---------------------- */
+  const submit = async () => {
+    if (!validateForm() || isSubmitting) return;
 
-      const response = await axios[mode === "edit" ? "put" : "post"](url, payload);
-      if (response.data.success) {
-        const totalAmount = +items.reduce((s, i) => s + (Number(i.Amount) || 0), 0).toFixed(2);
+    await smoothSave(async () => {
+      try {
+        const idForApi = orderId; // _id only (backend uses findById)
+        if (!idForApi) {
+          toast.error("No Mongo _id found for this order.");
+          return;
+        }
 
-        // Default to Purchase accounting (Debit Purchase, Credit Customer)
-        const journal = [
-          { Account_id: PURCHASE_ACCOUNT_ID, Type: "Debit", Amount: totalAmount },
-          { Account_id: Customer_uuid, Type: "Credit", Amount: totalAmount },
-        ];
+        // 1) Preflight: verify id exists (helps differentiate 404 vs 500)
+        try {
+          await axios.get(`${BASE_URL}/order/${idForApi}`);
+        } catch (pre) {
+          const st = pre?.response?.status;
+          const msg = extractServerMessage(pre);
+          console.error("Preflight GET /order/:id failed:", st, msg);
+          toast.error(`Order not found or invalid id (${st || "ERR"}): ${msg}`);
+          return;
+        }
 
-        const transaction = await axios.post(`${BASE_URL}/transaction/addTransaction`, {
-          Description: "Delivered",
-          Order_number: order.Order_Number,
-          Transaction_date: new Date().toISOString(),
-          Total_Credit: totalAmount,
-          Total_Debit: totalAmount,
-          Payment_mode: "Purchase",
-          Journal_entry: journal,
-          Created_by: loggedInUser,
+        // 2) Build payload
+        const itemLines = items.map((i) => ({
+          Item: i.Item,
+          Quantity: Number(i.Quantity) || 0,
+          Rate: Number(i.Rate) || 0,
+          Amount: Number(i.Amount) || (Number(i.Quantity) || 0) * (Number(i.Rate) || 0),
+          Priority: i.Priority || "Normal",
+          Remark: i.Remark || "",
+        }));
+
+        const payload = { Customer_uuid, Items: itemLines };
+
+        // 3) PUT update
+        let response;
+        try {
+          response = await axios.put(`${BASE_URL}/order/updateDelivery/${idForApi}`, payload);
+        } catch (err) {
+          const status = err?.response?.status;
+          const msg = extractServerMessage(err);
+          // Show full server payload for debugging
+          console.error("updateDelivery PUT failed:", status, msg, {
+            url: `${BASE_URL}/order/updateDelivery/${idForApi}`,
+            payload,
+            serverData: err?.response?.data,
+          });
+          toast.error(`Save failed (${status || "ERR"}): ${msg}`);
+          return;
+        }
+
+        if (!response?.data?.success) {
+          console.error("updateDelivery response without success=true:", response?.data);
+          toast.error(response?.data?.message || "Order save failed");
+          return;
+        }
+
+        // 4) Optional accounting
+        try {
+          const totalAmount = +itemLines.reduce((s, i) => s + (Number(i.Amount) || 0), 0).toFixed(2);
+          const journal = [
+            { Account_id: PURCHASE_ACCOUNT_ID, Type: "Debit", Amount: totalAmount },
+            { Account_id: Customer_uuid, Type: "Credit", Amount: totalAmount },
+          ];
+          const transaction = await axios.post(`${BASE_URL}/transaction/addTransaction`, {
+            Description: "Delivered",
+            Order_number: order.Order_Number,
+            Transaction_date: new Date().toISOString(),
+            Total_Credit: totalAmount,
+            Total_Debit: totalAmount,
+            Payment_mode: "Purchase",
+            Journal_entry: journal,
+            Created_by: loggedInUser,
+          });
+          if (!transaction?.data?.success) {
+            console.warn("Transaction failed:", transaction?.data);
+            toast.error(transaction?.data?.message || "Transaction failed");
+          }
+        } catch (txErr) {
+          const status = txErr?.response?.status;
+          const msg = extractServerMessage(txErr);
+          console.error("Transaction error:", status, msg);
+          toast.error(`Transaction error: ${msg}`);
+        }
+
+        // 5) Update parent — no reload (server doesn’t return updated doc)
+        const patchId = order.Order_uuid || order._id || orderId;
+        onOrderPatched(patchId, {
+          Items: itemLines, // UI reflects latest lines you submitted
+          Customer_uuid,
+          Customer_name: customerMap[Customer_uuid] || Customer_name,
         });
 
-        if (transaction.data.success) {
-          toast.success("Order saved");
-          setShowInvoiceModal(true);
-        } else {
-          toast.error("Transaction failed");
-        }
-      } else {
-        toast.error("Order failed");
+        toast.success("Order saved");
+        setShowInvoiceModal(true);
+      } catch (err) {
+        const status = err?.response?.status;
+        const msg = extractServerMessage(err);
+        console.error("Submit error:", status, msg, err?.response?.data);
+        toast.error(`Save failed${status ? ` (${status})` : ""}: ${msg}`);
       }
-    } catch (err) {
-      console.error(err);
-      toast.error("Something went wrong");
-    }
-
-    setIsSubmitting(false);
+    });
   };
 
+  /* ------------------- WhatsApp share ------------------- */
   const handleWhatsApp = async (pdfUrl = "") => {
     const totalAmount = items.reduce((sum, i) => sum + (Number(i.Amount) || 0), 0);
     const mobile =
@@ -199,9 +297,7 @@ export default function UpdateDelivery({ onClose, order = {}, mode = "edit" }) {
 
     const number = normalizeWhatsAppNumber(mobile);
     const message = `Hi ${customerMap[Customer_uuid] || Customer_name}, your order has been delivered. Amount: ₹${totalAmount}`;
-
-    const payload = { number, message };
-    if (pdfUrl) payload.mediaUrl = pdfUrl;
+    const payload = { number, message, ...(pdfUrl ? { mediaUrl: pdfUrl } : {}) };
 
     try {
       const res = await axios.post(`${BASE_URL}/whatsapp/send-test`, payload);
@@ -211,11 +307,14 @@ export default function UpdateDelivery({ onClose, order = {}, mode = "edit" }) {
         toast.error("❌ WhatsApp sending failed");
       }
     } catch (err) {
-      console.error("❌ WhatsApp error:", err?.response?.data || err.message);
-      toast.error("Error sending WhatsApp");
+      const status = err?.response?.status;
+      const msg = extractServerMessage(err);
+      console.error("❌ WhatsApp error:", status, msg);
+      toast.error(`WhatsApp error (${status || "ERR"}): ${msg}`);
     }
   };
 
+  /* ---------------------- render ---------------------- */
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-white">
@@ -229,6 +328,7 @@ export default function UpdateDelivery({ onClose, order = {}, mode = "edit" }) {
 
   return (
     <>
+      {/* Remove this if ToastContainer is mounted globally in App */}
       <ToastContainer />
       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
         <div className="bg-white p-6 rounded shadow-md w-full max-w-3xl relative">
@@ -247,7 +347,13 @@ export default function UpdateDelivery({ onClose, order = {}, mode = "edit" }) {
             </button>
           </div>
 
-          <form className="grid grid-cols-1 gap-4">
+          <form
+            className="grid grid-cols-1 gap-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit();
+            }}
+          >
             <div>
               <label className="block font-semibold">
                 Customer <span className="text-red-500">*</span>
@@ -323,8 +429,7 @@ export default function UpdateDelivery({ onClose, order = {}, mode = "edit" }) {
             </button>
 
             <button
-              type="button"
-              onClick={submit}
+              type="submit"
               disabled={isSubmitting}
               className={`py-2 rounded text-white ${
                 isSubmitting ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"

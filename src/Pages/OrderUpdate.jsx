@@ -2,6 +2,7 @@
 // src/Pages/OrderUpdate.jsx
 import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
+import toast from "react-hot-toast";
 
 import OrderHeader from "../Components/OrderHeader";
 import StatusTable from "../Components/StatusTable";
@@ -17,16 +18,22 @@ function toYmd(v) {
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 }
-
 const norm = (s) => String(s || "").trim().toLowerCase();
 
-export default function OrderUpdate({ order = {}, onClose = () => {} }) {
+export default function OrderUpdate({
+  order = {},
+  onClose = () => {},
+  // NEW: parent state updaters (AllOrder passes these)
+  onOrderPatched = () => {},
+  onOrderReplaced = () => {},
+}) {
   const [notes, setNotes] = useState([]);
   const [taskGroups, setTaskGroups] = useState([]); // [{ Id, Task_group_uuid, Task_group_name || Task_group }]
   const [selectedTaskGroups, setSelectedTaskGroups] = useState([]); // uuids that are ON
   const [taskOptions, setTaskOptions] = useState([]); // for "Task" dropdown (ALL groups)
   const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
   const [busyStep, setBusyStep] = useState({}); // { uuid: true } while toggling
+  const [saving, setSaving] = useState(false);
 
   // Invoice modal state
   const [showInvoice, setShowInvoice] = useState(false);
@@ -42,15 +49,17 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
     Task: order?.highestStatusTask?.Task || "",
     CreatedAt: toYmd(order?.highestStatusTask?.CreatedAt) || toYmd(new Date()),
     Status: Array.isArray(order?.Status) ? order.Status : [],
-    Steps: Array.isArray(order?.Steps) ? order.Steps : [], // saved steps (DB)
+    Steps: Array.isArray(order?.Steps) ? order.Steps : [],
     Items: Array.isArray(order?.Items) ? order.Items : [],
   });
 
   /* ---------------- Load ALL task groups ---------------- */
   useEffect(() => {
+    let mounted = true;
     axios
       .get("/taskgroup/GetTaskgroupList")
       .then((res) => {
+        if (!mounted) return;
         if (!res.data?.success) {
           setTaskGroups([]);
           setTaskOptions(["Packing", "Delivery", "Billing"]);
@@ -58,8 +67,6 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
         }
         const groups = res.data.result || [];
         setTaskGroups(groups);
-
-        // Build Task dropdown using ALL groups
         const opts =
           groups
             .map((tg) => tg.Task_group_name || tg.Task_group)
@@ -67,18 +74,32 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
         setTaskOptions(opts.length ? opts : ["Packing", "Delivery", "Billing"]);
       })
       .catch(() => {
+        if (!mounted) return;
         setTaskGroups([]);
         setTaskOptions(["Packing", "Delivery", "Billing"]);
       });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   /* ---------------- Notes for this order ---------------- */
   useEffect(() => {
     if (!values.Order_uuid) return setNotes([]);
+    let mounted = true;
     axios
       .get(`/note/${values.Order_uuid}`)
-      .then((res) => setNotes(res.data?.success ? res.data.result : []))
-      .catch(() => setNotes([]));
+      .then((res) => {
+        if (!mounted) return;
+        setNotes(res.data?.success ? res.data.result : []);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setNotes([]);
+      });
+    return () => {
+      mounted = false;
+    };
   }, [values.Order_uuid]);
 
   /* ---------------- Item Remarks just below the name ---------------- */
@@ -205,7 +226,7 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
         willCheck ? prev.filter((id) => id !== uuid) : [...prev, uuid]
       );
       console.error("toggleStep error:", err);
-      alert("Failed to update step. Please try again.");
+      toast.error("Failed to update step. Please try again.");
     } finally {
       setBusyStep((b) => ({ ...b, [uuid]: false }));
     }
@@ -215,8 +236,9 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
 
   const handleSaveChanges = async (e) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || saving) return;
 
+    setSaving(true);
     const today = toYmd(new Date());
 
     try {
@@ -228,18 +250,78 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
           CreatedAt: new Date().toISOString(),
         },
       };
+
       const res = await axios.post("/order/addStatus", payload);
-      if (res.data?.success) {
-        alert("Order updated successfully!");
-        onClose?.();
-        // 🔄 hard refresh as requested
-        window.location.reload();
-      } else {
-        alert("Update failed.");
+      const success = Boolean(res?.data?.success);
+
+      if (!success) {
+        toast.error("Update failed.");
+        setSaving(false);
+        return;
       }
+
+      // Prefer backend-updated order when available
+      const updatedOrder =
+        res.data?.result ||
+        res.data?.order ||
+        res.data?.updated ||
+        res.data?.data?.order ||
+        null;
+
+      if (updatedOrder) {
+        // Full replace (parent will diff/merge)
+        onOrderReplaced(updatedOrder);
+      } else {
+        // Fallback: patch locally
+        const currentMax =
+          Number(order?.highestStatusTask?.Status_number) ||
+          Math.max(
+            0,
+            ...(Array.isArray(values.Status)
+              ? values.Status.map((s) => Number(s?.Status_number) || 0)
+              : [0])
+          );
+
+        const newStatus = {
+          ...payload.newStatus,
+          Status_number: currentMax + 1,
+        };
+
+        const nextStatusArr = [...(values.Status || []), newStatus];
+        const orderKey = values.Order_uuid || values.id || order._id;
+
+        onOrderPatched(orderKey, {
+          Status: nextStatusArr,
+          highestStatusTask: newStatus,
+        });
+      }
+
+      // Update our local state so UI reflects instantly inside modal too
+      setValues((v) => {
+        const currentMax =
+          Math.max(
+            0,
+            ...(Array.isArray(v.Status)
+              ? v.Status.map((s) => Number(s?.Status_number) || 0)
+              : [0])
+          ) + 1;
+        const newStatusLocal = {
+          ...payload.newStatus,
+          Status_number: currentMax,
+        };
+        return {
+          ...v,
+          Status: [...(v.Status || []), newStatusLocal],
+        };
+      });
+
+      toast.success("Order updated successfully.");
+      onClose?.(); // close modal — parent list is already updated; NO reload.
     } catch (err) {
       console.error("Error updating order:", err);
-      alert("Error updating order.");
+      toast.error("Error updating order.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -368,14 +450,14 @@ export default function OrderUpdate({ order = {}, onClose = () => {} }) {
           <div className="flex gap-2">
             <button
               type="submit"
-              disabled={!canSubmit}
+              disabled={!canSubmit || saving}
               className={`flex-1 text-white font-medium py-2 rounded-lg transition ${
-                canSubmit
+                canSubmit && !saving
                   ? "bg-[#25d366] hover:bg-[#128c7e]"
                   : "bg-gray-300 cursor-not-allowed"
               }`}
             >
-              Update Status
+              {saving ? "Updating..." : "Update Status"}
             </button>
 
             {/* Preview Invoice button */}

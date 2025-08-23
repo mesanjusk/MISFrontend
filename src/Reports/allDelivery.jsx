@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from "react";
+// src/Pages/AllDelivery.jsx
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -9,8 +9,6 @@ import UpdateDelivery from "../Pages/updateDelivery";
 import { LoadingSpinner } from "../Components";
 
 export default function AllDelivery() {
-  const navigate = useNavigate();
-
   // 🔧 Central API base (env -> vite -> fallback)
   const API_BASE = useMemo(() => {
     const raw =
@@ -31,20 +29,24 @@ export default function AllDelivery() {
   const formatDateDDMMYYYY = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
-    if (isNaN(date)) return "";
+    if (Number.isNaN(date.getTime())) return "";
     const dd = String(date.getDate()).padStart(2, "0");
     const mm = String(date.getMonth() + 1).padStart(2, "0");
     const yyyy = date.getFullYear();
     return `${dd}-${mm}-${yyyy}`;
-    // If you truly need dd-mm-yyyy (not dd/mm/yyyy), this is correct
   };
+
+  // same criterion backend uses for GetDeliveredList removal
+  const hasBillableAmount = useCallback(
+    (items) => Array.isArray(items) && items.some((it) => Number(it?.Amount) > 0),
+    []
+  );
 
   useEffect(() => {
     let isMounted = true;
     (async () => {
       setLoading(true);
       try {
-        // ✅ Use a single consistent base
         const [ordersRes, customersRes] = await Promise.all([
           axios.get(`${API_BASE}/order/GetDeliveredList`),
           axios.get(`${API_BASE}/customer/GetCustomersList`),
@@ -52,8 +54,8 @@ export default function AllDelivery() {
 
         if (!isMounted) return;
 
-        const orderRows = ordersRes?.data?.success ? ordersRes.data.result : [];
-        const custRows = customersRes?.data?.success ? customersRes.data.result : [];
+        const orderRows = ordersRes?.data?.success ? ordersRes.data.result ?? [] : [];
+        const custRows = customersRes?.data?.success ? customersRes.data.result ?? [] : [];
 
         const customerMap = Array.isArray(custRows)
           ? custRows.reduce((acc, c) => {
@@ -90,6 +92,64 @@ export default function AllDelivery() {
     }, list[0]);
   };
 
+  // 🔁 Local state upsert helpers (no reload)
+  const upsertOrderPatch = useCallback(
+    (orderId, patch) => {
+      if (!orderId || !patch) return;
+
+      // If Items now have billable amounts, remove from this page immediately
+      if (patch.Items && hasBillableAmount(patch.Items)) {
+        setOrders((prev) => prev.filter((o) => (o.Order_uuid || o._id) !== orderId));
+        if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === orderId) {
+          setSelectedOrder(null);
+          setShowEditModal(false);
+        }
+        return;
+      }
+
+      // Otherwise, just patch in place
+      setOrders((prev) =>
+        prev.map((o) =>
+          (o.Order_uuid || o._id) === orderId ? { ...o, ...patch } : o
+        )
+      );
+      if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === orderId) {
+        setSelectedOrder((s) => (s ? { ...s, ...patch } : s));
+      }
+    },
+    [hasBillableAmount, selectedOrder]
+  );
+
+  const upsertOrderReplace = useCallback(
+    (nextOrder) => {
+      if (!nextOrder) return;
+      const key = nextOrder.Order_uuid || nextOrder._id;
+
+      // If replaced doc contains billable items, remove it from list now
+      if (hasBillableAmount(nextOrder.Items)) {
+        setOrders((prev) => prev.filter((o) => (o.Order_uuid || o._id) !== key));
+        if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === key) {
+          setSelectedOrder(null);
+          setShowEditModal(false);
+        }
+        return;
+      }
+
+      // Otherwise, replace/insert
+      setOrders((prev) => {
+        const idx = prev.findIndex((o) => (o.Order_uuid || o._id) === key);
+        if (idx === -1) return [nextOrder, ...prev];
+        const copy = prev.slice();
+        copy[idx] = { ...prev[idx], ...nextOrder };
+        return copy;
+      });
+      if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === key) {
+        setSelectedOrder((s) => (s ? { ...s, ...nextOrder } : s));
+      }
+    },
+    [hasBillableAmount, selectedOrder]
+  );
+
   // 🔎 Derived filtered list
   const filteredOrders = orders
     .map((order) => {
@@ -105,9 +165,6 @@ export default function AllDelivery() {
       const matchesSearch = name.includes(searchOrder.toLowerCase());
 
       const task = (order.highestStatusTask?.Task || "").toLowerCase().trim();
-
-      // ⚠️ You are already using GetDeliveredList. Don’t force-delivered + items again.
-      // Keep optional filter only if user selected one.
       const filterValue = (filter || "").toLowerCase().trim();
       const matchesFilter = filterValue ? task === filterValue : true;
 
@@ -205,7 +262,6 @@ export default function AllDelivery() {
               <option value="delivered">Delivered</option>
               <option value="design">Design</option>
               <option value="print">Print</option>
-              {/* add more if you really store other tasks */}
             </select>
           </div>
           <div className="flex gap-2 mt-2 md:mt-0">
@@ -236,23 +292,27 @@ export default function AllDelivery() {
             {/* Orders Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-9 gap-2">
               {filteredOrders.length > 0 ? (
-                filteredOrders.map((order, index) => (
-                  <div
-                    key={order._id || order.Order_id || index}
-                    onClick={() => handleEditClick(order)}
-                    className="bg-white border border-gray-200 hover:border-blue-500 rounded-lg p-2 shadow hover:shadow-md cursor-pointer transition"
-                  >
-                    <div className="text-blue-600 font-bold text-xl mb-1">
-                      #{order.Order_Number}
+                filteredOrders.map((order) => {
+                  const key =
+                    order._id || order.Order_id || order.Order_uuid || `o-${order.Order_Number}`;
+                  return (
+                    <div
+                      key={key}
+                      onClick={() => handleEditClick(order)}
+                      className="bg-white border border-gray-200 hover:border-blue-500 rounded-lg p-2 shadow hover:shadow-md cursor-pointer transition"
+                    >
+                      <div className="text-blue-600 font-bold text-xl mb-1">
+                        #{order.Order_Number}
+                      </div>
+                      <div className="text-gray-800 font-semibold text-md mb-1">
+                        {order.Customer_name}
+                      </div>
+                      <div className="text-gray-600 text-sm">
+                        Date {formatDateDDMMYYYY(order.highestStatusTask?.Delivery_Date)}
+                      </div>
                     </div>
-                    <div className="text-gray-800 font-semibold text-md mb-1">
-                      {order.Customer_name}
-                    </div>
-                    <div className="text-gray-600 text-sm">
-                      Date {formatDateDDMMYYYY(order.highestStatusTask?.Delivery_Date)}
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="col-span-full text-center text-gray-500 py-10">
                   No orders found
@@ -267,7 +327,14 @@ export default function AllDelivery() {
       {showEditModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-lg p-4 max-w-3xl w-full">
-            <UpdateDelivery mode="edit" order={selectedOrder} onClose={closeEditModal} />
+            <UpdateDelivery
+              mode="edit"
+              order={selectedOrder}
+              onClose={closeEditModal}
+              // 👇 no-reload callbacks
+              onOrderPatched={(orderId, patch) => upsertOrderPatch(orderId, patch)}
+              onOrderReplaced={(full) => upsertOrderReplace(full)}
+            />
           </div>
         </div>
       )}
