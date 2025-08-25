@@ -18,9 +18,19 @@ export default function AllDelivery() {
     return String(raw).replace(/\/$/, "");
   }, []);
 
+  // Build bases for both namespaced + legacy routes
+  const ORDERS_BASES = useMemo(
+    () => [`${API_BASE}/api/orders`, `${API_BASE}/order`],
+    [API_BASE]
+  );
+  const CUSTOMERS_BASES = useMemo(
+    () => [`${API_BASE}/api/customers`, `${API_BASE}/customer`],
+    [API_BASE]
+  );
+
   const [orders, setOrders] = useState([]);
   const [searchOrder, setSearchOrder] = useState("");
-  const [filter, setFilter] = useState(""); // "", "delivered", "design", etc.
+  const [filter, setFilter] = useState(""); // "", "delivered", "design", etc. (optional UI filter)
   const [customers, setCustomers] = useState({});
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -36,21 +46,43 @@ export default function AllDelivery() {
     return `${dd}-${mm}-${yyyy}`;
   };
 
-  // same criterion backend uses for GetDeliveredList removal
+  // Delivered-but-not-billed criterion (matches backend GetDeliveredList filter)
   const hasBillableAmount = useCallback(
     (items) => Array.isArray(items) && items.some((it) => Number(it?.Amount) > 0),
     []
   );
+
+  // Helper: try multiple paths until one works (skips 404s, throws other errors)
+  const getWithFallback = useCallback(async (paths, config) => {
+    let lastErr;
+    for (const url of paths) {
+      try {
+        const res = await axios.get(url, config);
+        return res;
+      } catch (err) {
+        if (err?.response?.status === 404) {
+          lastErr = err; // try next
+          continue;
+        }
+        throw err; // network/500/etc — stop early
+      }
+    }
+    throw lastErr || new Error("All fallbacks failed");
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
     (async () => {
       setLoading(true);
       try {
-        const [ordersRes, customersRes] = await Promise.all([
-          axios.get(`${API_BASE}/order/GetDeliveredList`),
-          axios.get(`${API_BASE}/customer/GetCustomersList`),
-        ]);
+        // Prefer /api/orders, fall back to /order
+        const ordersRes = await getWithFallback(
+          ORDERS_BASES.map((b) => `${b}/GetDeliveredList?page=1&limit=500`)
+        );
+        // Prefer /api/customers, fall back to /customer
+        const customersRes = await getWithFallback(
+          CUSTOMERS_BASES.map((b) => `${b}/GetCustomersList?page=1&limit=1000`)
+        );
 
         if (!isMounted) return;
 
@@ -59,8 +91,9 @@ export default function AllDelivery() {
 
         const customerMap = Array.isArray(custRows)
           ? custRows.reduce((acc, c) => {
-              if (c.Customer_uuid && c.Customer_name) {
-                acc[c.Customer_uuid] = c.Customer_name;
+              if (c.Customer_uuid) {
+                acc[c.Customer_uuid] =
+                  c.Customer_name || c.Mobile || c.Code || "Unknown";
               }
               return acc;
             }, {})
@@ -79,7 +112,7 @@ export default function AllDelivery() {
     return () => {
       isMounted = false;
     };
-  }, [API_BASE]);
+  }, [getWithFallback, ORDERS_BASES, CUSTOMERS_BASES]);
 
   // Safely compute highest status
   const getHighestStatus = (statusArr) => {

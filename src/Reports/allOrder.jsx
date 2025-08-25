@@ -131,7 +131,7 @@ const OrderCard = React.memo(function OrderCard({
 export default function AllOrder() {
   const [orders, setOrders] = useState([]); // single source of truth (loaded once)
   const [searchOrder, setSearchOrder] = useState("");
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks] = useState([]); // still fetched, but grouping uses actual orders
   const [showOrderModal, setShowOrderModal] = useState(false); // OrderUpdate
   const [showDeliveryModal, setShowDeliveryModal] = useState(false); // UpdateDelivery
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -183,8 +183,9 @@ export default function AllOrder() {
 
       try {
         const [ordersRes, customersRes] = await Promise.all([
-          getWithRetry("/order/GetOrderList", { signal: ac1.signal }),
-          getWithRetry("/customer/GetCustomersList", { signal: ac1.signal }),
+          // request more rows (server caps via getPaging.max)
+          getWithRetry("/order/GetOrderList?page=1&limit=500", { signal: ac1.signal }),
+          getWithRetry("/customer/GetCustomersList?page=1&limit=1000", { signal: ac1.signal }),
         ]);
 
         if (!isMounted) return;
@@ -218,17 +219,16 @@ export default function AllOrder() {
         }, pad);
       }
 
-      // Load tasks separately (kept for separation)
+      // Load task groups (kept, but not a hard dependency for grouping)
       try {
-        const res = await getWithRetry("/taskgroup/GetTaskgroupList", {
+        const res = await getWithRetry("/taskgroup/GetTaskgroupList?page=1&limit=500", {
           signal: ac2.signal,
         });
         if (!isMounted) return;
 
         if (res?.data?.success) {
           const filteredTasks = (res.data.result ?? []).filter(
-            (task) =>
-              !CLOSED_TASKS.includes((task.Task_group || "").trim().toLowerCase())
+            (t) => !CLOSED_TASKS.includes((t?.Task_group || "").trim().toLowerCase())
           );
           setTasks(filteredTasks);
         } else {
@@ -287,11 +287,6 @@ export default function AllOrder() {
   }, [smoothUpdate, upsertOrderPatch, upsertOrderReplace]);
 
   /* ------------------------ Derived view model ----------------------- */
-  const taskOptions = useMemo(() => {
-    const set = new Set(tasks.map((t) => (t?.Task_group || "").trim()).filter(Boolean));
-    return Array.from(set);
-  }, [tasks]);
-
   const normalizedOrders = useMemo(() => {
     return orders.map((order) => {
       const statusArr = Array.isArray(order.Status) ? order.Status : [];
@@ -343,6 +338,16 @@ export default function AllOrder() {
         });
     }
   }, [searchedOrders, sortKey]);
+
+  // 👇 Build visible groups from the actual orders so nothing is dropped
+  const groupNames = useMemo(() => {
+    const set = new Set(
+      (normalizedOrders || [])
+        .map((o) => (o?.highestStatusTask?.Task || "Other").trim() || "Other")
+        .filter(Boolean)
+    );
+    return Array.from(set).sort();
+  }, [normalizedOrders]);
 
   /* -------------------------- Modal handlers ------------------------- */
   const handleCardClick = useCallback((order) => {
@@ -438,12 +443,12 @@ export default function AllOrder() {
                     <LoadingSpinner />
                   </div>
                 </div>
-              ) : taskOptions.length === 0 ? (
+              ) : groupNames.length === 0 ? (
                 <div className="text-center text-gray-400 py-10">No tasks found.</div>
               ) : (
-                taskOptions.map((taskGroup) => {
+                groupNames.map((taskGroup) => {
                   const taskGroupOrders = sortedOrders.filter(
-                    (order) => order?.highestStatusTask?.Task === taskGroup
+                    (order) => (order?.highestStatusTask?.Task || "Other") === taskGroup
                   );
 
                   return (
