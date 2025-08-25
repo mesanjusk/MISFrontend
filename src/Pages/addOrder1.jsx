@@ -7,8 +7,6 @@ import AddCustomer from "./addCustomer";
 import InvoiceModal from "../Components/InvoiceModal";
 import { LoadingSpinner } from "../Components";
 
-const BASE_URL = "https://misbackend-e078.onrender.com";
-
 export default function AddOrder1() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,8 +58,8 @@ export default function AddOrder1() {
       setOptionsLoading(true);
       try {
         const [customerRes, taskRes] = await Promise.all([
-          axios.get(`${BASE_URL}/customer/GetCustomersList`),
-          axios.get(`${BASE_URL}/taskgroup/GetTaskgroupList`),
+          axios.get(`/customer/GetCustomersList`),
+          axios.get(`/taskgroup/GetTaskgroupList`),
         ]);
 
         if (customerRes.data?.success) {
@@ -172,7 +170,7 @@ export default function AddOrder1() {
       });
 
       // Create order
-      const orderRes = await axios.post(`${BASE_URL}/order/addOrder`, {
+      const orderRes = await axios.post(`/order/addOrder`, {
         Customer_uuid: customer.Customer_uuid,
         Steps: steps,
         Items: buildItemsFromRemark(Remark),
@@ -218,7 +216,7 @@ export default function AddOrder1() {
 
         try {
           const txnRes = await axios.post(
-            `${BASE_URL}/transaction/addTransaction`,
+            `/transaction/addTransaction`,
             {
               Description: Remark || "Advance received",
               Transaction_date: new Date().toISOString().split("T")[0],
@@ -251,17 +249,12 @@ export default function AddOrder1() {
 
   const sendMessageToAPI = async (name, phone, message) => {
     try {
-      const res = await fetch(`${BASE_URL}/usertask/send-message`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mobile: phone,
-          userName: name,
-          type: "customer",
-          message,
-        }),
+      const { data: result } = await axios.post(`/usertask/send-message`, {
+        mobile: phone,
+        userName: name,
+        type: "customer",
+        message,
       });
-      const result = await res.json();
       if (result?.error) toast.error("Failed to send message");
       else toast.success("WhatsApp message sent");
     } catch {

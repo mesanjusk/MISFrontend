@@ -174,8 +174,7 @@ export default function UserTask() {
 
     const fetchLastAttendance = async () => {
         try {
-            const response = await fetch(`https://misbackend-e078.onrender.com/attendance/getTodayAttendance/${userName}`);
-            const data = await response.json();
+            const { data } = await axios.get(`/attendance/getTodayAttendance/${userName}`);
             return data && data.success ? data : null;
         } catch (error) {
             console.error("Fetch error:", error);
@@ -202,13 +201,9 @@ export default function UserTask() {
 
     const sendmsg = async (type) => {
         const message = `SK ${userName} ${type}`;
-        const res = await fetch('https://misbackend-e078.onrender.com/usertask/send-message', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userName, mobile: "9372333633", type, message }),
-        });
+        const res = await axios.post('/usertask/send-message', { userName, mobile: "9372333633", type, message });
 
-        const result = await res.json();
+        const result = res.data;
         console.log(result);
     };
 

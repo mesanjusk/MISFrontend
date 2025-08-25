@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import io from 'socket.io-client';
+import { apiBasePromise } from '../apiClient.js';
 
-const socket = io('https://misbackend-e078.onrender.com'); // Use your deployed backend URL
+let socket;
 
 export default function WhatsAppLogin() {
   const [qrCode, setQrCode] = useState(null);
@@ -10,28 +11,29 @@ export default function WhatsAppLogin() {
   const [isModalOpen, setIsModalOpen] = useState(false); // State to control modal visibility
 
   useEffect(() => {
-    // Listening for the QR code and 'ready' event
-    socket.on('qr', (data) => {
-      console.log("QR Code Data:", data);
-      setQrCode(data);
-      setIsModalOpen(true); // Open modal when QR is received
+    let s;
+    apiBasePromise.then((base) => {
+      s = io(base);
+      socket = s;
+      s.on('qr', (data) => {
+        console.log("QR Code Data:", data);
+        setQrCode(data);
+        setIsModalOpen(true);
+      });
+      s.on('ready', () => setIsReady(true));
+      s.on('error', (error) => {
+        console.error("Socket Error:", error);
+        setError("Failed to connect. Please try again.");
+      });
     });
 
-    socket.on('ready', () => {
-      setIsReady(true);
-    });
-
-    socket.on('error', (error) => {
-      console.error("Socket Error:", error);
-      setError("Failed to connect. Please try again.");
-    });
-
-    // Cleanup function to disconnect socket when the component unmounts
     return () => {
-      socket.off('qr');
-      socket.off('ready');
-      socket.off('error');
-      socket.disconnect();
+      if (s) {
+        s.off('qr');
+        s.off('ready');
+        s.off('error');
+        s.disconnect();
+      }
     };
   }, []);
 

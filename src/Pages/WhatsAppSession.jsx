@@ -4,8 +4,6 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import normalizeWhatsAppNumber from '../utils/normalizeNumber';
 
-const BASE_URL = 'https://misbackend-e078.onrender.com';
-
 const WhatsAppSession = () => {
   const [number, setNumber] = useState('');
   const [message, setMessage] = useState('');
@@ -14,7 +12,7 @@ const WhatsAppSession = () => {
 
   const checkStatus = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/whatsapp/status`);
+      const res = await axios.get('/whatsapp/status');
       setIsConnected(res.data.ready === true);
     } catch (err) {
       console.error("Status check failed:", err);
@@ -39,7 +37,7 @@ const WhatsAppSession = () => {
     setSending(true);
     try {
       const normalized = normalizeWhatsAppNumber(number);
-      const res = await axios.post(`${BASE_URL}/whatsapp/send-test`, {
+      const res = await axios.post('/whatsapp/send-test', {
         number: normalized,
         message,
       });

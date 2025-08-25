@@ -12,8 +12,6 @@ import "react-toastify/dist/ReactToastify.css";
 import normalizeWhatsAppNumber from "../utils/normalizeNumber";
 import { LoadingSpinner } from "../Components";
 import InvoiceModal from "../Components/InvoiceModal";
-
-const BASE_URL = "https://misbackend-e078.onrender.com";
 const PURCHASE_ACCOUNT_ID = "6c91bf35-e9c4-4732-a428-0310f56bd0a7";
 const MIN_SAVE_MS = 600;
 
@@ -80,8 +78,8 @@ export default function UpdateDelivery({
     const fetchData = async () => {
       try {
         const [custRes, itemRes] = await Promise.all([
-          axios.get(`${BASE_URL}/customer/GetCustomersList`),
-          axios.get(`${BASE_URL}/item/GetItemList`),
+          axios.get(`/customer/GetCustomersList`),
+          axios.get(`/item/GetItemList`),
         ]);
 
         if (mounted && custRes.data.success) {
@@ -193,7 +191,7 @@ export default function UpdateDelivery({
 
         // 1) Preflight: verify id exists (helps differentiate 404 vs 500)
         try {
-          await axios.get(`${BASE_URL}/order/${idForApi}`);
+          await axios.get(`/order/${idForApi}`);
         } catch (pre) {
           const st = pre?.response?.status;
           const msg = extractServerMessage(pre);
@@ -217,13 +215,13 @@ export default function UpdateDelivery({
         // 3) PUT update
         let response;
         try {
-          response = await axios.put(`${BASE_URL}/order/updateDelivery/${idForApi}`, payload);
+          response = await axios.put(`/order/updateDelivery/${idForApi}`, payload);
         } catch (err) {
           const status = err?.response?.status;
           const msg = extractServerMessage(err);
           // Show full server payload for debugging
           console.error("updateDelivery PUT failed:", status, msg, {
-            url: `${BASE_URL}/order/updateDelivery/${idForApi}`,
+            url: `/order/updateDelivery/${idForApi}`,
             payload,
             serverData: err?.response?.data,
           });
@@ -244,7 +242,7 @@ export default function UpdateDelivery({
             { Account_id: PURCHASE_ACCOUNT_ID, Type: "Debit", Amount: totalAmount },
             { Account_id: Customer_uuid, Type: "Credit", Amount: totalAmount },
           ];
-          const transaction = await axios.post(`${BASE_URL}/transaction/addTransaction`, {
+          const transaction = await axios.post(`/transaction/addTransaction`, {
             Description: "Delivered",
             Order_number: order.Order_Number,
             Transaction_date: new Date().toISOString(),
@@ -300,7 +298,7 @@ export default function UpdateDelivery({
     const payload = { number, message, ...(pdfUrl ? { mediaUrl: pdfUrl } : {}) };
 
     try {
-      const res = await axios.post(`${BASE_URL}/whatsapp/send-test`, payload);
+      const res = await axios.post(`/whatsapp/send-test`, payload);
       if (res.data?.success || res.status === 200) toast.success("✅ WhatsApp message sent");
       else {
         console.error("⚠️ WhatsApp API error response:", res.data);

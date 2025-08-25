@@ -12,7 +12,7 @@ export default function Review() {
 
   const fetchTasks = async () => {
     const token = localStorage.getItem("token");
-    const res = await axios.get(`http://localhost:5000/api/tasks`, {
+    const res = await axios.get(`/tasks`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     setTasks(res.data.tasks);
@@ -20,7 +20,7 @@ export default function Review() {
 
   const submitReview = async (id) => {
     const token = localStorage.getItem("token");
-    await axios.post(`http://localhost:5000/api/tasks/review/${id}`, { review }, {
+    await axios.post(`/tasks/review/${id}`, { review }, {
       headers: { Authorization: `Bearer ${token}` }
     });
     setSelected(null);

@@ -105,13 +105,7 @@ const AllTransaction2 = () => {
         };
 
         try {
-            const res = await fetch('https://misbackend-e078.onrender.com/usertask/send-message', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            const result = await res.json();
+            const { data: result } = await axios.post('/usertask/send-message', payload);
             if (result.error) {
                 alert("Failed to send: " + result.error);
             } else {

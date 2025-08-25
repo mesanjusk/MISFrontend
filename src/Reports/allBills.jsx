@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
@@ -10,15 +10,6 @@ import { LoadingSpinner } from "../Components";
 
 export default function AllDelivery() {
   const navigate = useNavigate();
-
-  // 🔧 Central API base (env -> vite -> fallback)
-  const API_BASE = useMemo(() => {
-    const raw =
-      (typeof import.meta !== "undefined" ? import.meta.env.VITE_API_BASE : "") ||
-      process.env.REACT_APP_API ||
-      "http://localhost:10000";
-    return String(raw).replace(/\/$/, "");
-  }, []);
 
   const [orders, setOrders] = useState([]);
   const [searchOrder, setSearchOrder] = useState("");
@@ -46,8 +37,8 @@ export default function AllDelivery() {
       try {
         // ✅ Use a single consistent base
         const [ordersRes, customersRes] = await Promise.all([
-          axios.get(`${API_BASE}/order/GetBillList`),
-          axios.get(`${API_BASE}/customer/GetCustomersList`),
+          axios.get(`/order/GetBillList`),
+          axios.get(`/customer/GetCustomersList`),
         ]);
 
         if (!isMounted) return;
@@ -77,7 +68,7 @@ export default function AllDelivery() {
     return () => {
       isMounted = false;
     };
-  }, [API_BASE]);
+  }, []);
 
   // Safely compute highest status
   const getHighestStatus = (statusArr) => {

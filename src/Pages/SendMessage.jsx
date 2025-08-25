@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import normalizeWhatsAppNumber from '../utils/normalizeNumber';
-
-const BASE_URL = 'https://misbackend-e078.onrender.com';
-axios.defaults.baseURL = BASE_URL;
+import { apiBasePromise } from '../apiClient.js';
 
 export default function WhatsAppClient() {
   const navigate = useNavigate();
@@ -24,7 +22,14 @@ export default function WhatsAppClient() {
   const [messages, setMessages] = useState([]);
   const [lastMessageMap, setLastMessageMap] = useState({});
 
-  const socket = useMemo(() => io(BASE_URL, { transports: ['websocket', 'polling'] }), []);
+  const [socket, setSocket] = useState(null);
+
+  useEffect(() => {
+    apiBasePromise.then(base => {
+      const s = io(base, { transports: ['websocket', 'polling'] });
+      setSocket(s);
+    });
+  }, []);
 
   useEffect(() => {
     const user = location.state?.id || localStorage.getItem('User_name');
@@ -32,6 +37,7 @@ export default function WhatsAppClient() {
   }, [location.state, navigate]);
 
   useEffect(() => {
+    if (!socket) return;
     const handleReady = () => {
       setStatus('✅ WhatsApp is ready');
       setIsReady(true);
@@ -41,7 +47,6 @@ export default function WhatsAppClient() {
       const senderNumber = normalizeWhatsAppNumber(data.number || '');
       const currentNumber = selectedCustomer ? normalizeWhatsAppNumber(selectedCustomer.Mobile_number) : null;
 
-      // Update open chat if it's the current chat
       if (selectedCustomer && senderNumber === currentNumber) {
         setMessages(prev => [...prev, {
           from: 'them',
@@ -50,7 +55,6 @@ export default function WhatsAppClient() {
         }]);
       }
 
-      // Add to recent chats
       try {
         const res = await axios.get(`/customer/by-number/${senderNumber}`);
         if (res.data.success) {
@@ -77,9 +81,9 @@ export default function WhatsAppClient() {
     socket.on('ready', handleReady);
     socket.on('message', handleIncomingMessage);
 
-    fetch(`${BASE_URL}/whatsapp-status`)
-      .then(res => res.json())
-      .then(data => {
+    axios.get('/whatsapp-status')
+      .then(res => {
+        const data = res.data;
         setStatus(data.status === 'connected' ? '✅ WhatsApp is ready' : '🕓 Waiting for QR');
         setIsReady(data.status === 'connected');
       })

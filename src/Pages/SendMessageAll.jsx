@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import normalizeWhatsAppNumber from '../utils/normalizeNumber';
 
-const BASE_URL = 'https://misbackend-e078.onrender.com';
-
 export default function SendMessagePanel() {
   const [sessions, setSessions] = useState([]);
   const [sessionId, setSessionId] = useState('');
@@ -13,7 +11,7 @@ export default function SendMessagePanel() {
   useEffect(() => {
     const fetchSessions = async () => {
       try {
-        const res = await axios.get(`${BASE_URL}/whatsapp/sessions`);
+        const res = await axios.get('/whatsapp/sessions');
         if (res.data.success) setSessions(res.data.sessions);
       } catch (err) {
         console.error('❌ Failed to load sessions:', err);
@@ -25,7 +23,7 @@ export default function SendMessagePanel() {
   const sendMessage = async () => {
     try {
       const number = normalizeWhatsAppNumber(to);
-      await axios.post(`${BASE_URL}/whatsapp/send-test`, { sessionId, to: number, message });
+      await axios.post('/whatsapp/send-test', { sessionId, to: number, message });
       alert('✅ Message sent!');
     } catch (err) {
       console.error(err);

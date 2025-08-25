@@ -2,7 +2,7 @@ const CACHE_NAME = 'static-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json',
+  '/manifest.webmanifest',
   '/icon.svg',
   '/apple-touch-icon.png',
   '/pwa-192x192.png',

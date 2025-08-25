@@ -59,17 +59,9 @@ export default function WhatsApp({ order }) {
     console.log("Sending payload:", payload); 
   
     try {
-      const res = await fetch('https://misbackend-e078.onrender.com/usertask/send-message', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-  
-      const result = await res.json();
+      const { data: result } = await axios.post('/usertask/send-message', payload);
       console.log("Message sent:", result);
-  
+
       if (result.error) {
         alert("Failed to send: " + result.error);
       } else {
@@ -79,7 +71,7 @@ export default function WhatsApp({ order }) {
       console.error("Request failed:", error);
       alert("Failed to send message.");
     }
-  };  
+  };
 
     return (
       

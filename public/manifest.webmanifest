@@ -1,6 +1,6 @@
 {
-  "name": "React Dashboard",
-  "short_name": "Dashboard",
+  "name": "MIS",
+  "short_name": "MIS",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

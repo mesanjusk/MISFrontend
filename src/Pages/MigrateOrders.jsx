@@ -3,8 +3,6 @@ import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const BASE_URL = "https://misbackend-e078.onrender.com";
-
 export default function MigrateOrders() {
   const [rows, setRows] = useState([]);
   const [filtered, setFiltered] = useState([]);
@@ -26,7 +24,7 @@ export default function MigrateOrders() {
     setLoading(true);
     setError("");
     try {
-      const { data } = await axios.get(`${BASE_URL}/api/orders/migrate/flat?limit=500`);
+      const { data } = await axios.get(`/api/orders/migrate/flat?limit=500`);
       if (data?.success) {
         setRows(data.rows || []);
         setFiltered(data.rows || []);
@@ -92,7 +90,7 @@ export default function MigrateOrders() {
         selectedIds.forEach((id) => (c[id] = true));
         return c;
       });
-      const { data } = await axios.post(`${BASE_URL}/api/orders/migrate/ids`, { ids: selectedIds });
+      const { data } = await axios.post(`/api/orders/migrate/ids`, { ids: selectedIds });
       if (data?.success) {
         toast.success(`Migrated ${data.migrated} orders`);
         await fetchFlatOrders();
@@ -111,7 +109,7 @@ export default function MigrateOrders() {
     if (!window.confirm("Migrate ALL old-format orders? This updates every matching order.")) return;
     try {
       setLoading(true);
-      const { data } = await axios.post(`${BASE_URL}/api/orders/migrate/all`);
+      const { data } = await axios.post(`/api/orders/migrate/all`);
       if (data?.success) {
         toast.success(`Migrated ${data.migrated} orders`);
         await fetchFlatOrders();
@@ -228,7 +226,7 @@ export default function MigrateOrders() {
                         onClick={async () => {
                           try {
                             setBusyIds((p) => ({ ...p, [r._id]: true }));
-                            const { data } = await axios.post(`${BASE_URL}/api/orders/migrate/ids`, {
+                            const { data } = await axios.post(`/api/orders/migrate/ids`, {
                               ids: [r._id],
                             });
                             if (data?.success) {

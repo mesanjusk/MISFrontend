@@ -1,5 +1,5 @@
 // src/Pages/AllDelivery.jsx
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
@@ -9,24 +9,8 @@ import UpdateDelivery from "../Pages/updateDelivery";
 import { LoadingSpinner } from "../Components";
 
 export default function AllDelivery() {
-  // 🔧 Central API base (env -> vite -> fallback)
-  const API_BASE = useMemo(() => {
-    const raw =
-      (typeof import.meta !== "undefined" ? import.meta.env.VITE_API_BASE : "") ||
-      process.env.REACT_APP_API ||
-      "http://localhost:10000";
-    return String(raw).replace(/\/$/, "");
-  }, []);
-
-  // Build bases for both namespaced + legacy routes
-  const ORDERS_BASES = useMemo(
-    () => [`${API_BASE}/api/orders`, `${API_BASE}/order`],
-    [API_BASE]
-  );
-  const CUSTOMERS_BASES = useMemo(
-    () => [`${API_BASE}/api/customers`, `${API_BASE}/customer`],
-    [API_BASE]
-  );
+  const ORDERS_BASES = ['/api/orders', '/order'];
+  const CUSTOMERS_BASES = ['/api/customers', '/customer'];
 
   const [orders, setOrders] = useState([]);
   const [searchOrder, setSearchOrder] = useState("");

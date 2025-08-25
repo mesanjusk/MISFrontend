@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-const BASE_URL = 'https://misbackend-e078.onrender.com';
-
 export default function WhatsAppAdminPanel() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -14,7 +12,7 @@ export default function WhatsAppAdminPanel() {
 
   const fetchSessions = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/whatsapp/sessions`);
+      const res = await axios.get('/whatsapp/sessions');
       if (res.data.success) {
         setSessions(res.data.sessions);
         const now = Date.now();
@@ -30,7 +28,7 @@ export default function WhatsAppAdminPanel() {
   const resetSession = async (sessionId) => {
     if (!window.confirm(`Reset session ${sessionId}?`)) return;
     try {
-      await axios.post(`${BASE_URL}/whatsapp/reset-session`, { sessionId });
+      await axios.post('/whatsapp/reset-session', { sessionId });
       alert(`✅ Session ${sessionId} reset.`);
       fetchSessions();
     } catch (err) {
@@ -47,7 +45,7 @@ export default function WhatsAppAdminPanel() {
 
     setLoading(true);
     try {
-      await axios.post(`${BASE_URL}/whatsapp/start-session`, { sessionId: sessionId.trim() });
+      await axios.post('/whatsapp/start-session', { sessionId: sessionId.trim() });
       alert(`✅ Session ${sessionId} started.`);
       setNewSessionId('');
       fetchSessions();
@@ -66,7 +64,7 @@ export default function WhatsAppAdminPanel() {
 
   const fetchQR = async (sessionId) => {
     try {
-      const res = await axios.get(`${BASE_URL}/whatsapp/session/${sessionId}/qr`);
+      const res = await axios.get(`/whatsapp/session/${sessionId}/qr`);
       setQrStatus(res.data.status);
       if (res.data.qrImage) setQrImage(res.data.qrImage);
     } catch (err) {

@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-// Set axios base URL using env, fallback to localhost:10000
-axios.defaults.baseURL = import.meta.env.VITE_API_URL || "http://localhost:10000";
-
 const taskNames = ["Task", "Task1", "Task2", "Task3", "Task-1", "Task-2", "Task-3"];
 
 export default function Planner() {

@@ -13,7 +13,7 @@ export default function Team() {
     // For demo, fetch all users and all tasks
     // In real, filter based on admin privileges
     const token = localStorage.getItem("token");
-    const resTasks = await axios.get(`http://localhost:5000/api/tasks`, {
+    const resTasks = await axios.get(`/tasks`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     setTasks(resTasks.data.tasks);

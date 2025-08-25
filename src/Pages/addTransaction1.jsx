@@ -138,17 +138,12 @@ export default function AddTransaction1() {
 
   const sendWhatsApp = async () => {
     try {
-      const res = await fetch('https://misbackend-e078.onrender.com/usertask/send-message', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mobile: mobileToSend,
-          userName: Customer_name,
-          type: 'customer',
-          message: whatsAppMessage,
-        }),
+      const { data } = await axios.post('/usertask/send-message', {
+        mobile: mobileToSend,
+        userName: Customer_name,
+        type: 'customer',
+        message: whatsAppMessage,
       });
-      const data = await res.json();
       if (data?.error) toast.error("❌ Failed to send WhatsApp message");
       else toast.success("✅ WhatsApp message sent successfully");
     } catch {

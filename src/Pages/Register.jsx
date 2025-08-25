@@ -9,7 +9,7 @@ export default function Register() {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/api/users/register", form);
+      await axios.post("/users/register", form);
       navigate("/");
     } catch {
       alert("Registration error");

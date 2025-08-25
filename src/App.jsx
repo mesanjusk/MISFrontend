@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from 'react';
-import axios from 'axios';
+import './apiClient.js';
 import Layout from './Pages/Layout';
 import { initVersionChecker } from './utils/versionChecker';
 import { ToastContainer } from './Components';
@@ -78,8 +78,6 @@ import PaymentFollowup from "./Pages/PaymentFollowup";
 import AttendanceReport from "./Pages/AttendanceReport";
 
 function App() {
-  axios.defaults.baseURL = "https://misbackend-e078.onrender.com/";
-
   useEffect(() => {
     if (import.meta.env.PROD) {
       const id = initVersionChecker();

@@ -167,15 +167,11 @@ export default function Vendor({ onClose, order }) {
 
     const sendWhatsApp = async () => {
         try {
-            await fetch('https://misbackend-e078.onrender.com/usertask/send-message', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    mobile: mobileToSend,
-                    userName: selectedCustomer.Customer_name,
-                    type: 'customer',
-                    message: whatsAppMessage,
-                }),
+            await axios.post('/usertask/send-message', {
+                mobile: mobileToSend,
+                userName: selectedCustomer.Customer_name,
+                type: 'customer',
+                message: whatsAppMessage,
             });
             alert('WhatsApp message sent');
         } catch {

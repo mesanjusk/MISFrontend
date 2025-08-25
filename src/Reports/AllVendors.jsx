@@ -49,18 +49,11 @@ export default function AllVendors() {
   const [selectedStepLabels, setSelectedStepLabels] = useState(new Set()); // local selection snapshot
   const [togglingLabel, setTogglingLabel] = useState(""); // show tiny spinner on that row
 
-  // ---- API roots (Vite-first, CRA fallback) ----
-  const API_BASE = useMemo(() => {
-    const vite = (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_API_BASE) || "";
-    const cra = (typeof process !== "undefined" && process.env && process.env.REACT_APP_API) || "";
-    const raw = vite || cra || "";
-    return String(raw).replace(/\/$/, "");
-  }, []);
-
-  const ORDER_API = `${API_BASE}/order`;
-  const CUSTOMER_API = `${API_BASE}/customer`;
+  // ---- API roots ----
+  const ORDER_API = `/order`;
+  const CUSTOMER_API = `/customer`;
   const RAW_ENDPOINT = `${ORDER_API}/allvendors-raw`;
-  const TASKGROUPS_ENDPOINT = `${API_BASE}/taskgroup/GetTaskgroupList`;
+  const TASKGROUPS_ENDPOINT = `/taskgroup/GetTaskgroupList`;
 
   // ---- Utils ----
   const isStepNeedingVendor = (st) => {
