@@ -39,6 +39,12 @@ function useDebouncedValue(value, delay = 250) {
   return debounced;
 }
 
+/** Axios v1 cancel helper (AbortController) */
+const isCanceled = (err) =>
+  err?.code === "ERR_CANCELED" ||
+  err?.name === "CanceledError" ||
+  String(err?.message || "").toLowerCase() === "canceled";
+
 /** Minimal retry with backoff for GET requests */
 async function getWithRetry(url, opts = {}, attempts = 3) {
   let lastErr;
@@ -205,7 +211,7 @@ export default function AllOrder() {
           setCustomers({});
         }
       } catch (err) {
-        if (!axios.isCancel(err)) {
+        if (!isCanceled(err)) {
           setLoadError("Failed to fetch orders or customers.");
           toast.error("Failed to fetch orders or customers.");
           setOrders([]);
@@ -235,7 +241,7 @@ export default function AllOrder() {
           setTasks([]);
         }
       } catch (err) {
-        if (!axios.isCancel(err)) {
+        if (!isCanceled(err)) {
           setTasks([]);
         }
       } finally {
@@ -402,7 +408,7 @@ export default function AllOrder() {
               <input
                 type="text"
                 placeholder="Search by Customer Name or Order No."
-                className="form-control text-black bg-transparent rounded-full w-full p-2 focus:outline-none"
+                className="form-control text-black bg-transparent rounded-full w/full p-2 focus:outline-none"
                 value={searchOrder}
                 onChange={(e) => setSearchOrder(e.target.value)}
               />

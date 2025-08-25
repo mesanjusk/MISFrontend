@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { getWithFallback } from "../utils/api.js";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import axios from "axios";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -8,15 +7,19 @@ import * as XLSX from "xlsx";
 import UpdateDelivery from "../Pages/updateDelivery";
 import { LoadingSpinner } from "../Components";
 
-const ORDERS_BASES = ["/api/orders", "/order"];
-const CUSTOMERS_BASES = ["/api/customers", "/customer"];
-
-export default function AllDelivery() {
-  const navigate = useNavigate();
+export default function AllBills() {
+  // 🔧 Central API base (env -> vite -> CRA -> localhost)
+  const API_BASE = useMemo(() => {
+    const raw =
+      (typeof import.meta !== "undefined" ? import.meta.env.VITE_API_BASE : "") ||
+      process.env.REACT_APP_API ||
+      "http://localhost:10000";
+    return String(raw).replace(/\/$/, "");
+  }, []);
 
   const [orders, setOrders] = useState([]);
   const [searchOrder, setSearchOrder] = useState("");
-  const [filter, setFilter] = useState(""); // "", "delivered", "design", etc.
+  const [filter, setFilter] = useState(""); // "", "delivered", "design", "print", etc.
   const [customers, setCustomers] = useState({});
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -25,13 +28,18 @@ export default function AllDelivery() {
   const formatDateDDMMYYYY = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
-    if (isNaN(date)) return "";
+    if (Number.isNaN(date.getTime())) return "";
     const dd = String(date.getDate()).padStart(2, "0");
     const mm = String(date.getMonth() + 1).padStart(2, "0");
     const yyyy = date.getFullYear();
     return `${dd}-${mm}-${yyyy}`;
-    // If you truly need dd-mm-yyyy (not dd/mm/yyyy), this is correct
   };
+
+  // Bills page shows Delivered orders that HAVE billable amount
+  const hasBillableAmount = useCallback(
+    (items) => Array.isArray(items) && items.some((it) => Number(it?.Amount) > 0),
+    []
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -39,14 +47,14 @@ export default function AllDelivery() {
       setLoading(true);
       try {
         const [ordersRes, customersRes] = await Promise.all([
-          getWithFallback(ORDERS_BASES.map((b) => `${b}/GetBillList`)),
-          getWithFallback(CUSTOMERS_BASES.map((b) => `${b}/GetCustomersList`)),
+          axios.get(`${API_BASE}/order/GetBillList`),
+          axios.get(`${API_BASE}/customer/GetCustomersList`),
         ]);
 
         if (!isMounted) return;
 
-        const orderRows = ordersRes?.data?.success ? ordersRes.data.result : [];
-        const custRows = customersRes?.data?.success ? customersRes.data.result : [];
+        const orderRows = ordersRes?.data?.success ? ordersRes.data.result ?? [] : [];
+        const custRows = customersRes?.data?.success ? customersRes.data.result ?? [] : [];
 
         const customerMap = Array.isArray(custRows)
           ? custRows.reduce((acc, c) => {
@@ -60,7 +68,7 @@ export default function AllDelivery() {
         setCustomers(customerMap);
         setOrders(Array.isArray(orderRows) ? orderRows : []);
       } catch (err) {
-        console.error("Error fetching data:", err?.message || err);
+        console.error("Error fetching bills data:", err?.message || err);
         setCustomers({});
         setOrders([]);
       } finally {
@@ -70,7 +78,7 @@ export default function AllDelivery() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [API_BASE]);
 
   // Safely compute highest status
   const getHighestStatus = (statusArr) => {
@@ -83,6 +91,63 @@ export default function AllDelivery() {
     }, list[0]);
   };
 
+  // 🔁 Local state upsert helpers (no reload)
+  // If Items lose all billable amounts after an edit, remove the card from this page.
+  const upsertOrderPatch = useCallback(
+    (orderId, patch) => {
+      if (!orderId || !patch) return;
+
+      if (patch.Items && !hasBillableAmount(patch.Items)) {
+        setOrders((prev) => prev.filter((o) => (o.Order_uuid || o._id) !== orderId));
+        if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === orderId) {
+          setSelectedOrder(null);
+          setShowEditModal(false);
+        }
+        return;
+      }
+
+      setOrders((prev) =>
+        prev.map((o) =>
+          (o.Order_uuid || o._id) === orderId ? { ...o, ...patch } : o
+        )
+      );
+      if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === orderId) {
+        setSelectedOrder((s) => (s ? { ...s, ...patch } : s));
+      }
+    },
+    [hasBillableAmount, selectedOrder]
+  );
+
+  const upsertOrderReplace = useCallback(
+    (nextOrder) => {
+      if (!nextOrder) return;
+      const key = nextOrder.Order_uuid || nextOrder._id;
+
+      // If the replaced order no longer has billable items, remove from this list
+      if (!hasBillableAmount(nextOrder.Items)) {
+        setOrders((prev) => prev.filter((o) => (o.Order_uuid || o._id) !== key));
+        if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === key) {
+          setSelectedOrder(null);
+          setShowEditModal(false);
+        }
+        return;
+      }
+
+      // Otherwise upsert
+      setOrders((prev) => {
+        const idx = prev.findIndex((o) => (o.Order_uuid || o._id) === key);
+        if (idx === -1) return [nextOrder, ...prev];
+        const copy = prev.slice();
+        copy[idx] = { ...prev[idx], ...nextOrder };
+        return copy;
+      });
+      if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === key) {
+        setSelectedOrder((s) => (s ? { ...s, ...nextOrder } : s));
+      }
+    },
+    [hasBillableAmount, selectedOrder]
+  );
+
   // 🔎 Derived filtered list
   const filteredOrders = orders
     .map((order) => {
@@ -94,6 +159,9 @@ export default function AllDelivery() {
       };
     })
     .filter((order) => {
+      // Always show only orders that still have billable items
+      if (!hasBillableAmount(order.Items)) return false;
+
       const name = (order.Customer_name || "").toLowerCase();
       const matchesSearch = name.includes(searchOrder.toLowerCase());
 
@@ -112,7 +180,7 @@ export default function AllDelivery() {
 
   const exportPDF = () => {
     const doc = new jsPDF();
-    doc.text("Orders Report", 14, 15);
+    doc.text("Bills Report", 14, 15);
     doc.autoTable({
       head: [
         [
@@ -136,7 +204,7 @@ export default function AllDelivery() {
       ]),
       startY: 20,
     });
-    doc.save("orders_report.pdf");
+    doc.save("bills_report.pdf");
   };
 
   const exportExcel = () => {
@@ -152,8 +220,8 @@ export default function AllDelivery() {
 
     const worksheet = XLSX.utils.json_to_sheet(worksheetData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
-    XLSX.writeFile(workbook, "orders_report.xlsx");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Bills");
+    XLSX.writeFile(workbook, "bills_report.xlsx");
   };
 
   const handleEditClick = (order) => {
@@ -184,7 +252,7 @@ export default function AllDelivery() {
               value={searchOrder}
               onChange={(e) => setSearchOrder(e.target.value)}
             />
-            {/* Optional: a quick filter dropdown */}
+            {/* Optional filter by latest task */}
             <select
               className="bg-white shadow-sm border border-gray-300 rounded-full px-3 py-2"
               value={filter}
@@ -195,7 +263,6 @@ export default function AllDelivery() {
               <option value="delivered">Delivered</option>
               <option value="design">Design</option>
               <option value="print">Print</option>
-              {/* add more if you really store other tasks */}
             </select>
           </div>
           <div className="flex gap-2 mt-2 md:mt-0">
@@ -226,26 +293,30 @@ export default function AllDelivery() {
             {/* Orders Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-9 gap-2">
               {filteredOrders.length > 0 ? (
-                filteredOrders.map((order, index) => (
-                  <div
-                    key={order._id || order.Order_id || index}
-                    onClick={() => handleEditClick(order)}
-                    className="bg-white border border-gray-200 hover:border-blue-500 rounded-lg p-2 shadow hover:shadow-md cursor-pointer transition"
-                  >
-                    <div className="text-blue-600 font-bold text-xl mb-1">
-                      #{order.Order_Number}
+                filteredOrders.map((order) => {
+                  const key =
+                    order._id || order.Order_id || order.Order_uuid || `o-${order.Order_Number}`;
+                  return (
+                    <div
+                      key={key}
+                      onClick={() => handleEditClick(order)}
+                      className="bg-white border border-gray-200 hover:border-blue-500 rounded-lg p-2 shadow hover:shadow-md cursor-pointer transition"
+                    >
+                      <div className="text-blue-600 font-bold text-xl mb-1">
+                        #{order.Order_Number}
+                      </div>
+                      <div className="text-gray-800 font-semibold text-md mb-1">
+                        {order.Customer_name}
+                      </div>
+                      <div className="text-gray-600 text-sm">
+                        Date {formatDateDDMMYYYY(order.highestStatusTask?.Delivery_Date)}
+                      </div>
                     </div>
-                    <div className="text-gray-800 font-semibold text-md mb-1">
-                      {order.Customer_name}
-                    </div>
-                    <div className="text-gray-600 text-sm">
-                      Date {formatDateDDMMYYYY(order.highestStatusTask?.Delivery_Date)}
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="col-span-full text-center text-gray-500 py-10">
-                  No orders found
+                  No billed orders found
                 </div>
               )}
             </div>
@@ -253,11 +324,18 @@ export default function AllDelivery() {
         )}
       </div>
 
-      {/* Edit Mal */}
+      {/* Edit Modal */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-lg p-4 max-w-3xl w-full">
-            <UpdateDelivery mode="edit" order={selectedOrder} onClose={closeEditModal} />
+            <UpdateDelivery
+              mode="edit"
+              order={selectedOrder}
+              onClose={closeEditModal}
+              // 👇 no-reload callbacks
+              onOrderPatched={(orderId, patch) => upsertOrderPatch(orderId, patch)}
+              onOrderReplaced={(full) => upsertOrderReplace(full)}
+            />
           </div>
         </div>
       )}
