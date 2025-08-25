@@ -98,9 +98,6 @@ export default function AllDelivery() {
       const matchesSearch = name.includes(searchOrder.toLowerCase());
 
       const task = (order.highestStatusTask?.Task || "").toLowerCase().trim();
-
-      // ⚠️ You are already using GetDeliveredList. Don’t force-delivered + items again.
-      // Keep optional filter only if user selected one.
       const filterValue = (filter || "").toLowerCase().trim();
       const matchesFilter = filterValue ? task === filterValue : true;
 
