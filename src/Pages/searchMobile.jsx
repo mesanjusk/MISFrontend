@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../apiClient.js';
 import EditCustomer from '../Reports/editCustomer';
 
 const SearchMobile = () => {

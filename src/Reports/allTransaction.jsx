@@ -1,6 +1,6 @@
 // src/Pages/AllTransaction.jsx
 import React, { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import axios from '../apiClient.js';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';

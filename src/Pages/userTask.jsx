@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axios from '../apiClient.js';
 import { useNavigate } from "react-router-dom";
 import { enIN } from 'date-fns/locale';
 import { format } from 'date-fns';

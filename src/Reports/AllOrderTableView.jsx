@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axios from '../apiClient.js';
 import { useNavigate } from "react-router-dom";
 import BillUpdate from "../Reports/billUpdate";
 import AddOrder1 from "../Pages/addOrder1";

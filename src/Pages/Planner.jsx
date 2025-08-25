@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axios from '../apiClient.js';
 
 const taskNames = ["Task", "Task1", "Task2", "Task3", "Task-1", "Task-2", "Task-3"];
 

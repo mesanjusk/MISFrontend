@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios from '../apiClient.js';
 import { addRequest, getAllRequests, deleteRequest } from "./indexedDB";
 
 async function syncPending() {

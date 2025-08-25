@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../apiClient.js';
 import EditUser from './editUser';
 import AddUser from '../Pages/addUser';
 import { toast, ToastContainer } from 'react-toastify';

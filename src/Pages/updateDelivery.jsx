@@ -5,7 +5,7 @@
 // ✅ No-reload; updates parent via onOrderPatched/onOrderReplaced
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import axios from '../apiClient.js';
 import Select from "react-select";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";

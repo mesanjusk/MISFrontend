@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import axios from '../apiClient.js';
 import { Button, InputField, ToastContainer, toast, LoadingSpinner } from "../Components";
 import InvoiceModal from "../Components/InvoiceModal";
 

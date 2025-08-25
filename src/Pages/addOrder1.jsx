@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import axios from '../apiClient.js';
 import toast from "react-hot-toast";
 import AddCustomer from "./addCustomer";
 import InvoiceModal from "../Components/InvoiceModal";

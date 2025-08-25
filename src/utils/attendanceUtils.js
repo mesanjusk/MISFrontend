@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios from '../apiClient.js';
 
 // --- API helpers ---
 export const fetchUserNames = async () => {

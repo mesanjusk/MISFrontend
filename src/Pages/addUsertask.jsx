@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axios from '../apiClient.js';
 import InvoiceModal from "../Components/InvoiceModal";
 
 export default function AddUsertask() {

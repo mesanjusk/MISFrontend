@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axios from '../apiClient.js';
 
 const todayISO = () => new Date().toLocaleDateString("en-CA"); // yyyy-mm-dd
 

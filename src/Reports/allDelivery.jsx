@@ -1,6 +1,6 @@
 // src/Pages/AllDelivery.jsx
 import React, { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import axios from '../apiClient.js';
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";

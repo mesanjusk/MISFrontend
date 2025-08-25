@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import axios from '../apiClient.js';
 import AddItem from "./addItem";
 import InvoiceModal from "../Components/InvoiceModal";
 

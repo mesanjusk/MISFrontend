@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 // src/Pages/OrderUpdate.jsx
 import { useState, useEffect, useMemo } from "react";
-import axios from "axios";
+import axios from '../apiClient.js';
 import toast from "react-hot-toast";
 
 import OrderHeader from "../Components/OrderHeader";

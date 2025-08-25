@@ -1,6 +1,6 @@
 // src/Pages/AllTransaction3.jsx
 import React, { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import axios from '../apiClient.js';
 import { useLocation, useNavigate } from 'react-router-dom';
 import AddOrder1 from "../Pages/addOrder1";
 import jsPDF from 'jspdf';

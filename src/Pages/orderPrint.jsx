@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useReactToPrint } from "react-to-print";
-import axios from "axios";
+import axios from '../apiClient.js';
 
 
 

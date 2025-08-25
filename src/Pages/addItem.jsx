@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axios from '../apiClient.js';
 
 export default function AddItem() {
     const navigate = useNavigate();

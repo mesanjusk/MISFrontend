@@ -1,6 +1,6 @@
 import React, { useState,useEffect, useRef} from 'react';
 import OrderPrint from "../Pages/orderPrint";
-import axios from 'axios';
+import axios from '../apiClient.js';
 
 export default function Print({ order }) {
    const printRef = useRef();

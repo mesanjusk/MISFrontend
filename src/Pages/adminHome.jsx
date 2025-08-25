@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from 'axios';
+import axios from '../apiClient.js';
 import OrderUpdate from './OrderUpdate';
 import AllOrder from "../Reports/allOrder";
 import UserTask from "./userTask";

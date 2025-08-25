@@ -1,6 +1,6 @@
 // src/Pages/AllOrder.jsx
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import axios from "axios";
+import axios from '../apiClient.js';
 import OrderUpdate from "../Pages/OrderUpdate";
 import UpdateDelivery from "../Pages/updateDelivery";
 import { LoadingSpinner } from "../Components";

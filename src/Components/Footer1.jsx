@@ -5,7 +5,7 @@ import {
   FiAlertCircle,
   FiFileText,
 } from 'react-icons/fi';
-import axios from 'axios';
+import axios from '../apiClient.js';
 
 export default function UnifiedFooterTabView() {
   const [activeTab, setActiveTab] = useState('delivered');

@@ -1,5 +1,5 @@
 import React, { useState, useEffect} from 'react';
-import axios from 'axios';
+import axios from '../apiClient.js';
 
 export default function WhatsApp({ order }) {
      const [customers, setCustomers] = useState({});

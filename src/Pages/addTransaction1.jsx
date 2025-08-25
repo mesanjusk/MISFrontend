@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import axios from '../apiClient.js';
 import toast, { Toaster } from "react-hot-toast";
 import InvoiceModal from "../Components/InvoiceModal";
 import { LoadingSpinner } from "../Components";

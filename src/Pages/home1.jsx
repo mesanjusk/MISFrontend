@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from 'axios';
+import axios from '../apiClient.js';
 import OrderUpdate from '../Reports/OrderUpdate';
 import AddOrder1 from "./addOrder1";
 import { LoadingSpinner } from "../Components";

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import axios from "axios";
+import axios from '../apiClient.js';
 
 export default function AddNote({ onClose, order }) {
     const navigate = useNavigate();

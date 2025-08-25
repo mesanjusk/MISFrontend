@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import axios from '../apiClient.js';
 
 export default function WhatsAppAdminPanel() {
   const [sessions, setSessions] = useState([]);

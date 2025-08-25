@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import { io } from 'socket.io-client';
-import axios from 'axios';
+import axios from '../apiClient.js';
 import normalizeWhatsAppNumber from '../utils/normalizeNumber';
 import { apiBasePromise } from '../apiClient.js';
 
