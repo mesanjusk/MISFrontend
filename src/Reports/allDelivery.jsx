@@ -1,6 +1,6 @@
 // src/Pages/AllDelivery.jsx
 import React, { useState, useEffect, useCallback } from "react";
-import axios from '../apiClient.js';
+import { getWithFallback } from "../utils/api.js";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -8,9 +8,10 @@ import * as XLSX from "xlsx";
 import UpdateDelivery from "../Pages/updateDelivery";
 import { LoadingSpinner } from "../Components";
 
+const ORDERS_BASES = ["/api/orders", "/order"];
+const CUSTOMERS_BASES = ["/api/customers", "/customer"];
+
 export default function AllDelivery() {
-  const ORDERS_BASES = ['/api/orders', '/order'];
-  const CUSTOMERS_BASES = ['/api/customers', '/customer'];
 
   const [orders, setOrders] = useState([]);
   const [searchOrder, setSearchOrder] = useState("");
@@ -35,24 +36,6 @@ export default function AllDelivery() {
     (items) => Array.isArray(items) && items.some((it) => Number(it?.Amount) > 0),
     []
   );
-
-  // Helper: try multiple paths until one works (skips 404s, throws other errors)
-  const getWithFallback = useCallback(async (paths, config) => {
-    let lastErr;
-    for (const url of paths) {
-      try {
-        const res = await axios.get(url, config);
-        return res;
-      } catch (err) {
-        if (err?.response?.status === 404) {
-          lastErr = err; // try next
-          continue;
-        }
-        throw err; // network/500/etc — stop early
-      }
-    }
-    throw lastErr || new Error("All fallbacks failed");
-  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -96,7 +79,7 @@ export default function AllDelivery() {
     return () => {
       isMounted = false;
     };
-  }, [getWithFallback, ORDERS_BASES, CUSTOMERS_BASES]);
+  }, []);
 
   // Safely compute highest status
   const getHighestStatus = (statusArr) => {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from '../apiClient.js';
+import { getWithFallback } from "../utils/api.js";
 import { useNavigate, useLocation } from 'react-router-dom';
 import BillUpdate from '../Reports/billUpdate';
 import { InputField, Card, Modal } from '../Components';
@@ -15,6 +15,9 @@ export default function VendorBills() {
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [loggedInUser, setLoggedInUser] = useState('');
 
+    const ORDERS_BASES = ["/api/orders", "/order"];
+    const CUSTOMERS_BASES = ["/api/customers", "/customer"];
+
     useEffect(() => {
         const userNameFromState = location.state?.id;
         const user = userNameFromState || localStorage.getItem('User_name');
@@ -23,9 +26,10 @@ export default function VendorBills() {
     }, [location.state, navigate]);
 
     useEffect(() => {
-        const fetchOrders = axios.get("/order/GetBillList");
-        const fetchCustomers = axios.get("/customer/GetCustomersList");
-        Promise.all([fetchOrders, fetchCustomers])
+        Promise.all([
+            getWithFallback(ORDERS_BASES.map(b => `${b}/GetBillList`)),
+            getWithFallback(CUSTOMERS_BASES.map(b => `${b}/GetCustomersList`)),
+        ])
             .then(([ordersRes, customersRes]) => {
                 if (ordersRes.data.success) setOrders(ordersRes.data.result);
                 else setOrders([]);

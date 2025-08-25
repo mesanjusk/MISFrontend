@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from '../apiClient.js';
+import { getWithFallback } from "../utils/api.js";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
@@ -7,6 +7,9 @@ import * as XLSX from "xlsx";
 
 import UpdateDelivery from "../Pages/updateDelivery";
 import { LoadingSpinner } from "../Components";
+
+const ORDERS_BASES = ["/api/orders", "/order"];
+const CUSTOMERS_BASES = ["/api/customers", "/customer"];
 
 export default function AllDelivery() {
   const navigate = useNavigate();
@@ -35,10 +38,9 @@ export default function AllDelivery() {
     (async () => {
       setLoading(true);
       try {
-        // ✅ Use a single consistent base
         const [ordersRes, customersRes] = await Promise.all([
-          axios.get(`/order/GetBillList`),
-          axios.get(`/customer/GetCustomersList`),
+          getWithFallback(ORDERS_BASES.map((b) => `${b}/GetBillList`)),
+          getWithFallback(CUSTOMERS_BASES.map((b) => `${b}/GetCustomersList`)),
         ]);
 
         if (!isMounted) return;

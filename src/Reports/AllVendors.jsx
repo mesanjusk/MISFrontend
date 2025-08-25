@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import axios from '../apiClient.js';
+import { getWithFallback } from "../utils/api.js";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -50,10 +51,10 @@ export default function AllVendors() {
   const [togglingLabel, setTogglingLabel] = useState(""); // show tiny spinner on that row
 
   // ---- API roots ----
-  const ORDER_API = `/order`;
-  const CUSTOMER_API = `/customer`;
-  const RAW_ENDPOINT = `${ORDER_API}/allvendors-raw`;
-  const TASKGROUPS_ENDPOINT = `/taskgroup/GetTaskgroupList`;
+  const ORDER_BASE = "/order";
+  const ORDERS_BASES = ["/api/orders", "/order"];
+  const CUSTOMERS_BASES = ["/api/customers", "/customer"];
+  const TASKGROUPS_BASES = ["/api/taskgroup", "/taskgroup"];
 
   // ---- Utils ----
   const isStepNeedingVendor = (st) => {
@@ -114,9 +115,12 @@ export default function AllVendors() {
     setLoading(true);
     try {
       const [rawRes, customersRes, tgRes] = await Promise.all([
-        axios.get(RAW_ENDPOINT, { params: { deliveredOnly: true } }),
-        axios.get(`${CUSTOMER_API}/GetCustomersList`),
-        axios.get(TASKGROUPS_ENDPOINT),
+        getWithFallback(
+          ORDERS_BASES.map((b) => `${b}/allvendors-raw`),
+          { params: { deliveredOnly: true } }
+        ),
+        getWithFallback(CUSTOMERS_BASES.map((b) => `${b}/GetCustomersList`)),
+        getWithFallback(TASKGROUPS_BASES.map((b) => `${b}/GetTaskgroupList`)),
       ]);
 
       const docs = rawRes.data?.rows || [];
@@ -216,7 +220,7 @@ export default function AllVendors() {
     try {
       setLoading(true);
       const orderId = activeOrder._id || activeOrder.id;
-      await axios.post(`${ORDER_API}/orders/${orderId}/steps/${activeStep.stepId}/assign-vendor`, {
+      await axios.post(`${ORDER_BASE}/orders/${orderId}/steps/${activeStep.stepId}/assign-vendor`, {
         vendorCustomerUuid: selectedVendorUuid,
         costAmount: amt,
         plannedDate,
@@ -256,7 +260,7 @@ export default function AllVendors() {
     try {
       setLoading(true);
       const orderId = addStepOrder._id || addStepOrder.id;
-      await axios.post(`${ORDER_API}/orders/${orderId}/steps`, {
+      await axios.post(`${ORDER_BASE}/orders/${orderId}/steps`, {
         label: resolvedLabel,
         vendorCustomerUuid: newStepVendorUuid || null,
         costAmount: Number(newStepCost || 0),
@@ -330,14 +334,14 @@ export default function AllVendors() {
     try {
       if (checked) {
         // ADD step
-        await axios.post(`${ORDER_API}/orders/${orderId}/steps`, {
+        await axios.post(`${ORDER_BASE}/orders/${orderId}/steps`, {
           label: tidy,
         });
       } else {
         // REMOVE step
         const stepId = getStepIdByLabel(tidy);
         if (stepId) {
-          await axios.delete(`${ORDER_API}/orders/${orderId}/steps/${stepId}`);
+          await axios.delete(`${ORDER_BASE}/orders/${orderId}/steps/${stepId}`);
         } else {
           // if we don't have id, fetch to resync (backend might already be in sync)
         }
