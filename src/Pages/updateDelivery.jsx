@@ -496,15 +496,7 @@ export default function UpdateDelivery({
                 + Add Item
               </button>
 
-              <button
-                type="button"
-                onClick={sortLinesAZ}
-                className="bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300"
-                disabled={!items?.length}
-                title="Sort the current lines alphabetically by Item name"
-              >
-                Sort A→Z
-              </button>
+             
             </div>
 
             <button
