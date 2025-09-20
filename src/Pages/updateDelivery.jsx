@@ -1,9 +1,11 @@
 /* eslint-disable react/prop-types */
-// src/Pages/UpdateDelivery.jsx (FAST-LOAD EDITION)
+// src/Pages/UpdateDelivery.jsx (FAST-LOAD + A→Z SORT EDITION)
 // ✅ Instant modal open (no fullscreen blocking loader)
 // ✅ Caches customers/items with 5‑min TTL (memory + sessionStorage)
 // ✅ Lazy-loads InvoiceModal (code-split) to keep initial bundle light
 // ✅ Stable renders via useMemo + tiny fixes
+// ✅ NEW: Customers dropdown & Item list sorted alphabetically (case-insensitive)
+// ✅ NEW: "Sort A→Z" button to alphabetize current line-items by Item name
 
 import { useEffect, useState, useCallback, lazy, Suspense, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -18,6 +20,9 @@ const InvoiceModal = lazy(() => import("../Components/InvoiceModal"));
 const PURCHASE_ACCOUNT_ID = "6c91bf35-e9c4-4732-a428-0310f56bd0a7";
 const MIN_SAVE_MS = 600;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// --- helpers ---------------------------------------------------------------
+const ciCompare = (a = "", b = "") => a.localeCompare(b, undefined, { sensitivity: "base" });
 
 // --- simple cache helpers ---------------------------------------------------
 const memoryCache = {
@@ -65,8 +70,13 @@ async function getCustomersAndItems() {
     axios.get(`/item/GetItemList`),
   ]);
 
-  const customers = custRes?.data?.result || [];
-  const items = itemRes?.data?.result || [];
+  // sort at source to keep caches ordered
+  const customers = (custRes?.data?.result || [])
+    .slice()
+    .sort((a, b) => ciCompare(a?.Customer_name, b?.Customer_name));
+  const items = (itemRes?.data?.result || [])
+    .slice()
+    .sort((a, b) => ciCompare(a?.Item_name, b?.Item_name));
 
   // update caches
   memoryCache.customers = customers;
@@ -94,7 +104,7 @@ export default function UpdateDelivery({
   ]);
   const [Customer_name, setCustomer_name] = useState("");
   const [customers, setCustomers] = useState([]);
-  const [itemOptions, setItemOptions] = useState([]); // array of item names
+  const [itemOptions, setItemOptions] = useState([]); // array of item names (sorted)
   const [loggedInUser, setLoggedInUser] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerMap, setCustomerMap] = useState({});
@@ -133,23 +143,26 @@ export default function UpdateDelivery({
     }
   }, [order, mode]);
 
-  /* --------------- load customers/items (cached) --------------- */
+  /* --------------- load customers/items (cached + sorted) --------------- */
   useEffect(() => {
     let mounted = true;
     setLoadingLists(true); // do NOT block the whole screen
     getCustomersAndItems()
       .then(({ customers, items }) => {
         if (!mounted) return;
-        setCustomers(customers);
+        const sortedCustomers = customers.slice().sort((a, b) => ciCompare(a?.Customer_name, b?.Customer_name));
+        const sortedItemNames = items.map((it) => it.Item_name).sort(ciCompare);
+
+        setCustomers(sortedCustomers);
         const map = {};
-        for (const c of customers) map[c.Customer_uuid] = c.Customer_name;
+        for (const c of sortedCustomers) map[c.Customer_uuid] = c.Customer_name;
         setCustomerMap(map);
-        const found = customers.find((c) => c.Customer_uuid === Customer_uuid);
+        const found = sortedCustomers.find((c) => c.Customer_uuid === Customer_uuid);
         if (found) {
           setCustomer_name(found.Customer_name);
           setCustomerMobile(found.Mobile_number);
         }
-        setItemOptions(items.map((it) => it.Item_name));
+        setItemOptions(sortedItemNames);
       })
       .catch((e) => {
         console.error(e);
@@ -196,6 +209,10 @@ export default function UpdateDelivery({
       ...prev,
       { Item: "", Quantity: 0, Rate: 0, Amount: 0, Priority: "Normal", Remark: "" },
     ]);
+  };
+
+  const sortLinesAZ = () => {
+    setItems((prev) => [...prev].sort((a, b) => ciCompare(a?.Item, b?.Item)));
   };
 
   const validateForm = () => {
@@ -469,14 +486,26 @@ export default function UpdateDelivery({
               </div>
             ))}
 
-            <button
-              type="button"
-              onClick={addNewItem}
-              className="bg-blue-500 text-white px-3 py-1 rounded"
-              disabled={loadingLists}
-            >
-              + Add Item
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={addNewItem}
+                className="bg-blue-500 text-white px-3 py-1 rounded"
+                disabled={loadingLists}
+              >
+                + Add Item
+              </button>
+
+              <button
+                type="button"
+                onClick={sortLinesAZ}
+                className="bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300"
+                disabled={!items?.length}
+                title="Sort the current lines alphabetically by Item name"
+              >
+                Sort A→Z
+              </button>
+            </div>
 
             <button
               type="submit"
