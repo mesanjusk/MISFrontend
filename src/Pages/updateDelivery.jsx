@@ -1,19 +1,81 @@
 /* eslint-disable react/prop-types */
-// src/Pages/UpdateDelivery.jsx
-// ✅ Uses Mongo _id in URL (backend expects findById)
-// ✅ Preflight GET to verify the id and better error surfacing
-// ✅ No-reload; updates parent via onOrderPatched/onOrderReplaced
-import { useEffect, useState, useCallback } from "react";
+// src/Pages/UpdateDelivery.jsx (FAST-LOAD EDITION)
+// ✅ Instant modal open (no fullscreen blocking loader)
+// ✅ Caches customers/items with 5‑min TTL (memory + sessionStorage)
+// ✅ Lazy-loads InvoiceModal (code-split) to keep initial bundle light
+// ✅ Stable renders via useMemo + tiny fixes
+
+import { useEffect, useState, useCallback, lazy, Suspense, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from '../apiClient.js';
-import Select from "react-select";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import axios from "../apiClient.js";
+import Select from "react-select"; // keep as-is; optionally lazy-load if bundle is heavy
+import { toast } from "react-toastify"; // ToastContainer should be mounted once at App root
 import normalizeWhatsAppNumber from "../utils/normalizeNumber";
 import { LoadingSpinner } from "../Components";
-import InvoiceModal from "../Components/InvoiceModal";
+
+const InvoiceModal = lazy(() => import("../Components/InvoiceModal"));
+
 const PURCHASE_ACCOUNT_ID = "6c91bf35-e9c4-4732-a428-0310f56bd0a7";
 const MIN_SAVE_MS = 600;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// --- simple cache helpers ---------------------------------------------------
+const memoryCache = {
+  customers: null,
+  items: null,
+  ts: 0,
+};
+
+function readSessionCache() {
+  try {
+    const raw = sessionStorage.getItem("UpdateDelivery.cache.v1");
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function writeSessionCache(data) {
+  try {
+    sessionStorage.setItem("UpdateDelivery.cache.v1", JSON.stringify(data));
+  } catch {}
+}
+
+async function getCustomersAndItems() {
+  const now = Date.now();
+
+  // memory cache valid?
+  if (memoryCache.customers && memoryCache.items && now - memoryCache.ts < CACHE_TTL_MS) {
+    return { customers: memoryCache.customers, items: memoryCache.items };
+  }
+
+  // session cache valid?
+  const sess = readSessionCache();
+  if (sess && now - sess.ts < CACHE_TTL_MS) {
+    memoryCache.customers = sess.customers;
+    memoryCache.items = sess.items;
+    memoryCache.ts = sess.ts;
+    return { customers: sess.customers, items: sess.items };
+  }
+
+  // fetch fresh in parallel
+  const [custRes, itemRes] = await Promise.all([
+    axios.get(`/customer/GetCustomersList`),
+    axios.get(`/item/GetItemList`),
+  ]);
+
+  const customers = custRes?.data?.result || [];
+  const items = itemRes?.data?.result || [];
+
+  // update caches
+  memoryCache.customers = customers;
+  memoryCache.items = items;
+  memoryCache.ts = now;
+  writeSessionCache({ customers, items, ts: now });
+
+  return { customers, items };
+}
 
 export default function UpdateDelivery({
   onClose,
@@ -32,12 +94,12 @@ export default function UpdateDelivery({
   ]);
   const [Customer_name, setCustomer_name] = useState("");
   const [customers, setCustomers] = useState([]);
-  const [itemOptions, setItemOptions] = useState([]);
+  const [itemOptions, setItemOptions] = useState([]); // array of item names
   const [loggedInUser, setLoggedInUser] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerMap, setCustomerMap] = useState({});
   const [customerMobile, setCustomerMobile] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loadingLists, setLoadingLists] = useState(false); // only for the dropdowns
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
   /* ---------------------- auth ---------------------- */
@@ -51,7 +113,6 @@ export default function UpdateDelivery({
   /* -------------------- seed form -------------------- */
   useEffect(() => {
     if (mode === "edit" && (order?._id || order?.Order_id || order?.Order_uuid)) {
-      // IMPORTANT: backend wants Mongo _id for findById
       const mongoId = order?._id || order?.Order_id || "";
       setOrderId(mongoId);
 
@@ -72,40 +133,29 @@ export default function UpdateDelivery({
     }
   }, [order, mode]);
 
-  /* --------------- load customers/items --------------- */
+  /* --------------- load customers/items (cached) --------------- */
   useEffect(() => {
     let mounted = true;
-    const fetchData = async () => {
-      try {
-        const [custRes, itemRes] = await Promise.all([
-          axios.get(`/customer/GetCustomersList`),
-          axios.get(`/item/GetItemList`),
-        ]);
-
-        if (mounted && custRes.data.success) {
-          setCustomers(custRes.data.result);
-          const map = {};
-          custRes.data.result.forEach((c) => (map[c.Customer_uuid] = c.Customer_name));
-          setCustomerMap(map);
-          const found = custRes.data.result.find((c) => c.Customer_uuid === Customer_uuid);
-          if (found) {
-            setCustomer_name(found.Customer_name);
-            setCustomerMobile(found.Mobile_number);
-          }
+    setLoadingLists(true); // do NOT block the whole screen
+    getCustomersAndItems()
+      .then(({ customers, items }) => {
+        if (!mounted) return;
+        setCustomers(customers);
+        const map = {};
+        for (const c of customers) map[c.Customer_uuid] = c.Customer_name;
+        setCustomerMap(map);
+        const found = customers.find((c) => c.Customer_uuid === Customer_uuid);
+        if (found) {
+          setCustomer_name(found.Customer_name);
+          setCustomerMobile(found.Mobile_number);
         }
-
-        if (mounted && itemRes.data.success) {
-          const options = itemRes.data.result.map((item) => item.Item_name);
-          setItemOptions(options);
-        }
-      } catch {
-        if (mounted) toast.error("Error loading data");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    fetchData();
+        setItemOptions(items.map((it) => it.Item_name));
+      })
+      .catch((e) => {
+        console.error(e);
+        toast.error("Error loading lists");
+      })
+      .finally(() => mounted && setLoadingLists(false));
     return () => {
       mounted = false;
     };
@@ -123,19 +173,18 @@ export default function UpdateDelivery({
   };
 
   const handleItemChange = (index, key, value) => {
-    const updated = [...items];
-
-    if (key === "Quantity" || key === "Rate") {
-      updated[index][key] = parseFloat(value) || 0;
-    } else {
-      updated[index][key] = value;
-    }
-
-    const qty = parseFloat(updated[index].Quantity) || 0;
-    const rate = parseFloat(updated[index].Rate) || 0;
-    updated[index].Amount = +(qty * rate).toFixed(2);
-
-    setItems(updated);
+    setItems((prev) => {
+      const updated = [...prev];
+      if (key === "Quantity" || key === "Rate") {
+        updated[index][key] = parseFloat(value) || 0;
+      } else {
+        updated[index][key] = value;
+      }
+      const qty = parseFloat(updated[index].Quantity) || 0;
+      const rate = parseFloat(updated[index].Rate) || 0;
+      updated[index].Amount = +(qty * rate).toFixed(2);
+      return updated;
+    });
   };
 
   const addNewItem = () => {
@@ -143,8 +192,8 @@ export default function UpdateDelivery({
       toast.error("Please complete existing item rows first");
       return;
     }
-    setItems([
-      ...items,
+    setItems((prev) => [
+      ...prev,
       { Item: "", Quantity: 0, Rate: 0, Amount: 0, Priority: "Normal", Remark: "" },
     ]);
   };
@@ -189,7 +238,7 @@ export default function UpdateDelivery({
           return;
         }
 
-        // 1) Preflight: verify id exists (helps differentiate 404 vs 500)
+        // Preflight: verify id exists (helps differentiate 404 vs 500)
         try {
           await axios.get(`/order/${idForApi}`);
         } catch (pre) {
@@ -200,7 +249,7 @@ export default function UpdateDelivery({
           return;
         }
 
-        // 2) Build payload
+        // Build payload
         const itemLines = items.map((i) => ({
           Item: i.Item,
           Quantity: Number(i.Quantity) || 0,
@@ -212,14 +261,13 @@ export default function UpdateDelivery({
 
         const payload = { Customer_uuid, Items: itemLines };
 
-        // 3) PUT update
+        // PUT update
         let response;
         try {
           response = await axios.put(`/order/updateDelivery/${idForApi}`, payload);
         } catch (err) {
           const status = err?.response?.status;
           const msg = extractServerMessage(err);
-          // Show full server payload for debugging
           console.error("updateDelivery PUT failed:", status, msg, {
             url: `/order/updateDelivery/${idForApi}`,
             payload,
@@ -235,7 +283,7 @@ export default function UpdateDelivery({
           return;
         }
 
-        // 4) Optional accounting
+        // Optional accounting
         try {
           const totalAmount = +itemLines.reduce((s, i) => s + (Number(i.Amount) || 0), 0).toFixed(2);
           const journal = [
@@ -263,10 +311,10 @@ export default function UpdateDelivery({
           toast.error(`Transaction error: ${msg}`);
         }
 
-        // 5) Update parent — no reload (server doesn’t return updated doc)
+        // Update parent — no reload
         const patchId = order.Order_uuid || order._id || orderId;
         onOrderPatched(patchId, {
-          Items: itemLines, // UI reflects latest lines you submitted
+          Items: itemLines,
           Customer_uuid,
           Customer_name: customerMap[Customer_uuid] || Customer_name,
         });
@@ -312,37 +360,38 @@ export default function UpdateDelivery({
     }
   };
 
-  /* ---------------------- render ---------------------- */
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-white">
-        <div className="text-center">
-          <LoadingSpinner size={80} className="mb-4" />
-          <h2 className="text-center text-gray-600">Loading...</h2>
-        </div>
-      </div>
-    );
-  }
+  // memoize select options (react-select re-renders a lot on big arrays)
+  const selectOptions = useMemo(
+    () => itemOptions.map((i) => ({ label: i, value: i })),
+    [itemOptions]
+  );
 
+  /* ---------------------- render ---------------------- */
   return (
     <>
-      {/* Remove this if ToastContainer is mounted globally in App */}
-      <ToastContainer />
+      {/* Fullscreen overlay */}
       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
         <div className="bg-white p-6 rounded shadow-md w-full max-w-3xl relative">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">
               {mode === "edit" ? "Edit Order" : "New Delivery"}
             </h2>
-            <button
-              onClick={() => {
-                setShowInvoiceModal(false);
-                onClose?.();
-              }}
-              className="text-gray-500 hover:text-red-600"
-            >
-              ✕
-            </button>
+            <div className="flex items-center gap-3">
+              {loadingLists && (
+                <div className="flex items-center text-sm text-gray-500">
+                  <LoadingSpinner size={20} className="mr-2" /> Loading lists…
+                </div>
+              )}
+              <button
+                onClick={() => {
+                  setShowInvoiceModal(false);
+                  onClose?.();
+                }}
+                className="text-gray-500 hover:text-red-600"
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
           <form
@@ -359,7 +408,8 @@ export default function UpdateDelivery({
               <select
                 value={Customer_uuid}
                 onChange={(e) => setCustomer_uuid(e.target.value)}
-                className="w-full border p-2 rounded"
+                className="w-full border p-2 rounded disabled:opacity-60"
+                disabled={loadingLists}
               >
                 <option value="">Select customer</option>
                 {customers.map((c) => (
@@ -375,10 +425,11 @@ export default function UpdateDelivery({
                 {/* Item */}
                 <Select
                   className="md:col-span-2"
-                  options={itemOptions.map((i) => ({ label: i, value: i }))}
+                  options={selectOptions}
                   value={item.Item ? { label: item.Item, value: item.Item } : null}
                   onChange={(opt) => handleItemChange(index, "Item", opt?.value || "")}
-                  placeholder="Select item"
+                  placeholder={loadingLists ? "Loading…" : "Select item"}
+                  isDisabled={loadingLists}
                 />
 
                 {/* Qty */}
@@ -422,33 +473,38 @@ export default function UpdateDelivery({
               type="button"
               onClick={addNewItem}
               className="bg-blue-500 text-white px-3 py-1 rounded"
+              disabled={loadingLists}
             >
               + Add Item
             </button>
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || loadingLists}
               className={`py-2 rounded text-white ${
-                isSubmitting ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                isSubmitting || loadingLists
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
               }`}
             >
-              {isSubmitting ? "Saving..." : "Submit"}
+              {isSubmitting ? "Saving…" : "Submit"}
             </button>
           </form>
         </div>
       </div>
 
-      {/* Reusable Invoice Modal */}
-      <InvoiceModal
-        open={showInvoiceModal}
-        onClose={() => setShowInvoiceModal(false)}
-        orderNumber={order.Order_Number}
-        partyName={customerMap[Customer_uuid] || Customer_name}
-        items={items}
-        onWhatsApp={handleWhatsApp}
-        onReady={() => {}}
-      />
+      {/* Reusable Invoice Modal (code-split) */}
+      <Suspense fallback={null}>
+        <InvoiceModal
+          open={showInvoiceModal}
+          onClose={() => setShowInvoiceModal(false)}
+          orderNumber={order.Order_Number}
+          partyName={customerMap[Customer_uuid] || Customer_name}
+          items={items}
+          onWhatsApp={handleWhatsApp}
+          onReady={() => {}}
+        />
+      </Suspense>
     </>
   );
 }
