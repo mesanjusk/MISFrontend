@@ -147,7 +147,7 @@ const OrderCard = React.memo(function OrderCard({
                 className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${chipClass}`}
                 title="Age"
               >
-                {days === 0 ? "Today" : days === 1 ? "1 day" : `${days} days`}
+                {days === 0 ? "Today" : days === 1 ? "1" : `${days} `}
               </span>
             </div>
           </div>
