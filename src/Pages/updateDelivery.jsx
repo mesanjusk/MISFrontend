@@ -1,17 +1,17 @@
 /* eslint-disable react/prop-types */
 // src/Pages/UpdateDelivery.jsx (FAST-LOAD + A→Z SORT EDITION)
 // ✅ Instant modal open (no fullscreen blocking loader)
-// ✅ Caches customers/items with 5‑min TTL (memory + sessionStorage)
+// ✅ Caches customers/items with 5-min TTL (memory + sessionStorage)
 // ✅ Lazy-loads InvoiceModal (code-split) to keep initial bundle light
 // ✅ Stable renders via useMemo + tiny fixes
-// ✅ NEW: Customers dropdown & Item list sorted alphabetically (case-insensitive)
-// ✅ NEW: "Sort A→Z" button to alphabetize current line-items by Item name
+// ✅ Customers & Items sorted alphabetically (case-insensitive)
+// ✅ "Sort A→Z" button to alphabetize current line-items by Item name
 
 import { useEffect, useState, useCallback, lazy, Suspense, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "../apiClient.js";
-import Select from "react-select"; // keep as-is; optionally lazy-load if bundle is heavy
-import { toast } from "react-toastify"; // ToastContainer should be mounted once at App root
+import Select from "react-select";
+import { toast } from "react-toastify";
 import normalizeWhatsAppNumber from "../utils/normalizeNumber";
 import { LoadingSpinner } from "../Components";
 
@@ -391,7 +391,7 @@ export default function UpdateDelivery({
         <div className="bg-white p-6 rounded shadow-md w-full max-w-3xl relative">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">
-              {mode === "edit" ? "Edit Order" : "New Delivery"}
+              {mode === "edit" ? "Edit Order • Items/Invoice" : "New Delivery"}
             </h2>
             <div className="flex items-center gap-3">
               {loadingLists && (
@@ -496,7 +496,14 @@ export default function UpdateDelivery({
                 + Add Item
               </button>
 
-             
+              <button
+                type="button"
+                onClick={sortLinesAZ}
+                className="bg-gray-100 border px-3 py-1 rounded hover:bg-gray-200"
+                disabled={items.length < 2}
+              >
+                Sort A→Z
+              </button>
             </div>
 
             <button

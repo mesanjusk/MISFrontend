@@ -1,6 +1,6 @@
 // src/Pages/AllOrder.jsx
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import axios from '../apiClient.js';
+import axios from "../apiClient.js";
 import OrderUpdate from "../Pages/OrderUpdate";
 import UpdateDelivery from "../Pages/updateDelivery";
 import { LoadingSpinner } from "../Components";
@@ -8,9 +8,10 @@ import { differenceInCalendarDays } from "date-fns";
 import toast from "react-hot-toast";
 
 /* ------------------------------ constants ------------------------------ */
-const CLOSED_TASKS = ["delivered", "cancel"];
-const MIN_LOAD_MS = 800; // ensure loading feels smooth
-const MIN_UPDATE_MS = 600; // small delay when patching/replacing to feel smooth
+const CLOSED_TASKS = ["delivered", "cancel"]; // not rendered as normal columns
+const DELIVERED_TASK_LABEL = "Delivered";     // dedicated drop zone title
+const MIN_LOAD_MS = 800;
+const MIN_UPDATE_MS = 300;
 
 /* ------------------------------ utilities ------------------------------ */
 const fmtDDMMYYYY = (date) => {
@@ -78,13 +79,28 @@ const OrderCard = React.memo(function OrderCard({
   }
   const chipClass = getAgeChipClass(days);
 
+  const handleDragStart = (e) => {
+    e.dataTransfer.setData(
+      "application/json",
+      JSON.stringify({
+        id: order.Order_uuid || order._id,
+        currentTask: order?.highestStatusTask?.Task || "Other",
+      })
+    );
+    e.dataTransfer.effectAllowed = "move";
+  };
+
   return (
-    <div className="relative rounded-xl border border-gray-200 bg-white p-3 hover:shadow-md transition">
+    <div
+      className="relative rounded-lg border border-gray-200 bg-white p-2 hover:shadow-sm transition"
+      draggable
+      onDragStart={handleDragStart}
+    >
       {/* Edit icon — admin only; stop propagation */}
       {isAdmin && (
         <button
           type="button"
-          className="absolute top-2 right-2 inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md border border-blue-600 text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-blue-600 text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
           onClick={(e) => {
             e.stopPropagation();
             onEditClick(order);
@@ -96,7 +112,7 @@ const OrderCard = React.memo(function OrderCard({
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 20 20"
             fill="currentColor"
-            className="w-3.5 h-3.5"
+            className="w-3 h-3"
             aria-hidden="true"
           >
             <path d="M13.586 3.586a2 2 0 0 1 2.828 2.828l-8.486 8.486a2 2 0 0 1-.878.506l-3.182.91a.5.5 0 0 1-.62-.62l.91-3.182a2 2 0 0 1 .506-.878l8.486-8.486Zm1.414 1.414L7.5 12.5l-1 1 1-1 7.5-7.5Z" />
@@ -108,24 +124,32 @@ const OrderCard = React.memo(function OrderCard({
       <button
         type="button"
         onClick={() => onCardClick(order)}
-        className="w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
+        className="w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
       >
-        <div className="flex items-start gap-2 pr-12">
+        <div className="flex items-start gap-2 pr-7">
           <div className="flex-1">
-            <div className="font-medium text-gray-900 truncate text-sm">
+            {/* Customer */}
+            <div className="font-medium text-gray-900 truncate text-xs">
               {order.Customer_name}
             </div>
-            <div className="mt-1 flex items-center justify-between">
-              <span className="text-sm font-semibold text-blue-700">
+
+            {/* ONE ROW: OrderNo · Date · Days */}
+            <div className="mt-1 flex items-center gap-2 justify-between">
+              <span className="text-xs font-semibold text-blue-700 truncate max-w-[45%]">
                 {order.Order_Number || "-"}
               </span>
+
+              <span className="text-[10px] text-gray-500 shrink-0">
+                {formattedDate}
+              </span>
+
               <span
-                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${chipClass}`}
+                className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${chipClass}`}
+                title="Age"
               >
                 {days === 0 ? "Today" : days === 1 ? "1 day" : `${days} days`}
               </span>
             </div>
-            <div className="mt-1 text-[11px] text-gray-500">{formattedDate}</div>
           </div>
         </div>
       </button>
@@ -135,11 +159,11 @@ const OrderCard = React.memo(function OrderCard({
 
 /* -------------------------------- page -------------------------------- */
 export default function AllOrder() {
-  const [orders, setOrders] = useState([]); // single source of truth (loaded once)
+  const [orders, setOrders] = useState([]);
   const [searchOrder, setSearchOrder] = useState("");
-  const [tasks, setTasks] = useState([]); // still fetched, but grouping uses actual orders
-  const [showOrderModal, setShowOrderModal] = useState(false); // OrderUpdate
-  const [showDeliveryModal, setShowDeliveryModal] = useState(false); // UpdateDelivery
+  const [tasksMeta, setTasksMeta] = useState([]); // [{name, seq}]
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [customers, setCustomers] = useState({});
   const [isOrdersLoading, setIsOrdersLoading] = useState(true);
@@ -147,7 +171,6 @@ export default function AllOrder() {
   const [loadError, setLoadError] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // sort controls (single source)
   const [sortKey, setSortKey] = useState("dateDesc"); // dateDesc | dateAsc | orderNo | name
   const debouncedQuery = useDebouncedValue(searchOrder, 250);
 
@@ -189,7 +212,6 @@ export default function AllOrder() {
 
       try {
         const [ordersRes, customersRes] = await Promise.all([
-          // request more rows (server caps via getPaging.max)
           getWithRetry("/order/GetOrderList?page=1&limit=500", { signal: ac1.signal }),
           getWithRetry("/customer/GetCustomersList?page=1&limit=1000", { signal: ac1.signal }),
         ]);
@@ -225,7 +247,7 @@ export default function AllOrder() {
         }, pad);
       }
 
-      // Load task groups (kept, but not a hard dependency for grouping)
+      // Load task groups (used as columns) – capture name + sequence if available
       try {
         const res = await getWithRetry("/taskgroup/GetTaskgroupList?page=1&limit=500", {
           signal: ac2.signal,
@@ -233,16 +255,29 @@ export default function AllOrder() {
         if (!isMounted) return;
 
         if (res?.data?.success) {
-          const filteredTasks = (res.data.result ?? []).filter(
-            (t) => !CLOSED_TASKS.includes((t?.Task_group || "").trim().toLowerCase())
-          );
-          setTasks(filteredTasks);
+          const rows = (res.data.result ?? [])
+            .filter((t) => {
+              const name = (t?.Task_group || "").trim();
+              const low = name.toLowerCase();
+              return !!name && !CLOSED_TASKS.includes(low);
+            })
+            .map((t, i) => {
+              const name = (t.Task_group || "").trim();
+              // detect any likely sequence keys; fallback to index
+              const seq =
+                Number(t.Sequence ?? t.sequence ?? t.Order ?? t.order ?? t.Sort_order ?? t.Position ?? t.Index ?? i) || i;
+              return { name, seq };
+            });
+
+          // sort by sequence number asc (stable)
+          rows.sort((a, b) => a.seq - b.seq);
+          setTasksMeta(rows);
         } else {
-          setTasks([]);
+          setTasksMeta([]);
         }
       } catch (err) {
         if (!isCanceled(err)) {
-          setTasks([]);
+          setTasksMeta([]);
         }
       } finally {
         if (isMounted) setIsTasksLoading(false);
@@ -278,7 +313,6 @@ export default function AllOrder() {
     );
   }, []);
 
-  // Optional: event bridge for children that can't accept props yet
   useEffect(() => {
     const handler = (ev) => {
       const { type, orderId, patch, order } = ev.detail || {};
@@ -318,8 +352,15 @@ export default function AllOrder() {
     });
   }, [normalizedOrders, debouncedQuery]);
 
+  // Exclude delivered orders from visible card list entirely
+  const nonDeliveredOrders = useMemo(
+    () =>
+      searchedOrders.filter((o) => (o?.highestStatusTask?.Task || "").trim().toLowerCase() !== "delivered"),
+    [searchedOrders]
+  );
+
   const sortedOrders = useMemo(() => {
-    const copy = [...searchedOrders];
+    const copy = [...nonDeliveredOrders];
     switch (sortKey) {
       case "dateAsc":
         return copy.sort((a, b) => {
@@ -343,17 +384,35 @@ export default function AllOrder() {
           return db - da;
         });
     }
-  }, [searchedOrders, sortKey]);
+  }, [nonDeliveredOrders, sortKey]);
 
-  // 👇 Build visible groups from the actual orders so nothing is dropped
+  // Build visible columns: start with backend sequence (tasksMeta), then add any unseen tasks from orders at the end.
   const groupNames = useMemo(() => {
-    const set = new Set(
-      (normalizedOrders || [])
-        .map((o) => (o?.highestStatusTask?.Task || "Other").trim() || "Other")
-        .filter(Boolean)
-    );
-    return Array.from(set).sort();
-  }, [normalizedOrders]);
+    const base = tasksMeta.map((t) => t.name);
+
+    // add any tasks present on orders but missing from backend list (put after sequenced ones)
+    const seen = new Set(base.map((n) => n.toLowerCase()));
+    for (const o of nonDeliveredOrders) {
+      const t = (o?.highestStatusTask?.Task || "Other").trim() || "Other";
+      const tl = t.toLowerCase();
+      if (!CLOSED_TASKS.includes(tl) && !seen.has(tl)) {
+        base.push(t);
+        seen.add(tl);
+      }
+    }
+
+    // Keep "Other" last if present
+    const otherIdx = base.indexOf("Other");
+    if (otherIdx > -1) {
+      base.splice(otherIdx, 1);
+      base.push("Other");
+    }
+
+    // Append Delivered drop zone at the end (always)
+    if (!base.includes(DELIVERED_TASK_LABEL)) base.push(DELIVERED_TASK_LABEL);
+
+    return base;
+  }, [tasksMeta, nonDeliveredOrders]);
 
   /* -------------------------- Modal handlers ------------------------- */
   const handleCardClick = useCallback((order) => {
@@ -378,10 +437,84 @@ export default function AllOrder() {
 
   const allLoading = isOrdersLoading || isTasksLoading;
 
+  /* ---------------------- Drag & Drop status change ---------------------- */
+  const persistStatus = async (orderDoc, newTask) => {
+    try {
+      const id = orderDoc._id || orderDoc.Order_id || orderDoc.Order_uuid;
+      await axios.post("/order/updateStatus", { Order_id: id, Task: newTask });
+      return true;
+    } catch (err) {
+      try {
+        const id = orderDoc._id || orderDoc.Order_id || orderDoc.Order_uuid;
+        await axios.put(`/order/updateStatus/${id}`, { Task: newTask });
+        return true;
+      } catch (err2) {
+        console.error("Status update failed:", err2?.response?.status, err2?.response?.data || err2?.message);
+        return false;
+      }
+    }
+  };
+
+  const handleDropToColumn = async (ev, newTask) => {
+    ev.preventDefault();
+    let payload = null;
+    try {
+      payload = JSON.parse(ev.dataTransfer.getData("application/json"));
+    } catch {
+      return;
+    }
+    const droppedId = payload?.id;
+    if (!droppedId) return;
+
+    const orderDoc = normalizedOrders.find((o) => (o.Order_uuid || o._id) === droppedId);
+    if (!orderDoc) return;
+
+    const prevTask = orderDoc?.highestStatusTask?.Task || "Other";
+    if (prevTask === newTask) return; // no-op
+
+    // Optimistic UI: move the card immediately
+    const patchId = orderDoc.Order_uuid || orderDoc._id;
+    const prevStatusArr = Array.isArray(orderDoc.Status) ? orderDoc.Status.slice() : [];
+    const now = new Date().toISOString();
+
+    const newHighest = {
+      Task: newTask,
+      Status_number: Number(orderDoc?.highestStatusTask?.Status_number || 0) + 1,
+      CreatedAt: now,
+    };
+
+    await smoothUpdate(async () => {
+      upsertOrderPatch(patchId, {
+        highestStatusTask: newHighest,
+        Status: [...prevStatusArr, newHighest],
+      });
+
+      const ok = await persistStatus(orderDoc, newTask);
+      if (!ok) {
+        // revert on failure
+        upsertOrderPatch(patchId, {
+          highestStatusTask: { ...orderDoc.highestStatusTask },
+          Status: prevStatusArr,
+        });
+        toast.error("Failed to update status");
+      } else {
+        toast.success(
+          newTask.toLowerCase() === "delivered"
+            ? "Moved to Delivered"
+            : `Moved to “${newTask}”`
+        );
+      }
+    });
+  };
+
+  const allowDrop = (ev) => {
+    ev.preventDefault();
+    ev.dataTransfer.dropEffect = "move";
+  };
+
   /* ------------------------------- UI -------------------------------- */
   return (
     <>
-      {/* Top progress bar when updating */}
       {isUpdating && (
         <div className="fixed top-0 left-0 right-0 h-1 bg-blue-500 animate-pulse z-[60]" />
       )}
@@ -390,7 +523,7 @@ export default function AllOrder() {
         <div className="pt-2 pb-2">
           {/* Error banner + retry */}
           {loadError && (
-            <div className="max-w-3xl mx-auto my-2 rounded-md bg-red-50 border border-red-200 text-red-700 p-2 flex items-center justify-between">
+            <div className="max-w-7xl mx-auto my-2 rounded-md bg-red-50 border border-red-200 text-red-700 p-2 flex items-center justify-between">
               <span className="text-sm">{loadError}</span>
               <button
                 className="text-xs px-2 py-1 rounded border border-red-300 hover:bg-red-100"
@@ -403,21 +536,21 @@ export default function AllOrder() {
           )}
 
           {/* Search & sort bar */}
-          <div className="flex flex-wrap items-center justify-center gap-2 w-full max-w-3xl mx-auto mb-3">
-            <div className="flex bg-white flex-1 min-w-[240px] p-2 rounded-full border border-gray-200 shadow-sm">
+          <div className="flex flex-wrap items-center justify-center gap-2 w-full max-w-7xl mx-auto mb-2">
+            <div className="flex bg-white flex-1 min-w-[240px] p-1.5 rounded-full border border-gray-200 shadow-sm">
               <input
                 type="text"
                 placeholder="Search by Customer Name or Order No."
-                className="form-control text-black bg-transparent rounded-full w/full p-2 focus:outline-none"
+                className="form-control text-black bg-transparent rounded-full w/full p-2 focus:outline-none text-sm"
                 value={searchOrder}
                 onChange={(e) => setSearchOrder(e.target.value)}
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-gray-600">Sort</label>
+            <div className="flex items-center gap-1.5">
+              <label className="text-[11px] text-gray-600">Sort</label>
               <select
-                className="text-sm border border-gray-200 rounded-md p-2 bg-white"
+                className="text-xs border border-gray-200 rounded-md p-1.5 bg-white"
                 value={sortKey}
                 onChange={(e) => setSortKey(e.target.value)}
               >
@@ -429,52 +562,78 @@ export default function AllOrder() {
             </div>
           </div>
 
-          <main className="flex flex-1 p-2 overflow-y-auto">
-            <div className="w-full mx-auto">
-              {allLoading ? (
-                // Skeletons (grid placeholder)
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
-                  {Array.from({ length: 24 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="rounded-xl border border-gray-200 bg-white p-3"
-                    >
-                      <div className="h-3 w-2/3 bg-gray-200 rounded mb-2 animate-pulse" />
-                      <div className="h-3 w-1/3 bg-gray-200 rounded mb-2 animate-pulse" />
-                      <div className="h-3 w-1/2 bg-gray-200 rounded animate-pulse" />
+          {/* Kanban board */}
+          <main className="flex-1 p-2 overflow-x-auto">
+            {isOrdersLoading || isTasksLoading ? (
+              <div className="max-w-7xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-9 2xl:grid-cols-9 gap-2">
+                  {Array.from({ length: 9 }).map((_, col) => (
+                    <div key={col} className="rounded-lg border bg-white p-2">
+                      <div className="h-3.5 w-2/3 bg-gray-200 rounded mb-2 animate-pulse" />
+                      <div className="space-y-1.5">
+                        {Array.from({ length: 6 }).map((__, i) => (
+                          <div key={i} className="h-12 bg-gray-100 rounded animate-pulse" />
+                        ))}
+                      </div>
                     </div>
                   ))}
-                  {/* Fallback spinner center (optional) */}
-                  <div className="col-span-full flex justify-center py-6">
-                    <LoadingSpinner />
-                  </div>
                 </div>
-              ) : groupNames.length === 0 ? (
-                <div className="text-center text-gray-400 py-10">No tasks found.</div>
-              ) : (
-                groupNames.map((taskGroup) => {
-                  const taskGroupOrders = sortedOrders.filter(
-                    (order) => (order?.highestStatusTask?.Task || "Other") === taskGroup
-                  );
+                <div className="flex justify-center py-4">
+                  <LoadingSpinner />
+                </div>
+              </div>
+            ) : groupNames.length === 0 ? (
+              <div className="text-center text-gray-400 py-10">No tasks found.</div>
+            ) : (
+              <div className="min-w-[1400px] max-w-[2200px] mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-9 2xl:grid-cols-9 gap-2">
+                {groupNames.map((taskGroup) => {
+                  const isDeliveredColumn =
+                    String(taskGroup).trim().toLowerCase() === "delivered";
+
+                  const taskGroupOrders = isDeliveredColumn
+                    ? [] // Never show delivered orders; column is drop zone only
+                    : sortedOrders.filter(
+                        (order) =>
+                          (order?.highestStatusTask?.Task || "Other") === taskGroup
+                      );
 
                   return (
-                    <div key={taskGroup} className="mb-4 p-3 rounded-lg">
-                      <div className="sticky top-0 bg-[#f8fafc] z-10 -mx-3 px-3 py-2 mb-2 border-b border-gray-100">
+                    <section
+                      key={taskGroup}
+                      className={`flex flex-col rounded-lg border border-gray-200 ${
+                        isDeliveredColumn ? "bg-[#f1f5f9]" : "bg-[#f8fafc]"
+                      }`}
+                      onDragOver={allowDrop}
+                      onDrop={(ev) => handleDropToColumn(ev, taskGroup)}
+                    >
+                      <header className="sticky top-0 z-10 px-2 py-1.5 border-b border-gray-100 rounded-t-lg bg-[#f8fafc]">
                         <div className="flex items-center justify-between">
-                          <h3 className="font-semibold text-lg text-blue-700">{taskGroup}</h3>
-                          <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
-                            {taskGroupOrders.length} orders
-                          </span>
+                          <h3 className={`font-semibold text-xs md:text-sm ${isDeliveredColumn ? "text-emerald-700" : "text-blue-700"}`}>
+                            {isDeliveredColumn ? `${DELIVERED_TASK_LABEL} (Drop here)` : taskGroup}
+                          </h3>
+                          {!isDeliveredColumn && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                              {taskGroupOrders.length}
+                            </span>
+                          )}
                         </div>
-                      </div>
+                      </header>
 
-                      {taskGroupOrders.length === 0 ? (
-                        <div className="text-sm text-gray-400 px-3 pb-3">
-                          No orders in {taskGroup}.
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
-                          {taskGroupOrders.map((order) => (
+                      <div className="p-2 space-y-2 min-h-[180px]">
+                        {taskGroupOrders.length === 0 ? (
+                          <div
+                            className={`text-[11px] text-gray-500 py-5 text-center border border-dashed rounded ${
+                              isDeliveredColumn
+                                ? "border-emerald-300 bg-emerald-50"
+                                : "border-gray-200"
+                            }`}
+                          >
+                            {isDeliveredColumn
+                              ? "Drag an order here to mark as Delivered"
+                              : "Drop orders here"}
+                          </div>
+                        ) : (
+                          taskGroupOrders.map((order) => (
                             <OrderCard
                               key={order.Order_uuid || order._id}
                               order={order}
@@ -482,18 +641,18 @@ export default function AllOrder() {
                               onEditClick={handleEditClick}
                               isAdmin={isAdmin}
                             />
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                          ))
+                        )}
+                      </div>
+                    </section>
                   );
-                })
-              )}
-            </div>
+                })}
+              </div>
+            )}
           </main>
         </div>
 
-        {/* OrderUpdate modal (whole card) */}
+        {/* OrderUpdate modal (click on card) */}
         {showOrderModal && (
           <Modal onClose={closeOrderModal}>
             <OrderUpdate
@@ -509,7 +668,7 @@ export default function AllOrder() {
           </Modal>
         )}
 
-        {/* UpdateDelivery modal (edit icon) */}
+        {/* UpdateDelivery modal (✏️ icon) */}
         {showDeliveryModal && (
           <Modal onClose={closeDeliveryModal}>
             <UpdateDelivery
@@ -530,7 +689,6 @@ export default function AllOrder() {
 }
 
 /* ------------------------------- Modal ------------------------------- */
-// Focus trap + ESC close + body scroll lock
 function Modal({ onClose, children }) {
   const contentRef = useRef(null);
 
@@ -541,25 +699,24 @@ function Modal({ onClose, children }) {
     const onKey = (e) => {
       if (e.key === "Escape") onClose();
       if (e.key === "Tab") {
-        // basic focus trap
         const focusable = contentRef.current?.querySelectorAll(
           'a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex="0"]'
         );
-        if (!focusable || focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
+        if (focusable && focusable.length > 0) {
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
         }
       }
     };
 
     window.addEventListener("keydown", onKey);
-    // focus first focusable
     setTimeout(() => {
       const first = contentRef.current?.querySelector(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
