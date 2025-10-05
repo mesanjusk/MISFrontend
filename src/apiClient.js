@@ -41,16 +41,6 @@ client.interceptors.request.use((config) => {
   );
   if (config.url && !/^https?:\/\//i.test(config.url)) {
     let url = config.url.startsWith('/') ? config.url : `/${config.url}`;
-    const baseHasApi = /\/api$/i.test(baseURL);
-    const urlHasApi = /^\/api(\/|$)/i.test(url);
-
-    if (baseHasApi && urlHasApi) {
-      url = url.replace(/^\/api/i, '') || '/';
-      if (url !== '/' && !url.startsWith('/')) url = `/${url}`;
-    } else if (!baseHasApi && !urlHasApi) {
-      url = `/api${url}`;
-    }
-
     config.url = url;
     config.baseURL = baseURL;
   }
