@@ -50,11 +50,11 @@ export default function AllVendors() {
   const [selectedStepLabels, setSelectedStepLabels] = useState(new Set());
   const [togglingLabel, setTogglingLabel] = useState("");
 
-  // ---- API roots (absolute, include /api) ----
-  const ORDER_BASE = "/api/orders";
-  const ORDERS_BASES = ["/api/orders"];
-  const CUSTOMERS_BASES = ["/api/customers"];
-  const TASKGROUPS_BASES = ["/api/taskgroup"];
+  // ✅ fixed API roots
+  const ORDER_BASE = "/order";
+  const ORDERS_BASES = ["/order"];
+  const CUSTOMERS_BASES = ["/customer"];
+  const TASKGROUPS_BASES = ["/taskgroup"];
 
   // ---- Utils ----
   const isStepNeedingVendor = (st) => {
@@ -80,7 +80,12 @@ export default function AllVendors() {
           const anyItemRemark = (o.Items || []).some((it) =>
             String(it?.Remark || "").toLowerCase().includes(text)
           );
-          return onum.includes(text) || cuid.includes(text) || anyRemarkText.includes(text) || anyItemRemark;
+          return (
+            onum.includes(text) ||
+            cuid.includes(text) ||
+            anyRemarkText.includes(text) ||
+            anyItemRemark
+          );
         })
       : deliveredOnly;
 
@@ -127,7 +132,8 @@ export default function AllVendors() {
         const list = customersRes.data.result;
         setCustomersList(list);
         const cmap = list.reduce((acc, c) => {
-          if (c.Customer_uuid && c.Customer_name) acc[c.Customer_uuid] = c.Customer_name;
+          if (c.Customer_uuid && c.Customer_name)
+            acc[c.Customer_uuid] = c.Customer_name;
           return acc;
         }, {});
         setCustomersMap(cmap);
@@ -136,7 +142,9 @@ export default function AllVendors() {
         setCustomersMap({});
       }
 
-      const tgItems = Array.isArray(tgRes?.data?.result) ? tgRes.data.result : [];
+      const tgItems = Array.isArray(tgRes?.data?.result)
+        ? tgRes.data.result
+        : [];
       setTaskGroups(tgItems);
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -158,7 +166,10 @@ export default function AllVendors() {
       .map((c) => ({ uuid: c.Customer_uuid, name: c.Customer_name }));
   }, [customersList]);
 
-  const rows = useMemo(() => computeProjectedRows(rawRows, searchText), [rawRows, searchText]);
+  const rows = useMemo(
+    () => computeProjectedRows(rawRows, searchText),
+    [rawRows, searchText]
+  );
 
   const enriched = useMemo(
     () =>
@@ -197,12 +208,15 @@ export default function AllVendors() {
     try {
       setLoading(true);
       const orderId = activeOrder._id || activeOrder.id;
-      await axios.post(`${ORDER_BASE}/${orderId}/steps/${activeStep.stepId}/assign-vendor`, {
-        vendorCustomerUuid: selectedVendorUuid,
-        costAmount: amt,
-        plannedDate,
-        createdBy: localStorage.getItem("User_name") || "operator",
-      });
+      await axios.post(
+        `${ORDER_BASE}/${orderId}/steps/${activeStep.stepId}/assign-vendor`,
+        {
+          vendorCustomerUuid: selectedVendorUuid,
+          costAmount: amt,
+          plannedDate,
+          createdBy: localStorage.getItem("User_name") || "operator",
+        }
+      );
       closeAssignModal();
       await fetchData();
       alert("Vendor assigned & transaction posted.");
@@ -232,8 +246,11 @@ export default function AllVendors() {
   const addStep = async () => {
     if (!addStepOrder) return;
     const resolvedLabel =
-      newStepLabelChoice === "__CUSTOM__" ? newStepLabel.trim() : newStepLabelChoice;
-    if (!resolvedLabel) return alert("Please choose a task or enter a custom label.");
+      newStepLabelChoice === "__CUSTOM__"
+        ? newStepLabel.trim()
+        : newStepLabelChoice;
+    if (!resolvedLabel)
+      return alert("Please choose a task or enter a custom label.");
     try {
       setLoading(true);
       const orderId = addStepOrder._id || addStepOrder.id;
@@ -258,7 +275,9 @@ export default function AllVendors() {
   const openOrderUpdate = (order) => {
     setSelectedOrder(order);
     const labels = new Set(
-      (order?.Steps || []).map((s) => (s?.label || "").trim()).filter(Boolean)
+      (order?.Steps || [])
+        .map((s) => (s?.label || "").trim())
+        .filter(Boolean)
     );
     setSelectedStepLabels(labels);
     setShowOrderModal(true);
@@ -271,12 +290,15 @@ export default function AllVendors() {
   };
   const getStepIdByLabel = (label) => {
     const l = (label || "").trim();
-    const found = (selectedOrder?.Steps || []).find((s) => (s?.label || "").trim() === l);
+    const found = (selectedOrder?.Steps || []).find(
+      (s) => (s?.label || "").trim() === l
+    );
     return found?._id || found?.id || null;
   };
   const refreshSelectedOrderFromStore = () => {
     if (!selectedOrder) return;
-    const id = selectedOrder._id || selectedOrder.id || selectedOrder.Order_uuid;
+    const id =
+      selectedOrder._id || selectedOrder.id || selectedOrder.Order_uuid;
     const updated = (rawRows || []).find(
       (o) => (o._id || o.id || o.Order_uuid) === id
     );
@@ -321,7 +343,15 @@ export default function AllVendors() {
   // ---------- Export ----------
   const exportToPDF = () => {
     const doc = new jsPDF();
-    const tableColumn = ["Order #", "Customer", "Step", "Vendor UUID", "Cost", "Posted?", "Remarks"];
+    const tableColumn = [
+      "Order #",
+      "Customer",
+      "Step",
+      "Vendor UUID",
+      "Cost",
+      "Posted?",
+      "Remarks",
+    ];
     const tableRows = [];
     enriched.forEach((order) => {
       const remark = order.RemarkText || buildRemarkFromItems(order) || "-";
@@ -367,7 +397,68 @@ export default function AllVendors() {
 
   return (
     <>
-      {/* UI … keep your existing markup here */}
+      {/* UI — your existing visible layout */}
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="text-lg font-semibold text-gray-700">All Vendors</h1>
+          <div className="flex gap-2">
+            <button
+              onClick={exportToExcel}
+              className="bg-green-500 hover:bg-green-600 text-white text-sm px-3 py-1 rounded"
+            >
+              Export Excel
+            </button>
+            <button
+              onClick={exportToPDF}
+              className="bg-blue-500 hover:bg-blue-600 text-white text-sm px-3 py-1 rounded"
+            >
+              Export PDF
+            </button>
+          </div>
+        </div>
+
+        <input
+          type="text"
+          placeholder="Search Order No. / Remark"
+          className="border border-gray-300 rounded-md px-3 py-1 w-64 mb-3 text-sm"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+        />
+
+        {loading ? (
+          <div className="text-center text-gray-500 py-10">Loading...</div>
+        ) : enriched.length === 0 ? (
+          <div className="text-center text-gray-400 py-10">No vendor data found.</div>
+        ) : (
+          enriched.map((o) => (
+            <div
+              key={o._id || o.Order_uuid}
+              className="border border-gray-200 rounded-lg p-3 mb-3 bg-white shadow-sm"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-semibold text-gray-700">
+                    #{o.Order_Number}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {o.Customer_name}
+                  </div>
+                </div>
+                <button
+                  onClick={() => openOrderUpdate(o)}
+                  className="text-blue-600 hover:underline text-xs"
+                >
+                  View / Update
+                </button>
+              </div>
+
+              <div className="mt-2 text-xs text-gray-600">
+                Remarks: {o.RemarkText || "-"}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </>
   );
 }
