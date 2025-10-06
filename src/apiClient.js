@@ -3,14 +3,12 @@ import axios from 'axios';
 const LOCAL_BASE = 'http://localhost:10000';
 const PROD_BASE = 'https://misbackend-e078.onrender.com';
 
-const stripTrailingSlash = (value = '') => value.replace(/\/$/, '');
-
 const envBase =
   (typeof import.meta !== 'undefined' && (import.meta.env.VITE_API_BASE || import.meta.env.REACT_APP_API)) ||
   (typeof process !== 'undefined' && (process.env.VITE_API_BASE || process.env.REACT_APP_API)) ||
   undefined;
 
-let API_BASE = stripTrailingSlash(envBase || PROD_BASE);
+let API_BASE = envBase || PROD_BASE;
 
 const client = axios.create({ baseURL: API_BASE });
 
@@ -21,9 +19,9 @@ async function chooseBase() {
     const timeout = setTimeout(() => controller.abort(), 1000);
     const res = await fetch(`${LOCAL_BASE}/health`, { signal: controller.signal });
     clearTimeout(timeout);
-    API_BASE = stripTrailingSlash(res.ok ? LOCAL_BASE : PROD_BASE);
+    API_BASE = res.ok ? LOCAL_BASE : PROD_BASE;
   } catch {
-    API_BASE = stripTrailingSlash(PROD_BASE);
+    API_BASE = PROD_BASE;
   }
   client.defaults.baseURL = API_BASE;
   return API_BASE;
@@ -36,25 +34,6 @@ const tokenKeys = ['token', 'authToken', 'access_token', 'ACCESS_TOKEN'];
 const getToken = () => tokenKeys.map((k) => localStorage.getItem(k)).find(Boolean);
 
 client.interceptors.request.use((config) => {
-  const baseURL = stripTrailingSlash(
-    config.baseURL || client.defaults.baseURL || API_BASE || ''
-  );
-  if (config.url && !/^https?:\/\//i.test(config.url)) {
-    let url = config.url.startsWith('/') ? config.url : `/${config.url}`;
-    const baseHasApi = /\/api$/i.test(baseURL);
-    const urlHasApi = /^\/api(\/|$)/i.test(url);
-
-    if (baseHasApi && urlHasApi) {
-      url = url.replace(/^\/api/i, '') || '/';
-      if (url !== '/' && !url.startsWith('/')) url = `/${url}`;
-    } else if (!baseHasApi && !urlHasApi) {
-      url = `/api${url}`;
-    }
-
-    config.url = url;
-    config.baseURL = baseURL;
-  }
-
   const t = getToken();
   if (t) config.headers.Authorization = `Bearer ${t}`;
   return config;

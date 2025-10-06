@@ -1,17 +1,14 @@
 /* eslint-disable react/prop-types */
-// src/Pages/UpdateDelivery.jsx (FAST-LOAD + A→Z SORT EDITION)
-// ✅ Instant modal open (no fullscreen blocking loader)
-// ✅ Caches customers/items with 5-min TTL (memory + sessionStorage)
-// ✅ Lazy-loads InvoiceModal (code-split) to keep initial bundle light
-// ✅ Stable renders via useMemo + tiny fixes
-// ✅ Customers & Items sorted alphabetically (case-insensitive)
-// ✅ "Sort A→Z" button to alphabetize current line-items by Item name
+// src/Pages/updateDelivery.jsx — strictly matches your backend
+// ✅ ONLY calls PUT /order/updateDelivery/:id (no POST fallback)
+// ✅ react-hot-toast
+// ✅ keeps your caching + invoice flow
 
 import { useEffect, useState, useCallback, lazy, Suspense, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "../apiClient.js";
 import Select from "react-select";
-import { toast } from "react-toastify";
+import toast from "react-hot-toast";
 import normalizeWhatsAppNumber from "../utils/normalizeNumber";
 import { LoadingSpinner } from "../Components";
 
@@ -21,15 +18,12 @@ const PURCHASE_ACCOUNT_ID = "6c91bf35-e9c4-4732-a428-0310f56bd0a7";
 const MIN_SAVE_MS = 600;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-// --- helpers ---------------------------------------------------------------
-const ciCompare = (a = "", b = "") => a.localeCompare(b, undefined, { sensitivity: "base" });
+const ciCompare = (a = "", b = "") =>
+  String(a || "").localeCompare(String(b || ""), undefined, { sensitivity: "base" });
 
-// --- simple cache helpers ---------------------------------------------------
-const memoryCache = {
-  customers: null,
-  items: null,
-  ts: 0,
-};
+const n2 = (v) => (Number.isFinite(+v) ? +v : 0);
+
+const memoryCache = { customers: null, items: null, ts: 0 };
 
 function readSessionCache() {
   try {
@@ -49,13 +43,9 @@ function writeSessionCache(data) {
 
 async function getCustomersAndItems() {
   const now = Date.now();
-
-  // memory cache valid?
   if (memoryCache.customers && memoryCache.items && now - memoryCache.ts < CACHE_TTL_MS) {
     return { customers: memoryCache.customers, items: memoryCache.items };
   }
-
-  // session cache valid?
   const sess = readSessionCache();
   if (sess && now - sess.ts < CACHE_TTL_MS) {
     memoryCache.customers = sess.customers;
@@ -64,13 +54,11 @@ async function getCustomersAndItems() {
     return { customers: sess.customers, items: sess.items };
   }
 
-  // fetch fresh in parallel
   const [custRes, itemRes] = await Promise.all([
-    axios.get(`/customer/GetCustomersList`),
-    axios.get(`/item/GetItemList`),
+    axios.get(`/customer/GetCustomersList?page=1&limit=1000`),
+    axios.get(`/item/GetItemList?page=1&limit=1000`),
   ]);
 
-  // sort at source to keep caches ordered
   const customers = (custRes?.data?.result || [])
     .slice()
     .sort((a, b) => ciCompare(a?.Customer_name, b?.Customer_name));
@@ -78,7 +66,6 @@ async function getCustomersAndItems() {
     .slice()
     .sort((a, b) => ciCompare(a?.Item_name, b?.Item_name));
 
-  // update caches
   memoryCache.customers = customers;
   memoryCache.items = items;
   memoryCache.ts = now;
@@ -97,19 +84,19 @@ export default function UpdateDelivery({
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [orderId, setOrderId] = useState(""); // Mongo _id for API
+  const [orderId, setOrderId] = useState("");
   const [Customer_uuid, setCustomer_uuid] = useState("");
   const [items, setItems] = useState([
     { Item: "", Quantity: 0, Rate: 0, Amount: 0, Priority: "Normal", Remark: "" },
   ]);
   const [Customer_name, setCustomer_name] = useState("");
   const [customers, setCustomers] = useState([]);
-  const [itemOptions, setItemOptions] = useState([]); // array of item names (sorted)
+  const [itemOptions, setItemOptions] = useState([]);
   const [loggedInUser, setLoggedInUser] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerMap, setCustomerMap] = useState({});
   const [customerMobile, setCustomerMobile] = useState("");
-  const [loadingLists, setLoadingLists] = useState(false); // only for the dropdowns
+  const [loadingLists, setLoadingLists] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
   /* ---------------------- auth ---------------------- */
@@ -123,7 +110,7 @@ export default function UpdateDelivery({
   /* -------------------- seed form -------------------- */
   useEffect(() => {
     if (mode === "edit" && (order?._id || order?.Order_id || order?.Order_uuid)) {
-      const mongoId = order?._id || order?.Order_id || "";
+      const mongoId = order?._id || order?.Order_id || order?.Order_uuid || "";
       setOrderId(mongoId);
 
       setCustomer_uuid(order.Customer_uuid || "");
@@ -131,9 +118,9 @@ export default function UpdateDelivery({
         Array.isArray(order.Items) && order.Items.length
           ? order.Items.map((it) => ({
               Item: it.Item || "",
-              Quantity: Number(it.Quantity || 0),
-              Rate: Number(it.Rate || 0),
-              Amount: Number(it.Amount || 0),
+              Quantity: n2(it.Quantity),
+              Rate: n2(it.Rate),
+              Amount: n2(it.Amount) || +(n2(it.Quantity) * n2(it.Rate)).toFixed(2),
               Priority: it.Priority || "Normal",
               Remark: it.Remark || "",
             }))
@@ -146,7 +133,7 @@ export default function UpdateDelivery({
   /* --------------- load customers/items (cached + sorted) --------------- */
   useEffect(() => {
     let mounted = true;
-    setLoadingLists(true); // do NOT block the whole screen
+    setLoadingLists(true);
     getCustomersAndItems()
       .then(({ customers, items }) => {
         if (!mounted) return;
@@ -188,14 +175,9 @@ export default function UpdateDelivery({
   const handleItemChange = (index, key, value) => {
     setItems((prev) => {
       const updated = [...prev];
-      if (key === "Quantity" || key === "Rate") {
-        updated[index][key] = parseFloat(value) || 0;
-      } else {
-        updated[index][key] = value;
-      }
-      const qty = parseFloat(updated[index].Quantity) || 0;
-      const rate = parseFloat(updated[index].Rate) || 0;
-      updated[index].Amount = +(qty * rate).toFixed(2);
+      if (key === "Quantity" || key === "Rate") updated[index][key] = n2(value);
+      else updated[index][key] = value;
+      updated[index].Amount = +(n2(updated[index].Quantity) * n2(updated[index].Rate)).toFixed(2);
       return updated;
     });
   };
@@ -249,50 +231,25 @@ export default function UpdateDelivery({
 
     await smoothSave(async () => {
       try {
-        const idForApi = orderId; // _id only (backend uses findById)
+        const idForApi = orderId;
         if (!idForApi) {
-          toast.error("No Mongo _id found for this order.");
+          toast.error("No id found for this order.");
           return;
         }
 
-        // Preflight: verify id exists (helps differentiate 404 vs 500)
-        try {
-          await axios.get(`/order/${idForApi}`);
-        } catch (pre) {
-          const st = pre?.response?.status;
-          const msg = extractServerMessage(pre);
-          console.error("Preflight GET /order/:id failed:", st, msg);
-          toast.error(`Order not found or invalid id (${st || "ERR"}): ${msg}`);
-          return;
-        }
-
-        // Build payload
         const itemLines = items.map((i) => ({
           Item: i.Item,
-          Quantity: Number(i.Quantity) || 0,
-          Rate: Number(i.Rate) || 0,
-          Amount: Number(i.Amount) || (Number(i.Quantity) || 0) * (Number(i.Rate) || 0),
+          Quantity: n2(i.Quantity),
+          Rate: n2(i.Rate),
+          Amount: +(n2(i.Amount) || (n2(i.Quantity) * n2(i.Rate))).toFixed(2),
           Priority: i.Priority || "Normal",
           Remark: i.Remark || "",
         }));
 
         const payload = { Customer_uuid, Items: itemLines };
 
-        // PUT update
-        let response;
-        try {
-          response = await axios.put(`/order/updateDelivery/${idForApi}`, payload);
-        } catch (err) {
-          const status = err?.response?.status;
-          const msg = extractServerMessage(err);
-          console.error("updateDelivery PUT failed:", status, msg, {
-            url: `/order/updateDelivery/${idForApi}`,
-            payload,
-            serverData: err?.response?.data,
-          });
-          toast.error(`Save failed (${status || "ERR"}): ${msg}`);
-          return;
-        }
+        // Only the working endpoint on your backend:
+        const response = await axios.put(`/order/updateDelivery/${idForApi}`, payload);
 
         if (!response?.data?.success) {
           console.error("updateDelivery response without success=true:", response?.data);
@@ -300,7 +257,7 @@ export default function UpdateDelivery({
           return;
         }
 
-        // Optional accounting
+        // Optional accounting (kept as-is; remove if not needed on your backend)
         try {
           const totalAmount = +itemLines.reduce((s, i) => s + (Number(i.Amount) || 0), 0).toFixed(2);
           const journal = [
@@ -328,7 +285,6 @@ export default function UpdateDelivery({
           toast.error(`Transaction error: ${msg}`);
         }
 
-        // Update parent — no reload
         const patchId = order.Order_uuid || order._id || orderId;
         onOrderPatched(patchId, {
           Items: itemLines,
@@ -377,16 +333,13 @@ export default function UpdateDelivery({
     }
   };
 
-  // memoize select options (react-select re-renders a lot on big arrays)
   const selectOptions = useMemo(
     () => itemOptions.map((i) => ({ label: i, value: i })),
     [itemOptions]
   );
 
-  /* ---------------------- render ---------------------- */
   return (
     <>
-      {/* Fullscreen overlay */}
       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
         <div className="bg-white p-6 rounded shadow-md w-full max-w-3xl relative">
           <div className="flex justify-between items-center mb-4">
@@ -439,7 +392,6 @@ export default function UpdateDelivery({
 
             {items.map((item, index) => (
               <div key={index} className="grid grid-cols-1 md:grid-cols-6 gap-2 items-center">
-                {/* Item */}
                 <Select
                   className="md:col-span-2"
                   options={selectOptions}
@@ -449,7 +401,6 @@ export default function UpdateDelivery({
                   isDisabled={loadingLists}
                 />
 
-                {/* Qty */}
                 <input
                   type="number"
                   placeholder="Qty"
@@ -458,7 +409,6 @@ export default function UpdateDelivery({
                   className="border p-2 rounded"
                 />
 
-                {/* Rate */}
                 <input
                   type="number"
                   placeholder="Rate"
@@ -467,7 +417,6 @@ export default function UpdateDelivery({
                   className="border p-2 rounded"
                 />
 
-                {/* Amount */}
                 <input
                   type="text"
                   value={item.Amount}
@@ -475,7 +424,6 @@ export default function UpdateDelivery({
                   className="border p-2 bg-gray-100 rounded"
                 />
 
-                {/* Remark */}
                 <input
                   type="text"
                   placeholder="Remark (this line)"
@@ -521,7 +469,6 @@ export default function UpdateDelivery({
         </div>
       </div>
 
-      {/* Reusable Invoice Modal (code-split) */}
       <Suspense fallback={null}>
         <InvoiceModal
           open={showInvoiceModal}
