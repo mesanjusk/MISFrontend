@@ -27,8 +27,8 @@ const getAgeChipClass = (days) =>
   days === 0
     ? "bg-blue-200 text-blue-800"
     : days === 1
-    ? "bg-yellow-200 text-yellow-800"
-    : "bg-red-200 text-red-800";
+      ? "bg-yellow-200 text-yellow-800"
+      : "bg-red-200 text-red-800";
 
 /** Debounce hook */
 function useDebouncedValue(value, delay = 250) {
@@ -97,9 +97,9 @@ const OrderCard = React.memo(function OrderCard({
       onDragStart={handleDragStart}
     >
       {/* Edit icon — admin only; stop propagation */}
-      
-        
-      
+
+
+
 
       {/* Card as a button for a11y */}
       <button
@@ -111,18 +111,18 @@ const OrderCard = React.memo(function OrderCard({
           <div className="flex-1">
             {/* Customer */}
             <div className="flex items-center gap-2 text-sm">
-  <button
-    type="button"
-    title="Edit (Update Delivery)"
-    onClick={(e) => {
-      e.stopPropagation();           // prevent card click from opening OrderUpdate
-      onEditClick(order);            // open UpdateDelivery modal
-    }}
-    className="font-semibold underline decoration-dotted underline-offset-2 hover:decoration-solid hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded px-0.5 cursor-pointer"
-  >
-    {order.Customer_name}
-  </button>
-</div>
+              <button
+                type="button"
+                title="Edit (Update Delivery)"
+                onClick={(e) => {
+                  e.stopPropagation();           // prevent card click from opening OrderUpdate
+                  onEditClick(order);            // open UpdateDelivery modal
+                }}
+                className="font-semibold underline decoration-dotted underline-offset-2 hover:decoration-solid hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded px-0.5 cursor-pointer"
+              >
+                {order.Customer_name}
+              </button>
+            </div>
 
 
             {/* ONE ROW: OrderNo · Date · Days */}
@@ -325,8 +325,8 @@ export default function AllOrder() {
       const highestStatusTask =
         statusArr.length > 0
           ? statusArr.reduce((prev, current) =>
-              Number(prev?.Status_number) > Number(current?.Status_number) ? prev : current
-            )
+            Number(prev?.Status_number) > Number(current?.Status_number) ? prev : current
+          )
           : null;
 
       const customerName = customers[order.Customer_uuid] || "Unknown";
@@ -583,18 +583,18 @@ export default function AllOrder() {
                     String(taskGroup).trim().toLowerCase() === "delivered";
 
                   const taskGroupOrders = isDeliveredColumn
-                    ? [] // Never show delivered orders; column is drop zone only
-                    : sortedOrders.filter(
-                        (order) =>
-                          (order?.highestStatusTask?.Task || "Other") === taskGroup
-                      );
+                    ? []
+                    : sortedOrders.filter((order) => {
+                      const t = (order?.highestStatusTask?.Task || "Other").trim().toLowerCase();
+                      return t === String(taskGroup).trim().toLowerCase();
+                    });
+
 
                   return (
                     <section
                       key={taskGroup}
-                      className={`flex flex-col rounded-lg border border-gray-200 ${
-                        isDeliveredColumn ? "bg-[#f1f5f9]" : "bg-[#f8fafc]"
-                      }`}
+                      className={`flex flex-col rounded-lg border border-gray-200 ${isDeliveredColumn ? "bg-[#f1f5f9]" : "bg-[#f8fafc]"
+                        }`}
                       onDragOver={allowDrop}
                       onDrop={(ev) => handleDropToColumn(ev, taskGroup)}
                     >
@@ -614,11 +614,10 @@ export default function AllOrder() {
                       <div className="p-2 space-y-2 min-h-[180px]">
                         {taskGroupOrders.length === 0 ? (
                           <div
-                            className={`text-[11px] text-gray-500 py-5 text-center border border-dashed rounded ${
-                              isDeliveredColumn
+                            className={`text-[11px] text-gray-500 py-5 text-center border border-dashed rounded ${isDeliveredColumn
                                 ? "border-emerald-300 bg-emerald-50"
                                 : "border-gray-200"
-                            }`}
+                              }`}
                           >
                             {isDeliveredColumn
                               ? "Drag an order here to mark as Delivered"
