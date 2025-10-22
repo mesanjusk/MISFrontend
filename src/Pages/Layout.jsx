@@ -1,4 +1,5 @@
 import { Outlet, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import TopNavbar from '../Components/TopNavbar';
 import Footer from '../Components/Footer';
 import FloatingButtons from '../Components/FloatingButtons';
@@ -22,8 +23,15 @@ const Layout = () => {
     { onClick: () => navigate('/addUsertask'), label: 'Assign Task', icon: FiCheckSquare },
   ];
 
+  useEffect(() => {
+    document.body.classList.add('app-shell-active');
+    return () => {
+      document.body.classList.remove('app-shell-active');
+    };
+  }, []);
+
   return (
-    <div className="app-shell text-slate-100">
+    <div className="app-shell app-shell--immersive text-slate-100">
       <div className="app-shell__background" aria-hidden />
       <div className="app-shell__pattern" aria-hidden />
 

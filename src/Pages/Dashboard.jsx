@@ -21,6 +21,8 @@ import AllAttandance from './AllAttandance';
 
 const ymd = (d) => new Date(d).toLocaleDateString('en-CA'); // yyyy-mm-dd
 
+const classNames = (...classes) => classes.filter(Boolean).join(' ');
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -54,6 +56,12 @@ export default function Dashboard() {
     { key: 'apOutstanding', label: 'AP Outstanding', icon: ReceiptIndianRupee, data: sampleChart },
     { key: 'payrollDue7d', label: 'Payroll Due (7d)', icon: CalendarClock, data: sampleChart },
     { key: 'conversionRate', label: 'Conversion Rate', icon: Activity, data: sampleChart, format: (v) => (v == null ? '—' : v) }
+  ];
+
+  const periodOptions = [
+    { id: 'today', label: 'Today' },
+    { id: 'week', label: 'This week' },
+    { id: 'month', label: 'This month' },
   ];
 
   // ---- Home-page parity logic (user/task/attendance) ----
@@ -242,140 +250,180 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="p-2">
-      <div className="pt-2 max-w-6xl mx-auto px-2">
-        {/* Admin: attendance widget (same as Home’s conditional) */}
-        {userGroup === 'Admin User' && <AllAttandance />}
+    <div className="page-content space-y-10">
+      <section className="glass-panel glass-panel--inset relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-secondary/20" aria-hidden />
+        <div className="relative flex flex-col gap-8 px-6 py-8 md:px-10">
+          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-3">
+              <p className="section-heading__eyebrow">Executive overview</p>
+              <h2 className="section-heading">Operations control room</h2>
+              <p className="max-w-2xl text-sm text-slate-300/80">
+                Monitor the pulse of collections, orders, and workforce productivity across every channel.
+              </p>
+            </div>
 
-        {/* Office user: user task panel (same as Home) */}
-        {userGroup === 'Office User' && <UserTask onClose={closeUserModal} />}
+            <div className="flex flex-wrap items-center gap-2">
+              {periodOptions.map((option) => (
+                <button
+                  key={option.id}
+                  onClick={() => setPeriod(option.id)}
+                  className={classNames(
+                    'rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200 transition-all duration-150 hover:border-primary/50 hover:bg-primary/15 hover:text-white',
+                    period === option.id
+                      ? 'bg-primary/25 text-white shadow-glow'
+                      : 'bg-white/5'
+                  )}
+                  type="button"
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-        {/* Pending tasks (same filtering & loading props as Home) */}
-      </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {metrics.map((metric) => (
+              <MetricCard
+                key={metric.key}
+                label={metric.label}
+                value={metric.format ? metric.format(current[metric.key]) : current[metric.key] ?? 0}
+                icon={metric.icon}
+                data={metric.data}
+                onClick={metric.route ? () => navigate(metric.route) : undefined}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
 
-      <PendingTasks
-        tasks={tasksForView}
-        isLoading={isLoading}
-        onTaskClick={handleTaskClick}
-      />
-
-      {/* Period selector */}
-      <div className="flex space-x-2 mb-4">
-        {['today', 'week', 'month'].map((p) => (
-          <button
-            key={p}
-            onClick={() => setPeriod(p)}
-            className={`px-3 py-1 rounded ${
-              period === p ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
-            }`}
-          >
-            {p === 'today' ? 'Today' : p === 'week' ? 'Week' : 'Month'}
-          </button>
-        ))}
-      </div>
-
-      {/* Statistics cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {metrics.map((m) => (
-          <MetricCard
-            key={m.key}
-            label={m.label}
-            value={m.format ? m.format(current[m.key]) : current[m.key] ?? 0}
-            icon={m.icon}
-            data={m.data}
-            onClick={m.route ? () => navigate(m.route) : undefined}
-          />
-        ))}
-      </div>
-
-      {/* ===================== Today's Payment Follow-ups (Pending) ===================== */}
-      <div className="max-w-6xl mx-auto mt-6">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-lg font-semibold text-gray-800">
-            Today’s (Pending)
-          </h3>
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full">
-              <ReceiptIndianRupee size={16} />
-              <span className="font-medium">
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+        <div className="surface-card space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="section-heading__eyebrow">Cash momentum</p>
+              <h3 className="text-2xl font-semibold text-white">Today's pending follow-ups</h3>
+              <p className="mt-2 text-sm text-slate-400">
+                Collection commitments due today with quick access to mark outcomes.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/15 px-4 py-2 text-sm font-semibold text-emerald-100 shadow-ambient">
+                <ReceiptIndianRupee size={16} />
                 ₹{totalPendingToday.toLocaleString('en-IN')}
               </span>
-            </span>
-            <button
-              onClick={refreshFollowups}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
-            >
-              <RefreshCw size={16} />
-              
-            </button>
+              <button
+                type="button"
+                onClick={refreshFollowups}
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-primary/40 hover:bg-primary/15 hover:text-white"
+              >
+                <RefreshCw size={16} />
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-3xl border border-white/10 bg-slate-900/60 shadow-ambient">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr>
+                    <th className="w-[18%]">Customer</th>
+                    <th className="w-[12%]">Amount (₹)</th>
+                    <th>Reason</th>
+                    <th>Remark</th>
+                    <th className="w-[15%]">Follow-up date</th>
+                    <th className="w-[12%] text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadingFollowups ? (
+                    Array.from({ length: 5 }).map((_, index) => (
+                      <tr key={index}>
+                        <td colSpan={6} className="px-4 py-4">
+                          <div className="h-4 w-full animate-pulse rounded-full bg-white/10" />
+                        </td>
+                      </tr>
+                    ))
+                  ) : followupsToday.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-8 text-center text-sm text-slate-400">
+                        No pending follow-ups for today.
+                      </td>
+                    </tr>
+                  ) : (
+                    followupsToday.map((row) => {
+                      const id = row._id || row.id || '';
+                      const name = row.customer_name || row.Customer || '—';
+                      const amt = Number(row.amount ?? row.Amount) || 0;
+                      const title = row.title || row.Title || '—';
+                      const remark = row.remark || row.Remark || '—';
+                      const d = row.followup_date || row.Followup_date || row.date;
+                      const dStr = d ? ymd(d) : '—';
+
+                      return (
+                        <tr key={id} className="transition hover:bg-white/5">
+                          <td className="px-4 py-3 font-medium text-slate-100">{name}</td>
+                          <td className="px-4 py-3 font-semibold text-white">
+                            ₹{amt.toLocaleString('en-IN')}
+                          </td>
+                          <td className="px-4 py-3 text-slate-200">{title}</td>
+                          <td className="px-4 py-3 text-slate-300">{remark}</td>
+                          <td className="px-4 py-3 text-slate-200">{dStr}</td>
+                          <td className="px-4 py-3">
+                            <button
+                              type="button"
+                              onClick={() => markDone(row)}
+                              disabled={!id || updatingIds.has(id)}
+                              className={classNames(
+                                'inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white transition',
+                                updatingIds.has(id)
+                                  ? 'cursor-not-allowed border border-white/10 bg-white/10 text-slate-400'
+                                  : 'border border-primary/40 bg-gradient-to-r from-primary to-secondary shadow-ambient hover:shadow-2xl'
+                              )}
+                            >
+                              <CheckCircle2 size={16} />
+                              {updatingIds.has(id) ? 'Updating…' : 'Done'}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
-        <div className="overflow-x-auto border border-gray-200 rounded-xl bg-white">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50">
-              <tr className="text-left text-gray-600">
-                <th className="px-3 py-2 font-medium">Name</th>
-                <th className="px-3 py-2 font-medium">(₹)</th>
-                <th className="px-3 py-2 font-medium">Details</th>
-                <th className="px-3 py-2 font-medium">Remark</th>
-                <th className="px-3 py-2 font-medium">Date</th>
-                <th className="px-3 py-2 font-medium">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loadingFollowups ? (
-                <tr>
-                  <td className="px-3 py-4 text-center text-gray-500" colSpan={6}>
-                    Loading…
-                  </td>
-                </tr>
-              ) : followupsToday.length === 0 ? (
-                <tr>
-                  <td className="px-3 py-6 text-center text-gray-500" colSpan={6}>
-                    No pending follow-ups for today.
-                  </td>
-                </tr>
-              ) : (
-                followupsToday.map((row) => {
-                  const id = row._id || row.id || '';
-                  const name = row.customer_name || row.Customer || '';
-                  const amt = Number(row.amount ?? row.Amount) || 0;
-                  const title = row.title || row.Title || '';
-                  const remark = row.remark || row.Remark || '';
-                  const d = row.followup_date || row.Followup_date || row.date;
-                  const dStr = d ? ymd(d) : '—';
-
-                  return (
-                    <tr key={id} className="border-t border-gray-100 hover:bg-gray-50">
-                      <td className="px-3 py-2">{name || '—'}</td>
-                      <td className="px-3 py-2 font-medium">₹{amt.toLocaleString('en-IN')}</td>
-                      <td className="px-3 py-2">{title || '—'}</td>
-                      <td className="px-3 py-2 text-gray-600">{remark || '—'}</td>
-                      <td className="px-3 py-2">{dStr}</td>
-                      <td className="px-3 py-2">
-                        <button
-                          onClick={() => markDone(row)}
-                          disabled={!id || updatingIds.has(id)}
-                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-white ${
-                            updatingIds.has(id)
-                              ? 'bg-gray-400 cursor-not-allowed'
-                              : 'bg-emerald-600 hover:bg-emerald-700'
-                          }`}
-                          title="Mark as done"
-                        >
-                          <CheckCircle2 size={16} />
-                          {updatingIds.has(id) ? 'Updating…' : 'Done'}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+        <div className="surface-card">
+          <PendingTasks
+            tasks={tasksForView}
+            isLoading={isLoading}
+            onTaskClick={handleTaskClick}
+          />
         </div>
-      </div>
+      </section>
+
+      {userGroup === 'Admin User' && (
+        <section className="surface-card space-y-6">
+          <div>
+            <p className="section-heading__eyebrow">Team presence</p>
+            <h3 className="text-2xl font-semibold text-white">Today's attendance check-ins</h3>
+          </div>
+          <AllAttandance />
+        </section>
+      )}
+
+      {userGroup === 'Office User' && (
+        <section className="surface-card space-y-6">
+          <div>
+            <p className="section-heading__eyebrow">My assignments</p>
+            <h3 className="text-2xl font-semibold text-white">Task updates</h3>
+          </div>
+          <UserTask onClose={closeUserModal} />
+        </section>
+      )}
 
       {/* Optional: if you actually render a modal in Dashboard like Home does,
           plug your modal component here and use showTaskModal/selectedTaskId */}
