@@ -1,50 +1,28 @@
 import { Outlet, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
 import TopNavbar from '../Components/TopNavbar';
 import Footer from '../Components/Footer';
 import FloatingButtons from '../Components/FloatingButtons';
-import {
-  FiCalendar,
-  FiCheckSquare,
-  FiClock,
-  FiCreditCard,
-  FiTrendingUp,
-} from 'react-icons/fi';
 
 
 const Layout = () => {
   const navigate = useNavigate();
 
   const buttonsList = [
-    { onClick: () => navigate('/addOrder1'), label: 'New Order', icon: FiCalendar },
-    { onClick: () => navigate('/addTransaction'), label: 'Add Receipt', icon: FiTrendingUp },
-    { onClick: () => navigate('/addTransaction1'), label: 'Add Payment', icon: FiCreditCard },
-    { onClick: () => navigate('/Followups'), label: 'Follow-ups', icon: FiClock },
-    { onClick: () => navigate('/addUsertask'), label: 'Assign Task', icon: FiCheckSquare },
+    { onClick: () => navigate('/addOrder1'), label: 'Order' },
+    { onClick: () => navigate('/addTransaction'), label: 'Receipt' },
+    { onClick: () => navigate('/addTransaction1'), label: 'Payment' },
+    { onClick: () => navigate('/Followups'), label: 'Followups' },
+    { onClick: () => navigate('/addUsertask'), label: 'Task' },
   ];
 
-  useEffect(() => {
-    document.body.classList.add('app-shell-active');
-    return () => {
-      document.body.classList.remove('app-shell-active');
-    };
-  }, []);
-
   return (
-    <div className="app-shell app-shell--immersive text-slate-100">
-      <div className="app-shell__background" aria-hidden />
-      <div className="app-shell__pattern" aria-hidden />
-
+    <div className="min-h-screen flex flex-col bg-background text-gray-900">
       <TopNavbar />
-
-      <main className="flex-grow relative">
-        <div className="page-wrapper">
-          <div className="relative z-10 space-y-8">
-            <Outlet />
-          </div>
-        </div>
+      <main className="flex-grow pt-16 pb-20">
+        
+          <Outlet />
+        
       </main>
-
       <FloatingButtons
         buttonsList={buttonsList}
         direction="up"

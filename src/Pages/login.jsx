@@ -35,15 +35,17 @@ export default function Login() {
             }
     
             const userGroup = data.userGroup; 
-            const userMob = data.userMob;
+            const userMob =  data.userMob;
             if (!userGroup) {
                 alert("User group not found in API response");
                 return;
             }
-
+    
             localStorage.setItem('User_name', User_name);
-            localStorage.setItem('User_group', userGroup);
-            localStorage.setItem('Mobile_number', userMob);
+            localStorage.setItem('User_group', userGroup); 
+            localStorage.setItem('Mobile_number', userMob); 
+    console.log(userMob);
+    console.log(userGroup);
 
             if (userGroup === "Office User") {
                 navigate("/home", { state: { id: User_name } });
@@ -61,27 +63,16 @@ export default function Login() {
     }
     
     return (
-        <div className="relative flex min-h-screen items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/20 via-transparent to-accent/20" aria-hidden />
-            <div className="absolute -left-32 top-10 -z-10 h-72 w-72 rounded-full bg-primary/20 blur-3xl" aria-hidden />
-            <div className="absolute -right-32 bottom-10 -z-10 h-80 w-80 rounded-full bg-secondary/20 blur-3xl" aria-hidden />
-
-            <MobileContainer className="relative z-10">
-                <Card className="!bg-slate-900/80 !backdrop-blur-2xl !border !border-white/10 !rounded-[30px] !shadow-ambient !text-slate-100">
-                    <div className="flex flex-col items-center gap-6 text-center">
-                        <span className="chip uppercase tracking-[0.35em] text-slate-300">Sanju MIS</span>
-                        <div>
-                            <h1 className="text-3xl font-semibold">Welcome back</h1>
-                            <p className="mt-2 text-sm text-slate-400">Sign in to orchestrate your business from one modern workspace.</p>
-                        </div>
-                    </div>
-
-                    <form onSubmit={submit} className="mt-8 space-y-5">
+        <div className="flex justify-center items-center min-h-screen bg-background">
+            <MobileContainer>
+                <Card>
+                    <h1 className="text-xl font-semibold mb-4 text-center flex items-center justify-center"><FiUser className="mr-2" />Login</h1>
+                    <form onSubmit={submit}>
                         <InputField
-                            label="User name"
+                            label="User Name"
                             autoComplete="off"
                             onChange={(e) => setUser_Name(e.target.value)}
-                            placeholder="Enter your username"
+                            placeholder="User Name"
                             icon={FiUser}
                             required
                         />
@@ -90,12 +81,12 @@ export default function Login() {
                             type="password"
                             autoComplete="off"
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Enter your password"
+                            placeholder="Password"
                             icon={FiLock}
                             required
                         />
-                        <Button type="submit" className="mt-3" rightIcon={FiLogIn} fullWidth>
-                            Sign in
+                        <Button type="submit" className="mt-2" rightIcon={FiLogIn} fullWidth>
+                            Submit
                         </Button>
                     </form>
                 </Card>

@@ -88,7 +88,7 @@ function App() {
   return (
     <Router>
       <ToastContainer />
-      <div className="min-h-screen text-slate-100">
+      <div className="min-h-screen bg-background text-gray-900">
         <Routes>
           {/* Public routes - no Layout */}
           <Route path="/" element={<Login />} />
