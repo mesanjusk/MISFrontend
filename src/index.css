@@ -104,6 +104,36 @@ a:hover {
   gap: clamp(1.25rem, 2vw, 2.5rem);
 }
 
+.nav-surface {
+  position: relative;
+  width: 100%;
+  padding: clamp(0.75rem, 1.5vw, 1.25rem) clamp(0.75rem, 3vw, 1.75rem)
+    clamp(1.5rem, 3vw, 2.5rem);
+  background: radial-gradient(circle at top left, rgba(79, 70, 229, 0.2), transparent 55%),
+    radial-gradient(circle at top right, rgba(14, 116, 144, 0.18), transparent 45%),
+    linear-gradient(160deg, rgba(7, 12, 24, 0.97) 0%, rgba(11, 17, 32, 0.92) 60%, rgba(15, 23, 42, 0.98) 100%);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 25px 60px -30px rgba(8, 47, 73, 0.85);
+  overflow: hidden;
+}
+
+.nav-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.24), transparent 55%),
+    radial-gradient(circle at 80% 20%, rgba(56, 189, 248, 0.18), transparent 45%);
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.nav-surface > * {
+  position: relative;
+  z-index: 1;
+}
+
 .glass-panel {
   background: var(--color-surface);
   backdrop-filter: blur(16px);

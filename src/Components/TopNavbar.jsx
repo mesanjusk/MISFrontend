@@ -257,9 +257,9 @@ const TopNavbar = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full px-3 pt-3 pb-4 sm:px-6">
-        <div className="glass-panel glass-panel--inset shadow-ambient border border-white/10">
-          <div className="flex items-center justify-between gap-4 px-4 py-3 md:px-6">
+      <header className="sticky top-0 z-50 w-full">
+        <div className="nav-surface">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-6">
             <div className="flex items-center gap-4">
               <button
                 className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-white shadow-inner shadow-black/20 transition hover:bg-white/10 focus:outline-none"
@@ -338,7 +338,7 @@ const TopNavbar = () => {
             </div>
           </div>
 
-          <div className="hidden grid-cols-4 gap-8 px-6 pb-6 lg:grid">
+          <div className="mx-auto hidden max-w-7xl grid-cols-4 gap-8 px-6 pb-6 lg:grid">
             {navSections.map((section) => {
               const filteredItems = section.items.filter((item) => !item.hidden);
               if (filteredItems.length === 0) return null;
