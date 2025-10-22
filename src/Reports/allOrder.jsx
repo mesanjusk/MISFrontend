@@ -25,10 +25,10 @@ const fmtDDMMYYYY = (date) => {
 
 const getAgeChipClass = (days) =>
   days === 0
-    ? "bg-blue-200 text-blue-800"
+    ? "bg-blue-100 text-blue-800 ring-1 ring-blue-200"
     : days === 1
-      ? "bg-yellow-200 text-yellow-800"
-      : "bg-red-200 text-red-800";
+    ? "bg-amber-100 text-amber-800 ring-1 ring-amber-200"
+    : "bg-rose-100 text-rose-800 ring-1 ring-rose-200";
 
 /** Debounce hook */
 function useDebouncedValue(value, delay = 250) {
@@ -92,59 +92,80 @@ const OrderCard = React.memo(function OrderCard({
 
   return (
     <div
-      className="relative rounded-lg border border-gray-200 bg-white p-2 hover:shadow-sm transition"
+      className="relative rounded-xl border border-gray-200 bg-white p-2 hover:shadow transition-shadow group"
       draggable
       onDragStart={handleDragStart}
     >
-      {/* Edit icon — admin only; stop propagation */}
-
-
-
-
       {/* Card as a button for a11y */}
       <button
         type="button"
         onClick={() => onCardClick(order)}
-        className="w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+        className="w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
+        aria-label="Open order details"
       >
-        <div className="flex items-start gap-2 pr-7">
-          <div className="flex-1">
-            {/* Customer */}
-            <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-start gap-2 pr-8">
+          {/* Left rail: order number badge */}
+          <div className="shrink-0">
+            <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-100">
+              {order.Order_Number || "-"}
+            </span>
+          </div>
+
+          {/* Main */}
+          <div className="flex-1 min-w-0">
+            {/* Customer (click opens UpdateDelivery) */}
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                title="Edit (Update Delivery)"
+                title="Update Delivery"
                 onClick={(e) => {
-                  e.stopPropagation();           // prevent card click from opening OrderUpdate
-                  onEditClick(order);            // open UpdateDelivery modal
+                  e.stopPropagation();
+                  onEditClick(order);
                 }}
-                className="font-semibold underline decoration-dotted underline-offset-2 hover:decoration-solid hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded px-0.5 cursor-pointer"
+                className="font-semibold text-sm text-gray-900 underline decoration-dotted underline-offset-2 hover:text-indigo-700 focus:outline-none"
               >
                 {order.Customer_name}
               </button>
             </div>
 
-
-            {/* ONE ROW: OrderNo · Date · Days */}
-            <div className="mt-1 flex items-center gap-2 justify-between">
-              <span className="text-xs font-semibold text-blue-700 truncate max-w-[45%]">
-                {order.Order_Number || "-"}
-              </span>
-
-              <span className="text-[10px] text-gray-500 shrink-0">
-                {formattedDate}
-              </span>
-
+            {/* SECOND ROW: Date · Age */}
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <span className="text-[11px] text-gray-500">{formattedDate}</span>
               <span
-                className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${chipClass}`}
-                title="Age"
+                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${chipClass}`}
+                title="Age (days since last status)"
               >
-                {days === 0 ? "0" : days === 1 ? "1" : `${days} `}
+                {days}
               </span>
             </div>
           </div>
         </div>
       </button>
+
+      {/* Hover actions (view/edit quick) */}
+      <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+        <button
+          type="button"
+          onClick={() => onCardClick(order)}
+          className="rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-700 hover:bg-gray-50"
+          title="View"
+        >
+          👁️
+        </button>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEditClick(order);
+            }}
+            className="rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-700 hover:bg-gray-50"
+            title="Edit / Update Delivery"
+          >
+            ✏️
+          </button>
+        )}
+      </div>
     </div>
   );
 });
@@ -239,7 +260,7 @@ export default function AllOrder() {
         }, pad);
       }
 
-      // Load task groups (used as columns) – capture name + sequence if available
+      // Load task groups
       try {
         const res = await getWithRetry("/taskgroup/GetTaskgroupList?page=1&limit=500", {
           signal: ac2.signal,
@@ -255,13 +276,11 @@ export default function AllOrder() {
             })
             .map((t, i) => {
               const name = (t.Task_group || "").trim();
-              // detect any likely sequence keys; fallback to index
               const seq =
                 Number(t.Sequence ?? t.sequence ?? t.Order ?? t.order ?? t.Sort_order ?? t.Position ?? t.Index ?? i) || i;
               return { name, seq };
             });
 
-          // sort by sequence number asc (stable)
           rows.sort((a, b) => a.seq - b.seq);
           setTasksMeta(rows);
         } else {
@@ -325,8 +344,8 @@ export default function AllOrder() {
       const highestStatusTask =
         statusArr.length > 0
           ? statusArr.reduce((prev, current) =>
-            Number(prev?.Status_number) > Number(current?.Status_number) ? prev : current
-          )
+              Number(prev?.Status_number) > Number(current?.Status_number) ? prev : current
+            )
           : null;
 
       const customerName = customers[order.Customer_uuid] || "Unknown";
@@ -347,7 +366,9 @@ export default function AllOrder() {
   // Exclude delivered orders from visible card list entirely
   const nonDeliveredOrders = useMemo(
     () =>
-      searchedOrders.filter((o) => (o?.highestStatusTask?.Task || "").trim().toLowerCase() !== "delivered"),
+      searchedOrders.filter(
+        (o) => (o?.highestStatusTask?.Task || "").trim().toLowerCase() !== "delivered"
+      ),
     [searchedOrders]
   );
 
@@ -378,11 +399,10 @@ export default function AllOrder() {
     }
   }, [nonDeliveredOrders, sortKey]);
 
-  // Build visible columns: start with backend sequence (tasksMeta), then add any unseen tasks from orders at the end.
+  // Build visible columns from tasksMeta + unseen tasks from orders
   const groupNames = useMemo(() => {
     const base = tasksMeta.map((t) => t.name);
 
-    // add any tasks present on orders but missing from backend list (put after sequenced ones)
     const seen = new Set(base.map((n) => n.toLowerCase()));
     for (const o of nonDeliveredOrders) {
       const t = (o?.highestStatusTask?.Task || "Other").trim() || "Other";
@@ -393,16 +413,13 @@ export default function AllOrder() {
       }
     }
 
-    // Keep "Other" last if present
     const otherIdx = base.indexOf("Other");
     if (otherIdx > -1) {
       base.splice(otherIdx, 1);
       base.push("Other");
     }
 
-    // Append Delivered drop zone at the end (always)
     if (!base.includes(DELIVERED_TASK_LABEL)) base.push(DELIVERED_TASK_LABEL);
-
     return base;
   }, [tasksMeta, nonDeliveredOrders]);
 
@@ -435,7 +452,7 @@ export default function AllOrder() {
       const id = orderDoc._id || orderDoc.Order_id || orderDoc.Order_uuid;
       await axios.post("/order/updateStatus", { Order_id: id, Task: newTask });
       return true;
-    } catch (err) {
+    } catch {
       try {
         const id = orderDoc._id || orderDoc.Order_id || orderDoc.Order_uuid;
         await axios.put(`/order/updateStatus/${id}`, { Task: newTask });
@@ -462,9 +479,8 @@ export default function AllOrder() {
     if (!orderDoc) return;
 
     const prevTask = orderDoc?.highestStatusTask?.Task || "Other";
-    if (prevTask === newTask) return; // no-op
+    if (prevTask === newTask) return;
 
-    // Optimistic UI: move the card immediately
     const patchId = orderDoc.Order_uuid || orderDoc._id;
     const prevStatusArr = Array.isArray(orderDoc.Status) ? orderDoc.Status.slice() : [];
     const now = new Date().toISOString();
@@ -505,20 +521,95 @@ export default function AllOrder() {
   };
 
   /* ------------------------------- UI -------------------------------- */
+  const totalOpen = nonDeliveredOrders.length;
+  const totalGroups = groupNames.length;
+
   return (
     <>
       {isUpdating && (
-        <div className="fixed top-0 left-0 right-0 h-1 bg-blue-500 animate-pulse z-[60]" />
+        <div className="fixed top-0 left-0 right-0 h-1 bg-indigo-500 animate-pulse z-[60]" />
       )}
 
-      <div className="order-update-content min-h-screen">
-        <div className="pt-2 pb-2">
-          {/* Error banner + retry */}
+      <div className="min-h-screen bg-slate-50">
+        {/* Topbar / Breadcrumbs */}
+        <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
+          <div className="mx-auto max-w-7xl px-3 py-2 md:py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-3">
+                <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white font-bold">
+                  AO
+                </div>
+                <div>
+                  <h1 className="text-base md:text-lg font-semibold text-slate-900">
+                    All Orders
+                  </h1>
+                  <p className="text-[11px] text-slate-500">
+                    {totalOpen} open • {totalGroups} columns
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Legend */}
+                <div className="hidden md:flex items-center gap-1.5 text-[11px] text-slate-500">
+                  <span className="inline-flex items-center gap-1">
+                    <span className="h-2 w-2 rounded bg-blue-300 inline-block" /> 0d
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="h-2 w-2 rounded bg-amber-300 inline-block" /> 1d
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="h-2 w-2 rounded bg-rose-300 inline-block" /> 2d+
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                  title="Refresh"
+                >
+                  ⟳ <span className="hidden sm:inline">Refresh</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Filters row */}
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <div className="flex bg-white flex-1 min-w-[240px] px-3 py-2 rounded-lg border border-slate-200 shadow-sm">
+                <input
+                  type="text"
+                  placeholder="Search by Customer or Order No."
+                  className="text-slate-900 bg-transparent w-full focus:outline-none text-sm placeholder:text-slate-400"
+                  value={searchOrder}
+                  onChange={(e) => setSearchOrder(e.target.value)}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-[11px] text-slate-500">Sort</label>
+                <select
+                  className="text-sm border border-slate-200 rounded-lg px-2.5 py-2 bg-white"
+                  value={sortKey}
+                  onChange={(e) => setSortKey(e.target.value)}
+                >
+                  <option value="dateDesc">Latest first</option>
+                  <option value="dateAsc">Oldest first</option>
+                  <option value="orderNo">Order No.</option>
+                  <option value="name">Customer Name</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Content */}
+        <main className="mx-auto max-w-[2200px] p-3 md:p-4">
           {loadError && (
-            <div className="max-w-7xl mx-auto my-2 rounded-md bg-red-50 border border-red-200 text-red-700 p-2 flex items-center justify-between">
+            <div className="mx-auto my-3 max-w-7xl rounded-lg bg-rose-50 border border-rose-200 text-rose-700 px-3 py-2 flex items-center justify-between">
               <span className="text-sm">{loadError}</span>
               <button
-                className="text-xs px-2 py-1 rounded border border-red-300 hover:bg-red-100"
+                className="text-xs px-2 py-1 rounded border border-rose-300 hover:bg-rose-100"
                 onClick={() => window.location.reload()}
                 type="button"
               >
@@ -527,154 +618,139 @@ export default function AllOrder() {
             </div>
           )}
 
-          {/* Search & sort bar */}
-          <div className="flex flex-wrap items-center justify-center gap-2 w-full max-w-7xl mx-auto mb-2">
-            <div className="flex bg-white flex-1 min-w-[240px] p-1.5 rounded-full border border-gray-200 shadow-sm">
-              <input
-                type="text"
-                placeholder="Search by Customer Name or Order No."
-                className="form-control text-black bg-transparent rounded-full w/full p-2 focus:outline-none text-sm"
-                value={searchOrder}
-                onChange={(e) => setSearchOrder(e.target.value)}
-              />
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <label className="text-[11px] text-gray-600">Sort</label>
-              <select
-                className="text-xs border border-gray-200 rounded-md p-1.5 bg-white"
-                value={sortKey}
-                onChange={(e) => setSortKey(e.target.value)}
-              >
-                <option value="dateDesc">Latest first</option>
-                <option value="dateAsc">Oldest first</option>
-                <option value="orderNo">Order No.</option>
-                <option value="name">Customer Name</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Kanban board */}
-          <main className="flex-1 p-2 overflow-x-auto">
-            {isOrdersLoading || isTasksLoading ? (
-              <div className="max-w-7xl mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-9 2xl:grid-cols-9 gap-2">
-                  {Array.from({ length: 9 }).map((_, col) => (
-                    <div key={col} className="rounded-lg border bg-white p-2">
-                      <div className="h-3.5 w-2/3 bg-gray-200 rounded mb-2 animate-pulse" />
-                      <div className="space-y-1.5">
-                        {Array.from({ length: 6 }).map((__, i) => (
-                          <div key={i} className="h-12 bg-gray-100 rounded animate-pulse" />
-                        ))}
-                      </div>
+          {isOrdersLoading || isTasksLoading ? (
+            <div className="max-w-7xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-9 2xl:grid-cols-9 gap-3">
+                {Array.from({ length: 9 }).map((_, col) => (
+                  <div key={col} className="rounded-xl border border-slate-200 bg-white p-3">
+                    <div className="h-4 w-2/3 bg-slate-200 rounded mb-3 animate-pulse" />
+                    <div className="space-y-2">
+                      {Array.from({ length: 6 }).map((__, i) => (
+                        <div key={i} className="h-14 bg-slate-100 rounded-lg animate-pulse" />
+                      ))}
                     </div>
-                  ))}
-                </div>
-                <div className="flex justify-center py-4">
-                  <LoadingSpinner />
-                </div>
+                  </div>
+                ))}
               </div>
-            ) : groupNames.length === 0 ? (
-              <div className="text-center text-gray-400 py-10">No tasks found.</div>
-            ) : (
-              <div className="min-w-[1400px] max-w-[2200px] mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-9 2xl:grid-cols-9 gap-2">
-                {groupNames.map((taskGroup) => {
-                  const isDeliveredColumn =
-                    String(taskGroup).trim().toLowerCase() === "delivered";
+              <div className="flex justify-center py-6">
+                <LoadingSpinner />
+              </div>
+            </div>
+          ) : groupNames.length === 0 ? (
+            <div className="text-center text-slate-400 py-16">
+              No tasks found.
+            </div>
+          ) : (
+            <div className="min-w-[1200px] mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-9 2xl:grid-cols-9 gap-3">
+              {groupNames.map((taskGroup) => {
+                const isDeliveredColumn =
+                  String(taskGroup).trim().toLowerCase() === "delivered";
 
-                  const taskGroupOrders = isDeliveredColumn
-                    ? []
-                    : sortedOrders.filter((order) => {
+                const taskGroupOrders = isDeliveredColumn
+                  ? []
+                  : sortedOrders.filter((order) => {
                       const t = (order?.highestStatusTask?.Task || "Other").trim().toLowerCase();
                       return t === String(taskGroup).trim().toLowerCase();
                     });
 
-
-                  return (
-                    <section
-                      key={taskGroup}
-                      className={`flex flex-col rounded-lg border border-gray-200 ${isDeliveredColumn ? "bg-[#f1f5f9]" : "bg-[#f8fafc]"
-                        }`}
-                      onDragOver={allowDrop}
-                      onDrop={(ev) => handleDropToColumn(ev, taskGroup)}
+                return (
+                  <section
+                    key={taskGroup}
+                    className={`flex flex-col rounded-xl border ${
+                      isDeliveredColumn
+                        ? "border-emerald-200 bg-emerald-50"
+                        : "border-slate-200 bg-white"
+                    }`}
+                    onDragOver={allowDrop}
+                    onDrop={(ev) => handleDropToColumn(ev, taskGroup)}
+                  >
+                    <header
+                      className={`sticky top-[65px] md:top-[72px] z-10 px-3 py-2 rounded-t-xl border-b ${
+                        isDeliveredColumn
+                          ? "bg-emerald-50 border-emerald-100"
+                          : "bg-slate-50 border-slate-100"
+                      }`}
                     >
-                      <header className="sticky top-0 z-10 px-2 py-1.5 border-b border-gray-100 rounded-t-lg bg-[#f8fafc]">
-                        <div className="flex items-center justify-between">
-                          <h3 className={`font-semibold text-xs md:text-sm ${isDeliveredColumn ? "text-emerald-700" : "text-blue-700"}`}>
-                            {isDeliveredColumn ? `${DELIVERED_TASK_LABEL} (Drop here)` : taskGroup}
-                          </h3>
-                          {!isDeliveredColumn && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-800">
-                              {taskGroupOrders.length}
-                            </span>
-                          )}
-                        </div>
-                      </header>
-
-                      <div className="p-2 space-y-2 min-h-[180px]">
-                        {taskGroupOrders.length === 0 ? (
-                          <div
-                            className={`text-[11px] text-gray-500 py-5 text-center border border-dashed rounded ${isDeliveredColumn
-                                ? "border-emerald-300 bg-emerald-50"
-                                : "border-gray-200"
-                              }`}
-                          >
-                            {isDeliveredColumn
-                              ? "Drag an order here to mark as Delivered"
-                              : "Drop orders here"}
-                          </div>
-                        ) : (
-                          taskGroupOrders.map((order) => (
-                            <OrderCard
-                              key={order.Order_uuid || order._id}
-                              order={order}
-                              onCardClick={handleCardClick}
-                              onEditClick={handleEditClick}
-                              isAdmin={isAdmin}
-                            />
-                          ))
+                      <div className="flex items-center justify-between">
+                        <h3
+                          className={`font-semibold text-sm ${
+                            isDeliveredColumn ? "text-emerald-800" : "text-slate-800"
+                          }`}
+                        >
+                          {isDeliveredColumn ? `${DELIVERED_TASK_LABEL} (Drop here)` : taskGroup}
+                        </h3>
+                        {!isDeliveredColumn && (
+                          <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200">
+                            {taskGroupOrders.length}
+                          </span>
                         )}
                       </div>
-                    </section>
-                  );
-                })}
-              </div>
-            )}
-          </main>
-        </div>
+                    </header>
 
-        {/* OrderUpdate modal (click on card) */}
-        {showOrderModal && (
-          <Modal onClose={closeOrderModal}>
-            <OrderUpdate
-              order={selectedOrder}
-              onClose={closeOrderModal}
-              onOrderPatched={(orderId, patch) =>
-                smoothUpdate(async () => upsertOrderPatch(orderId, patch))
-              }
-              onOrderReplaced={(order) =>
-                smoothUpdate(async () => upsertOrderReplace(order))
-              }
-            />
-          </Modal>
-        )}
-
-        {/* UpdateDelivery modal (✏️ icon) */}
-        {showDeliveryModal && (
-          <Modal onClose={closeDeliveryModal}>
-            <UpdateDelivery
-              order={selectedOrder}
-              onClose={closeDeliveryModal}
-              onOrderPatched={(orderId, patch) =>
-                smoothUpdate(async () => upsertOrderPatch(orderId, patch))
-              }
-              onOrderReplaced={(order) =>
-                smoothUpdate(async () => upsertOrderReplace(order))
-              }
-            />
-          </Modal>
-        )}
+                    <div className="p-3 space-y-2 min-h-[220px]">
+                      {taskGroupOrders.length === 0 ? (
+                        <div
+                          className={`text-[12px] text-slate-500 py-7 text-center border-2 border-dashed rounded-xl ${
+                            isDeliveredColumn
+                              ? "border-emerald-200 bg-emerald-50/60"
+                              : "border-slate-200 bg-slate-50/60"
+                          }`}
+                        >
+                          {isDeliveredColumn
+                            ? "Drag an order here to mark as Delivered"
+                            : "No orders in this stage. Drag & drop here"}
+                        </div>
+                      ) : (
+                        taskGroupOrders.map((order) => (
+                          <OrderCard
+                            key={order.Order_uuid || order._id}
+                            order={order}
+                            onCardClick={handleCardClick}
+                            onEditClick={handleEditClick}
+                            isAdmin={isAdmin}
+                          />
+                        ))
+                      )}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          )}
+        </main>
       </div>
+
+      {/* OrderUpdate modal (click on card) */}
+      {showOrderModal && (
+        <Modal onClose={closeOrderModal}>
+          <OrderUpdate
+            order={selectedOrder}
+            onClose={closeOrderModal}
+            onOrderPatched={(orderId, patch) =>
+              smoothUpdate(async () => upsertOrderPatch(orderId, patch))
+            }
+            onOrderReplaced={(order) =>
+              smoothUpdate(async () => upsertOrderReplace(order))
+            }
+          />
+        </Modal>
+      )}
+
+      {/* UpdateDelivery modal (✏️ icon) */}
+      {showDeliveryModal && (
+        <Modal onClose={closeDeliveryModal}>
+          <UpdateDelivery
+            order={selectedOrder}
+            onClose={closeDeliveryModal}
+            onOrderPatched={(orderId, patch) =>
+              smoothUpdate(async () => upsertOrderPatch(orderId, patch))
+            }
+            onOrderReplaced={(order) =>
+              smoothUpdate(async () => upsertOrderReplace(order))
+            }
+          />
+        </Modal>
+      )}
     </>
   );
 }
@@ -723,7 +799,7 @@ function Modal({ onClose, children }) {
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
+      className="fixed inset-0 bg-slate-900/50 flex justify-center items-center z-[70]"
       aria-modal="true"
       role="dialog"
       onClick={(e) => {
@@ -732,13 +808,14 @@ function Modal({ onClose, children }) {
     >
       <div
         ref={contentRef}
-        className="bg-white rounded-xl p-6 w-full max-w-3xl mx-4 relative max-h-[90vh] overflow-y-auto focus:outline-none"
+        className="bg-white rounded-2xl p-4 md:p-6 w-full max-w-4xl mx-3 relative max-h-[90vh] overflow-y-auto focus:outline-none shadow-2xl"
       >
         <button
-          className="absolute right-2 top-2 text-xl text-gray-400 hover:text-blue-500"
+          className="absolute right-3 top-2 text-2xl leading-none text-slate-400 hover:text-indigo-500"
           onClick={onClose}
           aria-label="Close"
           type="button"
+          title="Close"
         >
           ×
         </button>
