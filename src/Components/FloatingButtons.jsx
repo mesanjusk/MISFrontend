@@ -13,24 +13,26 @@ const FloatingButtons = ({
   };
 
   return (
-    <div className="fixed bottom-16 right-6 flex flex-col items-end z-50">
-      {/* Action Buttons */}
+    <div className="fixed bottom-28 right-6 z-40 flex flex-col items-end gap-3">
       {isOpen && (
         <div
-          className={`flex ${
-            direction === "up" ? "flex-col-reverse" : "flex-col"
-          } items-end gap-3 mb-3 transition-all ease-out duration-300`}
+          className={`glass-panel glass-panel--inset shadow-ambient flex flex-col gap-2 rounded-3xl border border-white/10 bg-slate-900/80 px-4 py-3 transition-all ${
+            direction === 'up' ? 'origin-bottom scale-100' : 'origin-top scale-100'
+          }`}
         >
           {buttonsList.length === 0 ? (
-            <p className="text-white text-sm">No actions</p>
+            <span className="text-sm text-slate-300">No quick actions</span>
           ) : (
             buttonsList.map((button, index) => (
               <button
-                key={index}
+                key={button.label || index}
                 onClick={() => handleActionClick(button.onClick)}
-                className="px-4 h-12 bg-white text-blue-600 font-semibold rounded-full shadow-lg hover:bg-blue-100 transition-all duration-200 transform hover:scale-105 focus:outline-none"
+                className="group flex items-center gap-3 rounded-2xl border border-transparent bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/15 hover:text-white"
                 aria-label={button.label || `Action ${index + 1}`}
               >
+                <span className="flex h-8 w-8 items-center justify-center rounded-2xl bg-primary/20 text-primary transition group-hover:bg-primary group-hover:text-white">
+                  {button.icon ? <button.icon /> : '+'}
+                </span>
                 {button.label}
               </button>
             ))
@@ -38,13 +40,17 @@ const FloatingButtons = ({
         </div>
       )}
 
-      {/* Toggle FAB with + icon */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-16 h-16 bg-blue-600 text-white text-3xl font-bold flex justify-center items-center rounded-full shadow-2xl hover:bg-blue-700 transition-all duration-200 transform hover:rotate-90 focus:outline-none"
-        aria-label="Toggle actions"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="group relative flex h-16 w-16 items-center justify-center rounded-3xl border border-primary/40 bg-gradient-to-br from-primary to-secondary text-3xl font-semibold text-white shadow-glow transition-all hover:-translate-y-1 hover:shadow-2xl"
+        aria-label="Toggle quick actions"
       >
-        {isOpen ? "×" : "+"}
+        <span className="transition-transform duration-200 group-hover:rotate-90">
+          {isOpen ? '×' : '+'}
+        </span>
+        <span className="pointer-events-none absolute -left-40 top-1/2 hidden -translate-y-1/2 rounded-full border border-white/10 bg-slate-900/80 px-3 py-1 text-xs font-medium text-slate-200 shadow-ambient md:block">
+          Quick actions
+        </span>
       </button>
     </div>
   );
