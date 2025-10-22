@@ -5,6 +5,7 @@ import "jspdf-autotable";
 import * as XLSX from "xlsx";
 
 import UpdateDelivery from "../Pages/updateDelivery";
+import OrderUpdate from "../Pages/OrderUpdate"; // 👈 Added: OrderUpdate modal
 import { LoadingSpinner } from "../Components";
 
 export default function AllDelivery() {
@@ -21,8 +22,12 @@ export default function AllDelivery() {
   const [searchOrder, setSearchOrder] = useState("");
   const [filter, setFilter] = useState(""); // "", "delivered", "design", etc.
   const [customers, setCustomers] = useState({});
-  const [showEditModal, setShowEditModal] = useState(false);
+
+  // Modals & selection
+  const [showEditModal, setShowEditModal] = useState(false); // UpdateDelivery
+  const [showOrderUpdateModal, setShowOrderUpdateModal] = useState(false); // 👈 OrderUpdate
   const [selectedOrder, setSelectedOrder] = useState(null);
+
   const [loading, setLoading] = useState(true);
 
   const formatDateDDMMYYYY = (dateString) => {
@@ -102,6 +107,7 @@ export default function AllDelivery() {
         if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === orderId) {
           setSelectedOrder(null);
           setShowEditModal(false);
+          setShowOrderUpdateModal(false);
         }
         return;
       }
@@ -128,6 +134,7 @@ export default function AllDelivery() {
         if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === key) {
           setSelectedOrder(null);
           setShowEditModal(false);
+          setShowOrderUpdateModal(false);
         }
         return;
       }
@@ -209,14 +216,31 @@ export default function AllDelivery() {
     XLSX.writeFile(workbook, "delivered_orders.xlsx");
   };
 
+  // ----- Click handlers -----
+
+  // Card click -> UpdateDelivery (existing behavior)
   const handleEditClick = (order) => {
     const id = order._id || order.Order_id || null;
     if (!id) return alert("⚠️ Invalid order ID.");
     setSelectedOrder({ ...order, _id: id });
     setShowEditModal(true);
   };
+
+  // 👇 Customer name click -> OrderUpdate
+  const handleOrderUpdateClick = (order) => {
+    const id = order._id || order.Order_id || null;
+    if (!id) return alert("⚠️ Invalid order ID.");
+    setSelectedOrder({ ...order, _id: id });
+    setShowOrderUpdateModal(true);
+  };
+
   const closeEditModal = () => {
     setShowEditModal(false);
+    setSelectedOrder(null);
+  };
+
+  const closeOrderUpdateModal = () => {
+    setShowOrderUpdateModal(false);
     setSelectedOrder(null);
   };
 
@@ -264,23 +288,39 @@ export default function AllDelivery() {
               filteredOrders.map((o) => (
                 <div
                   key={o._id || o.Order_uuid}
-                  onClick={() => handleEditClick(o)}
+                  onClick={() => handleEditClick(o)} // card -> UpdateDelivery
                   className="bg-white border rounded-lg p-2 shadow hover:shadow-md cursor-pointer"
                 >
                   <div className="text-blue-600 font-bold">#{o.Order_Number}</div>
-                  <div className="text-gray-800 font-semibold">{o.Customer_name}</div>
+
+                  {/* 👇 Customer name now opens OrderUpdate */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation(); // don't trigger card click
+                      handleOrderUpdateClick(o);
+                    }}
+                    className="text-gray-800 font-semibold underline decoration-dotted underline-offset-2 hover:decoration-solid hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded px-0.5"
+                    title="Open OrderUpdate"
+                  >
+                    {o.Customer_name}
+                  </button>
+
                   <div className="text-gray-600 text-sm">
                     Date {formatDateDDMMYYYY(o.highestStatusTask?.Delivery_Date)}
                   </div>
                 </div>
               ))
             ) : (
-              <div className="col-span-full text-center text-gray-500 py-10">No delivered orders</div>
+              <div className="col-span-full text-center text-gray-500 py-10">
+                No delivered orders
+              </div>
             )}
           </div>
         )}
       </div>
 
+      {/* Modal: UpdateDelivery (card click) */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
           <div className="bg-white rounded-lg shadow-lg p-4 max-w-3xl w-full">
@@ -288,6 +328,20 @@ export default function AllDelivery() {
               mode="edit"
               order={selectedOrder}
               onClose={closeEditModal}
+              onOrderPatched={(id, patch) => upsertOrderPatch(id, patch)}
+              onOrderReplaced={(full) => upsertOrderReplace(full)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Modal: OrderUpdate (customer name click) */}
+      {showOrderUpdateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-lg p-4 max-w-5xl w-full">
+            <OrderUpdate
+              order={selectedOrder}
+              onClose={closeOrderUpdateModal}
               onOrderPatched={(id, patch) => upsertOrderPatch(id, patch)}
               onOrderReplaced={(full) => upsertOrderReplace(full)}
             />

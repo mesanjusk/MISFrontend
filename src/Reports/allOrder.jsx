@@ -97,28 +97,9 @@ const OrderCard = React.memo(function OrderCard({
       onDragStart={handleDragStart}
     >
       {/* Edit icon — admin only; stop propagation */}
-      {isAdmin && (
-        <button
-          type="button"
-          className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded border border-blue-600 text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          onClick={(e) => {
-            e.stopPropagation();
-            onEditClick(order);
-          }}
-          title="Edit (Update Delivery)"
-          aria-label="Edit order"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            className="w-3 h-3"
-            aria-hidden="true"
-          >
-            <path d="M13.586 3.586a2 2 0 0 1 2.828 2.828l-8.486 8.486a2 2 0 0 1-.878.506l-3.182.91a.5.5 0 0 1-.62-.62l.91-3.182a2 2 0 0 1 .506-.878l8.486-8.486Zm1.414 1.414L7.5 12.5l-1 1 1-1 7.5-7.5Z" />
-          </svg>
-        </button>
-      )}
+      
+        
+      
 
       {/* Card as a button for a11y */}
       <button
@@ -129,9 +110,20 @@ const OrderCard = React.memo(function OrderCard({
         <div className="flex items-start gap-2 pr-7">
           <div className="flex-1">
             {/* Customer */}
-            <div className="font-medium text-gray-900 truncate text-xs">
-              {order.Customer_name}
-            </div>
+            <div className="flex items-center gap-2 text-sm">
+  <button
+    type="button"
+    title="Edit (Update Delivery)"
+    onClick={(e) => {
+      e.stopPropagation();           // prevent card click from opening OrderUpdate
+      onEditClick(order);            // open UpdateDelivery modal
+    }}
+    className="font-semibold underline decoration-dotted underline-offset-2 hover:decoration-solid hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded px-0.5 cursor-pointer"
+  >
+    {order.Customer_name}
+  </button>
+</div>
+
 
             {/* ONE ROW: OrderNo · Date · Days */}
             <div className="mt-1 flex items-center gap-2 justify-between">
@@ -147,7 +139,7 @@ const OrderCard = React.memo(function OrderCard({
                 className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${chipClass}`}
                 title="Age"
               >
-                {days === 0 ? "Today" : days === 1 ? "1" : `${days} `}
+                {days === 0 ? "0" : days === 1 ? "1" : `${days} `}
               </span>
             </div>
           </div>

@@ -193,9 +193,16 @@ export default function AddOrder1() {
       setWhatsAppMessage(message);
       setMobileToSend(customer.Mobile_number || "");
 
-      // ✅ Open invoice modal immediately after submit
-      setShowInvoiceModal(true);
-      toast.success("Order Added");
+     // ✅ Open invoice modal immediately after submit
+setShowInvoiceModal(true);
+toast.success("Order Added");
+
+// ✅ Auto-close modal after 1.5 seconds
+setTimeout(() => {
+  setShowInvoiceModal(false);
+  navigate("/home");
+}, 1500);
+
 
       // Optional: record advance in background, then append to invoice list
       if (isAdvanceChecked && Amount && group) {
