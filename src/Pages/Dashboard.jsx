@@ -63,7 +63,7 @@ const mock = {
     { name: "Keanu Reeves", date: "09 Aug 2025", sales: 118 },
   ],
 
-  // NEW: Attendance mock data (kept for your small panel above)
+  // keeping this in mock (unused now), safe to remove later if you want
   attendance: [
     { name: "Priya Sharma", time: "09:24 AM", status: "Present", avatar: "PS" },
     { name: "Aman Verma", time: "09:45 AM", status: "Late", avatar: "AV" },
@@ -372,7 +372,7 @@ function BellIcon({ className }) {
 /* Page                                                                */
 /* ------------------------------------------------------------------ */
 export default function Dashboard() {
-  // NEW: detect user group for role-based widget
+  // detect user group for role-based widget
   const [userGroup, setUserGroup] = useState("");
 
   useEffect(() => {
@@ -453,14 +453,12 @@ export default function Dashboard() {
 
         {/* Right panel */}
         <div className="col-span-12 lg:col-span-3 space-y-6">
-          {/* Small attendance summary (mock) */}
-          <AttendancePanel items={mock.attendance} />
+          {/* REMOVED: <AttendancePanel items={mock.attendance} /> */}
 
-          {/* NEW: Role-based quick widget — placed JUST ABOVE Transactions */}
+          {/* Role-based quick widget — placed JUST ABOVE Transactions */}
           {userGroup === "Admin User" && (
             <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100 p-3">
-              <Section title="Attendance (Live)" />
-              {/* Full widget (compact container so it doesn't overflow) */}
+              <Section title="Totday Attendance " />
               <div className="max-h-[420px] overflow-auto rounded-xl">
                 <AllAttandance />
               </div>
