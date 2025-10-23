@@ -372,37 +372,7 @@ export default function UserTask() {
             </div>
           </div>
 
-          {/* Pending tasks (right) */}
-          <div className="lg:col-span-1">
-            <div className="rounded-xl border border-slate-200 p-3">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-slate-800 font-semibold text-sm">Pending Tasks</h4>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-50 text-slate-700 border border-slate-200">
-                  {myPendingTasks.length}
-                </span>
-              </div>
-
-              {myPendingTasks.length === 0 ? (
-                <div className="text-sm text-slate-500 py-4 text-center">Nothing pending 🎉</div>
-              ) : (
-                <ul className="space-y-2 max-h-64 overflow-auto pr-1">
-                  {myPendingTasks.map((t) => (
-                    <li
-                      key={t._id || t.id}
-                      className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50"
-                    >
-                      <div className="text-sm font-medium text-slate-800 truncate">
-                        {t.Title || t.title || "Untitled task"}
-                      </div>
-                      <div className="text-xs text-slate-500 mt-0.5">
-                        {t.Description || t.description || ""}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
+         
         </div>
       </div>
     </div>

@@ -8,8 +8,9 @@ import { differenceInCalendarDays } from "date-fns";
 import toast from "react-hot-toast";
 
 /* ------------------------------ constants ------------------------------ */
-const CLOSED_TASKS = ["delivered", "cancel"]; // not rendered as normal columns
-const DELIVERED_TASK_LABEL = "Delivered";     // dedicated drop zone title
+const CLOSED_TASKS = ["delivered", "cancel"]; // excluded from normal columns
+const DELIVERED_TASK_LABEL = "Delivered";
+const CANCEL_TASK_LABEL = "Cancel";
 const MIN_LOAD_MS = 800;
 const MIN_UPDATE_MS = 300;
 
@@ -24,11 +25,7 @@ const fmtDDMMYYYY = (date) => {
 };
 
 const getAgeChipClass = (days) =>
-  days === 0
-    ? "bg-blue-100 text-blue-800 ring-1 ring-blue-200"
-    : days === 1
-    ? "bg-amber-100 text-amber-800 ring-1 ring-amber-200"
-    : "bg-rose-100 text-rose-800 ring-1 ring-rose-200";
+  days <= 1 ? "bg-emerald-500" : days <= 3 ? "bg-amber-500" : "bg-rose-600";
 
 /** Debounce hook */
 function useDebouncedValue(value, delay = 250) {
@@ -40,7 +37,7 @@ function useDebouncedValue(value, delay = 250) {
   return debounced;
 }
 
-/** Axios v1 cancel helper (AbortController) */
+/** Axios v1 cancel helper */
 const isCanceled = (err) =>
   err?.code === "ERR_CANCELED" ||
   err?.name === "CanceledError" ||
@@ -77,7 +74,7 @@ const OrderCard = React.memo(function OrderCard({
     days = differenceInCalendarDays(new Date(), latestStatusDate);
     formattedDate = fmtDDMMYYYY(latestStatusDate);
   }
-  const chipClass = getAgeChipClass(days);
+  const ageClass = getAgeChipClass(days);
 
   const handleDragStart = (e) => {
     e.dataTransfer.setData(
@@ -92,80 +89,56 @@ const OrderCard = React.memo(function OrderCard({
 
   return (
     <div
-      className="relative rounded-xl border border-gray-200 bg-white p-2 hover:shadow transition-shadow group"
+      className="relative rounded-lg border border-gray-200 bg-white p-2 hover:shadow-sm transition-shadow group"
       draggable
       onDragStart={handleDragStart}
     >
-      {/* Card as a button for a11y */}
+      {/* Age badge (top-right) */}
+      <div
+        className={`absolute right-1.5 top-1.5 h-5 w-5 ${ageClass} text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm`}
+        title="Days since last status update"
+      >
+        {days}
+      </div>
+
+      {/* Card action (open view) */}
       <button
         type="button"
         onClick={() => onCardClick(order)}
         className="w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
         aria-label="Open order details"
       >
-        <div className="flex items-start gap-2 pr-8">
-          {/* Left rail: order number badge */}
-          <div className="shrink-0">
-            <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-100">
-              {order.Order_Number || "-"}
-            </span>
+        {/* ROW 1: Customer Name (full visible, no truncation) */}
+        <div className="pr-7">
+          <div className="font-semibold text-[13px] text-gray-900 whitespace-normal leading-snug">
+            {order.Customer_name}
           </div>
+        </div>
 
-          {/* Main */}
-          <div className="flex-1 min-w-0">
-            {/* Customer (click opens UpdateDelivery) */}
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                title="Update Delivery"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEditClick(order);
-                }}
-                className="font-semibold text-sm text-gray-900 underline decoration-dotted underline-offset-2 hover:text-indigo-700 focus:outline-none"
-              >
-                {order.Customer_name}
-              </button>
-            </div>
-
-            {/* SECOND ROW: Date · Age */}
-            <div className="mt-1 flex items-center justify-between gap-2">
-              <span className="text-[11px] text-gray-500">{formattedDate}</span>
-              <span
-                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${chipClass}`}
-                title="Age (days since last status)"
-              >
-                {days}
-              </span>
-            </div>
-          </div>
+        {/* ROW 2: #Order • Date */}
+        <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-600 pr-7">
+          <span className="inline-flex items-center rounded bg-indigo-50 px-1.5 py-[2px] font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-100">
+            #{order.Order_Number || "-"}
+          </span>
+          <span>•</span>
+          <span>{formattedDate || "-"}</span>
         </div>
       </button>
 
-      {/* Hover actions (view/edit quick) */}
-      <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+      {/* Quick Edit (tiny) */}
+      {isAdmin && (
         <button
           type="button"
-          onClick={() => onCardClick(order)}
-          className="rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-700 hover:bg-gray-50"
-          title="View"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEditClick(order);
+          }}
+          className="absolute right-1.5 top-7 rounded border border-gray-200 bg-white px-1.5 py-[3px] text-[10px] text-gray-700 hover:bg-gray-50"
+          title="Edit / Update Delivery"
         >
-          👁️
+          ✏️
         </button>
-        {isAdmin && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEditClick(order);
-            }}
-            className="rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-700 hover:bg-gray-50"
-            title="Edit / Update Delivery"
-          >
-            ✏️
-          </button>
-        )}
-      </div>
+      )}
     </div>
   );
 });
@@ -363,17 +336,18 @@ export default function AllOrder() {
     });
   }, [normalizedOrders, debouncedQuery]);
 
-  // Exclude delivered orders from visible card list entirely
-  const nonDeliveredOrders = useMemo(
+  // Exclude delivered & cancel from normal card list
+  const workingOrders = useMemo(
     () =>
-      searchedOrders.filter(
-        (o) => (o?.highestStatusTask?.Task || "").trim().toLowerCase() !== "delivered"
-      ),
+      searchedOrders.filter((o) => {
+        const t = (o?.highestStatusTask?.Task || "").trim().toLowerCase();
+        return t !== "delivered" && t !== "cancel";
+      }),
     [searchedOrders]
   );
 
   const sortedOrders = useMemo(() => {
-    const copy = [...nonDeliveredOrders];
+    const copy = [...workingOrders];
     switch (sortKey) {
       case "dateAsc":
         return copy.sort((a, b) => {
@@ -397,14 +371,14 @@ export default function AllOrder() {
           return db - da;
         });
     }
-  }, [nonDeliveredOrders, sortKey]);
+  }, [workingOrders, sortKey]);
 
-  // Build visible columns from tasksMeta + unseen tasks from orders
+  // Build visible columns from tasksMeta + unseen tasks from orders, then append Delivered + Cancel
   const groupNames = useMemo(() => {
     const base = tasksMeta.map((t) => t.name);
 
     const seen = new Set(base.map((n) => n.toLowerCase()));
-    for (const o of nonDeliveredOrders) {
+    for (const o of workingOrders) {
       const t = (o?.highestStatusTask?.Task || "Other").trim() || "Other";
       const tl = t.toLowerCase();
       if (!CLOSED_TASKS.includes(tl) && !seen.has(tl)) {
@@ -413,15 +387,18 @@ export default function AllOrder() {
       }
     }
 
+    // Move "Other" to end of working columns
     const otherIdx = base.indexOf("Other");
     if (otherIdx > -1) {
       base.splice(otherIdx, 1);
       base.push("Other");
     }
 
+    // Append special columns at the end, in order: Delivered, Cancel
     if (!base.includes(DELIVERED_TASK_LABEL)) base.push(DELIVERED_TASK_LABEL);
+    if (!base.includes(CANCEL_TASK_LABEL)) base.push(CANCEL_TASK_LABEL);
     return base;
-  }, [tasksMeta, nonDeliveredOrders]);
+  }, [tasksMeta, workingOrders]);
 
   /* -------------------------- Modal handlers ------------------------- */
   const handleCardClick = useCallback((order) => {
@@ -443,8 +420,6 @@ export default function AllOrder() {
     setShowDeliveryModal(false);
     setSelectedOrder(null);
   }, []);
-
-  const allLoading = isOrdersLoading || isTasksLoading;
 
   /* ---------------------- Drag & Drop status change ---------------------- */
   const persistStatus = async (orderDoc, newTask) => {
@@ -492,6 +467,7 @@ export default function AllOrder() {
     };
 
     await smoothUpdate(async () => {
+      // optimistic UI
       upsertOrderPatch(patchId, {
         highestStatusTask: newHighest,
         Status: [...prevStatusArr, newHighest],
@@ -506,10 +482,9 @@ export default function AllOrder() {
         });
         toast.error("Failed to update status");
       } else {
+        const lbl = newTask.trim().toLowerCase();
         toast.success(
-          newTask.toLowerCase() === "delivered"
-            ? "Moved to Delivered"
-            : `Moved to “${newTask}”`
+          lbl === "delivered" ? "Moved to Delivered" : lbl === "cancel" ? "Moved to Cancel" : `Moved to “${newTask}”`
         );
       }
     });
@@ -521,8 +496,7 @@ export default function AllOrder() {
   };
 
   /* ------------------------------- UI -------------------------------- */
-  const totalOpen = nonDeliveredOrders.length;
-  const totalGroups = groupNames.length;
+  const allLoading = isOrdersLoading || isTasksLoading;
 
   return (
     <>
@@ -531,45 +505,42 @@ export default function AllOrder() {
       )}
 
       <div className="min-h-screen bg-slate-50">
-        {/* Topbar / Breadcrumbs */}
-        
-           
-
-            {/* Filters row */}
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <div className="flex bg-white flex-1 min-w-[240px] px-3 py-2 rounded-lg border border-slate-200 ">
-                <input
-                  type="text"
-                  placeholder="Search by Customer or Order No."
-                  className="text-slate-900 bg-transparent w-full focus:outline-none text-sm placeholder:text-slate-400"
-                  value={searchOrder}
-                  onChange={(e) => setSearchOrder(e.target.value)}
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <label className="text-[11px] text-slate-500">Sort</label>
-                <select
-                  className="text-sm border border-slate-200 rounded-lg px-2.5 py-2 bg-white"
-                  value={sortKey}
-                  onChange={(e) => setSortKey(e.target.value)}
-                >
-                  <option value="dateDesc">Latest first</option>
-                  <option value="dateAsc">Oldest first</option>
-                  <option value="orderNo">Order No.</option>
-                  <option value="name">Customer Name</option>
-                </select>
-              </div>
+        {/* Filters row */}
+        <div className="mx-auto max-w-[2200px] p-2.5 md:p-3">
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <div className="flex bg-white flex-1 min-w-[220px] px-2.5 py-1.5 rounded-md border border-slate-200">
+              <input
+                type="text"
+                placeholder="Search by Customer or Order No."
+                className="text-slate-900 bg-transparent w-full focus:outline-none text-[12px] placeholder:text-slate-400"
+                value={searchOrder}
+                onChange={(e) => setSearchOrder(e.target.value)}
+              />
             </div>
-          
 
-        {/* Content */}
-        <main className="mx-auto max-w-[2200px] p-3 md:p-4">
+            <div className="flex items-center gap-1.5">
+              <label className="text-[10px] text-slate-500">Sort</label>
+              <select
+                className="text-[12px] border border-slate-200 rounded-md px-2 py-1.5 bg-white"
+                value={sortKey}
+                onChange={(e) => setSortKey(e.target.value)}
+              >
+                <option value="dateDesc">Latest first</option>
+                <option value="dateAsc">Oldest first</option>
+                <option value="orderNo">Order No.</option>
+                <option value="name">Customer Name</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Content: EXACTLY 10 columns at xl/2xl, compact gaps */}
+        <main className="mx-auto max-w-[2200px] px-2.5 md:px-3 pb-3">
           {loadError && (
-            <div className="mx-auto my-3 max-w-7xl rounded-lg bg-rose-50 border border-rose-200 text-rose-700 px-3 py-2 flex items-center justify-between">
-              <span className="text-sm">{loadError}</span>
+            <div className="mx-auto my-2 max-w-7xl rounded-md bg-rose-50 border border-rose-200 text-rose-700 px-3 py-2 flex items-center justify-between">
+              <span className="text-[12px]">{loadError}</span>
               <button
-                className="text-xs px-2 py-1 rounded border border-rose-300 hover:bg-rose-100"
+                className="text-[11px] px-2 py-1 rounded border border-rose-300 hover:bg-rose-100"
                 onClick={() => window.location.reload()}
                 type="button"
               >
@@ -578,87 +549,96 @@ export default function AllOrder() {
             </div>
           )}
 
-          {isOrdersLoading || isTasksLoading ? (
+          {allLoading ? (
             <div className="max-w-7xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-9 2xl:grid-cols-9 gap-3">
-                {Array.from({ length: 9 }).map((_, col) => (
-                  <div key={col} className="rounded-xl border border-slate-200 bg-white p-3">
-                    <div className="h-4 w-2/3 bg-slate-200 rounded mb-3 animate-pulse" />
-                    <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-10 gap-1.5">
+                {Array.from({ length: 10 }).map((_, col) => (
+                  <div key={col} className="rounded-lg border border-slate-200 bg-white p-2">
+                    <div className="h-3 w-2/3 bg-slate-200 rounded mb-2 animate-pulse" />
+                    <div className="space-y-1.5">
                       {Array.from({ length: 6 }).map((__, i) => (
-                        <div key={i} className="h-14 bg-slate-100 rounded-lg animate-pulse" />
+                        <div key={i} className="h-9 bg-slate-100 rounded-md animate-pulse" />
                       ))}
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="flex justify-center py-6">
+              <div className="flex justify-center py-3">
                 <LoadingSpinner />
               </div>
             </div>
           ) : groupNames.length === 0 ? (
-            <div className="text-center text-slate-400 py-16">
-              No tasks found.
-            </div>
+            <div className="text-center text-slate-400 py-8 text-sm">No tasks found.</div>
           ) : (
-            <div className="min-w-[1200px] mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-9 2xl:grid-cols-9 gap-3">
+            <div className="min-w-[1100px] mx-auto grid grid-cols-1 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-10 gap-1.5">
               {groupNames.map((taskGroup) => {
-                const isDeliveredColumn =
-                  String(taskGroup).trim().toLowerCase() === "delivered";
+                const tl = String(taskGroup || "").trim().toLowerCase();
+                const isDeliveredColumn = tl === "delivered";
+                const isCancelColumn = tl === "cancel";
 
-                const taskGroupOrders = isDeliveredColumn
-                  ? []
-                  : sortedOrders.filter((order) => {
-                      const t = (order?.highestStatusTask?.Task || "Other").trim().toLowerCase();
-                      return t === String(taskGroup).trim().toLowerCase();
-                    });
+                // For working columns, render cards; for Delivered/Cancel, show empty drop zone
+                const taskGroupOrders =
+                  isDeliveredColumn || isCancelColumn
+                    ? []
+                    : sortedOrders.filter((order) => {
+                        const t = (order?.highestStatusTask?.Task || "Other").trim().toLowerCase();
+                        return t === tl;
+                      });
 
                 return (
                   <section
                     key={taskGroup}
-                    className={`flex flex-col rounded-xl border ${
+                    className={`flex flex-col rounded-lg border ${
                       isDeliveredColumn
                         ? "border-emerald-200 bg-emerald-50"
+                        : isCancelColumn
+                        ? "border-rose-200 bg-rose-50"
                         : "border-slate-200 bg-white"
                     }`}
                     onDragOver={allowDrop}
                     onDrop={(ev) => handleDropToColumn(ev, taskGroup)}
                   >
                     <header
-                      className={`sticky top-[65px] md:top-[72px] z-10 px-3 py-2 rounded-t-xl border-b ${
+                      className={`sticky top-[56px] md:top-[62px] z-10 px-2.5 py-1.5 rounded-t-lg border-b ${
                         isDeliveredColumn
-                          ? "bg-emerald-50 border-emerald-100"
-                          : "bg-slate-50 border-slate-100"
+                          ? "bg-emerald-50 border-emerald-100 text-emerald-800"
+                          : isCancelColumn
+                          ? "bg-rose-50 border-rose-100 text-rose-800"
+                          : "bg-slate-50 border-slate-100 text-slate-800"
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <h3
-                          className={`font-semibold text-sm ${
-                            isDeliveredColumn ? "text-emerald-800" : "text-slate-800"
-                          }`}
-                        >
-                          {isDeliveredColumn ? `${DELIVERED_TASK_LABEL} (Drop here)` : taskGroup}
+                        <h3 className="font-semibold text-[12px]">
+                          {isDeliveredColumn
+                            ? `${DELIVERED_TASK_LABEL} (Drop here)`
+                            : isCancelColumn
+                            ? `${CANCEL_TASK_LABEL} (Drop here)`
+                            : taskGroup}
                         </h3>
-                        {!isDeliveredColumn && (
-                          <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200">
+                        {!isDeliveredColumn && !isCancelColumn && (
+                          <span className="text-[10px] px-1.5 py-[2px] rounded-full bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200">
                             {taskGroupOrders.length}
                           </span>
                         )}
                       </div>
                     </header>
 
-                    <div className="p-3 space-y-2 min-h-[220px]">
-                      {taskGroupOrders.length === 0 ? (
+                    <div className="p-2 space-y-1.5 min-h-[150px]">
+                      {isDeliveredColumn || isCancelColumn ? (
                         <div
-                          className={`text-[12px] text-slate-500 py-7 text-center border-2 border-dashed rounded-xl ${
+                          className={`text-[11px] py-5 text-center border-2 border-dashed rounded-lg ${
                             isDeliveredColumn
-                              ? "border-emerald-200 bg-emerald-50/60"
-                              : "border-slate-200 bg-slate-50/60"
+                              ? "border-emerald-200 text-emerald-700 bg-emerald-50/60"
+                              : "border-rose-200 text-rose-700 bg-rose-50/60"
                           }`}
                         >
                           {isDeliveredColumn
                             ? "Drag an order here to mark as Delivered"
-                            : "No orders in this stage. Drag & drop here"}
+                            : "Drag an order here to mark as Cancel"}
+                        </div>
+                      ) : taskGroupOrders.length === 0 ? (
+                        <div className="text-[11px] text-slate-500 py-5 text-center border-2 border-dashed rounded-lg border-slate-200 bg-slate-50/60">
+                          No orders in this stage. Drag & drop here
                         </div>
                       ) : (
                         taskGroupOrders.map((order) => (
