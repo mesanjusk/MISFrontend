@@ -1,30 +1,33 @@
-import { useNavigate } from 'react-router-dom';
-import { FiCheckCircle, FiBarChart2, FiAlertCircle, FiFileText } from 'react-icons/fi';
+import { NavLink } from "react-router-dom";
 
 export default function Footer() {
-  const navigate = useNavigate();
+  const tabs = [
+    { label: "Report", path: "/allOrder", icon: "📄" },
+    { label: "Delivered", path: "/allDelivery", icon: "🚚" },
+    { label: "Vendor", path: "/AllVendors", icon: "🏭" },
+    { label: "Bills", path: "/allBills", icon: "🧾" },
+  ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-secondary to-primary text-white">
-      <div className="flex justify-around p-2">
-        <button className="flex flex-col items-center" onClick={() => navigate('/allorder')}>
-          <FiCheckCircle className="h-6 w-6 mb-1" />
-          <span className="text-xs">Report</span>
-        </button>
-        <button className="flex flex-col items-center" onClick={() => navigate('/allDelivery')}>
-          <FiBarChart2 className="h-6 w-6 mb-1" />
-          <span className="text-xs">Delivered</span>
-        </button>
-        <button className="flex flex-col items-center" onClick={() => navigate('/allvendors')}>
-          <FiAlertCircle className="h-6 w-6 mb-1" />
-          <span className="text-xs">Vendor</span>
-        </button>
-        <button className="flex flex-col items-center" onClick={() => navigate('/allBills')}>
-          <FiFileText className="h-6 w-6 mb-1" />
-          <span className="text-xs">Bills</span>
-        </button>
+    <footer className="fixed bottom-0 right-0 left-0 sm:left-64 z-40 bg-gradient-to-r from-blue-700 to-indigo-800 text-white shadow-lg">
+      <div className="max-w-screen-xl mx-auto flex justify-around py-2">
+        {tabs.map((t) => (
+          <NavLink
+            key={t.path}
+            to={t.path}
+            className={({ isActive }) =>
+              `flex flex-col items-center text-xs font-medium transition ${
+                isActive
+                  ? "text-yellow-300 scale-105"
+                  : "text-white hover:text-yellow-200"
+              }`
+            }
+          >
+            <span className="text-lg mb-1">{t.icon}</span>
+            {t.label}
+          </NavLink>
+        ))}
       </div>
-    </div>
+    </footer>
   );
 }
-
