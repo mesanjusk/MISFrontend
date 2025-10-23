@@ -532,51 +532,12 @@ export default function AllOrder() {
 
       <div className="min-h-screen bg-slate-50">
         {/* Topbar / Breadcrumbs */}
-        <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
-          <div className="mx-auto max-w-7xl px-3 py-2 md:py-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-3">
-                <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white font-bold">
-                  AO
-                </div>
-                <div>
-                  <h1 className="text-base md:text-lg font-semibold text-slate-900">
-                    All Orders
-                  </h1>
-                  <p className="text-[11px] text-slate-500">
-                    {totalOpen} open • {totalGroups} columns
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Legend */}
-                <div className="hidden md:flex items-center gap-1.5 text-[11px] text-slate-500">
-                  <span className="inline-flex items-center gap-1">
-                    <span className="h-2 w-2 rounded bg-blue-300 inline-block" /> 0d
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <span className="h-2 w-2 rounded bg-amber-300 inline-block" /> 1d
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <span className="h-2 w-2 rounded bg-rose-300 inline-block" /> 2d+
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => window.location.reload()}
-                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
-                  title="Refresh"
-                >
-                  ⟳ <span className="hidden sm:inline">Refresh</span>
-                </button>
-              </div>
-            </div>
+        
+           
 
             {/* Filters row */}
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <div className="flex bg-white flex-1 min-w-[240px] px-3 py-2 rounded-lg border border-slate-200 shadow-sm">
+              <div className="flex bg-white flex-1 min-w-[240px] px-3 py-2 rounded-lg border border-slate-200 ">
                 <input
                   type="text"
                   placeholder="Search by Customer or Order No."
@@ -600,8 +561,7 @@ export default function AllOrder() {
                 </select>
               </div>
             </div>
-          </div>
-        </header>
+          
 
         {/* Content */}
         <main className="mx-auto max-w-[2200px] p-3 md:p-4">
