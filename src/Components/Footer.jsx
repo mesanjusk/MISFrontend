@@ -9,7 +9,8 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="fixed bottom-0 right-0 left-0 sm:left-64 z-40 bg-gradient-to-r from-blue-700 to-indigo-800 text-white shadow-lg">
+    // Hide on desktop, show on mobile/tablet
+    <footer className="fixed bottom-0 right-0 left-0 z-40 bg-gradient-to-r from-blue-700 to-indigo-800 text-white shadow-lg md:hidden">
       <div className="max-w-screen-xl mx-auto flex justify-around py-2">
         {tabs.map((t) => (
           <NavLink
@@ -17,9 +18,7 @@ export default function Footer() {
             to={t.path}
             className={({ isActive }) =>
               `flex flex-col items-center text-xs font-medium transition ${
-                isActive
-                  ? "text-yellow-300 scale-105"
-                  : "text-white hover:text-yellow-200"
+                isActive ? "text-yellow-300 scale-105" : "text-white hover:text-yellow-200"
               }`
             }
           >

@@ -1,14 +1,21 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, NavLink } from "react-router-dom";
 import { LoadingSpinner } from "../Components";
 
 export default function TopNavbar({ onToggleSidebar }) {
   const [userName, setUserName] = useState("");
   const [userGroup, setUserGroup] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Desktop tabs (same as footer)
+  const tabs = [
+    { label: "Report", path: "/allOrder", icon: "📄" },
+    { label: "Delivered", path: "/allDelivery", icon: "🚚" },
+    { label: "Vendor", path: "/AllVendors", icon: "🏭" },
+    { label: "Bills", path: "/allBills", icon: "🧾" },
+  ];
 
   useEffect(() => {
     const n = location.state?.id || localStorage.getItem("User_name");
@@ -30,21 +37,42 @@ export default function TopNavbar({ onToggleSidebar }) {
   return (
     <>
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-6 shadow-sm">
+        {/* Left: menu button + brand area */}
         <div className="flex items-center gap-3">
+          {/* Sidebar toggle (mobile only) */}
           <button
             onClick={onToggleSidebar}
-            className="sm:hidden p-2 rounded-lg bg-slate-100 hover:bg-slate-200"
+            className="md:hidden p-2 rounded-lg bg-slate-100 hover:bg-slate-200"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
               className="h-5 w-5"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
           <div className="flex items-center gap-2 text-sm text-slate-600">
-           
+            {/* put logo/title here if needed */}
           </div>
         </div>
 
+        {/* Center: Desktop-only tabs (moved up from footer) */}
+        <nav className="hidden md:flex items-center gap-3">
+          {tabs.map((t) => (
+            <NavLink
+              key={t.path}
+              to={t.path}
+              className={({ isActive }) =>
+                `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition
+                 ${isActive
+                   ? "bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200"
+                   : "text-slate-700 hover:bg-slate-100"}`
+              }
+            >
+              <span className="text-base leading-none">{t.icon}</span>
+              <span>{t.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* Right: actions */}
         <div className="flex items-center gap-4">
-        
           <button className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
               className="h-5 w-5 text-slate-700"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
