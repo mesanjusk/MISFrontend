@@ -87,8 +87,9 @@ export default function Sidebar() {
         { label: "Add Transaction", path: "/addtranscation" },
         { label: "Add Transaction 1", path: "/addtranscation1" },
         { label: "All Transaction 1", path: "/alltranscation1" },
-        { label: "All Transaction 2", path: "/alltranscation2" },
-        { label: "All Transaction 3", path: "/alltranscation3" },
+         { label: "All Transaction Old", path: "/alltransactionOld" },
+        { label: "All Transaction 2", path: "/alltransaction2" },
+        { label: "All Transaction 3", path: "/alltransaction3" },
       ],
     },
     {

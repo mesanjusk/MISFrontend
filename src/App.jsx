@@ -88,6 +88,7 @@ import AddUsertask from "./Pages/addUsertask";
 import CallLogs from "./Pages/callLogs";
 import AdminHome from "./Pages/adminHome";
 import VendorHome from "./Pages/vendorHome";
+import AllTransactionOld from "./Reports/allTransactionOld";
 
 function App() {
   useEffect(() => {
@@ -148,6 +149,7 @@ function App() {
             <Route path="/addPayable" element={<AddPayable />} />
             <Route path="/allTransaction" element={<AllTransaction />} />
             <Route path="/allTransaction1" element={<AllTransaction1 />} />
+            <Route path="/allTransactionOld" element={<AllTransactionOld />} />
             <Route path="/allTransaction2" element={<AllTransaction2 />} />
             <Route path="/allTransaction3" element={<AllTransaction3 />} />
             <Route path="/allTransaction4D" element={<AllTransaction4D />} />
