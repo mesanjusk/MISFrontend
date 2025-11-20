@@ -84,8 +84,8 @@ export default function Sidebar() {
       group: "Transaction",
       items: [
         { label: "Transaction Report", path: "/allTransaction" },
-        { label: "Add Transaction", path: "/addtranscation" },
-        { label: "Add Transaction 1", path: "/addtranscation1" },
+        { label: "Add Transaction Old", path: "/addTransactionOld" },
+        { label: "Add Transaction 1 Old", path: "/addTransaction1Old" },
         { label: "All Transaction 1", path: "/alltranscation1" },
          { label: "All Transaction Old", path: "/alltransactionOld" },
         { label: "All Transaction 2", path: "/alltransaction2" },

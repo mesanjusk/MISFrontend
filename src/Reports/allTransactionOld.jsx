@@ -31,7 +31,7 @@ const AllTransactionOld = () => {
   useEffect(() => {
     const fetchData = async () => {
       const [txRes, custRes] = await Promise.all([
-        axios.get('/transaction/GetFilteredTransactions'),
+        axios.get('/old-transaction/GetTransactionList'),
         axios.get('/customer/GetCustomersList'),
       ]);
 

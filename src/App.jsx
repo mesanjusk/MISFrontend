@@ -89,6 +89,8 @@ import CallLogs from "./Pages/callLogs";
 import AdminHome from "./Pages/adminHome";
 import VendorHome from "./Pages/vendorHome";
 import AllTransactionOld from "./Reports/allTransactionOld";
+import AddTransactionOld from "./Pages/addTransactionOld.jsx";
+import AddTransaction1Old from "./Pages/addTransaction1Old.jsx";
 
 function App() {
   useEffect(() => {
@@ -143,7 +145,9 @@ function App() {
 
             {/* Payments & Transactions */}
             <Route path="/addTransaction" element={<AddTransaction />} />
+            <Route path="/addTransactionOld" element={<AddTransactionOld />} />
             <Route path="/addTransaction1" element={<AddTransaction1 />} />
+            <Route path="/addTransaction1Old" element={<AddTransaction1Old />} />
             <Route path="/addPayment" element={<AddPayment />} />
             <Route path="/addRecievable" element={<AddRecievable />} />
             <Route path="/addPayable" element={<AddPayable />} />
