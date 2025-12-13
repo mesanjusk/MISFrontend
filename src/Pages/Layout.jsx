@@ -7,7 +7,7 @@ import FloatingButtons from "../Components/FloatingButtons";
 
 export default function Layout() {
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   const buttonsList = [
     { onClick: () => navigate("/addOrder1"), label: "Order" },
@@ -18,25 +18,40 @@ export default function Layout() {
   ];
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-gray-900 overflow-hidden">
+    <div className="flex min-h-screen bg-slate-50 text-gray-900 overflow-hidden relative">
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 z-40 h-full w-64 transform transition-transform duration-300 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-64 sm:translate-x-0"
-        }`}
+        className={`fixed top-0 left-0 z-50 h-full transition-all duration-300
+          ${collapsed ? "w-16" : "w-64"}
+        `}
       >
-        <Sidebar />
+        <Sidebar
+          collapsed={collapsed}
+          onExpand={() => setCollapsed(false)}
+          onCollapse={() => setCollapsed(true)}
+        />
       </div>
 
-      {/* Main wrapper beside sidebar */}
-      <div className="flex flex-col flex-1 sm:ml-64 min-w-0">
-        <TopNavbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+      {/* Click Outside Overlay */}
+      {!collapsed && (
+        <div
+          className="fixed inset-0 z-40 bg-transparent"
+          onClick={() => setCollapsed(true)}
+        />
+      )}
+
+      {/* Main Content */}
+      <div
+        className={`flex flex-col flex-1 min-w-0 transition-all duration-300
+          ${collapsed ? "sm:ml-16" : "sm:ml-64"}
+        `}
+      >
+        <TopNavbar onToggleSidebar={() => setCollapsed(!collapsed)} />
 
         <main className="flex-1 overflow-y-auto px-4 pt-4 pb-28 sm:pb-20">
           <Outlet />
         </main>
 
-        {/* Floating action buttons */}
         <FloatingButtons
           buttonsList={buttonsList}
           direction="up"
@@ -46,10 +61,7 @@ export default function Layout() {
           itemButtonStyle="bg-white text-blue-800 shadow-md rounded-full hover:bg-blue-50"
         />
 
-        {/* Footer aligned with main area (not under sidebar) */}
-        <div className="sm:ml-64">
-          <Footer />
-        </div>
+        <Footer />
       </div>
     </div>
   );
