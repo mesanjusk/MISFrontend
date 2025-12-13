@@ -7,6 +7,7 @@ import SectionHeader from "../components/common/SectionHeader";
 import SummaryCard from "../components/dashboard/SummaryCard";
 import RoleWidget from "../components/dashboard/RoleWidget";
 import QuickActions from "../components/dashboard/QuickActions";
+import Modal from "../components/common/Modal";
 import AllAttandance from "./AllAttandance";
 import UserTask from "./userTask";
 import OrderBoard from "../components/orders/OrderBoard";
@@ -53,6 +54,8 @@ export default function Dashboard() {
   const roleInfo = useUserRole();
   const navigate = useNavigate();
   const [statusNotice, setStatusNotice] = useState("");
+  const [mobileMoveOrder, setMobileMoveOrder] = useState(null);
+  const [mobileMoveTarget, setMobileMoveTarget] = useState("");
 
   const data = useDashboardData({
     role: roleInfo.role,
@@ -125,7 +128,33 @@ export default function Dashboard() {
     [data, roleInfo.isAdmin]
   );
 
-  const { dragHandlers, statusMessage } = useOrderDnD({ onMove: handleMove });
+  const { dragHandlers, statusMessage, mobileSelection, startMobileMove, confirmMobileMove, resetMobileSelection } =
+    useOrderDnD({ onMove: handleMove });
+
+  const handleMobileMoveRequest = useCallback(
+    (order) => {
+      if (!order) return;
+      setMobileMoveOrder(order);
+      setMobileMoveTarget("");
+      startMobileMove(toId(order));
+    },
+    [startMobileMove]
+  );
+
+  const handleCancelMobileMove = useCallback(() => {
+    resetMobileSelection();
+    setMobileMoveOrder(null);
+    setMobileMoveTarget("");
+  }, [resetMobileSelection]);
+
+  const handleConfirmMobileMove = useCallback(async () => {
+    if (!mobileMoveTarget) return;
+    await confirmMobileMove(mobileMoveTarget);
+    setMobileMoveOrder(null);
+    setMobileMoveTarget("");
+  }, [confirmMobileMove, mobileMoveTarget]);
+
+  const mobileMoveTargets = useMemo(() => data.columnOrder.filter(Boolean), [data.columnOrder]);
 
   const handleCancel = useCallback((order) => handleMove(toId(order), TASK_TYPES.CANCEL), [handleMove]);
   const handleView = useCallback((order) => navigate(`/orderUpdate/${toId(order)}`), [navigate]);
@@ -208,7 +237,7 @@ export default function Dashboard() {
                   onView={handleView}
                   onEdit={handleEdit}
                   onCancel={handleCancel}
-                  onMove={() => {}}
+                  onMove={isTouchDevice ? handleMobileMoveRequest : undefined}
                   statusMessage={statusMessage}
                 />
               </div>
@@ -239,6 +268,47 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {mobileSelection && mobileMoveOrder && (
+        <Modal onClose={handleCancelMobileMove} title={`Move Order #${mobileMoveOrder.Order_Number || ""}`}>
+          <div className="space-y-3">
+            <div className="text-sm text-slate-700">Select the target workflow column</div>
+            <select
+              id="dashboard-mobile-move-target"
+              className="w-full rounded-md border border-slate-300 px-2 py-2 text-sm"
+              value={mobileMoveTarget}
+              onChange={(e) => setMobileMoveTarget(e.target.value)}
+            >
+              <option value="" disabled>
+                Choose column
+              </option>
+              {mobileMoveTargets.map((target) => (
+                <option key={target} value={target}>
+                  {target}
+                </option>
+              ))}
+            </select>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                className="rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                onClick={handleCancelMobileMove}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:bg-indigo-300"
+                onClick={handleConfirmMobileMove}
+                disabled={!mobileMoveTarget}
+              >
+                Move
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       <div className="sr-only" aria-live="polite">
         {statusMessage}
