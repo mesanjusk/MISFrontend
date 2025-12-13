@@ -3,6 +3,10 @@ import axios from "../apiClient";
 import { differenceInCalendarDays } from "date-fns";
 import toast from "react-hot-toast";
 
+/* ------------------------------------------------------------------ */
+/* Constants                                                          */
+/* ------------------------------------------------------------------ */
+
 export const TASK_TYPES = {
   DELIVERED: "Delivered",
   CANCEL: "Cancel",
@@ -26,8 +30,16 @@ const API_ENDPOINTS = {
   UPDATE_STATUS: "/order/updateStatus",
 };
 
-const CLOSED_TASKS = new Set([TASK_TYPES.DELIVERED.toLowerCase(), TASK_TYPES.CANCEL.toLowerCase()]);
+const CLOSED_TASKS = new Set([
+  TASK_TYPES.DELIVERED.toLowerCase(),
+  TASK_TYPES.CANCEL.toLowerCase(),
+]);
+
 const MIN_LOAD_MS = 800;
+
+/* ------------------------------------------------------------------ */
+/* Helpers                                                            */
+/* ------------------------------------------------------------------ */
 
 const toCustomerMap = (rows = []) =>
   rows.reduce((acc, customer) => {
@@ -45,7 +57,9 @@ const normalizeOrders = (orders = [], customerMap = {}) =>
       statusArr.length === 0
         ? null
         : statusArr.reduce((prev, current) =>
-            Number(prev?.Status_number) > Number(current?.Status_number) ? prev : current
+            Number(prev?.Status_number) > Number(current?.Status_number)
+              ? prev
+              : current
           );
 
     return {
@@ -55,6 +69,10 @@ const normalizeOrders = (orders = [], customerMap = {}) =>
     };
   });
 
+/* ------------------------------------------------------------------ */
+/* Hook                                                               */
+/* ------------------------------------------------------------------ */
+
 export function useOrdersData() {
   const [orderList, setOrderList] = useState([]);
   const [orderMap, setOrderMap] = useState({});
@@ -63,6 +81,8 @@ export function useOrdersData() {
   const [isOrdersLoading, setIsOrdersLoading] = useState(true);
   const [isTasksLoading, setIsTasksLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
+
+  /* ---------------- Normalize & Store ---------------- */
 
   const applyNormalizedData = useCallback((orders, customers) => {
     const normalized = normalizeOrders(orders, customers);
@@ -76,98 +96,120 @@ export function useOrdersData() {
     );
   }, []);
 
-  const loadData = useCallback(async () => {
-    const controller = new AbortController();
-    setLoadError(null);
-    setIsOrdersLoading(true);
-    setIsTasksLoading(true);
+  /* ---------------- Data Loader (NO cleanup here) ---------------- */
 
-    const start = Date.now();
+  const loadData = useCallback(
+    async (signal) => {
+      setLoadError(null);
+      setIsOrdersLoading(true);
+      setIsTasksLoading(true);
 
-    try {
-      const [ordersRes, customersRes] = await Promise.all([
-        axios.get(`${API_ENDPOINTS.ORDERS}?page=1&limit=${REQUEST_LIMITS.ORDERS}`, {
-          signal: controller.signal,
-        }),
-        axios.get(`${API_ENDPOINTS.CUSTOMERS}?page=1&limit=${REQUEST_LIMITS.CUSTOMERS}`, {
-          signal: controller.signal,
-        }),
-      ]);
+      const start = Date.now();
 
-      const orders = ordersRes?.data?.success ? ordersRes.data.result ?? [] : [];
-      const customers = customersRes?.data?.success ? customersRes.data.result ?? [] : [];
-      const customerLookup = toCustomerMap(customers);
+      try {
+        const [ordersRes, customersRes] = await Promise.all([
+          axios.get(
+            `${API_ENDPOINTS.ORDERS}?page=1&limit=${REQUEST_LIMITS.ORDERS}`,
+            { signal }
+          ),
+          axios.get(
+            `${API_ENDPOINTS.CUSTOMERS}?page=1&limit=${REQUEST_LIMITS.CUSTOMERS}`,
+            { signal }
+          ),
+        ]);
 
-      setCustomerMap(customerLookup);
-      applyNormalizedData(orders, customerLookup);
-    } catch (err) {
-      if (controller.signal.aborted) return;
-      setLoadError("Failed to fetch orders or customers.");
-      toast.error("Failed to fetch orders or customers.");
-      setOrderList([]);
-      setOrderMap({});
-      setCustomerMap({});
-    } finally {
-      const dt = Date.now() - start;
-      const pad = Math.max(0, MIN_LOAD_MS - dt);
-      setTimeout(() => setIsOrdersLoading(false), pad);
-    }
+        const orders = ordersRes?.data?.success
+          ? ordersRes.data.result ?? []
+          : [];
+        const customers = customersRes?.data?.success
+          ? customersRes.data.result ?? []
+          : [];
 
-    try {
-      const res = await axios.get(
-        `${API_ENDPOINTS.TASK_GROUPS}?page=1&limit=${REQUEST_LIMITS.TASK_GROUPS}`,
-        { signal: controller.signal }
-      );
-      if (res?.data?.success) {
-        const rows = (res.data.result ?? [])
-          .filter((task) => {
-            const name = String(task?.Task_group || "").trim();
-            return name && !CLOSED_TASKS.has(name.toLowerCase());
-          })
-          .map((task, index) => {
-            const name = String(task.Task_group || "").trim();
-            const seq =
-              Number(
-                task.Sequence ??
-                  task.sequence ??
-                  task.Order ??
-                  task.order ??
-                  task.Sort_order ??
-                  task.Position ??
-                  task.Index ??
-                  index
-              ) || index;
-            return { name, seq };
-          })
-          .sort((a, b) => a.seq - b.seq);
-        setTasksMeta(rows);
-      } else {
-        setTasksMeta([]);
+        const customerLookup = toCustomerMap(customers);
+        setCustomerMap(customerLookup);
+        applyNormalizedData(orders, customerLookup);
+      } catch (err) {
+        if (signal.aborted) return;
+        setLoadError("Failed to fetch orders or customers.");
+        toast.error("Failed to fetch orders or customers.");
+        setOrderList([]);
+        setOrderMap({});
+        setCustomerMap({});
+      } finally {
+        const dt = Date.now() - start;
+        const pad = Math.max(0, MIN_LOAD_MS - dt);
+        setTimeout(() => setIsOrdersLoading(false), pad);
       }
-    } catch (err) {
-      if (!controller.signal.aborted) setTasksMeta([]);
-    } finally {
-      setIsTasksLoading(false);
-    }
 
-    return () => controller.abort();
-  }, [applyNormalizedData]);
+      try {
+        const res = await axios.get(
+          `${API_ENDPOINTS.TASK_GROUPS}?page=1&limit=${REQUEST_LIMITS.TASK_GROUPS}`,
+          { signal }
+        );
+
+        if (res?.data?.success) {
+          const rows = (res.data.result ?? [])
+            .filter((task) => {
+              const name = String(task?.Task_group || "").trim();
+              return name && !CLOSED_TASKS.has(name.toLowerCase());
+            })
+            .map((task, index) => {
+              const name = String(task.Task_group || "").trim();
+              const seq =
+                Number(
+                  task.Sequence ??
+                    task.sequence ??
+                    task.Order ??
+                    task.order ??
+                    task.Sort_order ??
+                    task.Position ??
+                    task.Index ??
+                    index
+                ) || index;
+              return { name, seq };
+            })
+            .sort((a, b) => a.seq - b.seq);
+
+          setTasksMeta(rows);
+        } else {
+          setTasksMeta([]);
+        }
+      } catch (err) {
+        if (!signal.aborted) setTasksMeta([]);
+      } finally {
+        setIsTasksLoading(false);
+      }
+    },
+    [applyNormalizedData]
+  );
+
+  /* ---------------- Effect (cleanup lives HERE) ---------------- */
 
   useEffect(() => {
-    const abort = loadData();
-    return () => abort && abort();
+    const controller = new AbortController();
+    loadData(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
   }, [loadData]);
+
+  /* ---------------- Derived Data ---------------- */
 
   const baseGroupedOrders = useMemo(
     () =>
       orderList.reduce((acc, order) => {
-        const task = String(order?.highestStatusTask?.Task || TASK_TYPES.OTHER).trim();
+        const task = String(
+          order?.highestStatusTask?.Task || TASK_TYPES.OTHER
+        ).trim();
         if (!acc[task]) acc[task] = [];
         acc[task].push(order);
         return acc;
       }, {}),
     [orderList]
   );
+
+  /* ---------------- Mutators ---------------- */
 
   const replaceOrder = useCallback(
     (nextOrder) => {
@@ -176,11 +218,14 @@ export function useOrdersData() {
       if (!id) return;
 
       setOrderList((prev) => {
-        const existingIdx = prev.findIndex((o) => (o.Order_uuid || o._id || o.Order_id) === id);
+        const idx = prev.findIndex(
+          (o) => (o.Order_uuid || o._id || o.Order_id) === id
+        );
         const normalized = normalizeOrders([nextOrder], customerMap)[0];
-        if (existingIdx === -1) return [normalized, ...prev];
+
+        if (idx === -1) return [normalized, ...prev];
         const copy = prev.slice();
-        copy[existingIdx] = { ...prev[existingIdx], ...normalized };
+        copy[idx] = { ...prev[idx], ...normalized };
         return copy;
       });
     },
@@ -208,11 +253,15 @@ export function useOrdersData() {
     );
   }, [orderList]);
 
+  /* ---------------- Utils ---------------- */
+
   const computeAgeDays = useCallback((order) => {
     const created = order?.highestStatusTask?.CreatedAt;
     if (!created) return 0;
     return differenceInCalendarDays(new Date(), new Date(created));
   }, []);
+
+  /* ---------------- Public API ---------------- */
 
   return {
     orderList,
@@ -224,15 +273,27 @@ export function useOrdersData() {
     isTasksLoading,
     loadError,
     setLoadError,
-    refresh: loadData,
+    refresh: () => {
+      const controller = new AbortController();
+      loadData(controller.signal);
+      return () => controller.abort();
+    },
     replaceOrder,
     patchOrder,
     computeAgeDays,
   };
 }
 
+/* ------------------------------------------------------------------ */
+/* Status API                                                         */
+/* ------------------------------------------------------------------ */
+
 export const statusApi = {
-  updateStatus: (orderId, task) => axios.post(API_ENDPOINTS.UPDATE_STATUS, { Order_id: orderId, Task: task }),
+  updateStatus: (orderId, task) =>
+    axios.post(API_ENDPOINTS.UPDATE_STATUS, {
+      Order_id: orderId,
+      Task: task,
+    }),
 };
 
 export const LABELS = {

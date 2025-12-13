@@ -1,12 +1,22 @@
-import axios from '../apiClient.js';
+import axios from "../apiClient.js";
 
-// --- API helpers ---
+/* ==================================================
+   API HELPERS
+================================================== */
+
 export const fetchUserNames = async () => {
   try {
     const { data } = await axios.get("/user/GetUserList");
     if (!data?.success) return {};
+
     const map = {};
-    data.result.forEach(u => (map[u.User_uuid] = (u.User_name || "").trim()));
+    data.result.forEach((u) => {
+      map[(u.User_uuid || "").trim()] = {
+        name: (u.User_name || "").trim(),
+        group: (u.User_group || "").trim(),
+      };
+    });
+
     return map;
   } catch {
     return {};
@@ -18,117 +28,143 @@ export const fetchAttendanceList = async () => {
   return data?.result || [];
 };
 
-// --- Time + compute helpers ---
-export const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
-  if (!inTime || !outTime || inTime === "N/A" || outTime === "N/A") return "N/A";
+/* ==================================================
+   TIME HELPERS
+================================================== */
 
-  const parseTime = (t) => {
-    if (!t || t === "N/A") return null;
-    const [time, period] = t.split(" ");
-    const [hh, mm] = time.split(":").map(Number);
-    let h = hh;
-    if (period === "PM" && hh !== 12) h += 12;
-    if (period === "AM" && hh === 12) h = 0;
-    const d = new Date();
-    d.setHours(h, mm, 0, 0);
-    return d;
-  };
+const parseTime = (t) => {
+  if (!t || t === "N/A") return null;
+  const [time, period] = t.split(" ");
+  const [hh, mm] = time.split(":").map(Number);
+
+  let h = hh;
+  if (period === "PM" && hh !== 12) h += 12;
+  if (period === "AM" && hh === 12) h = 0;
+
+  const d = new Date();
+  d.setHours(h, mm, 0, 0);
+  return d;
+};
+
+const formatDateDMY = (iso) => {
+  const d = new Date(iso);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+};
+
+export const calculateWorkingHours = (
+  inTime,
+  outTime,
+  breakTime,
+  startTime
+) => {
+  if (!inTime || !outTime || inTime === "N/A" || outTime === "N/A") return 0;
 
   const inD = parseTime(inTime);
   const outD = parseTime(outTime);
   const breakD = parseTime(breakTime);
   const startD = parseTime(startTime);
 
-  if (!inD || !outD) return "N/A";
+  if (!inD || !outD) return 0;
 
   let secs = (outD - inD) / 1000;
   if (breakD && startD) secs -= (startD - breakD) / 1000;
 
-  const h = Math.max(0, Math.floor(secs / 3600));
-  const m = Math.max(0, Math.floor((secs % 3600) / 60));
-  const s = Math.max(0, Math.floor(secs % 60));
-  return `${h}h ${m}m ${s}s`;
+  return Math.max(0, secs / 3600);
 };
 
-export const processAttendanceDataForDate = (records, userLookup, dateISO) => {
-  const grouped = new Map();
+/* ==================================================
+   PROCESS DATE RANGE (MAIN)
+================================================== */
 
-  records.forEach(({ Date: recDate, User, Employee_uuid }) => {
-    if (!recDate) return;
-    const keyDate = new Date(recDate).toISOString().split("T")[0];
-    if (keyDate !== dateISO) return;
-
-    const name = userLookup[(Employee_uuid || "").trim()] || "Unknown";
-    const composite = `${name}-${keyDate}`;
-    if (!grouped.has(composite)) {
-      grouped.set(composite, {
-        Date: keyDate,
-        User_name: name,
-        In: "N/A",
-        Break: "N/A",
-        Start: "N/A",
-        Out: "N/A",
-        TotalHours: "N/A",
-      });
-    }
-    const ref = grouped.get(composite);
-    (User || []).forEach(u => {
-      switch (u.Type) {
-        case "In": ref.In = (u.Time || "").trim(); break;
-        case "Break": ref.Break = (u.Time || "").trim(); break;
-        case "Start": ref.Start = (u.Time || "").trim(); break;
-        case "Out": ref.Out = (u.Time || "").trim(); break;
-        default: break;
-      }
-    });
-  });
-
-  return Array.from(grouped.values()).map(r => ({
-    ...r,
-    TotalHours: calculateWorkingHours(r.In, r.Out, r.Break, r.Start),
-  }));
-};
-
-export const processAttendanceDataRange = (records, userLookup, startISO, endISO) => {
+export const processAttendanceDataRange = (
+  records,
+  userLookup,
+  startISO,
+  endISO,
+  forcedUserName = null // 🔒 HARD LOCK
+) => {
   const grouped = new Map();
   const start = startISO ? new Date(startISO) : null;
   const end = endISO ? new Date(endISO) : null;
 
   records.forEach(({ Date: recDate, User, Employee_uuid }) => {
     if (!recDate) return;
+
     const d = new Date(recDate);
     if (start && d < start) return;
     if (end && d > end) return;
 
     const dateKey = d.toISOString().split("T")[0];
-    const name = userLookup[(Employee_uuid || "").trim()] || "Unknown";
-    const composite = `${name}-${dateKey}`;
+    const user = userLookup[(Employee_uuid || "").trim()] || {};
+    const name = user.name || "Unknown";
 
-    if (!grouped.has(composite)) {
-      grouped.set(composite, {
-        Date: dateKey,
+    // 🔒 HARD FILTER (NON-ADMIN)
+    if (forcedUserName && name !== forcedUserName) return;
+
+    const key = `${name}-${dateKey}`;
+
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        DateISO: dateKey,                 // 👈 INTERNAL
+        Date: formatDateDMY(dateKey),     // 👈 DISPLAY
         User_name: name,
         In: "N/A",
         Break: "N/A",
         Start: "N/A",
         Out: "N/A",
-        TotalHours: "N/A",
+        TotalHours: "0.00",
+        Late: false,
+        HalfDay: false,
       });
     }
-    const ref = grouped.get(composite);
-    (User || []).forEach(u => {
-      switch (u.Type) {
-        case "In": ref.In = (u.Time || "").trim(); break;
-        case "Break": ref.Break = (u.Time || "").trim(); break;
-        case "Start": ref.Start = (u.Time || "").trim(); break;
-        case "Out": ref.Out = (u.Time || "").trim(); break;
-        default: break;
-      }
+
+    const ref = grouped.get(key);
+
+    (User || []).forEach((u) => {
+      if (u.Type === "In") ref.In = (u.Time || "").trim();
+      if (u.Type === "Break") ref.Break = (u.Time || "").trim();
+      if (u.Type === "Start") ref.Start = (u.Time || "").trim();
+      if (u.Type === "Out") ref.Out = (u.Time || "").trim();
     });
   });
 
-  return Array.from(grouped.values()).map(r => ({
-    ...r,
-    TotalHours: calculateWorkingHours(r.In, r.Out, r.Break, r.Start),
-  }));
+  return Array.from(grouped.values()).map((r) => {
+    const hours = calculateWorkingHours(
+      r.In,
+      r.Out,
+      r.Break,
+      r.Start
+    );
+
+    const inTime = parseTime(r.In);
+    const lateLimit = new Date();
+    lateLimit.setHours(10, 15, 0, 0);
+
+    return {
+      ...r,
+      TotalHours: hours.toFixed(2),
+      Late: inTime ? inTime > lateLimit : false,
+      HalfDay: hours > 0 && hours < 4.5,
+    };
+  });
+};
+
+/* ==================================================
+   PROCESS SINGLE DATE (COMPATIBILITY)
+================================================== */
+
+export const processAttendanceDataForDate = (
+  records,
+  userLookup,
+  dateISO
+) => {
+  return processAttendanceDataRange(
+    records,
+    userLookup,
+    dateISO,
+    dateISO
+  );
 };
