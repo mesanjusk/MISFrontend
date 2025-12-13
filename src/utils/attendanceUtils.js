@@ -48,18 +48,12 @@ const parseTime = (t) => {
 
 const formatDateDMY = (iso) => {
   const d = new Date(iso);
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const yyyy = d.getFullYear();
-  return `${dd}-${mm}-${yyyy}`;
+  return `${String(d.getDate()).padStart(2, "0")}-${String(
+    d.getMonth() + 1
+  ).padStart(2, "0")}-${d.getFullYear()}`;
 };
 
-export const calculateWorkingHours = (
-  inTime,
-  outTime,
-  breakTime,
-  startTime
-) => {
+export const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
   if (!inTime || !outTime || inTime === "N/A" || outTime === "N/A") return 0;
 
   const inD = parseTime(inTime);
@@ -84,7 +78,7 @@ export const processAttendanceDataRange = (
   userLookup,
   startISO,
   endISO,
-  forcedUserName = null // 🔒 HARD LOCK
+  forcedUserName = null // 🔒 hard lock for non-admin
 ) => {
   const grouped = new Map();
   const start = startISO ? new Date(startISO) : null;
@@ -97,19 +91,18 @@ export const processAttendanceDataRange = (
     if (start && d < start) return;
     if (end && d > end) return;
 
-    const dateKey = d.toISOString().split("T")[0];
+    const dateISO = d.toISOString().split("T")[0];
     const user = userLookup[(Employee_uuid || "").trim()] || {};
     const name = user.name || "Unknown";
 
-    // 🔒 HARD FILTER (NON-ADMIN)
     if (forcedUserName && name !== forcedUserName) return;
 
-    const key = `${name}-${dateKey}`;
+    const key = `${name}-${dateISO}`;
 
     if (!grouped.has(key)) {
       grouped.set(key, {
-        DateISO: dateKey,                 // 👈 INTERNAL
-        Date: formatDateDMY(dateKey),     // 👈 DISPLAY
+        DateISO: dateISO,
+        Date: formatDateDMY(dateISO),
         User_name: name,
         In: "N/A",
         Break: "N/A",
@@ -124,20 +117,15 @@ export const processAttendanceDataRange = (
     const ref = grouped.get(key);
 
     (User || []).forEach((u) => {
-      if (u.Type === "In") ref.In = (u.Time || "").trim();
-      if (u.Type === "Break") ref.Break = (u.Time || "").trim();
-      if (u.Type === "Start") ref.Start = (u.Time || "").trim();
-      if (u.Type === "Out") ref.Out = (u.Time || "").trim();
+      if (u.Type === "In") ref.In = u.Time?.trim() || "N/A";
+      if (u.Type === "Break") ref.Break = u.Time?.trim() || "N/A";
+      if (u.Type === "Start") ref.Start = u.Time?.trim() || "N/A";
+      if (u.Type === "Out") ref.Out = u.Time?.trim() || "N/A";
     });
   });
 
   return Array.from(grouped.values()).map((r) => {
-    const hours = calculateWorkingHours(
-      r.In,
-      r.Out,
-      r.Break,
-      r.Start
-    );
+    const hours = calculateWorkingHours(r.In, r.Out, r.Break, r.Start);
 
     const inTime = parseTime(r.In);
     const lateLimit = new Date();
@@ -153,7 +141,7 @@ export const processAttendanceDataRange = (
 };
 
 /* ==================================================
-   PROCESS SINGLE DATE (COMPATIBILITY)
+   COMPAT EXPORT (fixes earlier error)
 ================================================== */
 
 export const processAttendanceDataForDate = (
@@ -161,10 +149,5 @@ export const processAttendanceDataForDate = (
   userLookup,
   dateISO
 ) => {
-  return processAttendanceDataRange(
-    records,
-    userLookup,
-    dateISO,
-    dateISO
-  );
+  return processAttendanceDataRange(records, userLookup, dateISO, dateISO);
 };

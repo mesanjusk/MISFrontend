@@ -19,9 +19,9 @@ export default function AttendanceReport() {
   const [viewMode, setViewMode] = useState("table");
   const [loading, setLoading] = useState(false);
 
-  const loggedInUserName = localStorage.getItem("user_name");
-  const userRole = localStorage.getItem("role");
-  const isAdmin = userRole === "admin";
+  const loggedInUserName = localStorage.getItem("user_name") || "";
+  const userGroup = localStorage.getItem("User_group") || "";
+  const isAdmin = userGroup === "Admin User";
 
   /* ==================================================
      AUTO LOAD CURRENT MONTH
@@ -42,6 +42,10 @@ export default function AttendanceReport() {
       setSelectedUser(loggedInUserName);
       fetchReportData(s, e, loggedInUserName);
     }
+
+    if (isAdmin) {
+      fetchReportData(s, e, "");
+    }
   }, []);
 
   /* ==================================================
@@ -59,19 +63,17 @@ export default function AttendanceReport() {
         fetchAttendanceList(),
       ]);
 
-      // Dropdown users from attendance
       const usersFromAttendance = Array.from(
         new Set(
-          records.map((r) => {
-            const u = userLookup[(r.Employee_uuid || "").trim()];
-            return u?.name;
-          })
+          records
+            .map((r) => userLookup[(r.Employee_uuid || "").trim()]?.name)
+            .filter(Boolean)
         )
-      ).filter(Boolean);
+      );
 
       setOfficeUsers(usersFromAttendance);
 
-      const finalUser = isAdmin ? forcedUser : loggedInUserName;
+      const finalUser = isAdmin ? forcedUser || "" : loggedInUserName;
       if (!isAdmin) setSelectedUser(finalUser);
 
       const formatted = processAttendanceDataRange(
@@ -79,7 +81,7 @@ export default function AttendanceReport() {
         userLookup,
         s,
         e,
-        finalUser
+        finalUser || null
       );
 
       setReportData(formatted);
@@ -89,58 +91,12 @@ export default function AttendanceReport() {
   };
 
   /* ==================================================
-     STATS
-  ================================================== */
-  const totalHours = reportData.reduce(
-    (sum, r) => sum + Number(r.TotalHours),
-    0
-  );
-
-  const attendancePercent =
-    reportData.length > 0
-      ? (
-          (reportData.filter((r) => r.In !== "N/A").length /
-            reportData.length) *
-          100
-        ).toFixed(1)
-      : "0";
-
-  /* ==================================================
-     PDF EXPORT
-  ================================================== */
-  const exportPDF = () => {
-    if (!selectedUser && !isAdmin) return;
-
-    const doc = new jsPDF();
-    doc.text(
-      `Attendance Report - ${selectedUser || "All Users"}`,
-      14,
-      15
-    );
-
-    doc.autoTable({
-      startY: 22,
-      head: [["User", "Date", "In", "Out", "Hours", "Late", "Half"]],
-      body: reportData.map((r) => [
-        r.User_name,
-        r.Date,
-        r.In,
-        r.Out,
-        r.TotalHours,
-        r.Late ? "Yes" : "-",
-        r.HalfDay ? "Yes" : "-",
-      ]),
-    });
-
-    doc.save("Attendance_Report.pdf");
-  };
-
-  /* ==================================================
-     CALENDAR
+     CALENDAR MAP (MULTI USER)
   ================================================== */
   const calendarMap = {};
   reportData.forEach((r) => {
-    calendarMap[r.DateISO] = r;
+    if (!calendarMap[r.DateISO]) calendarMap[r.DateISO] = [];
+    calendarMap[r.DateISO].push(r);
   });
 
   const daysInMonth = startDate
@@ -157,10 +113,7 @@ export default function AttendanceReport() {
   return (
     <div className="bg-white p-4 mt-4 rounded-lg shadow max-w-7xl mx-auto">
       <div className="flex items-center gap-2 mb-3">
-        <button
-          onClick={() => navigate(-1)}
-          className="px-3 py-2 bg-gray-200 rounded"
-        >
+        <button onClick={() => navigate(-1)} className="px-3 py-2 bg-gray-200 rounded">
           ← Back
         </button>
         <h3 className="text-lg font-semibold">
@@ -176,74 +129,45 @@ export default function AttendanceReport() {
           value={selectedUser}
           disabled={!isAdmin}
           onChange={(e) => setSelectedUser(e.target.value)}
-          className="border p-1 min-w-[220px]"
+          className="border p-1 min-w-[220px] disabled:bg-gray-100"
         >
-          <option value="">{isAdmin ? "Select User" : selectedUser}</option>
+          <option value="">{isAdmin ? "Select User" : loggedInUserName}</option>
           {officeUsers.map((u) => (
             <option key={u} value={u}>{u}</option>
           ))}
         </select>
 
-        <button onClick={() => fetchReportData()} className="px-4 py-1 bg-blue-500 text-white rounded">View</button>
-        <button onClick={exportPDF} className="px-4 py-1 bg-green-600 text-white rounded">Export PDF</button>
-        <button onClick={() => setViewMode(viewMode === "table" ? "calendar" : "table")} className="px-4 py-1 bg-gray-800 text-white rounded">
+        <button onClick={() => fetchReportData()} className="px-4 py-1 bg-blue-500 text-white rounded">
+          View
+        </button>
+
+        <button
+          onClick={() => setViewMode(viewMode === "table" ? "calendar" : "table")}
+          className="px-4 py-1 bg-gray-800 text-white rounded"
+        >
           {viewMode === "table" ? "Calendar View" : "Table View"}
         </button>
       </div>
 
-      <div className="flex gap-6 text-sm font-medium mb-3">
-        <div>Total Hours: <b>{totalHours.toFixed(2)}</b></div>
-        <div>Attendance %: <b>{attendancePercent}%</b></div>
-      </div>
-
-      {viewMode === "table" ? (
-        <table className="min-w-full text-sm text-center border">
-          <thead>
-            <tr>
-              <th className="border">User</th>
-              <th className="border">Date</th>
-              <th className="border">In</th>
-              <th className="border">Out</th>
-              <th className="border">Hours</th>
-              <th className="border">Late</th>
-              <th className="border">Half</th>
-            </tr>
-          </thead>
-          <tbody>
-            {reportData.map((r, i) => (
-              <tr key={i}>
-                <td className="border">{r.User_name}</td>
-                <td className="border">{r.Date}</td>
-                <td className="border">{r.In}</td>
-                <td className="border">{r.Out}</td>
-                <td className="border">{r.TotalHours}</td>
-                <td className="border">{r.Late ? "Yes" : "-"}</td>
-                <td className="border">{r.HalfDay ? "Yes" : "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
+      {viewMode === "calendar" && (
         <div className="grid grid-cols-7 gap-2 text-xs">
           {Array.from({ length: daysInMonth }).map((_, i) => {
             const d = String(i + 1).padStart(2, "0");
-            const month = startDate.split("-")[1];
-            const year = startDate.split("-")[0];
-            const key = `${year}-${month}-${d}`;
-            const rec = calendarMap[key];
+            const key = `${startDate.slice(0, 7)}-${d}`;
+            const recs = calendarMap[key] || [];
 
             return (
-              <div key={i} className="border rounded p-2 h-24">
+              <div key={i} className="border rounded p-2 h-28">
                 <div className="font-bold">{d}</div>
-                {rec ? (
-                  <>
-                    <div className="font-semibold">{rec.User_name}</div>
-                    <div>{rec.TotalHours} hrs</div>
-                    {rec.Late && <div className="text-red-600">Late</div>}
-                    {rec.HalfDay && <div className="text-yellow-600">Half Day</div>}
-                  </>
-                ) : (
+                {recs.length === 0 ? (
                   <div className="text-gray-400">Absent</div>
+                ) : (
+                  recs.map((r, idx) => (
+                    <div key={idx} className="mt-1">
+                      <div className="font-semibold">{r.User_name}</div>
+                      <div>{r.TotalHours} hrs</div>
+                    </div>
+                  ))
                 )}
               </div>
             );
