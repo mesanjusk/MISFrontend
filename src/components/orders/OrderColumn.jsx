@@ -94,4 +94,31 @@ function OrderColumn({
   );
 }
 
-export default memo(OrderColumn);
+const areOrderColumnPropsEqual = (prevProps, nextProps) => {
+  if (
+    prevProps.title !== nextProps.title ||
+    prevProps.isAdmin !== nextProps.isAdmin ||
+    prevProps.allowDrop !== nextProps.allowDrop ||
+    prevProps.isTouchDevice !== nextProps.isTouchDevice ||
+    prevProps.onDrop !== nextProps.onDrop ||
+    prevProps.onDragOver !== nextProps.onDragOver ||
+    prevProps.onDragStart !== nextProps.onDragStart ||
+    prevProps.onView !== nextProps.onView ||
+    prevProps.onEdit !== nextProps.onEdit ||
+    prevProps.onCancel !== nextProps.onCancel ||
+    prevProps.onMove !== nextProps.onMove
+  ) {
+    return false;
+  }
+
+  const prevOrders = prevProps.orders || [];
+  const nextOrders = nextProps.orders || [];
+
+  if (prevOrders.length !== nextOrders.length) {
+    return false;
+  }
+
+  return prevOrders === nextOrders;
+};
+
+export default memo(OrderColumn, areOrderColumnPropsEqual);

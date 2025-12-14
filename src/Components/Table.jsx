@@ -44,8 +44,6 @@ function Table({ columns = [], data = [] }) {
   );
 }
 
-export default React.memo(Table);
-
 Table.propTypes = {
   columns: PropTypes.arrayOf(
     PropTypes.shape({
@@ -55,3 +53,33 @@ Table.propTypes = {
   ),
   data: PropTypes.arrayOf(PropTypes.object),
 };
+
+const areTablePropsEqual = (prevProps, nextProps) => {
+  const prevColumns = prevProps.columns || [];
+  const nextColumns = nextProps.columns || [];
+  const prevData = prevProps.data || [];
+  const nextData = nextProps.data || [];
+
+  if (prevColumns.length !== nextColumns.length || prevData.length !== nextData.length) {
+    return false;
+  }
+
+  if (prevColumns !== nextColumns) {
+    for (let i = 0; i < prevColumns.length; i += 1) {
+      if (
+        prevColumns[i]?.accessor !== nextColumns[i]?.accessor ||
+        prevColumns[i]?.Header !== nextColumns[i]?.Header
+      ) {
+        return false;
+      }
+    }
+  }
+
+  if (prevData !== nextData) {
+    return false;
+  }
+
+  return true;
+};
+
+export default React.memo(Table, areTablePropsEqual);

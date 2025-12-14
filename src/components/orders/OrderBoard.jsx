@@ -49,4 +49,53 @@ function OrderBoard({
   );
 }
 
-export default React.memo(OrderBoard);
+const areOrderBoardPropsEqual = (prevProps, nextProps) => {
+  const prevColumns = prevProps.columnOrder || [];
+  const nextColumns = nextProps.columnOrder || [];
+
+  if (prevColumns.length !== nextColumns.length) {
+    return false;
+  }
+
+  for (let i = 0; i < prevColumns.length; i += 1) {
+    if (prevColumns[i] !== nextColumns[i]) {
+      return false;
+    }
+  }
+
+  const prevGroups = prevProps.groupedOrders || {};
+  const nextGroups = nextProps.groupedOrders || {};
+  const prevKeys = Object.keys(prevGroups);
+  const nextKeys = Object.keys(nextGroups);
+
+  if (prevKeys.length !== nextKeys.length) {
+    return false;
+  }
+
+  for (const key of prevKeys) {
+    if (!nextGroups[key]) {
+      return false;
+    }
+
+    if ((prevGroups[key]?.length || 0) !== (nextGroups[key]?.length || 0)) {
+      return false;
+    }
+  }
+
+  if (
+    prevProps.isAdmin !== nextProps.isAdmin ||
+    prevProps.isTouchDevice !== nextProps.isTouchDevice ||
+    prevProps.statusMessage !== nextProps.statusMessage ||
+    prevProps.dragHandlers !== nextProps.dragHandlers ||
+    prevProps.onView !== nextProps.onView ||
+    prevProps.onEdit !== nextProps.onEdit ||
+    prevProps.onCancel !== nextProps.onCancel ||
+    prevProps.onMove !== nextProps.onMove
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
+export default React.memo(OrderBoard, areOrderBoardPropsEqual);
