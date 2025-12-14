@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import axios from '../apiClient.js';
+import { addNote } from '../services/noteService.js';
+import { fetchCustomers } from '../services/customerService.js';
 
 export default function AddNote({ onClose, order }) {
     const navigate = useNavigate();
@@ -37,24 +38,24 @@ export default function AddNote({ onClose, order }) {
     }, [order]);
 
     useEffect(() => {
-        axios.get("/customer/GetCustomersList")
+        fetchCustomers()
             .then(res => {
                 if (res.data.success) {
-                    setCustomers(res.data.result); 
+                    setCustomers(res.data.result);
                     const customer = res.data.result.find(cust => cust.Customer_uuid === Customer_uuid);
                     if (customer) {
-                        setCustomer_name(customer.Customer_name); 
+                        setCustomer_name(customer.Customer_name);
                     }
                 }
             })
             .catch(err => console.log('Error fetching customers list:', err));
-    }, [Customer_uuid]); 
+    }, [Customer_uuid]);
 
     async function submit(e) {
         e.preventDefault();
     
         try {
-            const response = await axios.post(`/note/addNote`, {
+            const response = await addNote({
                 Customer_uuid,
                 Order_uuid,
                 Note_name,

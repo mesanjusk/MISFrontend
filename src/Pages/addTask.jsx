@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import { useNavigate } from "react-router-dom";
-import axios from '../apiClient.js'
+import { addTask, fetchTaskGroups } from '../services/taskService.js'
 
 export default function AddTask({ closeModal }) {
     const navigate = useNavigate();
@@ -10,11 +10,11 @@ export default function AddTask({ closeModal }) {
     const [groupOptions, setGroupOptions] = useState([]);
 
     useEffect(() => {
-        axios.get("/taskgroup/GetTaskgroupList")
+        fetchTaskGroups()
             .then(res => {
                 if (res.data.success) {
                     const options = res.data.result.map(item => item.Task_group);
-                    setGroupOptions(options); 
+                    setGroupOptions(options);
                 }
             })
             .catch(err => {
@@ -25,7 +25,7 @@ export default function AddTask({ closeModal }) {
     async function submit(e){
         e.preventDefault();
         try{
-            await axios.post("/task/addTask",{
+            await addTask({
                 Task_name, Task_group
             })
             .then(res=>{

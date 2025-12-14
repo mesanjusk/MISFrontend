@@ -1,4 +1,5 @@
-import axios from "../apiClient.js";
+import { fetchAttendanceList as fetchAttendanceListApi } from "../services/attendanceService.js";
+import { fetchUsers } from "../services/userService.js";
 
 /* ==================================================
    API HELPERS
@@ -6,7 +7,7 @@ import axios from "../apiClient.js";
 
 export const fetchUserNames = async () => {
   try {
-    const { data } = await axios.get("/user/GetUserList");
+    const { data } = await fetchUsers();
     if (!data?.success) return {};
 
     const map = {};
@@ -24,7 +25,7 @@ export const fetchUserNames = async () => {
 };
 
 export const fetchAttendanceList = async () => {
-  const { data } = await axios.get("/attendance/GetAttendanceList");
+  const { data } = await fetchAttendanceListApi();
   return data?.result || [];
 };
 

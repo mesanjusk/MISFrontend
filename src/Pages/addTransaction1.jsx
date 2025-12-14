@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from '../apiClient.js';
 import toast, { Toaster } from "react-hot-toast";
 import InvoiceModal from "../Components/InvoiceModal";
 import { LoadingSpinner } from "../Components";
+import { fetchCustomers } from "../services/customerService.js";
+import { addTransaction, sendTaskMessage } from "../services/transactionService.js";
 
 export default function AddTransaction1() {
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ export default function AddTransaction1() {
 
   useEffect(() => {
     setOptionsLoading(true);
-    axios.get("/customer/GetCustomersList")
+    fetchCustomers()
       .then(res => {
         if (res.data.success) {
           setAllCustomerOptions(res.data.result);
@@ -115,9 +116,7 @@ export default function AddTransaction1() {
 
     try {
       setLoading(true);
-      const res = await axios.post("/transaction/addTransaction", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const res = await addTransaction(formData, { headers: { "Content-Type": "multipart/form-data" } });
 
       if (res.data.success) {
         toast.success("Transaction saved.");
@@ -138,7 +137,7 @@ export default function AddTransaction1() {
 
   const sendWhatsApp = async () => {
     try {
-      const { data } = await axios.post('/usertask/send-message', {
+      const { data } = await sendTaskMessage({
         mobile: mobileToSend,
         userName: Customer_name,
         type: 'customer',
