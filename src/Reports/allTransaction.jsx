@@ -4,7 +4,7 @@ import axios from '../apiClient.js';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
-import { ToastContainer, toast } from '../Components';
+import { ConfirmModal, EmptyState, Loader, ToastContainer, toast } from '../Components';
 
 // NEW: reusable modal
 import TransactionEditModal from '../Components/TransactionEditModal';
@@ -15,12 +15,19 @@ const AllTransaction = () => {
   const [filteredEntries, setFilteredEntries] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTxn, setEditingTxn] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
+  const [confirmState, setConfirmState] = useState({
+    open: false,
+    mode: null,
+    txnId: null,
+    count: 0,
+  });
 
   const allVisibleSelected =
     filteredEntries.length > 0 &&
@@ -37,7 +44,9 @@ const AllTransaction = () => {
         if (custRes.data?.success) setCustomers(custRes.data.result || []);
       } catch (error) {
         console.error('Error fetching data:', error);
-        toast.error('Error fetching data');
+        toast.error('Unable to load transactions. Please try again.');
+      } finally {
+        setIsLoading(false);
       }
     };
     const userGroup = localStorage.getItem('User_group');
@@ -223,20 +232,19 @@ const AllTransaction = () => {
     }
   };
 
-  const handleDelete = async (txnId) => {
-    if (!window.confirm('Are you sure you want to delete this transaction?')) return;
+  const deleteTransaction = async (txnId) => {
     try {
       const res = await axios.delete(`/transaction/deleteByTransactionId/${txnId}`);
       if (res.data?.success) {
-        toast.success('Transaction deleted');
+        toast.success('Transaction deleted successfully');
         setTransactions((prev) => prev.filter((txn) => txn.Transaction_id !== txnId));
         setSelectedIds((prev) => prev.filter((id) => id !== txnId));
       } else {
-        toast.error('Delete failed');
+        toast.error('Unable to delete transaction');
       }
     } catch (err) {
       console.error(err);
-      toast.error('Error deleting transaction');
+      toast.error('Unable to delete transaction');
     }
   };
 
@@ -258,9 +266,8 @@ const AllTransaction = () => {
     );
   };
 
-  const handleDeleteSelected = async () => {
+  const deleteSelectedTransactions = async () => {
     if (selectedIds.length === 0) return;
-    if (!window.confirm(`Delete ${selectedIds.length} selected transaction(s)?`)) return;
 
     try {
       const results = await Promise.allSettled(
@@ -280,8 +287,31 @@ const AllTransaction = () => {
       }
     } catch (err) {
       console.error(err);
-      toast.error('Bulk delete failed');
+      toast.error('Unable to delete selected transactions');
     }
+  };
+
+  const requestDelete = (txnId) => {
+    setConfirmState({ open: true, mode: 'single', txnId, count: 1 });
+  };
+
+  const requestBulkDelete = () => {
+    if (selectedIds.length === 0) return;
+    setConfirmState({ open: true, mode: 'bulk', txnId: null, count: selectedIds.length });
+  };
+
+  const closeConfirmModal = () => {
+    setConfirmState({ open: false, mode: null, txnId: null, count: 0 });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (confirmState.mode === 'single' && confirmState.txnId) {
+      await deleteTransaction(confirmState.txnId);
+    }
+    if (confirmState.mode === 'bulk') {
+      await deleteSelectedTransactions();
+    }
+    closeConfirmModal();
   };
 
   return (
@@ -326,7 +356,7 @@ const AllTransaction = () => {
 
           {userRole === 'Admin User' && (
             <button
-              onClick={handleDeleteSelected}
+              onClick={requestBulkDelete}
               disabled={selectedIds.length === 0}
               className={`px-4 py-2 rounded ${
                 selectedIds.length === 0
@@ -340,75 +370,81 @@ const AllTransaction = () => {
         </div>
       </div>
 
-      <div className="overflow-auto bg-white shadow rounded">
-        <table className="min-w-full text-sm">
-          <thead className="bg-blue-100 text-blue-900">
-            <tr>
-              <th className="px-3 py-2 w-10 text-center">
-                <input
-                  type="checkbox"
-                  checked={allVisibleSelected}
-                  onChange={toggleSelectAllVisible}
-                />
-              </th>
-              <th onClick={() => handleSort('Transaction_id')} className="cursor-pointer px-4 py-2">No</th>
-              <th onClick={() => handleSort('Order_number')} className="cursor-pointer px-4 py-2">Order No</th>
-              <th onClick={() => handleSort('Transaction_date')} className="cursor-pointer px-4 py-2">Date</th>
-              <th onClick={() => handleSort('Credit_id')} className="cursor-pointer px-4 py-2">Credit Name</th>
-              <th onClick={() => handleSort('CreditAmount')} className="cursor-pointer px-4 py-2">Credit</th>
-              <th onClick={() => handleSort('Debit_id')} className="cursor-pointer px-4 py-2">Debit Name</th>
-              <th onClick={() => handleSort('DebitAmount')} className="cursor-pointer px-4 py-2">Debit</th>
-              <th className="px-4 py-2 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredEntries.length === 0 ? (
+      {isLoading ? (
+        <div className="bg-white shadow rounded p-8 flex justify-center">
+          <Loader message="Loading transactions..." />
+        </div>
+      ) : (
+        <div className="overflow-auto bg-white shadow rounded">
+          <table className="min-w-full text-sm">
+            <thead className="bg-blue-100 text-blue-900">
               <tr>
-                <td colSpan="9" className="text-center py-6 text-gray-500">
-                  No transactions found.
-                </td>
+                <th className="px-3 py-2 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={toggleSelectAllVisible}
+                  />
+                </th>
+                <th onClick={() => handleSort('Transaction_id')} className="cursor-pointer px-4 py-2">No</th>
+                <th onClick={() => handleSort('Order_number')} className="cursor-pointer px-4 py-2">Order No</th>
+                <th onClick={() => handleSort('Transaction_date')} className="cursor-pointer px-4 py-2">Date</th>
+                <th onClick={() => handleSort('Credit_id')} className="cursor-pointer px-4 py-2">Credit Name</th>
+                <th onClick={() => handleSort('CreditAmount')} className="cursor-pointer px-4 py-2">Credit</th>
+                <th onClick={() => handleSort('Debit_id')} className="cursor-pointer px-4 py-2">Debit Name</th>
+                <th onClick={() => handleSort('DebitAmount')} className="cursor-pointer px-4 py-2">Debit</th>
+                <th className="px-4 py-2 text-center">Actions</th>
               </tr>
-            ) : (
-              filteredEntries.map((txn) => (
-                <tr key={txn.Transaction_id} className="border-t hover:bg-gray-50">
-                  <td className="px-3 py-2 text-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(txn.Transaction_id)}
-                      onChange={() => toggleRow(txn.Transaction_id)}
-                    />
-                  </td>
-                  <td className="px-4 py-2">{txn.Transaction_id}</td>
-                  <td className="px-4 py-2">{txn.Order_number || '-'}</td>
-                  <td className="px-4 py-2">{formatDate(txn.Transaction_date)}</td>
-                  <td className="px-4 py-2">{customerMap[txn.Credit_id] || '-'}</td>
-                  <td className="px-4 py-2 text-right text-blue-700">₹{Number(txn.CreditAmount || 0).toFixed(2)}</td>
-                  <td className="px-4 py-2">{customerMap[txn.Debit_id] || '-'}</td>
-                  <td className="px-4 py-2 text-right text-red-600">₹{Number(txn.DebitAmount || 0).toFixed(2)}</td>
-                  <td className="px-4 py-2 text-center">
-                    {userRole === 'Admin User' && (
-                      <>
-                        <button
-                          className="text-blue-600 hover:underline mr-2"
-                          onClick={() => openEdit(txn)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="text-red-600 hover:underline"
-                          onClick={() => handleDelete(txn.Transaction_id)}
-                        >
-                          Delete
-                        </button>
-                      </>
-                    )}
+            </thead>
+            <tbody>
+              {filteredEntries.length === 0 ? (
+                <tr>
+                  <td colSpan="9" className="py-8">
+                    <EmptyState message="No transactions found." />
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                filteredEntries.map((txn) => (
+                  <tr key={txn.Transaction_id} className="border-t hover:bg-gray-50">
+                    <td className="px-3 py-2 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(txn.Transaction_id)}
+                        onChange={() => toggleRow(txn.Transaction_id)}
+                      />
+                    </td>
+                    <td className="px-4 py-2">{txn.Transaction_id}</td>
+                    <td className="px-4 py-2">{txn.Order_number || '-'}</td>
+                    <td className="px-4 py-2">{formatDate(txn.Transaction_date)}</td>
+                    <td className="px-4 py-2">{customerMap[txn.Credit_id] || '-'}</td>
+                    <td className="px-4 py-2 text-right text-blue-700">₹{Number(txn.CreditAmount || 0).toFixed(2)}</td>
+                    <td className="px-4 py-2">{customerMap[txn.Debit_id] || '-'}</td>
+                    <td className="px-4 py-2 text-right text-red-600">₹{Number(txn.DebitAmount || 0).toFixed(2)}</td>
+                    <td className="px-4 py-2 text-center">
+                      {userRole === 'Admin User' && (
+                        <>
+                          <button
+                            className="text-blue-600 hover:underline mr-2"
+                            onClick={() => openEdit(txn)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="text-red-600 hover:underline"
+                            onClick={() => requestDelete(txn.Transaction_id)}
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Reusable Edit Modal */}
       <TransactionEditModal
@@ -417,6 +453,25 @@ const AllTransaction = () => {
         onSave={saveEditedTransaction}
         initialData={editingTxn}
         customers={customers}
+      />
+
+      <ConfirmModal
+        isOpen={confirmState.open}
+        title={confirmState.mode === 'bulk' ? 'Delete selected transactions' : 'Delete transaction'}
+        message={
+          confirmState.mode === 'bulk'
+            ? `Are you sure you want to delete ${confirmState.count} selected transaction(s)? This action cannot be undone.`
+            : 'Are you sure you want to delete this transaction? This action cannot be undone.'
+        }
+        onConfirm={handleConfirmDelete}
+        onCancel={closeConfirmModal}
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmButtonClassName="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+        cancelButtonClassName="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
+        overlayClassName="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
+        modalClassName="bg-white rounded-lg shadow-lg p-6 max-w-md w-full"
+        actionsClassName="flex justify-end gap-3 mt-6"
       />
     </div>
   );
