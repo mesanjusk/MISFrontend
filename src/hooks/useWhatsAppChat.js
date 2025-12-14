@@ -31,6 +31,7 @@ export const useWhatsAppChat = () => {
   const [messages, setMessages] = useState([]);
   const [lastMessageMap, setLastMessageMap] = useState({});
   const [socket, setSocket] = useState(null);
+  const selectedCustomerRef = useRef(null);
 
   useEffect(() => {
     apiBasePromise.then((base) => {
@@ -49,11 +50,12 @@ export const useWhatsAppChat = () => {
 
     const handleIncomingMessage = async (data) => {
       const senderNumber = normalizeWhatsAppNumber(data.number || '');
-      const currentNumber = selectedCustomer
-        ? normalizeWhatsAppNumber(selectedCustomer.Mobile_number)
+      const currentCustomer = selectedCustomerRef.current;
+      const currentNumber = currentCustomer
+        ? normalizeWhatsAppNumber(currentCustomer.Mobile_number)
         : null;
 
-      if (selectedCustomer && senderNumber === currentNumber) {
+      if (currentCustomer && senderNumber === currentNumber) {
         setMessages((prev) => [
           ...prev,
           {
@@ -102,7 +104,7 @@ export const useWhatsAppChat = () => {
       socket.off('message', handleIncomingMessage);
       socket.disconnect();
     };
-  }, [selectedCustomer, socket]);
+  }, [socket]);
 
   useEffect(() => {
     fetchChatList().then((res) => {
@@ -114,8 +116,13 @@ export const useWhatsAppChat = () => {
     });
   }, []);
 
+  useEffect(() => {
+    selectedCustomerRef.current = selectedCustomer;
+  }, [selectedCustomer]);
+
   const openChat = async (customer) => {
     setSelectedCustomer(customer);
+    selectedCustomerRef.current = customer;
     setMessages([]);
     const number = normalizeWhatsAppNumber(customer.Mobile_number);
     const res = await fetchMessagesByNumber(number);
@@ -125,9 +132,10 @@ export const useWhatsAppChat = () => {
   };
 
   const sendMessage = async () => {
-    if (!selectedCustomer || !message || !isReady) return;
-    const norm = normalizeWhatsAppNumber(selectedCustomer.Mobile_number);
-    const personalized = message.replace(/\{name\}/gi, selectedCustomer.Customer_name || norm);
+    const currentCustomer = selectedCustomerRef.current;
+    if (!currentCustomer || !message || !isReady) return;
+    const norm = normalizeWhatsAppNumber(currentCustomer.Mobile_number);
+    const personalized = message.replace(/\{name\}/gi, currentCustomer.Customer_name || norm);
     const msgObj = { from: 'me', text: personalized, time: new Date() };
 
     setSending(true);
@@ -137,7 +145,7 @@ export const useWhatsAppChat = () => {
         setMessages((prev) => [...prev, msgObj]);
         setLastMessageMap((prev) => ({
           ...prev,
-          [selectedCustomer._id]: Date.now(),
+          [currentCustomer._id]: Date.now(),
         }));
         setMessage('');
       }
@@ -173,6 +181,7 @@ export const useWhatsAppChat = () => {
         Mobile_number: normalized,
       };
       setSelectedCustomer(newCustomer);
+      selectedCustomerRef.current = newCustomer;
       setMessages([]);
     }
   };
