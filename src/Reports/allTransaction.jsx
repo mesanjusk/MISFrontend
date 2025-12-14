@@ -16,6 +16,7 @@ const AllTransaction = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTxn, setEditingTxn] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [userRole, setUserRole] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,6 +36,7 @@ const AllTransaction = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoadError(null);
       try {
         const [txnRes, custRes] = await Promise.all([
           axios.get('/transaction/GetFilteredTransactions'),
@@ -44,7 +46,9 @@ const AllTransaction = () => {
         if (custRes.data?.success) setCustomers(custRes.data.result || []);
       } catch (error) {
         console.error('Error fetching data:', error);
-        toast.error('Unable to load transactions. Please try again.');
+        const message = 'Unable to load transactions. Please try again.';
+        setLoadError(message);
+        toast.error(message);
       } finally {
         setIsLoading(false);
       }
@@ -199,7 +203,7 @@ const AllTransaction = () => {
       );
 
       if (res.data?.success) {
-        toast.success('Transaction updated');
+        toast.success('Transaction updated successfully');
         setShowEditModal(false);
 
         // Merge changes locally into original transaction structure
@@ -224,11 +228,11 @@ const AllTransaction = () => {
           )
         );
       } else {
-        toast.error('Update failed');
+        toast.error('Unable to update transaction');
       }
     } catch (err) {
       console.error(err);
-      toast.error('Error updating transaction');
+      toast.error('Unable to update transaction');
     }
   };
 
@@ -374,6 +378,10 @@ const AllTransaction = () => {
         <div className="bg-white shadow rounded p-8 flex justify-center">
           <Loader message="Loading transactions..." />
         </div>
+      ) : loadError ? (
+        <div className="bg-white shadow rounded p-8">
+          <EmptyState message={loadError} />
+        </div>
       ) : (
         <div className="overflow-auto bg-white shadow rounded">
           <table className="min-w-full text-sm">
@@ -400,7 +408,13 @@ const AllTransaction = () => {
               {filteredEntries.length === 0 ? (
                 <tr>
                   <td colSpan="9" className="py-8">
-                    <EmptyState message="No transactions found." />
+                    <EmptyState
+                      message={
+                        searchQuery || dateFrom || dateTo
+                          ? 'No transactions match the current filters.'
+                          : 'No transactions found.'
+                      }
+                    />
                   </td>
                 </tr>
               ) : (

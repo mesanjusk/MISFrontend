@@ -7,7 +7,7 @@ export default function PendingTasks({ tasks = [], isLoading, onTaskClick }) {
   const pendingTasks = tasks.filter((task) => task.Status === 'Pending');
 
   return (
-    <div className=" px-4 py-2">
+    <div className="px-4 py-2">
       {isLoading ? (
         <div className="py-6 flex justify-center">
           <Loader message="Loading pending tasks..." />
