@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from '../apiClient.js';
+import { addPayment, updatePayment } from '../services/paymentService.js';
 
 export default function PaymentModal({ isOpen, onClose, isEdit, existingData, onSuccess }) {
   const [Payment_name, setPayment_Name] = useState('');
@@ -16,7 +16,7 @@ export default function PaymentModal({ isOpen, onClose, isEdit, existingData, on
     e.preventDefault();
     try {
       if (isEdit) {
-        const res = await axios.put(`/payment_mode/update/${existingData._id}`, {
+        const res = await updatePayment(existingData._id, {
           Payment_name,
         });
 
@@ -28,7 +28,7 @@ export default function PaymentModal({ isOpen, onClose, isEdit, existingData, on
           alert('Failed to update');
         }
       } else {
-        const res = await axios.post('/payment_mode/addPayment', {
+        const res = await addPayment({
           Payment_name,
         });
 

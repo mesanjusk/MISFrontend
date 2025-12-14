@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import axios from '../apiClient.js';
+import {
+  fetchSessions as fetchSessionsApi,
+  resetSession as resetSessionApi,
+  startSession as startSessionApi,
+  fetchSessionQr,
+} from '../services/whatsappService.js';
 
 export default function WhatsAppAdminPanel() {
   const [sessions, setSessions] = useState([]);
@@ -12,7 +17,7 @@ export default function WhatsAppAdminPanel() {
 
   const fetchSessions = async () => {
     try {
-      const res = await axios.get('/whatsapp/sessions');
+      const res = await fetchSessionsApi();
       if (res.data.success) {
         setSessions(res.data.sessions);
         const now = Date.now();
@@ -28,7 +33,7 @@ export default function WhatsAppAdminPanel() {
   const resetSession = async (sessionId) => {
     if (!window.confirm(`Reset session ${sessionId}?`)) return;
     try {
-      await axios.post('/whatsapp/reset-session', { sessionId });
+      await resetSessionApi(sessionId);
       alert(`✅ Session ${sessionId} reset.`);
       fetchSessions();
     } catch (err) {
@@ -45,7 +50,7 @@ export default function WhatsAppAdminPanel() {
 
     setLoading(true);
     try {
-      await axios.post('/whatsapp/start-session', { sessionId: sessionId.trim() });
+      await startSessionApi(sessionId.trim());
       alert(`✅ Session ${sessionId} started.`);
       setNewSessionId('');
       fetchSessions();
@@ -64,7 +69,7 @@ export default function WhatsAppAdminPanel() {
 
   const fetchQR = async (sessionId) => {
     try {
-      const res = await axios.get(`/whatsapp/session/${sessionId}/qr`);
+      const res = await fetchSessionQr(sessionId);
       setQrStatus(res.data.status);
       if (res.data.qrImage) setQrImage(res.data.qrImage);
     } catch (err) {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import axios from "axios";
+import { fetchDeliveredOrders } from "../services/orderService";
+import { fetchCustomers } from "../services/customerService";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -52,8 +53,8 @@ export default function AllDelivery() {
       setLoading(true);
       try {
         const [ordersRes, customersRes] = await Promise.all([
-          axios.get(`${API_BASE}/order/GetDeliveredList`),
-          axios.get(`${API_BASE}/customer/GetCustomersList`),
+          fetchDeliveredOrders(),
+          fetchCustomers(),
         ]);
 
         if (!isMounted) return;

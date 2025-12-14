@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from '../apiClient.js';
+import {
+    fetchCustomerGroups,
+    fetchCustomerById,
+    updateCustomer,
+} from '../services/customerService.js';
 import { useParams } from "react-router-dom";
 
 export default function EditCustomer({ customerId, closeModal }) {
@@ -15,7 +19,7 @@ export default function EditCustomer({ customerId, closeModal }) {
     });
 
     useEffect(() => {
-        axios.get("/customergroup/GetCustomergroupList")
+        fetchCustomerGroups()
             .then(res => {
                 if (res.data.success) {
                     setGroupOptions(res.data.result.map(item => item.Customer_group));
@@ -26,7 +30,7 @@ export default function EditCustomer({ customerId, closeModal }) {
 
     useEffect(() => {
         if (customerId) {
-            axios.get(`/customer/${customerId}`)
+            fetchCustomerById(customerId)
                 .then(res => {
                     if (res.data.success) {
                         const customer = res.data.result;
@@ -52,7 +56,7 @@ export default function EditCustomer({ customerId, closeModal }) {
             return;
         }
 
-        axios.put(`/customer/update/${customerId}`, values)
+        updateCustomer(customerId, values)
             .then(res => {
                 if (res.data.success) {
                     alert('Customer updated successfully!');

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from '../apiClient.js';
+import { fetchTaskGroups, fetchTaskById, updateTask } from '../services/taskService.js';
 
 export default function EditTask({ taskId, closeModal }) {
     const [groupOptions, setGroupOptions] = useState([]);
@@ -9,7 +9,7 @@ export default function EditTask({ taskId, closeModal }) {
     });
 
     useEffect(() => {
-        axios.get("/taskgroup/GetTaskgroupList")
+        fetchTaskGroups()
             .then(res => {
                 if (res.data.success) {
                     const options = res.data.result.map(item => item.Task_group);
@@ -23,7 +23,7 @@ export default function EditTask({ taskId, closeModal }) {
 
     useEffect(() => {
         if (taskId) {
-            axios.get(`/task/${taskId}`)
+            fetchTaskById(taskId)
                 .then(res => {
                     if (res.data.success) {
                         const task = res.data.result;
@@ -45,7 +45,7 @@ export default function EditTask({ taskId, closeModal }) {
             return;
         }
 
-        axios.put(`/task/update/${taskId}`, { 
+        updateTask(taskId, {
             Task_name: values.Task_name,
             Task_group: values.Task_group,
         })

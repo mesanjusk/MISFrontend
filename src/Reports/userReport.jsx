@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from '../apiClient.js';
+import { deleteUser, fetchUsers } from '../services/userService.js';
 import EditUser from './editUser';
 import AddUser from '../Pages/addUser';
 import { toast, ToastContainer } from 'react-toastify';
@@ -26,7 +26,7 @@ const UserReport = () => {
 
         fetchUserGroup();
 
-        axios.get("/user/GetUserList")
+        fetchUsers()
             .then(res => {
                 if (res.data.success) {
                     const userMap = res.data.result.reduce((acc, user) => {
@@ -72,7 +72,7 @@ const UserReport = () => {
     };
 
     const handleDeleteConfirm = () => {
-        axios.delete(`/user/Delete/${selectedUser?.userUuid}`)
+        deleteUser(selectedUser?.userUuid)
             .then(res => {
                 if (res.data.success) {
                     setUsers(prevUser => {

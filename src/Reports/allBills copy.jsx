@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from '../apiClient.js';
+import { fetchBillList } from '../services/orderService.js';
+import { fetchCustomers as fetchCustomersList } from '../services/customerService.js';
 import { useNavigate } from "react-router-dom";
 import BillUpdate from "../Reports/billUpdate";
 import AddOrder1 from "../Pages/addOrder1";
@@ -24,8 +25,8 @@ export default function AllBills() {
     }
 
     useEffect(() => {
-        const fetchOrders = axios.get("/order/GetBillList");
-        const fetchCustomers = axios.get("/customer/GetCustomersList");
+        const fetchOrders = fetchBillList();
+        const fetchCustomers = fetchCustomersList();
 
         Promise.all([fetchOrders, fetchCustomers])
             .then(([ordersRes, customersRes]) => {

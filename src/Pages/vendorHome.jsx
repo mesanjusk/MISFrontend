@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from '../apiClient.js';
+import { addAttendance } from '../services/attendanceService.js';
 
 export default function VendorHome() {
   const navigate = useNavigate();
@@ -24,7 +24,7 @@ export default function VendorHome() {
     const currentDate = new Date().toLocaleDateString(); 
 
     try {
-      const response = await axios.post('/attendance/addAttendance', {
+      const response = await addAttendance({
         User_name: userName,
         Type: type,
         Status: 'Present',

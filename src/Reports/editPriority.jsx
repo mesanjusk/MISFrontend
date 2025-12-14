@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from '../apiClient.js';
+import { fetchPriorityById, updatePriority } from '../services/priorityService.js';
 
 export default function EditPriority({ priorityId, closeModal }) {
 
@@ -9,7 +9,7 @@ export default function EditPriority({ priorityId, closeModal }) {
 
     useEffect(() => {
         if (priorityId) {
-            axios.get(`/priority/${priorityId}`)
+            fetchPriorityById(priorityId)
                 .then(res => {
                     if (res.data.success) {
                         const priority = res.data.result;
@@ -31,7 +31,7 @@ export default function EditPriority({ priorityId, closeModal }) {
             return;
         }
 
-        axios.put(`/priority/update/${priorityId}`, { 
+        updatePriority(priorityId, {
             Priority_name: values.Priority_name,
         })
         .then(res => {

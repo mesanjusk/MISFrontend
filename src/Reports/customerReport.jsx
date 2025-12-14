@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from '../apiClient.js';
+import { deleteCustomer, fetchCustomers } from '../services/customerService.js';
 import EditCustomer from './editCustomer';
 import AddCustomer from '../Pages/addCustomer';
 
@@ -25,7 +25,7 @@ const CustomerReport = () => {
         };
         fetchUserGroup();
 
-        axios.get("/customer/GetCustomersList")
+        fetchCustomers()
             .then(res => {
                 if (res.data.success) {
                     const sorted = res.data.result.sort((a, b) => a.Customer_name.localeCompare(b.Customer_name));
@@ -69,7 +69,7 @@ const CustomerReport = () => {
         if (!selectedCustomer || !selectedCustomer._id) return;
 
         try {
-            const deleteResponse = await axios.delete(`/customer/DeleteCustomer/${selectedCustomer._id}`);
+            const deleteResponse = await deleteCustomer(selectedCustomer._id);
             if (deleteResponse.data.success) {
                 setCustomers(prev => prev.filter(c => c._id !== selectedCustomer._id));
                 alert("✅ Customer deleted successfully.");

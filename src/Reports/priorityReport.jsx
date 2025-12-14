@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from '../apiClient.js';
+import { deletePriority, fetchPriorities } from '../services/priorityService.js';
 import EditPriority from './editPriority';
 import AddPriority from '../Pages/addPriority'; 
 
@@ -23,7 +23,7 @@ const PriorityReport = () => {
 
         fetchUserGroup();
 
-        axios.get("/priority/GetPriorityList")
+        fetchPriorities()
             .then(res => {
                 if (res.data.success) {
                     const priorityMap = res.data.result.reduce((acc, priority) => {
@@ -63,8 +63,8 @@ const PriorityReport = () => {
     
 
     const handleDeleteConfirm = (priorityId) => {
-        axios.delete(`/priority/Delete/${priorityId}`) 
-        .then(res => {
+        deletePriority(priorityId)
+            .then(res => {
             if (res.data.success) {
                 setPrioritys(prePriority => {
                     const newPriority = { ...prePriority };

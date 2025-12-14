@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
-import axios from '../apiClient.js';
+import { fetchCustomers } from '../services/customerService.js';
+import { fetchPayments } from '../services/paymentService.js';
+import { updateOrder } from '../services/orderService.js';
 import AddCustomer from '../Pages/addCustomer';
 
 export default function UpdateCustomer({order, onClose}) {
@@ -47,7 +49,7 @@ export default function UpdateCustomer({order, onClose}) {
     }, []);
 
     useEffect(() => {
-        axios.get("/customer/GetCustomersList").then(res => {
+        fetchCustomers().then(res => {
             if (res.data.success) {
                 setCustomerOptions(res.data.result);
                 const accountOptions = res.data.result.filter(item => item.Customer_group === "Account");
@@ -55,7 +57,7 @@ export default function UpdateCustomer({order, onClose}) {
             }
         }).catch(err => console.error("Error fetching customer options:", err));
 
-        axios.get("/payment_mode/GetPaymentList").then(res => {
+        fetchPayments().then(res => {
             if (res.data.success) {
                 const cashPaymentMode = res.data.result.find(mode => mode.Payment_name === "Cash");
                 if (cashPaymentMode) {
@@ -72,7 +74,7 @@ export default function UpdateCustomer({order, onClose}) {
            
             if (!customer) return alert("Invalid Customer selection.");
 
-           await axios.put(`/order/update/${order.Order_uuid}`, {
+           await updateOrder(order.Order_uuid, {
                 Customer_uuid: customer.Customer_uuid,
             })   .then(res => {
               if (res.data.success) {
