@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { getWithFallback } from "../utils/api.js";
 import { useNavigate, useLocation } from 'react-router-dom';
 import BillUpdate from '../Reports/billUpdate';
-import { InputField, Card, Modal, LoadingSpinner } from '../Components';
-import { FiSearch } from 'react-icons/fi';
+import { Card, Modal, Loader, SearchBar, EmptyState } from '../Components';
 
 export default function VendorBills() {
     const navigate = useNavigate();
@@ -82,18 +81,17 @@ export default function VendorBills() {
     };
 
     if (loading) {
-        return <LoadingSpinner />;
+        return <Loader />;
     }
 
     return (
         <>
             <div className="pt-12 pb-20 max-w-7xl mx-auto px-4">
                 <Card className="flex flex-wrap items-center w-full p-2 mb-4 rounded-lg shadow gap-2">
-                    <InputField
+                    <SearchBar
                         value={searchOrder}
                         onChange={(e) => setSearchOrder(e.target.value)}
                         placeholder="Search by Customer Name"
-                        icon={FiSearch}
                         className="flex-1"
                     />
                 </Card>
@@ -129,7 +127,7 @@ export default function VendorBills() {
                                 </Card>
                             ))
                         ) : (
-                            <div className="text-center text-gray-500">No orders found</div>
+                            <EmptyState message="No orders found" />
                         )}
                     </div>
                 </main>

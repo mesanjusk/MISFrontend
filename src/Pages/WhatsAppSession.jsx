@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../apiClient.js';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer, toast } from '../Components';
 import normalizeWhatsAppNumber from '../utils/normalizeNumber';
 
 const WhatsAppSession = () => {

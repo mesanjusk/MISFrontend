@@ -4,8 +4,7 @@ import axios from '../apiClient.js';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer, toast } from '../Components';
 
 // NEW: reusable modal
 import TransactionEditModal from '../Components/TransactionEditModal';

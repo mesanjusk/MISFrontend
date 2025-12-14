@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from '../apiClient.js';
 import EditTask from './editTask';
 import AddTask from '../Pages/addTask';
+import { ConfirmModal, EmptyState } from '../Components';
 
 const TaskReport = () => {
     const [task, setTask] = useState({});
@@ -158,7 +159,7 @@ const TaskReport = () => {
                                 </tbody>
                             </table>
                         ) : (
-                            <p>No data available for the selected filters.</p>
+                            <EmptyState message="No data available for the selected filters." />
                         )}
                     </div>
                 </main>
@@ -172,17 +173,12 @@ const TaskReport = () => {
                 </div>
             )}
 
-            {showDeleteModal && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <h4>Are you sure you want to delete {selectedTask?.name}?</h4>
-                        <div className="modal-actions">
-                            <button onClick={() => handleDeleteConfirm(selectedTask?._id)} className="btn btn-danger">Yes</button>
-                            <button onClick={handleDeleteCancel} className="btn btn-secondary">Cancel</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmModal
+                isOpen={showDeleteModal}
+                title={`Are you sure you want to delete ${selectedTask?.name}?`}
+                onConfirm={() => handleDeleteConfirm(selectedTask?._id)}
+                onCancel={handleDeleteCancel}
+            />
 
             {showAddModal && (
                 <div className="modal-overlay">

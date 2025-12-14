@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react';
 import { deleteUser, fetchUsers } from '../services/userService.js';
 import EditUser from './editUser';
 import AddUser from '../Pages/addUser';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import { InputField, Button, Card, Modal, Table } from '../Components';
-import { FiSearch, FiPlus, FiTrash2, FiLock, FiPrinter } from 'react-icons/fi';
+import { Button, Card, Modal, Table, ToastContainer, toast, SearchBar, EmptyState } from '../Components';
+import { FiPlus, FiTrash2, FiLock, FiPrinter } from 'react-icons/fi';
 
 const UserReport = () => {
     const [users, setUsers] = useState({});
@@ -110,11 +108,10 @@ const UserReport = () => {
             <ToastContainer position="top-center" />
             <Card className="pt-12 pb-20 max-w-3xl mx-auto">
                 <div className="flex flex-wrap items-center gap-2 mb-4">
-                    <InputField
+                    <SearchBar
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder="Search by user name or group"
-                        icon={FiSearch}
                         className="flex-1"
                     />
                     <Button
@@ -179,7 +176,7 @@ const UserReport = () => {
                             }))}
                     />
                 ) : (
-                    <p>No data available for the selected filters.</p>
+                    <EmptyState message="No data available for the selected filters." />
                 )}
             </Card>
 

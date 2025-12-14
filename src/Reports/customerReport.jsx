@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { deleteCustomer, fetchCustomers } from '../services/customerService.js';
 import EditCustomer from './editCustomer';
 import AddCustomer from '../Pages/addCustomer';
+import { ConfirmModal } from '../Components';
 
 const CustomerReport = () => {
     const [customers, setCustomers] = useState([]);
@@ -163,18 +164,15 @@ const CustomerReport = () => {
             )}
 
             {/* Delete Modal */}
-            {showDeleteModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 shadow-lg">
-                        <h4 className="text-lg font-semibold mb-4">Are you sure you want to delete {selectedCustomer?.Customer_name}?</h4>
-                        {deleteErrorMessage && <p className="text-red-500 mb-2">{deleteErrorMessage}</p>}
-                        <div className="flex justify-end gap-4">
-                            <button onClick={handleDeleteConfirm} className="bg-red-500 text-white px-4 py-2 rounded-md">Yes</button>
-                            <button onClick={() => setShowDeleteModal(false)} className="bg-gray-300 px-4 py-2 rounded-md">Cancel</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmModal
+                isOpen={showDeleteModal}
+                title={`Are you sure you want to delete ${selectedCustomer?.Customer_name}?`}
+                message={deleteErrorMessage && <p className="text-red-500 mb-2">{deleteErrorMessage}</p>}
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setShowDeleteModal(false)}
+                confirmButtonClassName="bg-red-500 text-white px-4 py-2 rounded-md"
+                cancelButtonClassName="bg-gray-300 px-4 py-2 rounded-md"
+            />
 
             {/* Add Modal */}
             {showAddModal && (

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../apiClient.js';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { toast, ToastContainer } from '../Components';
 
 export default function EditUser({ userId, closeModal }) {
     const [groupOptions, setGroupOptions] = useState([]);

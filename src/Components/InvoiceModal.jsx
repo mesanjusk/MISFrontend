@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import axios from '../apiClient.js';
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
-import { toast } from "react-toastify";
+import { toast } from './Toast';
 import InvoicePreview from "./InvoicePreview";
 
 const CLOUDINARY_UPLOAD_URL = "https://api.cloudinary.com/v1_1/dadcprflr/raw/upload";

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../apiClient.js';
 import EditPayment from './editPayment';
-import AddPayment from '../Pages/addPayment'; 
+import AddPayment from '../Pages/addPayment';
+import { ConfirmModal, EmptyState } from '../Components';
 
 const PaymentReport = () => {
     const [payments, setPayments] = useState({});
@@ -164,7 +165,7 @@ const PaymentReport = () => {
                                 </tbody>
                             </table>
                         ) : (
-                            <p>No data available for the selected filters.</p>
+                            <EmptyState message="No data available for the selected filters." />
                         )}
                     </div>
                 </main>
@@ -178,18 +179,13 @@ const PaymentReport = () => {
                 </div>
             )}
 
-            {showDeleteModal && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <h4>Are you sure you want to delete {selectedPayment?.name}?</h4>
-                        <div className="modal-actions">
-                            <button onClick={handleDeleteConfirm} className="btn btn-danger">Yes</button>
-                            <button onClick={handleDeleteCancel} className="btn btn-secondary">Cancel</button>
-                        </div>
-                        {deleteErrorMessage && <p className="text-red-500">{deleteErrorMessage}</p>}
-                    </div>
-                </div>
-            )}
+            <ConfirmModal
+                isOpen={showDeleteModal}
+                title={`Are you sure you want to delete ${selectedPayment?.name}?`}
+                message={deleteErrorMessage && <p className="text-red-500">{deleteErrorMessage}</p>}
+                onConfirm={handleDeleteConfirm}
+                onCancel={handleDeleteCancel}
+            />
 
             {showAddModal && (
                 <div className="modal-overlay">
