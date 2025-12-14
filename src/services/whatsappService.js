@@ -5,3 +5,11 @@ export const sendTestMessage = (payload) => axios.post('/whatsapp/send-test', pa
 export const resetSession = (sessionId) => axios.post('/whatsapp/reset-session', { sessionId });
 export const startSession = (sessionId) => axios.post('/whatsapp/start-session', { sessionId });
 export const fetchSessionQr = (sessionId) => axios.get(`/whatsapp/session/${sessionId}/qr`);
+
+// Chat operations
+export const fetchWhatsAppStatus = () => axios.get('/whatsapp-status');
+export const fetchChatList = () => axios.get('/chatlist');
+export const fetchCustomers = () => axios.get('/customer/GetCustomersList');
+export const fetchMessagesByNumber = (number) => axios.get(`/messages/${number}`);
+export const fetchCustomerByNumber = (number) => axios.get(`/customer/by-number/${number}`);
+export const sendWhatsAppMessage = (payload) => axios.post('/send-message', payload);
