@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const IconChevronRight = ({ open }) => (
   <svg
@@ -12,13 +13,8 @@ const IconChevronRight = ({ open }) => (
 
 export default function Sidebar({ collapsed, onExpand, onCollapse }) {
   const navigate = useNavigate();
-  const [userGroup, setUserGroup] = useState("");
+  const { userGroup, clearAuth } = useAuth();
   const [openGroup, setOpenGroup] = useState(null);
-
-  useEffect(() => {
-    const g = localStorage.getItem("User_group");
-    if (g) setUserGroup(g);
-  }, []);
 
   const toggleGroup = (g) => {
     onExpand();
@@ -107,7 +103,7 @@ export default function Sidebar({ collapsed, onExpand, onCollapse }) {
 
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to log out?")) {
-      localStorage.clear();
+      clearAuth();
       onCollapse();
       navigate("/");
     }

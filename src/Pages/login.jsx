@@ -3,18 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import axios from '../apiClient.js';
 import { Card, InputField, Button, MobileContainer } from '../Components';
 import { FiUser, FiLock, FiLogIn } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
     const navigate = useNavigate();
     const [User_name, setUser_Name] = useState('');
     const [Password, setPassword] = useState('');
+    const { setAuthData, userName, userGroup } = useAuth();
 
     useEffect(() => {
-        const loggedInUser = localStorage.getItem('User_name');
-        if (loggedInUser) {
-            navigate("/home", { state: { id: loggedInUser } });
-        }
-    }, [navigate]);
+        if (!userName) return;
+
+        const target = userGroup === "Vendor" ? "/vendorHome" : "/home";
+        navigate(target, { replace: true });
+    }, [navigate, userGroup, userName]);
 
     async function submit(e) {
         e.preventDefault();
@@ -33,29 +35,21 @@ export default function Login() {
                 alert("Invalid credentials. Please check your username and password.");
                 return;
             }
-    
-            const userGroup = data.userGroup; 
+
+            const userGroup = data.userGroup;
             const userMob =  data.userMob;
             if (!userGroup) {
                 alert("User group not found in API response");
                 return;
             }
-    
-            localStorage.setItem('User_name', User_name);
-            localStorage.setItem('User_group', userGroup); 
-            localStorage.setItem('Mobile_number', userMob); 
-    console.log(userMob);
-    console.log(userGroup);
 
-            if (userGroup === "Office User") {
-                navigate("/home", { state: { id: User_name } });
-            } else if (userGroup === "Admin User") {
-                navigate("/home", { state: { id: User_name } });
-            } else if (userGroup === "Vendor") {
-                navigate("/vendorHome", { state: { id: User_name } });
-            } else {
-                alert("Invalid user group");
-            }
+            setAuthData({
+                userName: User_name,
+                userGroup,
+                mobileNumber: userMob,
+            });
+            const target = userGroup === "Vendor" ? "/vendorHome" : "/home";
+            navigate(target, { replace: true });
         } catch (e) {
             alert("An error occurred during login. Please try again.");
             console.log(e);

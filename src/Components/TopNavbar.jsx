@@ -1,13 +1,12 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation, NavLink } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, NavLink } from "react-router-dom";
 import { LoadingSpinner } from "../Components";
+import { useAuth } from "../context/AuthContext";
 
 export default function TopNavbar({ onToggleSidebar }) {
-  const [userName, setUserName] = useState("");
-  const [userGroup, setUserGroup] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-  const location = useLocation();
+  const { userName, userGroup, clearAuth } = useAuth();
 
   // Desktop tabs (same as footer)
   const tabs = [
@@ -18,20 +17,15 @@ export default function TopNavbar({ onToggleSidebar }) {
   ];
 
   useEffect(() => {
-    const n = location.state?.id || localStorage.getItem("User_name");
-    const g = localStorage.getItem("User_group");
-    if (n) setUserName(n);
-    if (g) setUserGroup(g);
-    if (!n) navigate("/login");
+    if (!userName) navigate("/login");
     const t = setTimeout(() => setIsLoading(false), 800);
     return () => clearTimeout(t);
-  }, [location.state, navigate]);
+  }, [navigate, userName]);
 
   const handleLogout = () => {
-    if (window.confirm("Logout?")) {
-      localStorage.clear();
-      navigate("/");
-    }
+    if (!window.confirm("Logout?")) return;
+    clearAuth();
+    navigate("/");
   };
 
   return (

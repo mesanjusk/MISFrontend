@@ -8,6 +8,7 @@ import './index.css';
 import { toast } from './Components';
 import { initOfflineQueue } from './utils/offlineQueue.js';
 import './apiClient.js';
+import { AuthProvider } from './context/AuthContext.jsx';
 
 // ---------- Global alert -> toast ----------
 window.alert = (msg) => toast(msg);
@@ -19,9 +20,11 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ThemeProvider theme={lightTheme}>
       <CssBaseline />
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </ThemeProvider>
-  </StrictMode>
+  </StrictMode>,
 );
 
 // ---------- PWA service worker ----------

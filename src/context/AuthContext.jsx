@@ -1,0 +1,85 @@
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { ROLE_TYPES, isAdminRole, isOfficeRole, normalizeRole } from "../constants/roles";
+
+const STORAGE_KEYS = {
+  userName: "User_name",
+  userGroup: "User_group",
+  mobileNumber: "Mobile_number",
+  role: "Role",
+  roleFallback: "role",
+};
+
+const TOKEN_KEYS = ["token", "authToken", "access_token", "ACCESS_TOKEN"];
+
+const initialAuthState = () => ({
+  userName:
+    localStorage.getItem(STORAGE_KEYS.userName) ||
+    localStorage.getItem("User_name") ||
+    "",
+  userGroup:
+    localStorage.getItem(STORAGE_KEYS.userGroup) ||
+    localStorage.getItem(STORAGE_KEYS.role) ||
+    localStorage.getItem(STORAGE_KEYS.roleFallback) ||
+    "",
+  mobileNumber: localStorage.getItem(STORAGE_KEYS.mobileNumber) || "",
+});
+
+const AuthContext = createContext(null);
+
+export function AuthProvider({ children }) {
+  const [authState, setAuthState] = useState(initialAuthState);
+
+  const persistState = useCallback((nextState) => {
+    const { userName, userGroup, mobileNumber } = nextState;
+    if (userName) localStorage.setItem(STORAGE_KEYS.userName, userName);
+    else localStorage.removeItem(STORAGE_KEYS.userName);
+
+    if (userGroup) {
+      localStorage.setItem(STORAGE_KEYS.userGroup, userGroup);
+      localStorage.setItem(STORAGE_KEYS.role, userGroup);
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.userGroup);
+      localStorage.removeItem(STORAGE_KEYS.role);
+    }
+
+    if (mobileNumber) localStorage.setItem(STORAGE_KEYS.mobileNumber, mobileNumber);
+    else localStorage.removeItem(STORAGE_KEYS.mobileNumber);
+  }, []);
+
+  const setAuthData = useCallback((updates) => {
+    setAuthState((prev) => {
+      const next = { ...prev, ...updates };
+      persistState(next);
+      return next;
+    });
+  }, [persistState]);
+
+  const clearAuth = useCallback(() => {
+    setAuthState({ userName: "", userGroup: "", mobileNumber: "" });
+    Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+    TOKEN_KEYS.forEach((key) => localStorage.removeItem(key));
+  }, []);
+
+  const normalizedRole = useMemo(() => normalizeRole(authState.userGroup), [authState.userGroup]);
+
+  const value = useMemo(
+    () => ({
+      ...authState,
+      normalizedRole,
+      role: authState.userGroup || ROLE_TYPES.OFFICE,
+      isAdmin: isAdminRole(authState.userGroup),
+      isOfficeUser: isOfficeRole(authState.userGroup) || !authState.userGroup,
+      setAuthData,
+      clearAuth,
+    }),
+    [authState, normalizedRole, setAuthData, clearAuth],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
+  return ctx;
+}
