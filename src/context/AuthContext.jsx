@@ -7,21 +7,22 @@ const STORAGE_KEYS = {
   mobileNumber: "Mobile_number",
   role: "Role",
   roleFallback: "role",
+  userRoleLegacy: "User_role",
 };
 
 const TOKEN_KEYS = ["token", "authToken", "access_token", "ACCESS_TOKEN"];
 
+const pickFirst = (keys) => keys.map((key) => localStorage.getItem(key)).find(Boolean) || "";
+
 const initialAuthState = () => ({
-  userName:
-    localStorage.getItem(STORAGE_KEYS.userName) ||
-    localStorage.getItem("User_name") ||
-    "",
-  userGroup:
-    localStorage.getItem(STORAGE_KEYS.userGroup) ||
-    localStorage.getItem(STORAGE_KEYS.role) ||
-    localStorage.getItem(STORAGE_KEYS.roleFallback) ||
-    "",
-  mobileNumber: localStorage.getItem(STORAGE_KEYS.mobileNumber) || "",
+  userName: pickFirst([STORAGE_KEYS.userName]),
+  userGroup: pickFirst([
+    STORAGE_KEYS.userGroup,
+    STORAGE_KEYS.role,
+    STORAGE_KEYS.roleFallback,
+    STORAGE_KEYS.userRoleLegacy,
+  ]),
+  mobileNumber: pickFirst([STORAGE_KEYS.mobileNumber]),
 });
 
 const AuthContext = createContext(null);
@@ -37,9 +38,13 @@ export function AuthProvider({ children }) {
     if (userGroup) {
       localStorage.setItem(STORAGE_KEYS.userGroup, userGroup);
       localStorage.setItem(STORAGE_KEYS.role, userGroup);
+      localStorage.setItem(STORAGE_KEYS.roleFallback, userGroup);
+      localStorage.setItem(STORAGE_KEYS.userRoleLegacy, userGroup);
     } else {
       localStorage.removeItem(STORAGE_KEYS.userGroup);
       localStorage.removeItem(STORAGE_KEYS.role);
+      localStorage.removeItem(STORAGE_KEYS.roleFallback);
+      localStorage.removeItem(STORAGE_KEYS.userRoleLegacy);
     }
 
     if (mobileNumber) localStorage.setItem(STORAGE_KEYS.mobileNumber, mobileNumber);
