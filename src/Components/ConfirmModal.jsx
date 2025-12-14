@@ -10,17 +10,20 @@ export default function ConfirmModal({
   cancelText = 'Cancel',
   confirmButtonClassName = 'btn btn-danger',
   cancelButtonClassName = 'btn btn-secondary',
+  overlayClassName = '',
+  modalClassName = '',
+  actionsClassName = '',
   children,
 }) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="modal-content bg-white rounded-lg p-6 shadow-lg max-w-lg w-full">
-        {title && <h4 className="text-lg font-semibold mb-4">{title}</h4>}
-        {message && <p className="text-gray-700 mb-4">{message}</p>}
+    <div className={`modal-overlay ${overlayClassName}`} role="dialog" aria-modal="true">
+      <div className={`modal-content ${modalClassName}`}>
+        {title && <h4>{title}</h4>}
+        {message && <div className="mb-4">{message}</div>}
         {children}
-        <div className="modal-actions flex justify-end gap-4 mt-6">
+        <div className={`modal-actions ${actionsClassName}`}>
           <button onClick={onConfirm} className={confirmButtonClassName} type="button">
             {confirmText}
           </button>
@@ -43,5 +46,8 @@ ConfirmModal.propTypes = {
   cancelText: PropTypes.string,
   confirmButtonClassName: PropTypes.string,
   cancelButtonClassName: PropTypes.string,
+  overlayClassName: PropTypes.string,
+  modalClassName: PropTypes.string,
+  actionsClassName: PropTypes.string,
   children: PropTypes.node,
 };
