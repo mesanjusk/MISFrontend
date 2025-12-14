@@ -12,7 +12,6 @@ import TransactionEditModal from '../Components/TransactionEditModal';
 const AllTransaction = () => {
   const [transactions, setTransactions] = useState([]);
   const [customers, setCustomers] = useState([]);
-  const [filteredEntries, setFilteredEntries] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTxn, setEditingTxn] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,10 +28,6 @@ const AllTransaction = () => {
     txnId: null,
     count: 0,
   });
-
-  const allVisibleSelected =
-    filteredEntries.length > 0 &&
-    filteredEntries.every((t) => selectedIds.includes(t.Transaction_id));
 
   useEffect(() => {
     const fetchData = async () => {
@@ -70,7 +65,7 @@ const AllTransaction = () => {
     return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
   };
 
-  useEffect(() => {
+  const filteredEntries = useMemo(() => {
     let grouped = transactions.map((txn) => {
       const credit = txn.Journal_entry?.find((e) => String(e.Type || '').toLowerCase() === 'credit');
       const debit  = txn.Journal_entry?.find((e) => String(e.Type || '').toLowerCase() === 'debit');
@@ -137,9 +132,17 @@ const AllTransaction = () => {
       });
     }
 
-    setFilteredEntries(grouped);
-    setSelectedIds((prev) => prev.filter((id) => grouped.some((g) => g.Transaction_id === id)));
+    return grouped;
   }, [transactions, searchQuery, dateFrom, dateTo, sortConfig, customerMap]);
+
+  useEffect(() => {
+    setSelectedIds((prev) => prev.filter((id) => filteredEntries.some((g) => g.Transaction_id === id)));
+  }, [filteredEntries]);
+
+  const allVisibleSelected = useMemo(
+    () => filteredEntries.length > 0 && filteredEntries.every((t) => selectedIds.includes(t.Transaction_id)),
+    [filteredEntries, selectedIds]
+  );
 
   const handleSort = (key) => {
     setSortConfig((prev) => ({

@@ -1,7 +1,8 @@
+import React, { useMemo } from "react";
 import OrderColumn from "./OrderColumn";
 import { TASK_TYPES } from "../../hooks/useOrdersData";
 
-export default function OrderBoard({
+function OrderBoard({
   columnOrder,
   groupedOrders,
   isAdmin,
@@ -13,7 +14,7 @@ export default function OrderBoard({
   onMove,
   statusMessage,
 }) {
-  const columns = columnOrder || [];
+  const columns = useMemo(() => columnOrder || [], [columnOrder]);
 
   return (
     <>
@@ -47,3 +48,5 @@ export default function OrderBoard({
     </>
   );
 }
+
+export default React.memo(OrderBoard);

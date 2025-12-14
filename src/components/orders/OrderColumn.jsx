@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from "react";
+import { memo, useMemo, useCallback } from "react";
 import OrderCard from "./OrderCard";
 import { TASK_TYPES } from "../../hooks/useOrdersData";
 
@@ -7,7 +7,7 @@ const headerColors = {
   [TASK_TYPES.CANCEL]: "bg-rose-50 text-rose-700 border-rose-200",
 };
 
-export default function OrderColumn({
+function OrderColumn({
   title,
   orders,
   isAdmin,
@@ -93,3 +93,5 @@ export default function OrderColumn({
     </section>
   );
 }
+
+export default memo(OrderColumn);

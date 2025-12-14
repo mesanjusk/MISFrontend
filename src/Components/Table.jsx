@@ -1,4 +1,5 @@
-import PropTypes from 'prop-types';
+import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 import {
   Table as MuiTable,
   TableBody,
@@ -7,32 +8,43 @@ import {
   TableHead,
   TableRow,
   Paper,
-} from '@mui/material';
+} from "@mui/material";
 
-export default function Table({ columns = [], data = [] }) {
+function Table({ columns = [], data = [] }) {
+  const headerCells = useMemo(
+    () => columns.map((col) => <TableCell key={col.accessor}>{col.Header}</TableCell>),
+    [columns]
+  );
+
+  const rows = useMemo(
+    () =>
+      data.map((row, idx) => {
+        const rowKey = row?._id || row?.id || row?.Order_id || row?.Order_uuid || idx;
+
+        return (
+          <TableRow key={rowKey} hover>
+            {columns.map((col) => (
+              <TableCell key={col.accessor}>{row[col.accessor]}</TableCell>
+            ))}
+          </TableRow>
+        );
+      }),
+    [columns, data]
+  );
+
   return (
     <TableContainer component={Paper}>
       <MuiTable size="small">
         <TableHead>
-          <TableRow>
-            {columns.map((col) => (
-              <TableCell key={col.accessor}>{col.Header}</TableCell>
-            ))}
-          </TableRow>
+          <TableRow>{headerCells}</TableRow>
         </TableHead>
-        <TableBody>
-          {data.map((row, idx) => (
-            <TableRow key={idx} hover>
-              {columns.map((col) => (
-                <TableCell key={col.accessor}>{row[col.accessor]}</TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
+        <TableBody>{rows}</TableBody>
       </MuiTable>
     </TableContainer>
   );
 }
+
+export default React.memo(Table);
 
 Table.propTypes = {
   columns: PropTypes.arrayOf(
