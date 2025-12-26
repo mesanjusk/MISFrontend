@@ -99,8 +99,11 @@ export default function AllOrder() {
       try {
         const response = await statusApi.updateStatus(id, normalizedTask);
         const next = response?.data?.result;
-        if (next) {
-          replaceOrder(next);
+       const isSuccess = Boolean(next) || response?.data?.success === true;
+        if (isSuccess) {
+          if (next) {
+            replaceOrder(next);
+          }
           toast.success(
             lower === TASK_TYPES.DELIVERED.toLowerCase()
               ? "Moved to Delivered"
