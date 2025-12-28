@@ -18,7 +18,7 @@ function OrderBoard({
 
   return (
     <>
-      <div className="min-w-[900px] mx-auto grid grid-cols-1 sm:grid-cols-4 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 2xl:grid-cols-12 gap-1" role="region" aria-label="Order board">
+      <div className="min-w-[720px] mx-auto grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-1" role="region" aria-label="Order board">
         {columns.map((taskName) => {
           const orders = groupedOrders[taskName] || [];
           const isCancel = taskName === TASK_TYPES.CANCEL;

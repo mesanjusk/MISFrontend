@@ -55,7 +55,7 @@ function OrderCard({
 
   return (
     <div
-      className={`relative rounded-md border border-gray-200 bg-white p-1 hover:shadow-sm transition-shadow group ${
+      className={`relative rounded-md border border-gray-200 bg-white p-0.5 hover:shadow-sm transition-shadow group ${
         highlight ? "ring-2 ring-indigo-300" : ""
       }`}
       draggable={draggable}
@@ -70,7 +70,7 @@ function OrderCard({
         className="w-full text-left outline-none"
         aria-label="Open order details"
       >
-        <div className="pr-6">
+        <div className="pr-2">
           <div
             className="font-semibold text-[12px] text-gray-900 leading-snug line-clamp-2"
             title={order.Customer_name}

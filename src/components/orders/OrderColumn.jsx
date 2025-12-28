@@ -60,14 +60,14 @@ function OrderColumn({
 
   return (
     <section
-      className="rounded-lg border border-slate-200 bg-white flex flex-col min-h-[220px]"
+      className="rounded-lg border border-slate-200 bg-white flex flex-col min-h-[200px]"
       role="list"
       aria-label={`${normalizedTitle} column`}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
       <header
-        className={`sticky top-0 z-[1] px-2 py-2 flex items-center justify-between text-[12px] font-semibold border-b ${headerClass}`}
+        className={`sticky top-0 z-[1] px-1.5 py-1.5 flex items-center justify-between text-[11px] font-semibold border-b ${headerClass}`}
       >
         <span className="truncate" title={normalizedTitle}>
           {normalizedTitle}
@@ -75,7 +75,7 @@ function OrderColumn({
         <span className="text-[11px] text-slate-500">{orders.length}</span>
       </header>
 
-      <div className="p-2 space-y-1.5 min-h-[150px]">
+      <div className="p-1 space-y-1 min-h-[140px]">
         {orders.length === 0 ? (
           <div className="text-[11px] text-slate-500 py-5 text-center border-2 border-dashed rounded-lg border-slate-200 bg-slate-50/60">
             {isCancel
