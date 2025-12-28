@@ -1,9 +1,5 @@
 import React, { useMemo } from "react";
-import { differenceInCalendarDays } from "date-fns";
 import { LABELS, TASK_TYPES } from "../../hooks/useOrdersData";
-
-const getAgeChipClass = (days) =>
-  days <= 1 ? "bg-emerald-500" : days <= 3 ? "bg-amber-500" : "bg-rose-600";
 
 const formatDate = (value) => {
   if (!value) return "-";
@@ -27,13 +23,8 @@ function OrderCard({
 }) {
   const ageInfo = useMemo(() => {
     const created = order?.highestStatusTask?.CreatedAt;
-    const days = created
-      ? differenceInCalendarDays(new Date(), new Date(created))
-      : 0;
     return {
-      days,
       label: formatDate(created),
-      color: getAgeChipClass(days),
     };
   }, [order]);
 
@@ -64,7 +55,7 @@ function OrderCard({
 
   return (
     <div
-      className={`relative rounded-md border border-gray-200 bg-white p-1.5 hover:shadow-sm transition-shadow group ${
+      className={`relative rounded-md border border-gray-200 bg-white p-1 hover:shadow-sm transition-shadow group ${
         highlight ? "ring-2 ring-indigo-300" : ""
       }`}
       draggable={draggable}
@@ -72,13 +63,6 @@ function OrderCard({
       role="listitem"
       aria-label={`Order ${order.Order_Number || ""}`}
     >
-      <div
-        className={`absolute right-1.5 top-1.5 h-5 w-5 ${ageInfo.color} text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm`}
-        title="Days since last status update"
-      >
-        {ageInfo.days}
-      </div>
-
       <button
         type="button"
         onClick={handleView}
@@ -104,13 +88,6 @@ function OrderCard({
       </button>
 
       <div className="mt-1 flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={handleView}
-          className="text-[11px] px-2 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50"
-        >
-          {LABELS.VIEW}
-        </button>
         {onMove && (
           <button
             type="button"
