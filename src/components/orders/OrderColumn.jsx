@@ -4,7 +4,6 @@ import { TASK_TYPES } from "../../hooks/useOrdersData";
 
 const headerColors = {
   [TASK_TYPES.DELIVERED]: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  [TASK_TYPES.CANCEL]: "bg-rose-50 text-rose-700 border-rose-200",
 };
 
 function OrderColumn({
@@ -23,9 +22,17 @@ function OrderColumn({
 }) {
   const normalizedTitle = title || TASK_TYPES.OTHER;
   const isDelivered = normalizedTitle === TASK_TYPES.DELIVERED;
-  const isCancel = normalizedTitle === TASK_TYPES.CANCEL;
-  const headerClass = headerColors[normalizedTitle] || "bg-slate-50 text-slate-700 border-slate-200";
-  const droppable = allowDrop && !isCancel;
+
+  // ❌ REMOVE CANCEL COLUMN COMPLETELY
+  if (normalizedTitle === TASK_TYPES.CANCEL) {
+    return null;
+  }
+
+  const headerClass =
+    headerColors[normalizedTitle] ||
+    "bg-slate-50 text-slate-700 border-slate-200";
+
+  const droppable = allowDrop;
 
   const handleDrop = useCallback(
     (event) => onDrop?.(event, normalizedTitle, droppable),
@@ -55,36 +62,49 @@ function OrderColumn({
           />
         );
       }),
-    [orders, isAdmin, onView, onEdit, onCancel, onMove, isTouchDevice, droppable, onDragStart]
+    [
+      orders,
+      isAdmin,
+      onView,
+      onEdit,
+      onCancel,
+      onMove,
+      isTouchDevice,
+      droppable,
+      onDragStart,
+    ]
   );
 
   return (
     <section
-      className="rounded-lg border border-slate-200 bg-white flex flex-col min-h-[200px]"
+      className="
+      rounded-lg border border-slate-200 bg-white flex flex-col
+      min-h-[200px]
+      min-w-[180px]    /* ✅ NARROWER COLUMN */
+      w-[200px]        /* ✅ FIXED SLIM WIDTH */
+      "
       role="list"
       aria-label={`${normalizedTitle} column`}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
       <header
-        className={`sticky top-0 z-[1] px-1.5 py-1.5 flex items-center justify-between text-[11px] font-semibold border-b ${headerClass}`}
+        className={`sticky top-0 z-[1] px-1 py-1 flex items-center justify-between text-[10px] font-semibold border-b ${headerClass}`}
       >
         <span className="truncate" title={normalizedTitle}>
           {normalizedTitle}
         </span>
-        <span className="text-[11px] text-slate-500">{orders.length}</span>
+        <span className="text-[10px] text-slate-500">{orders.length}</span>
       </header>
 
       <div className="p-1 space-y-1 min-h-[140px]">
         {orders.length === 0 ? (
-          <div className="text-[11px] text-slate-500 py-5 text-center border-2 border-dashed rounded-lg border-slate-200 bg-slate-50/60">
-            {isCancel
-              ? "Cancel is display-only"
-              : isDelivered
-              ? "Drag an order here to mark as Delivered"
+          <div className="text-[10px] text-slate-500 py-4 text-center border-2 border-dashed rounded-lg border-slate-200 bg-slate-50/60">
+            {isDelivered
+              ? "Drag here to mark Delivered"
               : droppable
-              ? "No orders in this stage. Drag & drop here"
-              : "No orders in this stage"}
+              ? "Drop orders here"
+              : "No orders"}
           </div>
         ) : (
           renderOrders
@@ -99,14 +119,7 @@ const areOrderColumnPropsEqual = (prevProps, nextProps) => {
     prevProps.title !== nextProps.title ||
     prevProps.isAdmin !== nextProps.isAdmin ||
     prevProps.allowDrop !== nextProps.allowDrop ||
-    prevProps.isTouchDevice !== nextProps.isTouchDevice ||
-    prevProps.onDrop !== nextProps.onDrop ||
-    prevProps.onDragOver !== nextProps.onDragOver ||
-    prevProps.onDragStart !== nextProps.onDragStart ||
-    prevProps.onView !== nextProps.onView ||
-    prevProps.onEdit !== nextProps.onEdit ||
-    prevProps.onCancel !== nextProps.onCancel ||
-    prevProps.onMove !== nextProps.onMove
+    prevProps.isTouchDevice !== nextProps.isTouchDevice
   ) {
     return false;
   }
@@ -114,9 +127,7 @@ const areOrderColumnPropsEqual = (prevProps, nextProps) => {
   const prevOrders = prevProps.orders || [];
   const nextOrders = nextProps.orders || [];
 
-  if (prevOrders.length !== nextOrders.length) {
-    return false;
-  }
+  if (prevOrders.length !== nextOrders.length) return false;
 
   return prevOrders === nextOrders;
 };
