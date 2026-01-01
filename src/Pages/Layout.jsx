@@ -21,8 +21,8 @@ export default function Layout() {
     <div className="flex min-h-screen bg-slate-50 text-gray-900 overflow-hidden relative">
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 z-50 h-full transition-all duration-300
-          ${collapsed ? "w-16" : "w-64"}
+       className={`fixed top-0 left-0 z-50 h-full w-64 transition-all duration-300
+          ${collapsed ? "-translate-x-full sm:translate-x-0 sm:w-16" : "translate-x-0 sm:w-64"}
         `}
       >
         <Sidebar
@@ -35,7 +35,7 @@ export default function Layout() {
       {/* Click Outside Overlay */}
       {!collapsed && (
         <div
-          className="fixed inset-0 z-40 bg-transparent"
+           className="fixed inset-0 z-40 bg-transparent sm:hidden"
           onClick={() => setCollapsed(true)}
         />
       )}
