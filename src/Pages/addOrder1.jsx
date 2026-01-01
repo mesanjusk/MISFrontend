@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from '../apiClient.js';
+import axios from "../apiClient.js";
 import toast from "react-hot-toast";
 import AddCustomer from "./addCustomer";
 import InvoiceModal from "../Components/InvoiceModal";
@@ -44,6 +44,9 @@ export default function AddOrder1() {
   const [optionsLoading, setOptionsLoading] = useState(true);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
 
+  // ✅ Enquiry toggle
+  const [isEnquiryOnly, setIsEnquiryOnly] = useState(false);
+
   /* ----------- auth init ----------- */
   useEffect(() => {
     const userNameFromState = location.state?.id;
@@ -74,8 +77,7 @@ export default function AddOrder1() {
         if (taskRes.data?.success) {
           const allGroups = taskRes.data.result || [];
           setTaskGroups(allGroups);
-
-         setSelectedTaskGroups([]);
+          setSelectedTaskGroups([]);
         } else {
           setTaskGroups([]);
           setSelectedTaskGroups([]);
@@ -144,7 +146,9 @@ export default function AddOrder1() {
     const hasCustomer = Boolean(
       customerOptions.find((c) => c.Customer_name === Customer_name)
     );
-    const advanceOk = !isAdvanceChecked ? true : Number(Amount) > 0 && Boolean(group);
+    const advanceOk = !isAdvanceChecked
+      ? true
+      : Number(Amount) > 0 && Boolean(group);
     return hasCustomer && advanceOk;
   }, [Customer_name, customerOptions, isAdvanceChecked, Amount, group]);
 
@@ -169,12 +173,16 @@ export default function AddOrder1() {
         };
       });
 
-      // Create order
+      // Create order / enquiry
+      // Create order / enquiry
       const orderRes = await axios.post(`/order/addOrder`, {
         Customer_uuid: customer.Customer_uuid,
         Steps: steps,
         Items: buildItemsFromRemark(Remark),
+        Type: isEnquiryOnly ? "Enquiry" : "Order",   // 🔴 NEW
+        isEnquiry: isEnquiryOnly,                    // (optional extra flag)
       });
+
 
       if (!orderRes.data?.success) {
         toast.error("Failed to add order");
@@ -183,6 +191,15 @@ export default function AddOrder1() {
 
       // Keep created order (if needed in preview)
       setCreatedOrder(orderRes.data.result || null);
+
+      // ✅ If it's only an enquiry: just save and go home, no invoice / advance
+      if (isEnquiryOnly) {
+        toast.success("Enquiry saved");
+        navigate("/home");
+        return;
+      }
+
+      // ------- Normal ORDER flow (unchanged) -------
 
       // Prepare invoice items
       const baseItems = buildItemsFromRemark(Remark);
@@ -193,16 +210,15 @@ export default function AddOrder1() {
       setWhatsAppMessage(message);
       setMobileToSend(customer.Mobile_number || "");
 
-     // ✅ Open invoice modal immediately after submit
-setShowInvoiceModal(true);
-toast.success("Order Added");
+      // ✅ Open invoice modal immediately after submit
+      setShowInvoiceModal(true);
+      toast.success("Order Added");
 
-// ✅ Auto-close modal after 1.5 seconds
-setTimeout(() => {
-  setShowInvoiceModal(false);
-  navigate("/home");
-}, 1500);
-
+      // ✅ Auto-close modal after 1.5 seconds
+      setTimeout(() => {
+        setShowInvoiceModal(false);
+        navigate("/home");
+      }, 1500);
 
       // Optional: record advance in background, then append to invoice list
       if (isAdvanceChecked && Amount && group) {
@@ -222,18 +238,15 @@ setTimeout(() => {
         ];
 
         try {
-          const txnRes = await axios.post(
-            `/transaction/addTransaction`,
-            {
-              Description: Remark || "Advance received",
-              Transaction_date: new Date().toISOString().split("T")[0],
-              Total_Credit: amt,
-              Total_Debit: amt,
-              Payment_mode: payModeCustomer?.Customer_name || "Advance",
-              Journal_entry: journal,
-              Created_by: loggedInUser,
-            }
-          );
+          const txnRes = await axios.post(`/transaction/addTransaction`, {
+            Description: Remark || "Advance received",
+            Transaction_date: new Date().toISOString().split("T")[0],
+            Total_Credit: amt,
+            Total_Debit: amt,
+            Payment_mode: payModeCustomer?.Customer_name || "Advance",
+            Journal_entry: journal,
+            Created_by: loggedInUser,
+          });
 
           if (txnRes.data?.success) {
             setInvoiceItems((prev) => [
@@ -278,7 +291,7 @@ setTimeout(() => {
   /* ----------- UI ----------- */
   return (
     <>
-      {/* 🔁 IMPORTANT: use `open` prop (not isOpen) so the modal  appears */}
+      {/* 🔁 IMPORTANT: use `open` prop (not isOpen) so the modal appears */}
       <InvoiceModal
         open={showInvoiceModal}
         onClose={() => {
@@ -294,7 +307,7 @@ setTimeout(() => {
         onSendWhatsApp={sendWhatsApp}
       />
 
-       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
         <div className="bg-white w-full max-w-2xl justify-between rounded-xl shadow-xl p-6 relative">
           <button
             onClick={() => navigate("/home")}
@@ -348,7 +361,9 @@ setTimeout(() => {
             )}
 
             <div>
-              <label className="block font-medium text-gray-700 mb-1">Order</label>
+              <label className="block font-medium text-gray-700 mb-1">
+                Order
+              </label>
               <input
                 type="text"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
@@ -356,6 +371,20 @@ setTimeout(() => {
                 value={Remark}
                 onChange={(e) => setRemark(e.target.value)}
               />
+            </div>
+
+            {/* ✅ Enquiry toggle */}
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="enquiryOnly"
+                checked={isEnquiryOnly}
+                onChange={(e) => setIsEnquiryOnly(e.target.checked)}
+                className="h-4 w-4 text-[#25d366] border-gray-300 rounded"
+              />
+              <label htmlFor="enquiryOnly" className="text-gray-700">
+                This is only an enquiry (no invoice / advance)
+              </label>
             </div>
 
             <div>
@@ -435,11 +464,10 @@ setTimeout(() => {
             <button
               type="submit"
               disabled={!canSubmit}
-              className={`w-full text-white font-medium py-2 rounded-lg transition ${
-                canSubmit
+              className={`w-full text-white font-medium py-2 rounded-lg transition ${canSubmit
                   ? "bg-[#25d366] hover:bg-[#128c7e]"
                   : "bg-gray-300 cursor-not-allowed"
-              }`}
+                }`}
             >
               Submit
             </button>
