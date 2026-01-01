@@ -114,18 +114,16 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-          {!roleInfo.isAdmin && (
-            <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <SectionHeader title="My Pending Orders" />
-              {loading ? (
-                <div className="py-10 text-center">
-                  <LoadingSpinner />
-                </div>
-              ) : (
-                <OrderList items={data.myPendingOrders} emptyLabel="No pending orders assigned." />
-              )}
-            </div>
-          )}
+          <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <SectionHeader title="My Pending Orders" />
+            {loading ? (
+              <div className="py-10 text-center">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <OrderList items={data.myPendingOrders} emptyLabel="No pending orders assigned." />
+            )}
+          </div>
 
           <div className="space-y-3">
             {roleInfo.isAdmin ? (
