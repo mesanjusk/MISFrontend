@@ -29,7 +29,6 @@ export default function AllOrder() {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
   const [mobileMoveOrder, setMobileMoveOrder] = useState(null);
-  const [cancelTarget, setCancelTarget] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [statusNotice, setStatusNotice] = useState("");
 
@@ -173,18 +172,6 @@ export default function AllOrder() {
     setMobileMoveTarget("");
   };
 
-  const openCancelModal = (order) => {
-    setCancelTarget(order);
-  };
-
-  const closeCancelModal = () => setCancelTarget(null);
-
-  const confirmCancel = async () => {
-    if (!cancelTarget) return;
-    await handleMove(cancelTarget.Order_uuid || cancelTarget._id || cancelTarget.Order_id, TASK_TYPES.CANCEL);
-    setCancelTarget(null);
-  };
-
   return (
     <>
       {isOrdersLoading && <div className="fixed top-0 left-0 right-0 h-1 bg-indigo-500 animate-pulse z-[60]" />}
@@ -262,7 +249,6 @@ export default function AllOrder() {
               dragHandlers={dragHandlers}
               onView={handleView}
               onEdit={handleEdit}
-              onCancel={isAdmin ? openCancelModal : undefined}
               onMove={isTouchDevice ? onMobileMoveRequest : undefined}
               statusMessage={statusMessage || statusNotice}
             />
@@ -342,35 +328,6 @@ export default function AllOrder() {
         </Modal>
       )}
 
-      {isAdmin && cancelTarget && (
-        <Modal onClose={closeCancelModal} title="Cancel order">
-          <div className="space-y-3 text-sm text-slate-700">
-            <p>
-              You are about to mark order #{cancelTarget.Order_Number || ""} as Cancel. This action requires confirmation and will
-              notify the backend.
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                className="px-3 py-1.5 rounded border border-slate-200 hover:bg-slate-50"
-                onClick={closeCancelModal}
-              >
-                Keep order
-              </button>
-              <button
-                type="button"
-                className="px-3 py-1.5 rounded bg-rose-600 text-white hover:bg-rose-700"
-                onClick={confirmCancel}
-              >
-                Move to Cancel
-              </button>
-            </div>
-            <p className="text-[11px] text-rose-700 bg-rose-50 border border-rose-100 rounded px-2 py-1">
-              You will be asked to confirm again to prevent mistakes.
-            </p>
-          </div>
-        </Modal>
-      )}
     </>
   );
 }

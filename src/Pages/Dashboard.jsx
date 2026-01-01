@@ -159,7 +159,6 @@ export default function Dashboard() {
 
   const mobileMoveTargets = useMemo(() => data.columnOrder.filter(Boolean), [data.columnOrder]);
 
-  const handleCancel = useCallback((order) => handleMove(toId(order), TASK_TYPES.CANCEL), [handleMove]);
   const handleView = useCallback((order) => navigate(`/orderUpdate/${toId(order)}`), [navigate]);
   const handleEdit = useCallback((order) => navigate(`/updateDelivery/${toId(order)}`), [navigate]);
 
@@ -239,7 +238,6 @@ export default function Dashboard() {
                   dragHandlers={dragHandlers}
                   onView={handleView}
                   onEdit={handleEdit}
-                  onCancel={handleCancel}
                   onMove={isTouchDevice ? handleMobileMoveRequest : undefined}
                   statusMessage={statusMessage}
                 />
