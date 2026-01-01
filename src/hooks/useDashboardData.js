@@ -43,7 +43,8 @@ export function useDashboardData({ role, userName, isAdmin }) {
     tasksMeta,
     "",
     "dateDesc",
-    isAdmin
+    isAdmin,
+    { includeCancelColumn: false }
   );
 
   const activeOrders = useMemo(

@@ -57,7 +57,9 @@ export default function AllOrder() {
     return "ontouchstart" in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
   }, []);
 
-  const { columnOrder, groupedOrders } = useOrderGrouping(orderList, tasksMeta, searchTerm, sortKey, isAdmin);
+  const { columnOrder, groupedOrders } = useOrderGrouping(orderList, tasksMeta, searchTerm, sortKey, isAdmin, {
+    includeCancelColumn: false,
+  });
 
   const [mobileMoveTarget, setMobileMoveTarget] = useState("");
 

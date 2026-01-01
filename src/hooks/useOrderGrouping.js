@@ -19,7 +19,8 @@ const normalizeTaskLabel = (task) => {
   return cleaned || TASK_TYPES.OTHER;
 };
 
-export function useOrderGrouping(orderList, tasksMeta, searchQuery, sortKey, isAdmin) {
+export function useOrderGrouping(orderList, tasksMeta, searchQuery, sortKey, isAdmin, options = {}) {
+  const { includeCancelColumn = true } = options;
   const searchedOrders = useMemo(() => {
     const q = String(searchQuery || "").trim().toLowerCase();
     if (!q) return orderList;
@@ -55,9 +56,9 @@ export function useOrderGrouping(orderList, tasksMeta, searchQuery, sortKey, isA
     }
 
     if (!base.includes(TASK_TYPES.DELIVERED)) base.push(TASK_TYPES.DELIVERED);
-    if (!base.includes(TASK_TYPES.CANCEL)) base.push(TASK_TYPES.CANCEL);
+    if (includeCancelColumn && !base.includes(TASK_TYPES.CANCEL)) base.push(TASK_TYPES.CANCEL);
 
-    if (!isAdmin) {
+    if (!isAdmin && includeCancelColumn) {
       const cancelIndex = base.indexOf(TASK_TYPES.CANCEL);
       if (cancelIndex > -1) {
         base.splice(cancelIndex, 1);
