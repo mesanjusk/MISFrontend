@@ -86,9 +86,9 @@ export default function Sidebar({ collapsed, onExpand, onCollapse }) {
     {
       group: "Transaction",
       items: [
-        { label: "Transaction Report", path: "/allTransaction" },
-        { label: "All Transaction 1", path: "/alltranscation1" },
-        { label: "All Transaction 2", path: "/alltransaction2" },
+        { label: "All Trancation", path: "/allTransaction" },
+        { label: "All Account", path: "/alltranscation1" },
+        { label: "Outstanding", path: "/alltransaction2" },
         { label: "All Transaction 3", path: "/alltransaction3" },
       ],
     },
