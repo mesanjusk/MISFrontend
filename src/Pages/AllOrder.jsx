@@ -52,18 +52,15 @@ export default function AllOrder() {
   );
 
   const { ordersCount, enquiriesCount } = useMemo(() => {
-    let orders = 0;
     let enquiries = 0;
 
     orderList.forEach((order) => {
       if (isEnquiry(order)) {
         enquiries += 1;
-      } else {
-        orders += 1;
       }
     });
 
-    return { ordersCount: orders, enquiriesCount: enquiries };
+    return { ordersCount: orderList.length, enquiriesCount: enquiries };
   }, [orderList, isEnquiry]);
 
   useEffect(() => {
@@ -84,7 +81,7 @@ export default function AllOrder() {
       return orderList.filter((order) => isEnquiry(order));
     }
 
-    return orderList.filter((order) => !isEnquiry(order));
+    return orderList;
   }, [orderList, viewTab, isEnquiry]);
 
   const { columnOrder, groupedOrders } = useOrderGrouping(filteredOrderList, tasksMeta, searchTerm, sortKey, isAdmin, {
