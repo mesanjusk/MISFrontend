@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import OrderUpdate from "./OrderUpdate";
 import UpdateDelivery from "./updateDelivery";
@@ -44,7 +44,7 @@ export default function AllOrder() {
     patchOrder,
   } = useOrdersData();
 
-  const isEnquiry = React.useCallback(
+  const isEnquiry = useCallback(
     (order) =>
       String(order?.Type || "").trim().toLowerCase() === "enquiry" ||
       Boolean(order?.isEnquiry),
