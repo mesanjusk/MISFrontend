@@ -1,6 +1,6 @@
 import axios from '../apiClient.js';
 
-export const fetchTransactions = () => axios.get('/transaction/GetFilteredTransactions');
+export const fetchTransactions = () => axios.get('/transaction');
 export const fetchOldTransactions = () => axios.get('/old-transaction/GetTransactionList');
 export const addTransaction = (payload, config) => axios.post('/transaction/addTransaction', payload, config);
 export const addOldTransaction = (payload, config) => axios.post('/old-transaction/addTransaction', payload, config);

@@ -17,7 +17,7 @@ const AccountTransaction = () => {
     useEffect(() => {
         const fetchTransactions = async () => {
             try {
-                const response = await axios.get('/transaction/GetFilteredTransactions');
+                const response = await axios.get('/transaction');
                 if (response.data.success) {
                     setTransactions(response.data.result);
                 }

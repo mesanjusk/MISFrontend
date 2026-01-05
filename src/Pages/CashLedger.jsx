@@ -20,7 +20,7 @@ const CashLedger = () => {
     useEffect(() => {
         const fetchTransactions = async () => {
             try {
-                const response = await axios.get('/transaction/GetFilteredTransactions');
+                const response = await axios.get('/transaction');
                 if (response.data.success) {
                     const allTransactions = response.data.result || [];
                     const safeTransactions = allTransactions.filter(txn => Array.isArray(txn.Journal_entry));

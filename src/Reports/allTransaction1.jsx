@@ -34,7 +34,7 @@ const AllTransaction1 = () => {
   useEffect(() => {
     const fetchData = async () => {
       const [txRes, custRes] = await Promise.all([
-        axios.get('/transaction/GetFilteredTransactions'),
+        axios.get('/transaction'),
         axios.get('/customer/GetCustomersList'),
       ]);
       if (txRes.data?.success) setTransactions(txRes.data.result || []);

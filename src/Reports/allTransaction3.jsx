@@ -51,7 +51,7 @@ const AllTransaction3 = () => {
       try {
         setLoading(true);
         const [transRes, custRes] = await Promise.all([
-          axios.get('/transaction/GetFilteredTransactions'),
+          axios.get('/transaction'),
           axios.get('/customer/GetCustomersList')
         ]);
         if (transRes.data?.success) setTransactions(transRes.data.result || []);
