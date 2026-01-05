@@ -23,6 +23,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function AllOrder() {
+  const [viewTab, setViewTab] = useState("orders");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortKey, setSortKey] = useState("dateDesc");
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -43,6 +44,28 @@ export default function AllOrder() {
     patchOrder,
   } = useOrdersData();
 
+  const isEnquiry = React.useCallback(
+    (order) =>
+      String(order?.Type || "").trim().toLowerCase() === "enquiry" ||
+      Boolean(order?.isEnquiry),
+    []
+  );
+
+  const { ordersCount, enquiriesCount } = useMemo(() => {
+    let orders = 0;
+    let enquiries = 0;
+
+    orderList.forEach((order) => {
+      if (isEnquiry(order)) {
+        enquiries += 1;
+      } else {
+        orders += 1;
+      }
+    });
+
+    return { ordersCount: orders, enquiriesCount: enquiries };
+  }, [orderList, isEnquiry]);
+
   useEffect(() => {
     const role =
       localStorage.getItem("Role") ||
@@ -56,7 +79,15 @@ export default function AllOrder() {
     return "ontouchstart" in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
   }, []);
 
-  const { columnOrder, groupedOrders } = useOrderGrouping(orderList, tasksMeta, searchTerm, sortKey, isAdmin, {
+  const filteredOrderList = useMemo(() => {
+    if (viewTab === "enquiries") {
+      return orderList.filter((order) => isEnquiry(order));
+    }
+
+    return orderList.filter((order) => !isEnquiry(order));
+  }, [orderList, viewTab, isEnquiry]);
+
+  const { columnOrder, groupedOrders } = useOrderGrouping(filteredOrderList, tasksMeta, searchTerm, sortKey, isAdmin, {
     includeCancelColumn: false,
   });
 
@@ -178,6 +209,32 @@ export default function AllOrder() {
 
       <div className="min-h-screen bg-slate-50">
         <div className="mx-auto max-w-[2200px] p-2.5 md:p-3">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-full border border-slate-200 bg-white p-1 text-xs">
+              <button
+                type="button"
+                onClick={() => setViewTab("orders")}
+                className={`px-3 py-1 rounded-full transition ${
+                  viewTab === "orders"
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-800"
+                }`}
+              >
+                All Orders ({ordersCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewTab("enquiries")}
+                className={`px-3 py-1 rounded-full transition ${
+                  viewTab === "enquiries"
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-800"
+                }`}
+              >
+                All Enquiries ({enquiriesCount})
+              </button>
+            </div>
+          </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <div className="flex bg-white flex-1 min-w-[220px] px-2.5 py-1.5 rounded-md border border-slate-200">
               <input
