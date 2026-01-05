@@ -93,7 +93,7 @@ export default function AllOrder() {
 
   const [mobileMoveTarget, setMobileMoveTarget] = useState("");
 
-  const handleMove = React.useCallback(
+  const handleMove = useCallback(
     async (orderId, targetTask, setStatusMessage) => {
       const order = orderMap[orderId];
       if (!order) return;
