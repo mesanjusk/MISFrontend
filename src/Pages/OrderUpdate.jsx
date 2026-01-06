@@ -9,6 +9,9 @@ import StatusTable from "../Components/StatusTable";
 import InvoiceModal from "../Components/InvoiceModal";
 import InvoicePreview from "../Components/InvoicePreview";
 
+// ✅ NEW: open UpdateDelivery inside modal
+import UpdateDelivery from "./updateDelivery";
+
 function toYmd(v) {
   if (!v) return "";
   const d = new Date(v);
@@ -18,25 +21,34 @@ function toYmd(v) {
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 }
+
 const norm = (s) => String(s || "").trim().toLowerCase();
+
+// ✅ enquiry detection (current stage only, fallback Type)
+const isEnquiryTask = (task) => {
+  const t = norm(task);
+  return t === "enquiry" || t === "enquiries" || t === "inquiry" || t === "lead";
+};
 
 export default function OrderUpdate({
   order = {},
   onClose = () => {},
-  // NEW: parent state updaters (AllOrder passes these)
   onOrderPatched = () => {},
   onOrderReplaced = () => {},
 }) {
   const [notes, setNotes] = useState([]);
-  const [taskGroups, setTaskGroups] = useState([]); // [{ Id, Task_group_uuid, Task_group_name || Task_group }]
-  const [selectedTaskGroups, setSelectedTaskGroups] = useState([]); // uuids that are ON
-  const [taskOptions, setTaskOptions] = useState([]); // for "Task" dropdown (ALL groups)
+  const [taskGroups, setTaskGroups] = useState([]);
+  const [selectedTaskGroups, setSelectedTaskGroups] = useState([]);
+  const [taskOptions, setTaskOptions] = useState([]);
   const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
-  const [busyStep, setBusyStep] = useState({}); // { uuid: true } while toggling
+  const [busyStep, setBusyStep] = useState({});
   const [saving, setSaving] = useState(false);
 
   // Invoice modal state
   const [showInvoice, setShowInvoice] = useState(false);
+
+  // ✅ UpdateDelivery modal state
+  const [showUpdateDelivery, setShowUpdateDelivery] = useState(false);
 
   const [values, setValues] = useState({
     id: order?._id || "",
@@ -52,6 +64,13 @@ export default function OrderUpdate({
     Steps: Array.isArray(order?.Steps) ? order.Steps : [],
     Items: Array.isArray(order?.Items) ? order.Items : [],
   });
+
+  // ✅ disable UpdateDelivery for enquiries (current task only, fallback Type)
+  const isEnquiry = useMemo(() => {
+    const current = values?.Task;
+    if (String(current || "").trim()) return isEnquiryTask(current);
+    return isEnquiryTask(order?.Type);
+  }, [values?.Task, order?.Type]);
 
   /* ---------------- Load ALL task groups ---------------- */
   useEffect(() => {
@@ -158,6 +177,15 @@ export default function OrderUpdate({
     setSelectedTaskGroups(preselected);
   }, [taskGroups, values.Steps]);
 
+  /* ---------------- Close on ESC ---------------- */
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") onClose?.();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   /* ---------------- Handlers ---------------- */
   const handleChangeTask = (task) => {
     setValues((prev) => ({ ...prev, Task: task }));
@@ -260,7 +288,6 @@ export default function OrderUpdate({
         return;
       }
 
-      // Prefer backend-updated order when available
       const updatedOrder =
         res.data?.result ||
         res.data?.order ||
@@ -269,10 +296,8 @@ export default function OrderUpdate({
         null;
 
       if (updatedOrder) {
-        // Full replace (parent will diff/merge)
         onOrderReplaced(updatedOrder);
       } else {
-        // Fallback: patch locally
         const currentMax =
           Number(order?.highestStatusTask?.Status_number) ||
           Math.max(
@@ -296,19 +321,21 @@ export default function OrderUpdate({
         });
       }
 
-      // Update our local state so UI reflects instantly inside modal too
+      // Update local UI
       setValues((v) => {
-        const currentMax =
+        const currentMaxLocal =
           Math.max(
             0,
             ...(Array.isArray(v.Status)
               ? v.Status.map((s) => Number(s?.Status_number) || 0)
               : [0])
           ) + 1;
+
         const newStatusLocal = {
           ...payload.newStatus,
-          Status_number: currentMax,
+          Status_number: currentMaxLocal,
         };
+
         return {
           ...v,
           Status: [...(v.Status || []), newStatusLocal],
@@ -316,7 +343,14 @@ export default function OrderUpdate({
       });
 
       toast.success("Order updated successfully.");
-      onClose?.(); // close modal — parent list is already updated; NO reload.
+
+      // ✅ AUTO-OPEN UpdateDelivery when task becomes Delivered (case-insensitive)
+      if (norm(values.Task) === "delivered") {
+        setShowUpdateDelivery(true);
+        return; // keep modal open
+      }
+
+      onClose?.();
     } catch (err) {
       console.error("Error updating order:", err);
       toast.error("Error updating order.");
@@ -333,21 +367,20 @@ export default function OrderUpdate({
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center overflow-auto">
       {/* Modal container: bounded height + internal scroll */}
       <div className="bg-white w-full max-w-3xl rounded-xl shadow-xl relative max-h-[90vh] overflow-hidden">
-        {/* Close button (stays visible due to sticky header wrap) */}
+        {/* ✅ Top-right Close button */}
         <button
-          className="absolute right-2 top-2 text-xl text-gray-400 hover:text-blue-500"
-          onClick={onClose}
           type="button"
           aria-label="Close"
+          onClick={onClose}
+          className="absolute top-3 right-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 hover:text-red-600 hover:bg-red-50 shadow-sm"
         >
-          ×
+          <span className="text-lg leading-none">×</span>
         </button>
 
         {/* Sticky Header */}
         <div className="sticky top-0 z-10 bg-white rounded-t-xl pt-6 px-6 pb-3 border-b">
           <OrderHeader values={values} notes={notes} />
 
-          {/* Item Remarks (from Items[].Remark) */}
           {itemRemarks.length > 0 && (
             <div className="mt-3">
               <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
@@ -363,10 +396,8 @@ export default function OrderUpdate({
 
         {/* Scrollable Body */}
         <div className="overflow-y-auto px-6 pb-6 pt-4 max-h-[calc(90vh-140px)]">
-          {/* Status Table */}
           <StatusTable status={values.Status} />
 
-          {/* Update Form */}
           <form onSubmit={handleSaveChanges} className="space-y-4 mt-4">
             <div>
               <label className="block font-medium text-gray-700 mb-1">
@@ -409,13 +440,12 @@ export default function OrderUpdate({
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
                   value={values.Delivery_Date}
                   onChange={(e) =>
-                    setValues({ ...values, Delivery_Date: e.target.value })
+                    setValues((v) => ({ ...v, Delivery_Date: e.target.value }))
                   }
                 />
               </div>
             )}
 
-            {/* Steps (Task Groups) — ONLY Id === 1, pre-selected from DB */}
             <div>
               <label className="block mb-1 font-medium">Steps</label>
               <div className="flex flex-wrap gap-2">
@@ -466,7 +496,21 @@ export default function OrderUpdate({
                 {saving ? "Updating..." : "Update Status"}
               </button>
 
-              {/* Preview Invoice button */}
+              {/* ✅ UpdateDelivery button (disabled if enquiry) */}
+              <button
+                type="button"
+                onClick={() => setShowUpdateDelivery(true)}
+                disabled={isEnquiry}
+                className={`flex-1 font-medium py-2 rounded-lg transition border ${
+                  isEnquiry
+                    ? "border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed"
+                    : "border-blue-300 text-blue-700 hover:bg-blue-50"
+                }`}
+                title={isEnquiry ? "Update Delivery is disabled for enquiries" : "Update Delivery"}
+              >
+                Update Billing
+              </button>
+
               <button
                 type="button"
                 onClick={openInvoice}
@@ -483,7 +527,6 @@ export default function OrderUpdate({
           <InvoicePreview
             order={{
               ...order,
-              // keep latest values overrides
               Status: values.Status,
               Items: values.Items,
               Customer_name: values.Customer_name,
@@ -494,6 +537,16 @@ export default function OrderUpdate({
             onClose={closeInvoice}
           />
         </InvoiceModal>
+
+        {/* ✅ UpdateDelivery Modal */}
+        {showUpdateDelivery && (
+          <UpdateDelivery
+            order={order}
+            onClose={() => setShowUpdateDelivery(false)}
+            onOrderPatched={onOrderPatched}
+            onOrderReplaced={onOrderReplaced}
+          />
+        )}
       </div>
     </div>
   );

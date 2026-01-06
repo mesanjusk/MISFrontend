@@ -342,27 +342,31 @@ export default function UpdateDelivery({
     <>
       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
         <div className="bg-white p-6 rounded shadow-md w-full max-w-3xl relative">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">
-              {mode === "edit" ? "Edit Order • Items/Invoice" : "New Delivery"}
-            </h2>
-            <div className="flex items-center gap-3">
-              {loadingLists && (
-                <div className="flex items-center text-sm text-gray-500">
-                  <LoadingSpinner size={20} className="mr-2" /> Loading lists…
-                </div>
-              )}
-              <button
-                onClick={() => {
-                  setShowInvoiceModal(false);
-                  onClose?.();
-                }}
-                className="text-gray-500 hover:text-red-600"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
+          <div className="relative mb-4 pr-12">
+  <h2 className="text-xl font-bold">
+    {mode === "edit" ? "Edit Order • Items/Invoice" : "New Delivery"}
+  </h2>
+
+  {loadingLists && (
+    <div className="mt-1 flex items-center text-sm text-gray-500">
+      <LoadingSpinner size={20} className="mr-2" /> Loading lists…
+    </div>
+  )}
+
+  {/* ✅ Top-right close button */}
+  <button
+    type="button"
+    aria-label="Close"
+    onClick={() => {
+      setShowInvoiceModal(false);
+      onClose?.();
+    }}
+    className="absolute top-0 right-0 inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-600 hover:text-red-600 hover:bg-red-50"
+  >
+    <span className="text-lg leading-none">×</span>
+  </button>
+</div>
+
 
           <form
             className="grid grid-cols-1 gap-4"
