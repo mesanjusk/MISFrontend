@@ -22,6 +22,14 @@ const SORT_OPTIONS = [
   { value: "name", label: "Customer Name" },
 ];
 
+const normLower = (v) => String(v || "").trim().toLowerCase();
+
+// Enquiry detection should be based on CURRENT stage only
+const isEnquiryTask = (task) => {
+  const t = normLower(task);
+  return t === "enquiry" || t === "enquiries" || t === "inquiry" || t === "lead";
+};
+
 export default function AllOrder() {
   const [viewTab, setViewTab] = useState("orders");
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,6 +38,7 @@ export default function AllOrder() {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
   const [mobileMoveOrder, setMobileMoveOrder] = useState(null);
+  const [mobileMoveTarget, setMobileMoveTarget] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [statusNotice, setStatusNotice] = useState("");
 
@@ -44,23 +53,23 @@ export default function AllOrder() {
     patchOrder,
   } = useOrdersData();
 
-  const isEnquiry = useCallback(
-    (order) =>
-      String(order?.Type || "").trim().toLowerCase() === "enquiry" ||
-      Boolean(order?.isEnquiry),
-    []
-  );
+  // ✅ Enquiry is CURRENT stage only. Fallback to Type only if highestStatusTask missing.
+  const isEnquiry = useCallback((order) => {
+    const currentTask = order?.highestStatusTask?.Task;
+    if (String(currentTask || "").trim()) return isEnquiryTask(currentTask);
+    return isEnquiryTask(order?.Type); // fallback only
+  }, []);
 
+  // ✅ Counts based on current stage
   const { ordersCount, enquiriesCount } = useMemo(() => {
     let enquiries = 0;
-
-    orderList.forEach((order) => {
-      if (isEnquiry(order)) {
-        enquiries += 1;
-      }
-    });
-
-    return { ordersCount: orderList.length, enquiriesCount: enquiries };
+    for (const order of orderList) {
+      if (isEnquiry(order)) enquiries += 1;
+    }
+    return {
+      ordersCount: orderList.length - enquiries,
+      enquiriesCount: enquiries,
+    };
   }, [orderList, isEnquiry]);
 
   useEffect(() => {
@@ -68,27 +77,37 @@ export default function AllOrder() {
       localStorage.getItem("Role") ||
       localStorage.getItem("role") ||
       localStorage.getItem("User_role");
-    setIsAdmin(String(role || "").toLowerCase() === ROLE_TYPES.ADMIN);
+    setIsAdmin(normLower(role) === ROLE_TYPES.ADMIN);
   }, []);
 
   const isTouchDevice = useMemo(() => {
     if (typeof window === "undefined") return false;
-    return "ontouchstart" in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
+    return (
+      "ontouchstart" in window ||
+      navigator.maxTouchPoints > 0 ||
+      navigator.msMaxTouchPoints > 0
+    );
   }, []);
 
+  // ✅ Filter lists per tab
   const filteredOrderList = useMemo(() => {
     if (viewTab === "enquiries") {
-      return orderList.filter((order) => isEnquiry(order));
+      return orderList.filter((o) => isEnquiry(o));
     }
-
-    return orderList;
+    return orderList.filter((o) => !isEnquiry(o));
   }, [orderList, viewTab, isEnquiry]);
 
-  const { columnOrder, groupedOrders } = useOrderGrouping(filteredOrderList, tasksMeta, searchTerm, sortKey, isAdmin, {
-    includeCancelColumn: false,
-  });
-
-  const [mobileMoveTarget, setMobileMoveTarget] = useState("");
+  // ✅ Enquiries tab: only ONE column
+  const { columnOrder, groupedOrders } = useOrderGrouping(
+    filteredOrderList,
+    tasksMeta,
+    searchTerm,
+    sortKey,
+    isAdmin,
+    viewTab === "enquiries"
+      ? { singleColumn: true, singleColumnLabel: "Enquiry", includeCancelColumn: false }
+      : { includeCancelColumn: false }
+  );
 
   const handleMove = useCallback(
     async (orderId, targetTask, setStatusMessage) => {
@@ -97,7 +116,7 @@ export default function AllOrder() {
 
       const normalizedTask = String(targetTask || TASK_TYPES.OTHER).trim();
       const lower = normalizedTask.toLowerCase();
-      const currentTask = String(order?.highestStatusTask?.Task || "").trim().toLowerCase();
+      const currentTask = normLower(order?.highestStatusTask?.Task);
       if (currentTask === lower) return;
 
       if (lower === TASK_TYPES.CANCEL.toLowerCase()) {
@@ -106,7 +125,11 @@ export default function AllOrder() {
           return;
         }
         const first = window.confirm("Move this order to Cancel?");
-        const second = first && window.confirm("This will mark the order as Cancel. Confirm again to continue.");
+        const second =
+          first &&
+          window.confirm(
+            "This will mark the order as Cancel. Confirm again to continue."
+          );
         if (!second) return;
       }
 
@@ -114,13 +137,17 @@ export default function AllOrder() {
       if (!id) return;
 
       const createdAt = new Date().toISOString();
-      const optimisticHighest = { ...(order.highestStatusTask || {}), Task: normalizedTask, CreatedAt: createdAt };
-      const optimisticStatus = [...(order.Status || []), { Task: normalizedTask, CreatedAt: createdAt }];
+      const optimisticHighest = {
+        ...(order.highestStatusTask || {}),
+        Task: normalizedTask,
+        CreatedAt: createdAt,
+      };
+      const optimisticStatus = [
+        ...(order.Status || []),
+        { Task: normalizedTask, CreatedAt: createdAt },
+      ];
 
-      patchOrder(id, {
-        highestStatusTask: optimisticHighest,
-        Status: optimisticStatus,
-      });
+      patchOrder(id, { highestStatusTask: optimisticHighest, Status: optimisticStatus });
 
       setStatusMessage?.(`Moving order to ${normalizedTask}`);
       setStatusNotice(`Moving order ${order.Order_Number || ""} to ${normalizedTask}`);
@@ -128,11 +155,11 @@ export default function AllOrder() {
       try {
         const response = await statusApi.updateStatus(id, normalizedTask);
         const next = response?.data?.result;
-       const isSuccess = Boolean(next) || response?.data?.success === true;
+        const isSuccess = Boolean(next) || response?.data?.success === true;
+
         if (isSuccess) {
-          if (next) {
-            replaceOrder(next);
-          }
+          if (next) replaceOrder(next);
+
           toast.success(
             lower === TASK_TYPES.DELIVERED.toLowerCase()
               ? "Moved to Delivered"
@@ -140,13 +167,18 @@ export default function AllOrder() {
               ? "Moved to Cancel"
               : `Moved to ${normalizedTask}`
           );
+
           setStatusMessage?.(`Order moved to ${normalizedTask}`);
           setStatusNotice(`Order moved to ${normalizedTask}`);
         } else {
           throw new Error("No response body");
         }
       } catch (err) {
-        patchOrder(id, { highestStatusTask: order.highestStatusTask, Status: order.Status });
+        patchOrder(id, {
+          highestStatusTask: order.highestStatusTask,
+          Status: order.Status,
+        });
+
         toast.error("Failed to update status");
         setStatusMessage?.("Failed to update status");
         setStatusNotice("Failed to update status");
@@ -155,8 +187,14 @@ export default function AllOrder() {
     [orderMap, isAdmin, patchOrder, replaceOrder]
   );
 
-  const { dragHandlers, mobileSelection, startMobileMove, confirmMobileMove, resetMobileSelection, statusMessage } =
-    useOrderDnD({ onMove: handleMove });
+  const {
+    dragHandlers,
+    mobileSelection,
+    startMobileMove,
+    confirmMobileMove,
+    resetMobileSelection,
+    statusMessage,
+  } = useOrderDnD({ onMove: handleMove });
 
   const allLoading = isOrdersLoading || isTasksLoading;
 
@@ -202,7 +240,9 @@ export default function AllOrder() {
 
   return (
     <>
-      {isOrdersLoading && <div className="fixed top-0 left-0 right-0 h-1 bg-indigo-500 animate-pulse z-[60]" />}
+      {isOrdersLoading && (
+        <div className="fixed top-0 left-0 right-0 h-1 bg-indigo-500 animate-pulse z-[60]" />
+      )}
 
       <div className="min-h-screen bg-slate-50">
         <div className="mx-auto max-w-[2200px] p-2.5 md:p-3">
@@ -219,6 +259,7 @@ export default function AllOrder() {
               >
                 All Orders ({ordersCount})
               </button>
+
               <button
                 type="button"
                 onClick={() => setViewTab("enquiries")}
@@ -232,6 +273,7 @@ export default function AllOrder() {
               </button>
             </div>
           </div>
+
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <div className="flex bg-white flex-1 min-w-[220px] px-2.5 py-1.5 rounded-md border border-slate-200">
               <input
@@ -293,7 +335,9 @@ export default function AllOrder() {
               </div>
             </div>
           ) : columnOrder.length === 0 ? (
-            <div className="text-center text-slate-400 py-8 text-sm">No tasks found.</div>
+            <div className="text-center text-slate-400 py-8 text-sm">
+              {viewTab === "enquiries" ? "No enquiries found." : "No tasks found."}
+            </div>
           ) : (
             <OrderBoard
               columnOrder={columnOrder}
@@ -333,9 +377,13 @@ export default function AllOrder() {
       )}
 
       {mobileSelection && mobileMoveOrder && (
-        <Modal onClose={handleCancelMobileMove} title={`Move Order #${mobileMoveOrder.Order_Number || ""}`}>
+        <Modal
+          onClose={handleCancelMobileMove}
+          title={`Move Order #${mobileMoveOrder.Order_Number || ""}`}
+        >
           <div className="space-y-3">
             <div className="text-sm text-slate-700">Select the target column</div>
+
             <select
               id="mobile-move-target"
               className="w-full border border-slate-300 rounded-md px-2 py-2 text-sm"
@@ -347,7 +395,7 @@ export default function AllOrder() {
               </option>
               {availableTargets
                 .filter((task) => {
-                  const lower = task.toLowerCase();
+                  const lower = String(task || "").toLowerCase();
                   if (lower === TASK_TYPES.CANCEL.toLowerCase() && !isAdmin) return false;
                   return task !== mobileMoveOrder?.highestStatusTask?.Task;
                 })
@@ -357,6 +405,7 @@ export default function AllOrder() {
                   </option>
                 ))}
             </select>
+
             <div className="flex justify-end gap-2">
               <button
                 type="button"
@@ -373,6 +422,7 @@ export default function AllOrder() {
                 Confirm
               </button>
             </div>
+
             {isAdmin && (
               <p className="text-[11px] text-rose-700 bg-rose-50 border border-rose-100 rounded px-2 py-1">
                 Selecting Cancel will require double confirmation.
@@ -381,7 +431,6 @@ export default function AllOrder() {
           </div>
         </Modal>
       )}
-
     </>
   );
 }

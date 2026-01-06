@@ -1,7 +1,10 @@
 import { useMemo } from "react";
 import { TASK_TYPES } from "./useOrdersData";
 
-const CLOSED_TASKS = new Set([TASK_TYPES.DELIVERED.toLowerCase(), TASK_TYPES.CANCEL.toLowerCase()]);
+const CLOSED_TASKS = new Set([
+  TASK_TYPES.DELIVERED.toLowerCase(),
+  TASK_TYPES.CANCEL.toLowerCase(),
+]);
 
 const sorters = {
   dateDesc: (a, b) =>
@@ -10,8 +13,10 @@ const sorters = {
   dateAsc: (a, b) =>
     new Date(a?.highestStatusTask?.CreatedAt || 0).getTime() -
     new Date(b?.highestStatusTask?.CreatedAt || 0).getTime(),
-  orderNo: (a, b) => String(a.Order_Number || "").localeCompare(String(b.Order_Number || "")),
-  name: (a, b) => String(a.Customer_name || "").localeCompare(String(b.Customer_name || "")),
+  orderNo: (a, b) =>
+    String(a.Order_Number || "").localeCompare(String(b.Order_Number || "")),
+  name: (a, b) =>
+    String(a.Customer_name || "").localeCompare(String(b.Customer_name || "")),
 };
 
 const normalizeTaskLabel = (task) => {
@@ -19,11 +24,24 @@ const normalizeTaskLabel = (task) => {
   return cleaned || TASK_TYPES.OTHER;
 };
 
-export function useOrderGrouping(orderList, tasksMeta, searchQuery, sortKey, isAdmin, options = {}) {
-  const { includeCancelColumn = true } = options;
+export function useOrderGrouping(
+  orderList,
+  tasksMeta,
+  searchQuery,
+  sortKey,
+  isAdmin,
+  options = {}
+) {
+  const {
+    includeCancelColumn = true,
+    singleColumn = false,                 // ✅ NEW
+    singleColumnLabel = "Enquiry",        // ✅ NEW
+  } = options;
+
   const searchedOrders = useMemo(() => {
     const q = String(searchQuery || "").trim().toLowerCase();
     if (!q) return orderList;
+
     return orderList.filter((order) => {
       const byName = String(order.Customer_name || "").toLowerCase().includes(q);
       const byNo = String(order.Order_Number || "").toLowerCase().includes(q);
@@ -36,7 +54,18 @@ export function useOrderGrouping(orderList, tasksMeta, searchQuery, sortKey, isA
     return [...searchedOrders].sort(sorter);
   }, [searchedOrders, sortKey]);
 
+  // ✅ If singleColumn mode: force one column and put all orders there
   const columnOrder = useMemo(() => {
+    if (singleColumn) return [singleColumnLabel];
+    return [];
+  }, [singleColumn, singleColumnLabel]);
+
+  const groupedOrders = useMemo(() => {
+    if (singleColumn) {
+      return { [singleColumnLabel]: sortedOrders };
+    }
+
+    // ===== normal board behavior =====
     const base = tasksMeta.map((task) => task.name);
     const seen = new Set(base.map((name) => name.toLowerCase()));
 
@@ -66,11 +95,7 @@ export function useOrderGrouping(orderList, tasksMeta, searchQuery, sortKey, isA
       }
     }
 
-    return base;
-  }, [tasksMeta, sortedOrders, isAdmin]);
-
-  const groupedOrders = useMemo(() => {
-    const groups = columnOrder.reduce((acc, name) => {
+    const groups = base.reduce((acc, name) => {
       acc[name] = [];
       return acc;
     }, {});
@@ -82,10 +107,17 @@ export function useOrderGrouping(orderList, tasksMeta, searchQuery, sortKey, isA
     }
 
     return groups;
-  }, [sortedOrders, columnOrder]);
+  }, [
+    singleColumn,
+    singleColumnLabel,
+    sortedOrders,
+    tasksMeta,
+    includeCancelColumn,
+    isAdmin,
+  ]);
 
   return {
-    columnOrder,
+    columnOrder: singleColumn ? columnOrder : Object.keys(groupedOrders),
     groupedOrders,
     filteredOrders: sortedOrders,
   };
