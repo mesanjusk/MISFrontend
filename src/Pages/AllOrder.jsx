@@ -2,8 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import OrderUpdate from "./OrderUpdate";
 import UpdateDelivery from "./updateDelivery";
-import { LoadingSpinner } from "../Components";
-import Modal from "../components/common/Modal";
 import OrderBoard from "../components/orders/OrderBoard";
 import {
   LABELS,
@@ -14,6 +12,37 @@ import {
 } from "../hooks/useOrdersData";
 import { useOrderGrouping } from "../hooks/useOrderGrouping";
 import { useOrderDnD } from "../hooks/useOrderDnD";
+
+/* ✅ MUI (UI only) */
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Box,
+  Container,
+  Paper,
+  Stack,
+  Tabs,
+  Tab,
+  TextField,
+  InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  LinearProgress,
+  Alert,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Divider,
+  Skeleton,
+} from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 
 const SORT_OPTIONS = [
   { value: "dateDesc", label: "Latest first" },
@@ -35,10 +64,13 @@ export default function AllOrder() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortKey, setSortKey] = useState("dateDesc");
   const [selectedOrder, setSelectedOrder] = useState(null);
+
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+
   const [mobileMoveOrder, setMobileMoveOrder] = useState(null);
   const [mobileMoveTarget, setMobileMoveTarget] = useState("");
+
   const [isAdmin, setIsAdmin] = useState(false);
   const [statusNotice, setStatusNotice] = useState("");
 
@@ -91,9 +123,7 @@ export default function AllOrder() {
 
   // ✅ Filter lists per tab
   const filteredOrderList = useMemo(() => {
-    if (viewTab === "enquiries") {
-      return orderList.filter((o) => isEnquiry(o));
-    }
+    if (viewTab === "enquiries") return orderList.filter((o) => isEnquiry(o));
     return orderList.filter((o) => !isEnquiry(o));
   }, [orderList, viewTab, isEnquiry]);
 
@@ -240,197 +270,269 @@ export default function AllOrder() {
 
   return (
     <>
+      {/* ✅ Top loading indicator (replaces Tailwind bar) */}
       {isOrdersLoading && (
-        <div className="fixed top-0 left-0 right-0 h-1 bg-indigo-500 animate-pulse z-[60]" />
+        <Box sx={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 2000 }}>
+          <LinearProgress />
+        </Box>
       )}
 
-      <div className="min-h-screen bg-slate-50">
-        <div className="mx-auto max-w-[2200px] p-2.5 md:p-3">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <div className="inline-flex rounded-full border border-slate-200 bg-white p-1 text-xs">
-              <button
-                type="button"
-                onClick={() => setViewTab("orders")}
-                className={`px-3 py-1 rounded-full transition ${
-                  viewTab === "orders"
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "text-slate-600 hover:text-slate-800"
-                }`}
-              >
-                All Orders ({ordersCount})
-              </button>
+      <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+        {/* ✅ Mobile-app style header */}
+        <AppBar position="sticky" elevation={0}>
+          <Toolbar>
+            <Typography variant="h6" sx={{ flex: 1 }}>
+              {viewTab === "enquiries" ? "All Enquiries" : "All Orders"}
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+              {viewTab === "enquiries" ? enquiriesCount : ordersCount}
+            </Typography>
+          </Toolbar>
+        </AppBar>
 
-              <button
-                type="button"
-                onClick={() => setViewTab("enquiries")}
-                className={`px-3 py-1 rounded-full transition ${
-                  viewTab === "enquiries"
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "text-slate-600 hover:text-slate-800"
-                }`}
-              >
-                All Enquiries ({enquiriesCount})
-              </button>
-            </div>
-          </div>
+        <Container maxWidth={false} sx={{ maxWidth: 2200, py: 2 }}>
+          {/* ✅ Tabs + Controls card */}
+          <Paper
+            variant="outlined"
+            sx={{
+              borderRadius: 3,
+              p: 1.5,
+              mb: 2,
+              overflow: "hidden",
+            }}
+          >
+            <Tabs
+              value={viewTab}
+              onChange={(_, v) => setViewTab(v)}
+              variant="fullWidth"
+              sx={{
+                mb: 1.5,
+                "& .MuiTab-root": { textTransform: "none", fontWeight: 800 },
+              }}
+            >
+              <Tab value="orders" label={`All Orders (${ordersCount})`} />
+              <Tab value="enquiries" label={`All Enquiries (${enquiriesCount})`} />
+            </Tabs>
 
-          <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            <div className="flex bg-white flex-1 min-w-[220px] px-2.5 py-1.5 rounded-md border border-slate-200">
-              <input
-                type="text"
-                placeholder={LABELS.SEARCH_PLACEHOLDER}
-                className="text-slate-900 bg-transparent w-full focus:outline-none text-[12px] placeholder:text-slate-400"
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1.5}
+              alignItems={{ xs: "stretch", sm: "center" }}
+            >
+              <TextField
+                fullWidth
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={LABELS.SEARCH_PLACEHOLDER}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                }}
               />
-            </div>
 
-            <div className="flex items-center gap-1.5">
-              <label className="text-[10px] text-slate-500">Sort</label>
-              <select
-                className="text-[12px] border border-slate-200 rounded-md px-2 py-1.5 bg-white"
-                value={sortKey}
-                onChange={(e) => setSortKey(e.target.value)}
-              >
-                {SORT_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
+              <FormControl sx={{ minWidth: { xs: "100%", sm: 220 } }}>
+                <InputLabel id="sort-label">Sort</InputLabel>
+                <Select
+                  labelId="sort-label"
+                  value={sortKey}
+                  label="Sort"
+                  onChange={(e) => setSortKey(e.target.value)}
+                >
+                  {SORT_OPTIONS.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Stack>
+          </Paper>
 
-        <main className="mx-auto max-w-[2200px] px-2.5 md:px-3 pb-3">
+          {/* ✅ Error state */}
           {loadError && (
-            <div className="mx-auto my-2 max-w-7xl rounded-md bg-rose-50 border border-rose-200 text-rose-700 px-3 py-2 flex items-center justify-between">
-              <span className="text-[12px]">{loadError}</span>
-              <button
-                className="text-[11px] px-2 py-1 rounded border border-rose-300 hover:bg-rose-100"
-                onClick={() => window.location.reload()}
-                type="button"
-              >
-                Retry
-              </button>
-            </div>
+            <Alert
+              severity="error"
+              variant="outlined"
+              sx={{ mb: 2, borderRadius: 3 }}
+              action={
+                <Button
+                  color="error"
+                  size="small"
+                  startIcon={<RefreshIcon />}
+                  onClick={() => window.location.reload()}
+                >
+                  Retry
+                </Button>
+              }
+            >
+              {loadError}
+            </Alert>
           )}
 
-          {allLoading ? (
-            <div className="max-w-7xl mx-auto">
-              <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-12 2xl:grid-cols-12 gap-1.5">
-                {Array.from({ length: 12 }).map((_, col) => (
-                  <div key={col} className="rounded-lg border border-slate-200 bg-white p-2">
-                    <div className="h-3 w-2/3 bg-slate-200 rounded mb-2 animate-pulse" />
-                    <div className="space-y-1.5">
-                      {Array.from({ length: 6 }).map((__, i) => (
-                        <div key={i} className="h-9 bg-slate-100 rounded-md animate-pulse" />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-center py-3">
-                <LoadingSpinner />
-              </div>
-            </div>
-          ) : columnOrder.length === 0 ? (
-            <div className="text-center text-slate-400 py-8 text-sm">
-              {viewTab === "enquiries" ? "No enquiries found." : "No tasks found."}
-            </div>
-          ) : (
-            <OrderBoard
-              columnOrder={columnOrder}
-              groupedOrders={groupedOrders}
-              isAdmin={isAdmin}
-              isTouchDevice={isTouchDevice}
-              dragHandlers={dragHandlers}
-              onView={handleView}
-              onEdit={handleEdit}
-              onMove={isTouchDevice ? onMobileMoveRequest : undefined}
-              statusMessage={statusMessage || statusNotice}
-            />
-          )}
-        </main>
-      </div>
+          {/* ✅ Main content */}
+          <Paper
+            variant="outlined"
+            sx={{
+              borderRadius: 3,
+              p: { xs: 1, sm: 1.5 },
+              minHeight: 420,
+            }}
+          >
+            {allLoading ? (
+              <Box>
+                <Stack spacing={1} sx={{ mb: 2 }}>
+                  <Skeleton variant="rounded" height={36} />
+                  <Skeleton variant="rounded" height={36} />
+                </Stack>
 
-      {showOrderModal && (
-        <Modal onClose={closeOrderModal} title="Order Details">
+                <Divider sx={{ mb: 2 }} />
+
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(12, 1fr)",
+                    gap: 1,
+                  }}
+                >
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <Paper
+                      key={i}
+                      variant="outlined"
+                      sx={{
+                        gridColumn: { xs: "span 12", sm: "span 6", md: "span 3", lg: "span 2" },
+                        borderRadius: 2,
+                        p: 1.25,
+                      }}
+                    >
+                      <Skeleton variant="text" width="60%" />
+                      <Stack spacing={1} sx={{ mt: 1 }}>
+                        {Array.from({ length: 5 }).map((__, j) => (
+                          <Skeleton key={j} variant="rounded" height={44} />
+                        ))}
+                      </Stack>
+                    </Paper>
+                  ))}
+                </Box>
+
+                <Stack direction="row" justifyContent="center" sx={{ py: 2 }}>
+                  <LinearProgress sx={{ width: 240, borderRadius: 99 }} />
+                </Stack>
+              </Box>
+            ) : columnOrder.length === 0 ? (
+              <Alert severity="info" variant="outlined" sx={{ borderRadius: 3 }}>
+                {viewTab === "enquiries" ? "No enquiries found." : "No tasks found."}
+              </Alert>
+            ) : (
+              <OrderBoard
+                columnOrder={columnOrder}
+                groupedOrders={groupedOrders}
+                isAdmin={isAdmin}
+                isTouchDevice={isTouchDevice}
+                dragHandlers={dragHandlers}
+                onView={handleView}
+                onEdit={handleEdit}
+                onMove={isTouchDevice ? onMobileMoveRequest : undefined}
+                statusMessage={statusMessage || statusNotice}
+              />
+            )}
+          </Paper>
+        </Container>
+      </Box>
+
+      {/* ✅ Order Details (MUI Dialog replaces Tailwind Modal usage in THIS file) */}
+      <Dialog open={showOrderModal} onClose={closeOrderModal} fullWidth maxWidth="md">
+        <DialogTitle>Order Details</DialogTitle>
+        <DialogContent dividers>
           <OrderUpdate
             order={selectedOrder}
             onClose={closeOrderModal}
             onOrderPatched={(orderId, patch) => patchOrder(orderId, patch)}
             onOrderReplaced={(order) => replaceOrder(order)}
           />
-        </Modal>
-      )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeOrderModal}>Close</Button>
+        </DialogActions>
+      </Dialog>
 
-      {showDeliveryModal && (
-        <Modal onClose={closeDeliveryModal} title="Update Delivery">
+      {/* ✅ Update Delivery (MUI Dialog) */}
+      <Dialog open={showDeliveryModal} onClose={closeDeliveryModal} fullWidth maxWidth="md">
+        <DialogTitle>Update Delivery</DialogTitle>
+        <DialogContent dividers>
           <UpdateDelivery
             order={selectedOrder}
             onClose={closeDeliveryModal}
             onOrderPatched={(orderId, patch) => patchOrder(orderId, patch)}
             onOrderReplaced={(order) => replaceOrder(order)}
           />
-        </Modal>
-      )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeliveryModal}>Close</Button>
+        </DialogActions>
+      </Dialog>
 
-      {mobileSelection && mobileMoveOrder && (
-        <Modal
-          onClose={handleCancelMobileMove}
-          title={`Move Order #${mobileMoveOrder.Order_Number || ""}`}
-        >
-          <div className="space-y-3">
-            <div className="text-sm text-slate-700">Select the target column</div>
+      {/* ✅ Mobile Move (MUI Dialog replaces Tailwind Modal usage in THIS file) */}
+      <Dialog
+        open={Boolean(mobileSelection && mobileMoveOrder)}
+        onClose={handleCancelMobileMove}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <SwapHorizIcon fontSize="small" />
+          {`Move Order #${mobileMoveOrder?.Order_Number || ""}`}
+        </DialogTitle>
 
-            <select
-              id="mobile-move-target"
-              className="w-full border border-slate-300 rounded-md px-2 py-2 text-sm"
-              value={mobileMoveTarget}
-              onChange={(e) => setMobileMoveTarget(e.target.value)}
-            >
-              <option value="" disabled>
-                Choose column
-              </option>
-              {availableTargets
-                .filter((task) => {
-                  const lower = String(task || "").toLowerCase();
-                  if (lower === TASK_TYPES.CANCEL.toLowerCase() && !isAdmin) return false;
-                  return task !== mobileMoveOrder?.highestStatusTask?.Task;
-                })
-                .map((task) => (
-                  <option key={task} value={task}>
-                    {task}
-                  </option>
-                ))}
-            </select>
+        <DialogContent dividers>
+          <Stack spacing={2}>
+            <Typography variant="body2" color="text.secondary">
+              Select the target column
+            </Typography>
 
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                className="px-3 py-1.5 rounded border border-slate-200 text-sm hover:bg-slate-50"
-                onClick={handleCancelMobileMove}
+            <FormControl fullWidth>
+              <InputLabel id="mobile-move-target-label">Choose column</InputLabel>
+              <Select
+                labelId="mobile-move-target-label"
+                value={mobileMoveTarget}
+                label="Choose column"
+                onChange={(e) => setMobileMoveTarget(e.target.value)}
               >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="px-3 py-1.5 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700"
-                onClick={handleConfirmMobileMove}
-              >
-                Confirm
-              </button>
-            </div>
+                {availableTargets
+                  .filter((task) => {
+                    const lower = String(task || "").toLowerCase();
+                    if (lower === TASK_TYPES.CANCEL.toLowerCase() && !isAdmin) return false;
+                    return task !== mobileMoveOrder?.highestStatusTask?.Task;
+                  })
+                  .map((task) => (
+                    <MenuItem key={task} value={task}>
+                      {task}
+                    </MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
 
             {isAdmin && (
-              <p className="text-[11px] text-rose-700 bg-rose-50 border border-rose-100 rounded px-2 py-1">
+              <Alert severity="warning" variant="outlined">
                 Selecting Cancel will require double confirmation.
-              </p>
+              </Alert>
             )}
-          </div>
-        </Modal>
-      )}
+          </Stack>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={handleCancelMobileMove}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleConfirmMobileMove}
+            disabled={!mobileMoveTarget}
+          >
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

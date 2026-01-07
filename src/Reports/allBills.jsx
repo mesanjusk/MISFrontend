@@ -7,9 +7,48 @@ import * as XLSX from "xlsx";
 
 import UpdateDelivery from "../Pages/updateDelivery";
 import { LoadingSpinner } from "../Components";
-
-// ✅ Adjust if your path differs
 import InvoiceModal from "../Components/InvoiceModal";
+
+/* ✅ MUI (UI only) */
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Box,
+  Container,
+  Paper,
+  Stack,
+  TextField,
+  InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button,
+  Chip,
+  Divider,
+  Alert,
+  LinearProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton,
+  Card,
+  CardActionArea,
+  CardContent,
+  Grid,
+  Skeleton,
+  Tooltip,
+} from "@mui/material";
+
+import SearchIcon from "@mui/icons-material/Search";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import GridOnIcon from "@mui/icons-material/GridOn";
+import CloseIcon from "@mui/icons-material/Close";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import TodayIcon from "@mui/icons-material/Today";
+import DoneAllIcon from "@mui/icons-material/DoneAll";
+import PendingActionsIcon from "@mui/icons-material/PendingActions";
 
 export default function AllBills() {
   // 🔧 Central API base (env -> vite -> CRA -> localhost)
@@ -25,13 +64,33 @@ export default function AllBills() {
   const [searchOrder, setSearchOrder] = useState("");
   const [filter, setFilter] = useState(""); // "", "delivered", "design", "print", etc.
   const [customers, setCustomers] = useState({});
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // ✅ UpdateDelivery modal state (FIXED)
+  const [editOpen, setEditOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   // ✅ Invoice modal state
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceOrder, setInvoiceOrder] = useState(null);
+
+  /* ✅ UI-only paid state (NO backend change) */
+  const [paidMap, setPaidMap] = useState(() => {
+    try {
+      const raw = localStorage.getItem("bills_paid_map");
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("bills_paid_map", JSON.stringify(paidMap || {}));
+    } catch {
+      // ignore storage errors
+    }
+  }, [paidMap]);
 
   const formatDateDDMMYYYY = (dateString) => {
     if (!dateString) return "";
@@ -61,8 +120,6 @@ export default function AllBills() {
     return Number.isFinite(n) ? n : 0;
   };
 
-  // ✅ IMPORTANT: Your "amount" may not be in it.Amount anymore.
-  // So we read multiple possible keys + fallback qty*rate.
   const resolveQty = (it) =>
     toNumber(it?.Qty ?? it?.Quantity ?? it?.qty ?? it?.quantity ?? it?.QTY ?? 0);
 
@@ -91,14 +148,12 @@ export default function AllBills() {
     const n = toNumber(direct);
     if (n > 0) return n;
 
-    // fallback: qty * rate (if you updated only qty/rate)
     const q = resolveQty(it);
     const r = resolveRate(it);
     const calc = q * r;
     return Number.isFinite(calc) ? calc : 0;
   };
 
-  // Bills page shows orders that HAVE billable amount
   const hasBillableAmount = useCallback(
     (items) => Array.isArray(items) && items.some((it) => resolveAmount(it) > 0),
     []
@@ -139,7 +194,6 @@ export default function AllBills() {
     };
   }, [API_BASE]);
 
-  // Safely compute highest status
   const getHighestStatus = (statusArr) => {
     const list = Array.isArray(statusArr) ? statusArr : [];
     if (list.length === 0) return {};
@@ -159,14 +213,21 @@ export default function AllBills() {
         setOrders((prev) => prev.filter((o) => (o.Order_uuid || o._id) !== orderId));
 
         if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === orderId) {
-          setSelectedOrder(null);
-          setShowEditModal(false);
+          setEditOpen(false);
         }
 
         if (invoiceOrder && (invoiceOrder.Order_uuid || invoiceOrder._id) === orderId) {
           setShowInvoiceModal(false);
           setInvoiceOrder(null);
         }
+
+        // cleanup paid state as well (UI only)
+        setPaidMap((prev) => {
+          const copy = { ...(prev || {}) };
+          delete copy[orderId];
+          return copy;
+        });
+
         return;
       }
 
@@ -194,14 +255,20 @@ export default function AllBills() {
         setOrders((prev) => prev.filter((o) => (o.Order_uuid || o._id) !== key));
 
         if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === key) {
-          setSelectedOrder(null);
-          setShowEditModal(false);
+          setEditOpen(false);
         }
 
         if (invoiceOrder && (invoiceOrder.Order_uuid || invoiceOrder._id) === key) {
           setShowInvoiceModal(false);
           setInvoiceOrder(null);
         }
+
+        setPaidMap((prev) => {
+          const copy = { ...(prev || {}) };
+          delete copy[key];
+          return copy;
+        });
+
         return;
       }
 
@@ -224,37 +291,45 @@ export default function AllBills() {
     [hasBillableAmount, selectedOrder, invoiceOrder]
   );
 
-  // 🔎 Derived filtered list + bill total
-  const filteredOrders = orders
-    .map((order) => {
-      const highestStatusTask = getHighestStatus(order.Status);
-      const items = Array.isArray(order?.Items) ? order.Items : [];
-      const billTotal = items.reduce((sum, it) => sum + resolveAmount(it), 0);
-
-      return {
-        ...order,
-        highestStatusTask,
-        Customer_name: customers[order.Customer_uuid] || "Unknown",
-        billTotal,
-      };
-    })
-    .filter((order) => {
-      if (!hasBillableAmount(order.Items)) return false;
-
-      const name = (order.Customer_name || "").toLowerCase();
-      const matchesSearch = name.includes(searchOrder.toLowerCase());
-
-      const task = (order.highestStatusTask?.Task || "").toLowerCase().trim();
-      const filterValue = (filter || "").toLowerCase().trim();
-      const matchesFilter = filterValue ? task === filterValue : true;
-
-      return matchesSearch && matchesFilter;
-    });
-
   const getFirstRemark = (order) => {
     if (!Array.isArray(order?.Items) || order.Items.length === 0) return "";
     return String(order.Items[0]?.Remark || "");
   };
+
+  // 🔎 Derived filtered list + bill total
+  const filteredOrders = useMemo(() => {
+    return orders
+      .map((order) => {
+        const highestStatusTask = getHighestStatus(order.Status);
+        const items = Array.isArray(order?.Items) ? order.Items : [];
+        const billTotal = items.reduce((sum, it) => sum + resolveAmount(it), 0);
+
+        return {
+          ...order,
+          highestStatusTask,
+          Customer_name: customers[order.Customer_uuid] || "Unknown",
+          billTotal,
+        };
+      })
+      .filter((order) => {
+        if (!hasBillableAmount(order.Items)) return false;
+
+        const name = (order.Customer_name || "").toLowerCase();
+        const matchesSearch = name.includes(searchOrder.toLowerCase());
+
+        const task = (order.highestStatusTask?.Task || "").toLowerCase().trim();
+        const filterValue = (filter || "").toLowerCase().trim();
+        const matchesFilter = filterValue ? task === filterValue : true;
+
+        return matchesSearch && matchesFilter;
+      });
+  }, [orders, customers, hasBillableAmount, searchOrder, filter]);
+
+  const totals = useMemo(() => {
+    const count = filteredOrders.length;
+    const sum = filteredOrders.reduce((acc, o) => acc + toNumber(o.billTotal), 0);
+    return { count, sum };
+  }, [filteredOrders]);
 
   const exportPDF = () => {
     const doc = new jsPDF();
@@ -302,6 +377,7 @@ export default function AllBills() {
     XLSX.writeFile(workbook, "bills_report.xlsx");
   };
 
+  // ✅ FIXED: opening edit modal
   const handleEditClick = (order) => {
     const id = order._id || order.Order_id || null;
     if (!id) {
@@ -309,12 +385,12 @@ export default function AllBills() {
       return;
     }
     setSelectedOrder({ ...order, _id: id });
-    setShowEditModal(true);
+    setEditOpen(true);
   };
 
+  // ✅ FIXED: closing edit modal (do NOT set selectedOrder null here)
   const closeEditModal = () => {
-    setShowEditModal(false);
-    setSelectedOrder(null);
+    setEditOpen(false);
   };
 
   // ✅ Invoice modal helpers
@@ -329,7 +405,6 @@ export default function AllBills() {
   };
 
   // ✅ Build items for InvoicePreview: provide BOTH styles of keys
-  // so your InvoicePreview will never show blank/0.
   const buildInvoiceItems = (order) => {
     const items = Array.isArray(order?.Items) ? order.Items : [];
 
@@ -349,7 +424,7 @@ export default function AllBills() {
           amount,
           remark: String(it?.Remark || ""),
 
-          // ✅ compatibility keys (many InvoicePreview components use these)
+          // compatibility keys
           Item: name,
           Qty: qty,
           Rate: rate,
@@ -368,130 +443,300 @@ export default function AllBills() {
     window.open(waUrl, "_blank", "noopener,noreferrer");
   };
 
+  const statusChip = (task) => {
+    const t = String(task || "").toLowerCase().trim();
+    const label = task || "—";
+    if (!t) return <Chip size="small" label={label} variant="outlined" />;
+    if (t === "delivered") return <Chip size="small" label={label} color="success" />;
+    if (t === "design") return <Chip size="small" label={label} color="info" />;
+    if (t === "print") return <Chip size="small" label={label} color="warning" />;
+    return <Chip size="small" label={label} variant="outlined" />;
+  };
+
+  /* ✅ PAID helpers (UI-only) */
+  const getOrderKey = (order) => order?.Order_uuid || order?._id || order?.Order_id || "";
+  const isPaid = (order) => Boolean(paidMap?.[getOrderKey(order)]);
+  const togglePaid = (order) => {
+    const key = getOrderKey(order);
+    if (!key) return;
+    setPaidMap((prev) => ({ ...(prev || {}), [key]: !Boolean(prev?.[key]) }));
+  };
+
   return (
     <>
-      <div className="max-w-8xl mx-auto p-3">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-3 gap-2">
-          <div className="flex flex-grow items-center gap-2">
-            <input
-              type="text"
-              placeholder="Search by customer name"
-              className="bg-white shadow-sm border border-gray-300 rounded-full px-4 py-2 w-full max-w-md focus:outline-none"
-              value={searchOrder}
-              onChange={(e) => setSearchOrder(e.target.value)}
-            />
+      <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+        <AppBar position="sticky" elevation={0}>
+          <Toolbar>
+            <ReceiptLongIcon sx={{ mr: 1 }} />
+            <Typography variant="h6" sx={{ flex: 1 }}>
+              Bills Report
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+              {totals.count} bills • ₹{formatINR(totals.sum)}
+            </Typography>
+          </Toolbar>
+          {loading && <LinearProgress />}
+        </AppBar>
 
-            <select
-              className="bg-white shadow-sm border border-gray-300 rounded-full px-3 py-2"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              title="Filter by latest task"
+        <Container maxWidth={false} sx={{ maxWidth: 2200, py: 2 }}>
+          {/* Filters + Exports */}
+          <Paper variant="outlined" sx={{ borderRadius: 3, p: 2, mb: 2 }}>
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              spacing={1.5}
+              alignItems={{ xs: "stretch", md: "center" }}
             >
-              <option value="">All</option>
-              <option value="delivered">Delivered</option>
-              <option value="design">Design</option>
-              <option value="print">Print</option>
-            </select>
-          </div>
+              <TextField
+                value={searchOrder}
+                onChange={(e) => setSearchOrder(e.target.value)}
+                placeholder="Search by customer name"
+                fullWidth
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
 
-          <div className="flex gap-2 mt-2 md:mt-0">
-            <button
-              onClick={exportPDF}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow transition"
-              title="Export as PDF"
-            >
-              Export PDF
-            </button>
-            <button
-              onClick={exportExcel}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition"
-              title="Export as Excel"
-            >
-              Export Excel
-            </button>
-          </div>
-        </div>
+              <FormControl sx={{ minWidth: { xs: "100%", md: 220 } }}>
+                <InputLabel id="filter-label">Filter by task</InputLabel>
+                <Select
+                  labelId="filter-label"
+                  value={filter}
+                  label="Filter by task"
+                  onChange={(e) => setFilter(e.target.value)}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="delivered"></MenuItem>
+                  <MenuItem value="design">Design</MenuItem>
+                  <MenuItem value="print">Print</MenuItem>
+                </Select>
+              </FormControl>
 
-        {/* Loading */}
-        {loading ? (
-          <div className="flex justify-center items-center h-40">
-            <LoadingSpinner size={40} />
-          </div>
-        ) : (
-          <>
-            {/* ✅ Narrow, auto-fit grid */}
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(145px,1fr))] gap-2">
-              {filteredOrders.length > 0 ? (
-                filteredOrders.map((order) => {
+              <Stack direction="row" spacing={1} justifyContent="flex-end">
+                <Tooltip title="Export as PDF">
+                  <Button
+                    variant="contained"
+                    color="error"
+                    startIcon={<PictureAsPdfIcon />}
+                    onClick={exportPDF}
+                    sx={{ borderRadius: 2, textTransform: "none", fontWeight: 800 }}
+                  >
+                    PDF
+                  </Button>
+                </Tooltip>
+
+                <Tooltip title="Export as Excel">
+                  <Button
+                    variant="contained"
+                    startIcon={<GridOnIcon />}
+                    onClick={exportExcel}
+                    sx={{ borderRadius: 2, textTransform: "none", fontWeight: 800 }}
+                  >
+                    Excel
+                  </Button>
+                </Tooltip>
+              </Stack>
+            </Stack>
+          </Paper>
+
+          {/* Content */}
+          <Paper variant="outlined" sx={{ borderRadius: 3, p: { xs: 1.5, sm: 2 } }}>
+            {loading ? (
+              <Grid container spacing={1.5}>
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <Grid key={i} item xs={12} sm={6} md={4} lg={3} xl={2}>
+                    <Card variant="outlined" sx={{ borderRadius: 2 }}>
+                      <CardContent>
+                        <Skeleton width="55%" />
+                        <Skeleton width="85%" />
+                        <Skeleton width="45%" />
+                        <Skeleton width="35%" />
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+                <Box sx={{ width: "100%", display: "flex", justifyContent: "center", py: 2 }}>
+                  <LoadingSpinner size={40} />
+                </Box>
+              </Grid>
+            ) : filteredOrders.length === 0 ? (
+              <Alert severity="info" variant="outlined" sx={{ borderRadius: 3 }}>
+                No billed orders found.
+              </Alert>
+            ) : (
+              <Grid container spacing={1.5}>
+                {filteredOrders.map((order) => {
                   const key =
                     order._id || order.Order_id || order.Order_uuid || `o-${order.Order_Number}`;
 
+                  const deliveryDate = formatDateDDMMYYYY(order.highestStatusTask?.Delivery_Date);
+                  const paid = isPaid(order);
+
                   return (
-                    <div
-                      key={key}
-                      onClick={() => handleEditClick(order)}
-                      className="bg-white border border-gray-200 hover:border-blue-500 rounded-md p-2 shadow-sm hover:shadow cursor-pointer transition"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="text-blue-700 font-bold text-sm leading-tight truncate">
-                            #{order.Order_Number}
-                          </div>
-                          <div className="text-gray-800 font-semibold text-xs leading-tight truncate">
-                            {order.Customer_name}
-                          </div>
-                          <div className="text-gray-600 text-[11px] leading-tight">
-                            {formatDateDDMMYYYY(order.highestStatusTask?.Delivery_Date)}
-                          </div>
+                    <Grid key={key} item xs={12} sm={6} md={4} lg={3} xl={2}>
+                      <Card
+                        variant="outlined"
+                        sx={{
+                          borderRadius: 2,
+                          height: "100%",
+                          display: "flex",
+                          flexDirection: "column",
+                          position: "relative",
+                        }}
+                      >
+                        {/* ✅ Paid toggle button (top-right) */}
+                        <Tooltip title={paid ? "Mark as unpaid" : "Mark bill as paid"}>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              togglePaid(order);
+                            }}
+                            sx={{
+                              position: "absolute",
+                              top: 6,
+                              right: 6,
+                              zIndex: 2,
+                              bgcolor: "background.paper",
+                              border: "1px solid",
+                              borderColor: "divider",
+                              "&:hover": { bgcolor: "background.default" },
+                            }}
+                            aria-label="toggle paid"
+                          >
+                            {paid ? (
+                              <DoneAllIcon fontSize="small" color="success" />
+                            ) : (
+                              <PendingActionsIcon fontSize="small" color="warning" />
+                            )}
+                          </IconButton>
+                        </Tooltip>
 
-                          {/* ✅ Total on card */}
-                          <div className="mt-1 text-[11px] font-semibold text-gray-900">
-                            Total ₹{formatINR(order.billTotal)}
-                          </div>
-                        </div>
+                        <CardActionArea onClick={() => handleEditClick(order)} sx={{ flex: 1 }}>
+                          <CardContent>
+                            <Stack spacing={0.8}>
+                              <Stack
+                                direction="row"
+                                alignItems="center"
+                                justifyContent="space-between"
+                                spacing={1}
+                              >
+                                <Typography variant="subtitle2" sx={{ fontWeight: 900 }}>
+                                  #{order.Order_Number}
+                                </Typography>
+                                {statusChip(order.highestStatusTask?.Task)}
+                              </Stack>
 
-                        {/* ✅ Invoice button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openInvoice(order);
-                          }}
-                          className="px-2 py-1 rounded text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white shadow"
-                          title="Open Invoice"
-                        >
-                          Bill
-                        </button>
-                      </div>
-                    </div>
+                              <Typography
+                                variant="body2"
+                                sx={{ fontWeight: 800 }}
+                                noWrap
+                                title={order.Customer_name}
+                              >
+                                {order.Customer_name}
+                              </Typography>
+
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <TodayIcon fontSize="small" />
+                                <Typography variant="caption" color="text.secondary">
+                                  {deliveryDate || "—"}
+                                </Typography>
+                              </Stack>
+
+                              <Divider sx={{ my: 0.5 }} />
+
+                              <Stack
+                                direction="row"
+                                alignItems="center"
+                                justifyContent="space-between"
+                              >
+                                <Typography variant="caption" color="text.secondary">
+                                  Total
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 900 }}>
+                                  ₹{formatINR(order.billTotal)}
+                                </Typography>
+                              </Stack>
+
+                              {/* Optional: small paid label */}
+                              <Stack direction="row" justifyContent="flex-end">
+                                <Chip
+                                  size="small"
+                                  label={paid ? "Paid" : "Unpaid"}
+                                  color={paid ? "success" : "warning"}
+                                  variant={paid ? "filled" : "outlined"}
+                                  sx={{ borderRadius: 2, fontWeight: 800 }}
+                                />
+                              </Stack>
+                            </Stack>
+                          </CardContent>
+                        </CardActionArea>
+
+                        <Divider />
+
+                        <Box sx={{ p: 1.25 }}>
+                          {/* ✅ Bill button: Green if paid, Amber if unpaid */}
+                          <Button
+                            fullWidth
+                            variant="contained"
+                            color={paid ? "success" : "warning"}
+                            startIcon={<ReceiptLongIcon />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openInvoice(order);
+                            }}
+                            sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}
+                          >
+                            Bill
+                          </Button>
+                        </Box>
+                      </Card>
+                    </Grid>
                   );
-                })
-              ) : (
-                <div className="col-span-full text-center text-gray-500 py-10">
-                  No billed orders found
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
+                })}
+              </Grid>
+            )}
+          </Paper>
+        </Container>
+      </Box>
 
-      {/* Edit Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg shadow-lg p-4 max-w-3xl w-full">
-            <UpdateDelivery
-              mode="edit"
-              order={selectedOrder}
-              onClose={closeEditModal}
-              onOrderPatched={(orderId, patch) => upsertOrderPatch(orderId, patch)}
-              onOrderReplaced={(full) => upsertOrderReplace(full)}
-            />
-          </div>
-        </div>
-      )}
+      {/* ✅ UpdateDelivery Modal (MUI Dialog) — FIXED */}
+      <Dialog
+        open={editOpen}
+        onClose={closeEditModal}
+        fullWidth
+        maxWidth="lg"
+        TransitionProps={{
+          onExited: () => {
+            // IMPORTANT: clear after the dialog exit animation completes
+            setSelectedOrder(null);
+          },
+        }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          Update Delivery
+          <Box sx={{ flex: 1 }} />
+          <IconButton onClick={closeEditModal}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
 
-      {/* ✅ Invoice Modal */}
+        <DialogContent dividers>
+          {/* ✅ SAFE: UpdateDelivery never receives null */}
+          <UpdateDelivery
+            mode="edit"
+            order={selectedOrder || {}}
+            onClose={closeEditModal}
+            onOrderPatched={(orderId, patch) => upsertOrderPatch(orderId, patch)}
+            onOrderReplaced={(full) => upsertOrderReplace(full)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* ✅ Invoice Modal (kept as-is for functionality) */}
       <InvoiceModal
         open={showInvoiceModal}
         onClose={closeInvoice}

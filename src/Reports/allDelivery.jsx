@@ -6,8 +6,49 @@ import "jspdf-autotable";
 import * as XLSX from "xlsx";
 
 import UpdateDelivery from "../Pages/updateDelivery";
-import OrderUpdate from "../Pages/OrderUpdate"; // 👈 Added: OrderUpdate modal
+import OrderUpdate from "../Pages/OrderUpdate";
 import { LoadingSpinner } from "../Components";
+
+/* ✅ MUI */
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Box,
+  Container,
+  Paper,
+  Stack,
+  TextField,
+  InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button,
+  Chip,
+  Divider,
+  Alert,
+  LinearProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton,
+  Card,
+  CardActionArea,
+  CardContent,
+  Grid,
+  Skeleton,
+  Tooltip,
+} from "@mui/material";
+
+import SearchIcon from "@mui/icons-material/Search";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import GridOnIcon from "@mui/icons-material/GridOn";
+import CloseIcon from "@mui/icons-material/Close";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import TodayIcon from "@mui/icons-material/Today";
+import PersonIcon from "@mui/icons-material/Person";
+import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 
 export default function AllDelivery() {
   // 🔧 Central API base (env -> vite -> CRA -> localhost)
@@ -21,15 +62,14 @@ export default function AllDelivery() {
 
   const [orders, setOrders] = useState([]);
   const [searchOrder, setSearchOrder] = useState("");
-  const [filter, setFilter] = useState(""); // "", "delivered", "design", etc.
+  const [filter, setFilter] = useState(""); // "", "delivered", "design", "print" etc.
   const [customers, setCustomers] = useState({});
-
-  // Modals & selection
-  const [showEditModal, setShowEditModal] = useState(false); // UpdateDelivery
-  const [showOrderUpdateModal, setShowOrderUpdateModal] = useState(false); // 👈 OrderUpdate
-  const [selectedOrder, setSelectedOrder] = useState(null);
-
   const [loading, setLoading] = useState(true);
+
+  // ✅ MUI Modals (FIXED close crash pattern)
+  const [editOpen, setEditOpen] = useState(false); // UpdateDelivery
+  const [orderUpdateOpen, setOrderUpdateOpen] = useState(false); // OrderUpdate
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   const formatDateDDMMYYYY = (dateString) => {
     if (!dateString) return "";
@@ -81,6 +121,7 @@ export default function AllDelivery() {
         if (isMounted) setLoading(false);
       }
     })();
+
     return () => {
       isMounted = false;
     };
@@ -106,9 +147,8 @@ export default function AllDelivery() {
       if (patch.Items && hasBillableAmount(patch.Items)) {
         setOrders((prev) => prev.filter((o) => (o.Order_uuid || o._id) !== orderId));
         if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === orderId) {
-          setSelectedOrder(null);
-          setShowEditModal(false);
-          setShowOrderUpdateModal(false);
+          setEditOpen(false);
+          setOrderUpdateOpen(false);
         }
         return;
       }
@@ -118,6 +158,7 @@ export default function AllDelivery() {
           (o.Order_uuid || o._id) === orderId ? { ...o, ...patch } : o
         )
       );
+
       if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === orderId) {
         setSelectedOrder((s) => (s ? { ...s, ...patch } : s));
       }
@@ -133,9 +174,8 @@ export default function AllDelivery() {
       if (hasBillableAmount(nextOrder.Items)) {
         setOrders((prev) => prev.filter((o) => (o.Order_uuid || o._id) !== key));
         if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === key) {
-          setSelectedOrder(null);
-          setShowEditModal(false);
-          setShowOrderUpdateModal(false);
+          setEditOpen(false);
+          setOrderUpdateOpen(false);
         }
         return;
       }
@@ -147,6 +187,7 @@ export default function AllDelivery() {
         copy[idx] = { ...prev[idx], ...nextOrder };
         return copy;
       });
+
       if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === key) {
         setSelectedOrder((s) => (s ? { ...s, ...nextOrder } : s));
       }
@@ -155,25 +196,32 @@ export default function AllDelivery() {
   );
 
   // 🔎 Derived list
-  const filteredOrders = orders
-    .map((order) => {
-      const highestStatusTask = getHighestStatus(order.Status);
-      return {
-        ...order,
-        highestStatusTask,
-        Customer_name: customers[order.Customer_uuid] || "Unknown",
-      };
-    })
-    .filter((order) => {
-      const name = (order.Customer_name || "").toLowerCase();
-      const matchesSearch = name.includes(searchOrder.toLowerCase());
+  const filteredOrders = useMemo(() => {
+    return orders
+      .map((order) => {
+        const highestStatusTask = getHighestStatus(order.Status);
+        return {
+          ...order,
+          highestStatusTask,
+          Customer_name: customers[order.Customer_uuid] || "Unknown",
+        };
+      })
+      .filter((order) => {
+        const name = (order.Customer_name || "").toLowerCase();
+        const matchesSearch = name.includes(searchOrder.toLowerCase());
 
-      const task = (order.highestStatusTask?.Task || "").toLowerCase().trim();
-      const filterValue = (filter || "").toLowerCase().trim();
-      const matchesFilter = filterValue ? task === filterValue : true;
+        const task = (order.highestStatusTask?.Task || "").toLowerCase().trim();
+        const filterValue = (filter || "").toLowerCase().trim();
+        const matchesFilter = filterValue ? task === filterValue : true;
 
-      return matchesSearch && matchesFilter;
-    });
+        return matchesSearch && matchesFilter;
+      });
+  }, [orders, customers, searchOrder, filter]);
+
+  const totals = useMemo(() => {
+    const count = filteredOrders.length;
+    return { count };
+  }, [filteredOrders]);
 
   // Export helpers
   const getFirstRemark = (order) => {
@@ -224,131 +272,295 @@ export default function AllDelivery() {
     const id = order._id || order.Order_id || null;
     if (!id) return alert("⚠️ Invalid order ID.");
     setSelectedOrder({ ...order, _id: id });
-    setShowEditModal(true);
+    setEditOpen(true);
   };
 
-  // 👇 Customer name click -> OrderUpdate
+  // Customer click -> OrderUpdate (existing behavior)
   const handleOrderUpdateClick = (order) => {
     const id = order._id || order.Order_id || null;
     if (!id) return alert("⚠️ Invalid order ID.");
     setSelectedOrder({ ...order, _id: id });
-    setShowOrderUpdateModal(true);
+    setOrderUpdateOpen(true);
   };
 
-  const closeEditModal = () => {
-    setShowEditModal(false);
-    setSelectedOrder(null);
-  };
+  // ✅ IMPORTANT: do NOT set selectedOrder null immediately (prevents crash during close animation)
+  const closeEditModal = () => setEditOpen(false);
+  const closeOrderUpdateModal = () => setOrderUpdateOpen(false);
 
-  const closeOrderUpdateModal = () => {
-    setShowOrderUpdateModal(false);
-    setSelectedOrder(null);
+  const statusChip = (task) => {
+    const t = String(task || "").toLowerCase().trim();
+    const label = task || "—";
+    if (!t) return <Chip size="small" label={label} variant="outlined" />;
+    if (t === "delivered") return <Chip size="small" label={label} color="success" />;
+    if (t === "design") return <Chip size="small" label={label} color="info" />;
+    if (t === "print") return <Chip size="small" label={label} color="warning" />;
+    return <Chip size="small" label={label} variant="outlined" />;
   };
 
   return (
     <>
-      <div className="max-w-8xl mx-auto p-4">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-2">
-          <div className="flex flex-grow items-center gap-2">
-            <input
-              type="text"
-              placeholder="Search by customer name"
-              className="bg-white border rounded-full px-4 py-2 shadow-sm w-full max-w-md"
-              value={searchOrder}
-              onChange={(e) => setSearchOrder(e.target.value)}
+      <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+        <AppBar position="sticky" elevation={0}>
+          <Toolbar>
+            <LocalShippingIcon sx={{ mr: 1 }} />
+            <Typography variant="h6" sx={{ flex: 1 }}>
+              Delivered Orders
+            </Typography>
+
+            <Chip
+              label={`${totals.count} orders`}
+              variant="outlined"
+              sx={{ color: "common.white", borderColor: "rgba(255,255,255,0.6)" }}
             />
-            <select
-              className="bg-white border rounded-full px-3 py-2 shadow-sm"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
+          </Toolbar>
+          {loading && <LinearProgress />}
+        </AppBar>
+
+        <Container maxWidth={false} sx={{ maxWidth: 2200, py: 2 }}>
+          {/* Filters + Exports */}
+          <Paper variant="outlined" sx={{ borderRadius: 3, p: 2, mb: 2 }}>
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              spacing={1.5}
+              alignItems={{ xs: "stretch", md: "center" }}
             >
-              <option value="">All</option>
-              <option value="delivered">Delivered</option>
-              <option value="design">Design</option>
-              <option value="print">Print</option>
-            </select>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={exportPDF} className="bg-red-600 text-white px-4 py-2 rounded-lg">
-              Export PDF
-            </button>
-            <button onClick={exportExcel} className="bg-blue-600 text-white px-4 py-2 rounded-lg">
-              Export Excel
-            </button>
-          </div>
-        </div>
+              <TextField
+                value={searchOrder}
+                onChange={(e) => setSearchOrder(e.target.value)}
+                placeholder="Search by customer name"
+                fullWidth
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
 
-        {loading ? (
-          <div className="flex justify-center items-center h-40">
-            <LoadingSpinner size={40} />
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-9 gap-2">
-            {filteredOrders.length > 0 ? (
-              filteredOrders.map((o) => (
-                <div
-                  key={o._id || o.Order_uuid}
-                  onClick={() => handleEditClick(o)} // card -> UpdateDelivery
-                  className="bg-white border rounded-lg p-2 shadow hover:shadow-md cursor-pointer"
+              <FormControl sx={{ minWidth: { xs: "100%", md: 220 } }}>
+                <InputLabel id="filter-label">Filter by task</InputLabel>
+                <Select
+                  labelId="filter-label"
+                  value={filter}
+                  label="Filter by task"
+                  onChange={(e) => setFilter(e.target.value)}
                 >
-                  <div className="text-blue-600 font-bold">#{o.Order_Number}</div>
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="delivered">Delivered</MenuItem>
+                  <MenuItem value="design">Design</MenuItem>
+                  <MenuItem value="print">Print</MenuItem>
+                </Select>
+              </FormControl>
 
-                  {/* 👇 Customer name now opens OrderUpdate */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation(); // don't trigger card click
-                      handleOrderUpdateClick(o);
-                    }}
-                    className="text-gray-800 font-semibold underline decoration-dotted underline-offset-2 hover:decoration-solid hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded px-0.5"
-                    title="Open OrderUpdate"
+              <Stack direction="row" spacing={1} justifyContent="flex-end">
+                <Tooltip title="Export as PDF">
+                  <Button
+                    variant="contained"
+                    color="error"
+                    startIcon={<PictureAsPdfIcon />}
+                    onClick={exportPDF}
+                    sx={{ borderRadius: 2, textTransform: "none", fontWeight: 800 }}
                   >
-                    {o.Customer_name}
-                  </button>
+                    PDF
+                  </Button>
+                </Tooltip>
 
-                  <div className="text-gray-600 text-sm">
-                    Date {formatDateDDMMYYYY(o.highestStatusTask?.Delivery_Date)}
-                  </div>
-                </div>
-              ))
+                <Tooltip title="Export as Excel">
+                  <Button
+                    variant="contained"
+                    startIcon={<GridOnIcon />}
+                    onClick={exportExcel}
+                    sx={{ borderRadius: 2, textTransform: "none", fontWeight: 800 }}
+                  >
+                    Excel
+                  </Button>
+                </Tooltip>
+              </Stack>
+            </Stack>
+          </Paper>
+
+          {/* List */}
+          <Paper variant="outlined" sx={{ borderRadius: 3, p: { xs: 1.5, sm: 2 } }}>
+            {loading ? (
+              <Grid container spacing={1.5}>
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <Grid key={i} item xs={12} sm={6} md={4} lg={3} xl={2}>
+                    <Card variant="outlined" sx={{ borderRadius: 2 }}>
+                      <CardContent>
+                        <Skeleton width="55%" />
+                        <Skeleton width="80%" />
+                        <Skeleton width="65%" />
+                        <Skeleton width="45%" />
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+                <Box sx={{ width: "100%", display: "flex", justifyContent: "center", py: 2 }}>
+                  <LoadingSpinner size={40} />
+                </Box>
+              </Grid>
+            ) : filteredOrders.length === 0 ? (
+              <Alert severity="info" variant="outlined" sx={{ borderRadius: 3 }}>
+                No delivered orders found.
+              </Alert>
             ) : (
-              <div className="col-span-full text-center text-gray-500 py-10">
-                No delivered orders
-              </div>
+              <Grid container spacing={1.5}>
+                {filteredOrders.map((o) => {
+                  const key = o._id || o.Order_uuid || o.Order_id || `o-${o.Order_Number}`;
+                  const deliveryDate = formatDateDDMMYYYY(o.highestStatusTask?.Delivery_Date);
+
+                  return (
+                    <Grid key={key} item xs={12} sm={6} md={4} lg={3} xl={2}>
+                      <Card
+                        variant="outlined"
+                        sx={{
+                          borderRadius: 2,
+                          height: "100%",
+                          display: "flex",
+                          flexDirection: "column",
+                        }}
+                      >
+                        {/* Card click -> UpdateDelivery */}
+                        <CardActionArea onClick={() => handleEditClick(o)} sx={{ flex: 1 }}>
+                          <CardContent>
+                            <Stack spacing={0.9}>
+                              <Stack direction="row" justifyContent="space-between" spacing={1}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 900 }}>
+                                  #{o.Order_Number}
+                                </Typography>
+                                {statusChip(o.highestStatusTask?.Task)}
+                              </Stack>
+
+                              {/* Customer click -> OrderUpdate */}
+                              <Button
+                                variant="text"
+                                size="small"
+                                startIcon={<PersonIcon fontSize="small" />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOrderUpdateClick(o);
+                                }}
+                                sx={{
+                                  p: 0,
+                                  minHeight: "auto",
+                                  justifyContent: "flex-start",
+                                  textTransform: "none",
+                                  fontWeight: 900,
+                                }}
+                                title="Open OrderUpdate"
+                              >
+                                <Typography variant="body2" noWrap title={o.Customer_name}>
+                                  {o.Customer_name}
+                                </Typography>
+                              </Button>
+
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <TodayIcon fontSize="small" />
+                                <Typography variant="caption" color="text.secondary">
+                                  {deliveryDate || "—"}
+                                </Typography>
+                              </Stack>
+
+                              <Divider sx={{ my: 0.4 }} />
+
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                <AssignmentTurnedInIcon fontSize="small" />
+                                <Typography variant="caption" color="text.secondary" noWrap>
+                                  Assigned: {o.highestStatusTask?.Assigned || "—"}
+                                </Typography>
+                              </Stack>
+                            </Stack>
+                          </CardContent>
+                        </CardActionArea>
+
+                        <Divider />
+
+                        <Box sx={{ p: 1.25 }}>
+                          <Button
+                            fullWidth
+                            variant="outlined"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditClick(o);
+                            }}
+                            sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}
+                          >
+                            Update Delivery
+                          </Button>
+                        </Box>
+                      </Card>
+                    </Grid>
+                  );
+                })}
+              </Grid>
             )}
-          </div>
-        )}
-      </div>
+          </Paper>
+        </Container>
+      </Box>
 
-      {/* Modal: UpdateDelivery (card click) */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg shadow-lg p-4 max-w-3xl w-full">
-            <UpdateDelivery
-              mode="edit"
-              order={selectedOrder}
-              onClose={closeEditModal}
-              onOrderPatched={(id, patch) => upsertOrderPatch(id, patch)}
-              onOrderReplaced={(full) => upsertOrderReplace(full)}
-            />
-          </div>
-        </div>
-      )}
+      {/* ✅ UpdateDelivery Modal (MUI Dialog) */}
+      <Dialog
+        open={editOpen}
+        onClose={closeEditModal}
+        fullWidth
+        maxWidth="lg"
+        TransitionProps={{
+          onExited: () => {
+            // clear only after close animation finishes (prevents blank-screen crash)
+            if (!orderUpdateOpen) setSelectedOrder(null);
+          },
+        }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          Update Delivery
+          <Box sx={{ flex: 1 }} />
+          <IconButton onClick={closeEditModal}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
 
-      {/* Modal: OrderUpdate (customer name click) */}
-      {showOrderUpdateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg shadow-lg p-4 max-w-5xl w-full">
-            <OrderUpdate
-              order={selectedOrder}
-              onClose={closeOrderUpdateModal}
-              onOrderPatched={(id, patch) => upsertOrderPatch(id, patch)}
-              onOrderReplaced={(full) => upsertOrderReplace(full)}
-            />
-          </div>
-        </div>
-      )}
+        <DialogContent dividers>
+          <UpdateDelivery
+            mode="edit"
+            order={selectedOrder || {}}
+            onClose={closeEditModal}
+            onOrderPatched={(id, patch) => upsertOrderPatch(id, patch)}
+            onOrderReplaced={(full) => upsertOrderReplace(full)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* ✅ OrderUpdate Modal (MUI Dialog) */}
+      <Dialog
+        open={orderUpdateOpen}
+        onClose={closeOrderUpdateModal}
+        fullWidth
+        maxWidth="xl"
+        TransitionProps={{
+          onExited: () => {
+            // clear only after close animation finishes (prevents crash)
+            if (!editOpen) setSelectedOrder(null);
+          },
+        }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          Order Details
+          <Box sx={{ flex: 1 }} />
+          <IconButton onClick={closeOrderUpdateModal}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent dividers>
+          <OrderUpdate
+            order={selectedOrder || {}}
+            onClose={closeOrderUpdateModal}
+            onOrderPatched={(id, patch) => upsertOrderPatch(id, patch)}
+            onOrderReplaced={(full) => upsertOrderReplace(full)}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -1,11 +1,44 @@
 /* eslint-disable react/prop-types */
-import { useEffect, useState, useRef, useMemo } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import axios from "../apiClient.js";
 import toast from "react-hot-toast";
 import AddCustomer from "./addCustomer";
 import InvoiceModal from "../Components/InvoiceModal";
 import { LoadingSpinner } from "../Components";
+
+/* ✅ MUI */
+import {
+  AppBar,
+  Toolbar,
+  IconButton,
+  Typography,
+  Box,
+  Paper,
+  Container,
+  Stack,
+  TextField,
+  InputAdornment,
+  Button,
+  Divider,
+  Dialog,
+  DialogContent,
+  Autocomplete,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  CircularProgress,
+  ToggleButtonGroup,
+  ToggleButton,
+} from "@mui/material";
+
+import CloseIcon from "@mui/icons-material/Close";
+import AddIcon from "@mui/icons-material/Add";
+import SearchIcon from "@mui/icons-material/Search";
+import PaymentsIcon from "@mui/icons-material/Payments";
+import ListAltIcon from "@mui/icons-material/ListAlt";
+import SendIcon from "@mui/icons-material/Send";
 
 export default function AddOrder1() {
   const navigate = useNavigate();
@@ -15,13 +48,10 @@ export default function AddOrder1() {
   // Auth / user
   const [loggedInUser, setLoggedInUser] = useState("");
 
-  // Customers (search + accounts list)
+  // Customers
   const [Customer_name, setCustomer_Name] = useState("");
   const [Remark, setRemark] = useState("");
   const [customerOptions, setCustomerOptions] = useState([]);
-  const [filteredOptions, setFilteredOptions] = useState([]);
-  const [showOptions, setShowOptions] = useState(false);
-
   const [accountCustomerOptions, setAccountCustomerOptions] = useState([]);
   const [group, setGroup] = useState("");
 
@@ -38,14 +68,17 @@ export default function AddOrder1() {
   const [mobileToSend, setMobileToSend] = useState("");
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceItems, setInvoiceItems] = useState([]);
-  const [createdOrder, setCreatedOrder] = useState(null); // keep created order data for preview if needed
+  const [createdOrder, setCreatedOrder] = useState(null);
 
   // UX
   const [optionsLoading, setOptionsLoading] = useState(true);
+
+  // ✅ Add Customer modal state
   const [showCustomerModal, setShowCustomerModal] = useState(false);
 
-  // ✅ Enquiry toggle
-  const [isEnquiryOnly, setIsEnquiryOnly] = useState(false);
+  // ✅ Order type: "Order" | "Enquiry"
+  const [orderType, setOrderType] = useState("Order");
+  const isEnquiryOnly = orderType === "Enquiry";
 
   /* ----------- auth init ----------- */
   useEffect(() => {
@@ -55,7 +88,7 @@ export default function AddOrder1() {
     else navigate("/login");
   }, [location.state, navigate]);
 
-  /* ----------- Load customers + ALL task groups ----------- */
+  /* ----------- Load customers + task groups ----------- */
   useEffect(() => {
     const fetchData = async () => {
       setOptionsLoading(true);
@@ -68,6 +101,7 @@ export default function AddOrder1() {
         if (customerRes.data?.success) {
           const all = customerRes.data.result || [];
           setCustomerOptions(all);
+
           const accountOptions = all.filter(
             (item) => item.Customer_group === "Bank and Account"
           );
@@ -114,28 +148,10 @@ export default function AddOrder1() {
     ];
   };
 
-  const handleInputChange = (e) => {
-    const value = e.target.value;
-    setCustomer_Name(value);
-    if (value) {
-      const filtered = customerOptions.filter((opt) =>
-        (opt.Customer_name || "").toLowerCase().includes(value.toLowerCase())
-      );
-      setFilteredOptions(filtered);
-      setShowOptions(true);
-    } else {
-      setShowOptions(false);
-    }
-  };
-
-  const handleOptionClick = (opt) => {
-    setCustomer_Name(opt.Customer_name);
-    setShowOptions(false);
-  };
-
   const handleAdvanceCheckboxChange = () => {
     setIsAdvanceChecked((prev) => !prev);
     setAmount("");
+    setGroup("");
   };
 
   const handleCustomer = () => setShowCustomerModal(true);
@@ -146,11 +162,23 @@ export default function AddOrder1() {
     const hasCustomer = Boolean(
       customerOptions.find((c) => c.Customer_name === Customer_name)
     );
+
+    // If enquiry: only need valid customer
+    if (isEnquiryOnly) return hasCustomer;
+
     const advanceOk = !isAdvanceChecked
       ? true
       : Number(Amount) > 0 && Boolean(group);
+
     return hasCustomer && advanceOk;
-  }, [Customer_name, customerOptions, isAdvanceChecked, Amount, group]);
+  }, [
+    Customer_name,
+    customerOptions,
+    isEnquiryOnly,
+    isAdvanceChecked,
+    Amount,
+    group,
+  ]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -173,54 +201,45 @@ export default function AddOrder1() {
         };
       });
 
-      // Create order / enquiry
-      // Create order / enquiry
       const orderRes = await axios.post(`/order/addOrder`, {
         Customer_uuid: customer.Customer_uuid,
         Steps: steps,
         Items: buildItemsFromRemark(Remark),
-        Type: isEnquiryOnly ? "Enquiry" : "Order",   // 🔴 NEW
-        isEnquiry: isEnquiryOnly,                    // (optional extra flag)
+        Type: isEnquiryOnly ? "Enquiry" : "Order",
+        isEnquiry: isEnquiryOnly,
       });
-
 
       if (!orderRes.data?.success) {
         toast.error("Failed to add order");
         return;
       }
 
-      // Keep created order (if needed in preview)
       setCreatedOrder(orderRes.data.result || null);
 
-      // ✅ If it's only an enquiry: just save and go home, no invoice / advance
+      // ✅ Enquiry flow
       if (isEnquiryOnly) {
         toast.success("Enquiry saved");
         navigate("/home");
         return;
       }
 
-      // ------- Normal ORDER flow (unchanged) -------
-
-      // Prepare invoice items
+      // ------- Normal ORDER flow -------
       const baseItems = buildItemsFromRemark(Remark);
       setInvoiceItems(baseItems);
 
-      // WhatsApp message + phone
       const message = `Dear ${customer.Customer_name}, your order has been booked successfully.`;
       setWhatsAppMessage(message);
       setMobileToSend(customer.Mobile_number || "");
 
-      // ✅ Open invoice modal immediately after submit
       setShowInvoiceModal(true);
       toast.success("Order Added");
 
-      // ✅ Auto-close modal after 1.5 seconds
       setTimeout(() => {
         setShowInvoiceModal(false);
         navigate("/home");
       }, 1500);
 
-      // Optional: record advance in background, then append to invoice list
+      // Optional: record advance in background
       if (isAdvanceChecked && Amount && group) {
         const amt = Number(Amount || 0);
         if (Number.isNaN(amt) || amt <= 0) {
@@ -288,10 +307,26 @@ export default function AddOrder1() {
     navigate("/home");
   };
 
-  /* ----------- UI ----------- */
+  const stepCandidates = useMemo(
+    () => taskGroups.filter((tg) => tg.Id === 1),
+    [taskGroups]
+  );
+
+  const onOrderTypeChange = (_, next) => {
+    if (!next) return;
+    setOrderType(next);
+
+    // Reset order-only fields when switching to Enquiry
+    if (next === "Enquiry") {
+      setIsAdvanceChecked(false);
+      setAmount("");
+      setGroup("");
+      setSelectedTaskGroups([]);
+    }
+  };
+
   return (
     <>
-      {/* 🔁 IMPORTANT: use `open` prop (not isOpen) so the modal appears */}
       <InvoiceModal
         open={showInvoiceModal}
         onClose={() => {
@@ -303,179 +338,315 @@ export default function AddOrder1() {
         customerMobile={mobileToSend}
         items={invoiceItems}
         remark={Remark}
-        order={createdOrder} // optional: pass created order to preview if your modal supports it
+        order={createdOrder}
         onSendWhatsApp={sendWhatsApp}
       />
 
-      <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-        <div className="bg-white w-full max-w-2xl justify-between rounded-xl shadow-xl p-6 relative">
-          <button
-            onClick={() => navigate("/home")}
-            className="absolute right-2 top-2 text-xl text-gray-400 hover:text-blue-500"
-            type="button"
-          >
-            ×
-          </button>
-
-          <h2 className="text-xl font-semibold mb-4 text-center">New Order</h2>
-
-          <form onSubmit={submit} className="space-y-4">
-            {optionsLoading ? (
-              <div className="flex justify-center items-center h-10">
-                <LoadingSpinner />
-              </div>
-            ) : (
-              <div className="relative">
-                <label className="block font-medium text-gray-700 mb-1">
-                  Customer
-                </label>
-                <input
-                  type="text"
-                  placeholder="Search by Customer Name"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-                  value={Customer_name}
-                  onChange={handleInputChange}
-                  onFocus={() => setShowOptions(true)}
-                />
-                <button
-                  type="button"
-                  onClick={handleCustomer}
-                  className="absolute top-7 right-1 bg-[#25D366] text-white w-8 h-8 rounded-full flex items-center justify-center"
-                >
-                  +
-                </button>
-                {showOptions && filteredOptions.length > 0 && (
-                  <ul className="absolute z-10 w-full bg-white border mt-1 rounded-md shadow max-h-60 overflow-auto">
-                    {filteredOptions.map((option, index) => (
-                      <li
-                        key={index}
-                        className="px-4 py-2 hover:bg-[#f0f2f5] cursor-pointer"
-                        onClick={() => handleOptionClick(option)}
-                      >
-                        {option.Customer_name}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-
-            <div>
-              <label className="block font-medium text-gray-700 mb-1">
-                Order
-              </label>
-              <input
-                type="text"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-                placeholder="Item Details / Note"
-                value={Remark}
-                onChange={(e) => setRemark(e.target.value)}
-              />
-            </div>
-
-            {/* ✅ Enquiry toggle */}
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="enquiryOnly"
-                checked={isEnquiryOnly}
-                onChange={(e) => setIsEnquiryOnly(e.target.checked)}
-                className="h-4 w-4 text-[#25d366] border-gray-300 rounded"
-              />
-              <label htmlFor="enquiryOnly" className="text-gray-700">
-                This is only an enquiry (no invoice / advance)
-              </label>
-            </div>
-
-            <div>
-              <label className="block mb-1 font-medium">Steps</label>
-              <div className="flex flex-wrap gap-2">
-                {taskGroups
-                  .filter((tg) => tg.Id === 1)
-                  .map((tg) => {
-                    const uuid = tg.Task_group_uuid;
-                    const checked = selectedTaskGroups.includes(uuid);
-                    return (
-                      <label
-                        key={uuid}
-                        className="flex items-center gap-2 border px-2 py-1 rounded-md shadow-sm"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => handleTaskGroupToggle(uuid)}
-                          className="accent-[#25D366]"
-                        />
-                        <span>{tg.Task_group_name || tg.Task_group}</span>
-                      </label>
-                    );
-                  })}
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="advanceCheckbox"
-                checked={isAdvanceChecked}
-                onChange={handleAdvanceCheckboxChange}
-                className="h-4 w-4 text-[#25d366] border-gray-300 rounded"
-              />
-              <label htmlFor="advanceCheckbox" className="text-gray-700">
-                Advance
-              </label>
-            </div>
-
-            {isAdvanceChecked && (
-              <>
-                <div>
-                  <label className="block font-medium text-gray-700 mb-1">
-                    Amount
-                  </label>
-                  <input
-                    type="number"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-                    placeholder="Enter Amount"
-                    value={Amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-medium text-gray-700 mb-1">
-                    Payment Mode
-                  </label>
-                  <select
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-                    value={group}
-                    onChange={(e) => setGroup(e.target.value)}
-                  >
-                    <option value="">Select Payment</option>
-                    {accountCustomerOptions.map((c, i) => (
-                      <option key={i} value={c.Customer_uuid}>
-                        {c.Customer_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </>
-            )}
-
-            <button
-              type="submit"
-              disabled={!canSubmit}
-              className={`w-full text-white font-medium py-2 rounded-lg transition ${canSubmit
-                  ? "bg-[#25d366] hover:bg-[#128c7e]"
-                  : "bg-gray-300 cursor-not-allowed"
-                }`}
+      <Dialog open fullScreen>
+        <AppBar position="sticky" elevation={0}>
+          <Toolbar>
+            <IconButton
+              edge="start"
+              color="inherit"
+              onClick={() => navigate("/home")}
+              aria-label="close"
             >
-              Submit
-            </button>
-          </form>
-        </div>
-      </div>
+              <CloseIcon />
+            </IconButton>
 
-      {showCustomerModal && <AddCustomer onClose={exitModal} />}
+            <Typography variant="h6" sx={{ flex: 1 }}>
+              {isEnquiryOnly ? "New Enquiry" : "New Order"}
+            </Typography>
+
+            <Button
+              color="inherit"
+              startIcon={<AddIcon />}
+              onClick={handleCustomer}
+            >
+              New Customer
+            </Button>
+          </Toolbar>
+        </AppBar>
+
+        <DialogContent sx={{ px: 0, pb: 4 }}>
+          <Container maxWidth="sm">
+            <Box sx={{ pt: 2 }}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2,
+                  borderRadius: 3,
+                  border: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <Stack spacing={2} component="form" onSubmit={submit}>
+                  {/* ✅ Top Toggle: Enquiry / Order */}
+                  <Stack spacing={1}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Select Type
+                    </Typography>
+
+                    <ToggleButtonGroup
+                      value={orderType}
+                      exclusive
+                      onChange={onOrderTypeChange}
+                      fullWidth
+                      sx={{
+                        "& .MuiToggleButton-root": {
+                          py: 1.2,
+                          borderRadius: 2,
+                          textTransform: "none",
+                          fontWeight: 700,
+                        },
+                      }}
+                    >
+                      <ToggleButton value="Order">Order</ToggleButton>
+                      <ToggleButton value="Enquiry">Enquiry</ToggleButton>
+                    </ToggleButtonGroup>
+                  </Stack>
+
+                  <Divider />
+
+                  {/* Customer */}
+                  <Stack spacing={1}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                    >
+                      <SearchIcon fontSize="small" />
+                      Customer
+                    </Typography>
+
+                    {optionsLoading ? (
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        justifyContent="center"
+                        sx={{ py: 2 }}
+                      >
+                        <LoadingSpinner />
+                      </Stack>
+                    ) : (
+                      <Autocomplete
+                        options={customerOptions}
+                        getOptionLabel={(opt) => opt?.Customer_name || ""}
+                        value={
+                          customerOptions.find(
+                            (c) => c.Customer_name === Customer_name
+                          ) || null
+                        }
+                        onChange={(_, newValue) => {
+                          setCustomer_Name(newValue?.Customer_name || "");
+                        }}
+                        inputValue={Customer_name}
+                        onInputChange={(_, val) => setCustomer_Name(val)}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            placeholder="Search by customer name"
+                            size="medium"
+                            fullWidth
+                            InputProps={{
+                              ...params.InputProps,
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <SearchIcon fontSize="small" />
+                                </InputAdornment>
+                              ),
+                            }}
+                          />
+                        )}
+                        isOptionEqualToValue={(opt, val) =>
+                          opt?.Customer_uuid === val?.Customer_uuid
+                        }
+                      />
+                    )}
+                  </Stack>
+
+                  {/* Order Note */}
+                  <Stack spacing={1}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                    >
+                      <ListAltIcon fontSize="small" />
+                      {isEnquiryOnly ? "Enquiry Note" : "Order Note"}
+                    </Typography>
+
+                    <TextField
+                      placeholder="Item details / note"
+                      value={Remark}
+                      onChange={(e) => setRemark(e.target.value)}
+                      fullWidth
+                      multiline
+                      minRows={2}
+                    />
+                  </Stack>
+
+                  {/* ✅ If enquiry: hide everything below */}
+                  {!isEnquiryOnly && (
+                    <>
+                      <Divider />
+
+                      {/* Steps */}
+                      <Stack spacing={1}>
+                        <Typography variant="subtitle2">Steps</Typography>
+
+                        <Paper
+                          variant="outlined"
+                          sx={{
+                            p: 1.5,
+                            borderRadius: 2,
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 1,
+                          }}
+                        >
+                          {stepCandidates.length === 0 ? (
+                            <Typography variant="body2" color="text.secondary">
+                              No steps available.
+                            </Typography>
+                          ) : (
+                            stepCandidates.map((tg) => {
+                              const uuid = tg.Task_group_uuid;
+                              const checked = selectedTaskGroups.includes(uuid);
+                              return (
+                                <Button
+                                  key={uuid}
+                                  variant={checked ? "contained" : "outlined"}
+                                  onClick={() => handleTaskGroupToggle(uuid)}
+                                  sx={{
+                                    borderRadius: 2,
+                                    textTransform: "none",
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {tg.Task_group_name || tg.Task_group}
+                                </Button>
+                              );
+                            })
+                          )}
+                        </Paper>
+                      </Stack>
+
+                      {/* Advance */}
+                      <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
+                        <ToggleButtonGroup
+                          value={isAdvanceChecked ? "yes" : "no"}
+                          exclusive
+                          onChange={(_, v) => {
+                            if (!v) return;
+                            if (v === "yes" && !isAdvanceChecked)
+                              handleAdvanceCheckboxChange();
+                            if (v === "no" && isAdvanceChecked)
+                              handleAdvanceCheckboxChange();
+                          }}
+                          fullWidth
+                          sx={{
+                            "& .MuiToggleButton-root": {
+                              py: 1.1,
+                              borderRadius: 2,
+                              textTransform: "none",
+                              fontWeight: 700,
+                            },
+                          }}
+                        >
+                          <ToggleButton value="no">No Advance</ToggleButton>
+                          <ToggleButton value="yes">Advance</ToggleButton>
+                        </ToggleButtonGroup>
+
+                        {isAdvanceChecked && (
+                          <Stack spacing={2} sx={{ mt: 2 }}>
+                            <TextField
+                              label="Amount"
+                              type="number"
+                              value={Amount}
+                              onChange={(e) => setAmount(e.target.value)}
+                              fullWidth
+                              InputProps={{
+                                startAdornment: (
+                                  <InputAdornment position="start">
+                                    <PaymentsIcon fontSize="small" />
+                                  </InputAdornment>
+                                ),
+                              }}
+                            />
+
+                            <FormControl fullWidth>
+                              <InputLabel id="payment-mode-label">
+                                Payment Mode
+                              </InputLabel>
+                              <Select
+                                labelId="payment-mode-label"
+                                value={group}
+                                label="Payment Mode"
+                                onChange={(e) => setGroup(e.target.value)}
+                              >
+                                <MenuItem value="">
+                                  <em>Select Payment</em>
+                                </MenuItem>
+                                {accountCustomerOptions.map((c, i) => (
+                                  <MenuItem key={i} value={c.Customer_uuid}>
+                                    {c.Customer_name}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          </Stack>
+                        )}
+                      </Paper>
+                    </>
+                  )}
+
+                  {/* Submit */}
+                  <Divider />
+
+                  <Stack spacing={1}>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      size="large"
+                      disabled={!canSubmit || optionsLoading}
+                      startIcon={<SendIcon />}
+                      sx={{
+                        borderRadius: 2,
+                        py: 1.2,
+                        textTransform: "none",
+                        fontWeight: 800,
+                      }}
+                    >
+                      {isEnquiryOnly ? "Save Enquiry" : "Submit Order"}
+                    </Button>
+
+                    {optionsLoading && (
+                      <Stack direction="row" justifyContent="center">
+                        <CircularProgress size={22} />
+                      </Stack>
+                    )}
+                  </Stack>
+                </Stack>
+              </Paper>
+
+              <Box sx={{ height: 24 }} />
+            </Box>
+          </Container>
+        </DialogContent>
+      </Dialog>
+
+      {/* ✅ FIX: show AddCustomer ABOVE the fullscreen dialog */}
+      <Dialog
+        open={showCustomerModal}
+        onClose={exitModal}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{ sx: { borderRadius: 3 } }}
+        sx={{ zIndex: (theme) => theme.zIndex.modal + 2 }}
+      >
+        <DialogContent sx={{ p: 0 }}>
+          <AddCustomer onClose={exitModal} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
