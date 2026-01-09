@@ -310,8 +310,8 @@ export default function AllOrder() {
                 "& .MuiTab-root": { textTransform: "none", fontWeight: 800 },
               }}
             >
-              <Tab value="orders" label={`All Orders (${ordersCount})`} />
-              <Tab value="enquiries" label={`All Enquiries (${enquiriesCount})`} />
+              <Tab value="orders" label={`Orders (${ordersCount})`} />
+              <Tab value="enquiries" label={`Enquiries (${enquiriesCount})`} />
             </Tabs>
 
             <Stack
