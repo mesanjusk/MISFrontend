@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { fetchBillList } from "../services/orderService";
+import { fetchBillListPaged, updateBillStatus } from "../services/orderService";
 import { fetchCustomers } from "../services/customerService";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
@@ -50,23 +50,160 @@ import TodayIcon from "@mui/icons-material/Today";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
 
-export default function AllBills() {
-  // 🔧 Central API base (env -> vite -> CRA -> localhost)
-  const API_BASE = useMemo(() => {
-    const raw =
-      (typeof import.meta !== "undefined" ? import.meta.env.VITE_API_BASE : "") ||
-      process.env.REACT_APP_API ||
-      "http://localhost:10000";
-    return String(raw).replace(/\/$/, "");
-  }, []);
+/* ----------------------- small hooks ----------------------- */
+function useDebouncedValue(value, delay = 200) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
 
+/* ----------------------- memoized card ----------------------- */
+const BillCard = React.memo(function BillCard({
+  order,
+  paid,
+  onTogglePaid,
+  onEdit,
+  onOpenInvoice,
+  statusChip,
+  formatDateDDMMYYYY,
+  formatINR,
+}) {
+  const deliveryDate = formatDateDDMMYYYY(order?.highestStatusTask?.Delivery_Date);
+
+  return (
+    <Card
+      variant="outlined"
+      sx={{
+        borderRadius: 2,
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        position: "relative",
+      }}
+    >
+      {/* ✅ Paid toggle button (top-right) */}
+      <Tooltip title={paid ? "Mark as unpaid" : "Mark bill as paid"}>
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            onTogglePaid(order);
+          }}
+          sx={{
+            position: "absolute",
+            top: 6,
+            right: 6,
+            zIndex: 2,
+            bgcolor: "background.paper",
+            border: "1px solid",
+            borderColor: "divider",
+            "&:hover": { bgcolor: "background.default" },
+          }}
+          aria-label="toggle paid"
+        >
+          {paid ? (
+            <DoneAllIcon fontSize="small" color="success" />
+          ) : (
+            <PendingActionsIcon fontSize="small" color="warning" />
+          )}
+        </IconButton>
+      </Tooltip>
+
+      <CardActionArea onClick={() => onEdit(order)} sx={{ flex: 1 }}>
+        <CardContent>
+          <Stack spacing={0.8}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 900 }}>
+                #{order?.Order_Number || "—"}
+              </Typography>
+              {statusChip(order?.highestStatusTask?.Task)}
+            </Stack>
+
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 800 }}
+              noWrap
+              title={order?.Customer_name || ""}
+            >
+              {order?.Customer_name || "Unknown"}
+            </Typography>
+
+            <Stack direction="row" spacing={1} alignItems="center">
+              <TodayIcon fontSize="small" />
+              <Typography variant="caption" color="text.secondary">
+                {deliveryDate || "—"}
+              </Typography>
+            </Stack>
+
+            <Divider sx={{ my: 0.5 }} />
+
+            <Stack direction="row" alignItems="center" justifyContent="space-between">
+              <Typography variant="caption" color="text.secondary">
+                Total
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 900 }}>
+                ₹{formatINR(order?.billTotal)}
+              </Typography>
+            </Stack>
+
+            <Stack direction="row" justifyContent="flex-end">
+              <Chip
+                size="small"
+                label={paid ? "Paid" : "Unpaid"}
+                color={paid ? "success" : "warning"}
+                variant={paid ? "filled" : "outlined"}
+                sx={{ borderRadius: 2, fontWeight: 800 }}
+              />
+            </Stack>
+          </Stack>
+        </CardContent>
+      </CardActionArea>
+
+      <Divider />
+
+      <Box sx={{ p: 1.25 }}>
+        <Button
+          fullWidth
+          variant="contained"
+          color={paid ? "success" : "warning"}
+          startIcon={<ReceiptLongIcon />}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenInvoice(order);
+          }}
+          sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}
+        >
+          Bill
+        </Button>
+      </Box>
+    </Card>
+  );
+});
+
+export default function AllBills() {
   const [orders, setOrders] = useState([]);
-  const [searchOrder, setSearchOrder] = useState("");
-  const [filter, setFilter] = useState(""); // "", "delivered", "design", "print", etc.
   const [customers, setCustomers] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // ✅ UpdateDelivery modal state (FIXED)
+  const [searchOrder, setSearchOrder] = useState("");
+  const debouncedSearch = useDebouncedValue(searchOrder, 250);
+
+  // task filter: "", "delivered", "design", "print"
+  const [taskFilter, setTaskFilter] = useState("");
+
+  // ✅ paid filter: "", "paid", "unpaid"
+  const [paidFilter, setPaidFilter] = useState("");
+
+  // ✅ backend paging
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+
+  // ✅ UpdateDelivery modal state
   const [editOpen, setEditOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
@@ -74,7 +211,7 @@ export default function AllBills() {
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceOrder, setInvoiceOrder] = useState(null);
 
-  /* ✅ UI-only paid state (NO backend change) */
+  /* ✅ fallback paidMap (only for old orders until backend is everywhere) */
   const [paidMap, setPaidMap] = useState(() => {
     try {
       const raw = localStorage.getItem("bills_paid_map");
@@ -87,9 +224,7 @@ export default function AllBills() {
   useEffect(() => {
     try {
       localStorage.setItem("bills_paid_map", JSON.stringify(paidMap || {}));
-    } catch {
-      // ignore storage errors
-    }
+    } catch {}
   }, [paidMap]);
 
   const formatDateDDMMYYYY = (dateString) => {
@@ -111,7 +246,6 @@ export default function AllBills() {
     }
   };
 
-  // ✅ Robust number parsing (handles "1,099", "₹1099", etc.)
   const toNumber = (v) => {
     if (v === null || v === undefined) return 0;
     if (typeof v === "number") return Number.isFinite(v) ? v : 0;
@@ -159,41 +293,6 @@ export default function AllBills() {
     []
   );
 
-  useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      setLoading(true);
-      try {
-        const [ordersRes, customersRes] = await Promise.all([fetchBillList(), fetchCustomers()]);
-
-        if (!isMounted) return;
-
-        const orderRows = ordersRes?.data?.success ? ordersRes.data.result ?? [] : [];
-        const custRows = customersRes?.data?.success ? customersRes.data.result ?? [] : [];
-
-        const customerMap = Array.isArray(custRows)
-          ? custRows.reduce((acc, c) => {
-              if (c.Customer_uuid && c.Customer_name) acc[c.Customer_uuid] = c.Customer_name;
-              return acc;
-            }, {})
-          : {};
-
-        setCustomers(customerMap);
-        setOrders(Array.isArray(orderRows) ? orderRows : []);
-      } catch (err) {
-        console.error("Error fetching bills data:", err?.message || err);
-        setCustomers({});
-        setOrders([]);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    })();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [API_BASE]);
-
   const getHighestStatus = (statusArr) => {
     const list = Array.isArray(statusArr) ? statusArr : [];
     if (list.length === 0) return {};
@@ -204,27 +303,47 @@ export default function AllBills() {
     }, list[0]);
   };
 
-  // 🔁 Local state upsert helpers (no reload)
+  const getFirstRemark = (order) => {
+    if (!Array.isArray(order?.Items) || order.Items.length === 0) return "";
+    return String(order.Items[0]?.Remark || "");
+  };
+
+  const getOrderKey = useCallback((order) => {
+    return String(order?.Order_uuid || order?._id || order?.Order_id || "");
+  }, []);
+
+  const isPaid = useCallback(
+    (order) => {
+      const backend = String(order?.billStatus || "").toLowerCase().trim();
+      if (backend === "paid") return true;
+      if (backend === "unpaid") return false;
+
+      // fallback for old records
+      const key = getOrderKey(order);
+      return Boolean(paidMap?.[key]);
+    },
+    [getOrderKey, paidMap]
+  );
+
+  // 🔁 Local state upsert helper (no reload)
   const upsertOrderPatch = useCallback(
     (orderId, patch) => {
       if (!orderId || !patch) return;
 
+      // remove order if becomes non-billable
       if (patch.Items && !hasBillableAmount(patch.Items)) {
-        setOrders((prev) => prev.filter((o) => (o.Order_uuid || o._id) !== orderId));
+        setOrders((prev) => prev.filter((o) => getOrderKey(o) !== String(orderId)));
 
-        if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === orderId) {
-          setEditOpen(false);
-        }
+        if (selectedOrder && getOrderKey(selectedOrder) === String(orderId)) setEditOpen(false);
 
-        if (invoiceOrder && (invoiceOrder.Order_uuid || invoiceOrder._id) === orderId) {
+        if (invoiceOrder && getOrderKey(invoiceOrder) === String(orderId)) {
           setShowInvoiceModal(false);
           setInvoiceOrder(null);
         }
 
-        // cleanup paid state as well (UI only)
         setPaidMap((prev) => {
           const copy = { ...(prev || {}) };
-          delete copy[orderId];
+          delete copy[String(orderId)];
           return copy;
         });
 
@@ -232,108 +351,186 @@ export default function AllBills() {
       }
 
       setOrders((prev) =>
-        prev.map((o) => ((o.Order_uuid || o._id) === orderId ? { ...o, ...patch } : o))
+        prev.map((o) => (getOrderKey(o) === String(orderId) ? { ...o, ...patch } : o))
       );
 
-      if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === orderId) {
+      if (selectedOrder && getOrderKey(selectedOrder) === String(orderId)) {
         setSelectedOrder((s) => (s ? { ...s, ...patch } : s));
       }
 
-      if (invoiceOrder && (invoiceOrder.Order_uuid || invoiceOrder._id) === orderId) {
+      if (invoiceOrder && getOrderKey(invoiceOrder) === String(orderId)) {
         setInvoiceOrder((s) => (s ? { ...s, ...patch } : s));
       }
     },
-    [hasBillableAmount, selectedOrder, invoiceOrder]
+    [hasBillableAmount, getOrderKey, selectedOrder, invoiceOrder]
   );
 
-  const upsertOrderReplace = useCallback(
-    (nextOrder) => {
-      if (!nextOrder) return;
-      const key = nextOrder.Order_uuid || nextOrder._id;
+  // ✅ Paid toggle → backend persists (optimistic)
+  const togglePaid = useCallback(
+    async (order) => {
+      const key = getOrderKey(order);
+      if (!key) return;
 
-      if (!hasBillableAmount(nextOrder.Items)) {
-        setOrders((prev) => prev.filter((o) => (o.Order_uuid || o._id) !== key));
+      const currentlyPaid = isPaid(order);
+      const nextStatus = currentlyPaid ? "unpaid" : "paid";
 
-        if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === key) {
-          setEditOpen(false);
-        }
+      // optimistic UI
+      upsertOrderPatch(key, {
+        billStatus: nextStatus,
+        billPaidAt: nextStatus === "paid" ? new Date().toISOString() : null,
+      });
 
-        if (invoiceOrder && (invoiceOrder.Order_uuid || invoiceOrder._id) === key) {
-          setShowInvoiceModal(false);
-          setInvoiceOrder(null);
-        }
+      try {
+        await updateBillStatus(key, nextStatus, { paidBy: "admin" });
 
+        // remove local fallback for this order once saved in backend
         setPaidMap((prev) => {
           const copy = { ...(prev || {}) };
           delete copy[key];
           return copy;
         });
+      } catch (e) {
+        console.error("Failed to update bill status:", e?.message || e);
 
-        return;
-      }
+        // rollback
+        upsertOrderPatch(key, {
+          billStatus: currentlyPaid ? "paid" : "unpaid",
+          billPaidAt: currentlyPaid ? order?.billPaidAt || null : null,
+        });
 
-      setOrders((prev) => {
-        const idx = prev.findIndex((o) => (o.Order_uuid || o._id) === key);
-        if (idx === -1) return [nextOrder, ...prev];
-        const copy = prev.slice();
-        copy[idx] = { ...prev[idx], ...nextOrder };
-        return copy;
-      });
-
-      if (selectedOrder && (selectedOrder.Order_uuid || selectedOrder._id) === key) {
-        setSelectedOrder((s) => (s ? { ...s, ...nextOrder } : s));
-      }
-
-      if (invoiceOrder && (invoiceOrder.Order_uuid || invoiceOrder._id) === key) {
-        setInvoiceOrder((s) => (s ? { ...s, ...nextOrder } : s));
+        alert("Failed to update bill status. Please try again.");
       }
     },
-    [hasBillableAmount, selectedOrder, invoiceOrder]
+    [getOrderKey, isPaid, upsertOrderPatch]
   );
 
-  const getFirstRemark = (order) => {
-    if (!Array.isArray(order?.Items) || order.Items.length === 0) return "";
-    return String(order.Items[0]?.Remark || "");
-  };
+  /* ----------------------- load customers once ----------------------- */
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const customersRes = await fetchCustomers();
+        if (!mounted) return;
 
-  // 🔎 Derived filtered list + bill total
+        const custRows = customersRes?.data?.success ? customersRes.data.result ?? [] : [];
+        const customerMap = Array.isArray(custRows)
+          ? custRows.reduce((acc, c) => {
+              if (c.Customer_uuid && c.Customer_name) acc[c.Customer_uuid] = c.Customer_name;
+              return acc;
+            }, {})
+          : {};
+        setCustomers(customerMap);
+      } catch (e) {
+        console.error("Error fetching customers:", e?.message || e);
+        setCustomers({});
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  /* ----------------------- load bills pages ----------------------- */
+  const loadBillsPage = useCallback(
+    async (nextPage, reset = false) => {
+      setLoading(true);
+      try {
+        const res = await fetchBillListPaged({
+          page: nextPage,
+          limit: PAGE_SIZE,
+          search: debouncedSearch,
+          task: taskFilter,
+          paid: paidFilter,
+        });
+
+        const rows = res?.data?.success ? res.data.result ?? [] : [];
+        const t = res?.data?.total ?? 0;
+
+        setTotal(t);
+        setPage(nextPage);
+
+        setOrders((prev) => (reset ? rows : [...prev, ...rows]));
+
+        const loadedCount = (reset ? 0 : orders.length) + rows.length;
+        setHasMore(loadedCount < t);
+      } catch (e) {
+        console.error("Error fetching bills:", e?.message || e);
+        if (reset) setOrders([]);
+        setHasMore(false);
+        setTotal(0);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [PAGE_SIZE, debouncedSearch, taskFilter, paidFilter, orders.length]
+  );
+
+  // initial load
+  useEffect(() => {
+    loadBillsPage(1, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // reload page 1 when filters/search change
+  useEffect(() => {
+    loadBillsPage(1, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, taskFilter, paidFilter]);
+
+  /* ----------------------- derived lists ----------------------- */
+  const normalizedOrders = useMemo(() => {
+    const list = Array.isArray(orders) ? orders : [];
+    return list.map((order) => {
+      const highestStatusTask = getHighestStatus(order?.Status);
+      const items = Array.isArray(order?.Items) ? order.Items : [];
+      const billTotal = items.reduce((sum, it) => sum + resolveAmount(it), 0);
+
+      const customerName = customers?.[order?.Customer_uuid] || "Unknown";
+      const taskLower = String(highestStatusTask?.Task || "").toLowerCase().trim();
+
+      const billable = hasBillableAmount(items);
+      const paid = isPaid(order);
+
+      return {
+        ...order,
+        highestStatusTask,
+        Customer_name: customerName,
+        billTotal,
+        _billable: billable,
+        _customerLower: String(customerName).toLowerCase(),
+        _taskLower: taskLower,
+        _paid: paid,
+      };
+    });
+  }, [orders, customers, hasBillableAmount, isPaid]);
+
+  // since backend already filters, this is mostly safety
   const filteredOrders = useMemo(() => {
-    return orders
-      .map((order) => {
-        const highestStatusTask = getHighestStatus(order.Status);
-        const items = Array.isArray(order?.Items) ? order.Items : [];
-        const billTotal = items.reduce((sum, it) => sum + resolveAmount(it), 0);
+    const s = String(debouncedSearch || "").toLowerCase().trim();
+    const fTask = String(taskFilter || "").toLowerCase().trim();
+    const fPaid = String(paidFilter || "").toLowerCase().trim();
 
-        return {
-          ...order,
-          highestStatusTask,
-          Customer_name: customers[order.Customer_uuid] || "Unknown",
-          billTotal,
-        };
-      })
-      .filter((order) => {
-        if (!hasBillableAmount(order.Items)) return false;
+    return normalizedOrders.filter((o) => {
+      if (!o._billable) return false;
+      if (s && !o._customerLower.includes(s)) return false;
+      if (fTask && o._taskLower !== fTask) return false;
 
-        const name = (order.Customer_name || "").toLowerCase();
-        const matchesSearch = name.includes(searchOrder.toLowerCase());
+      if (fPaid === "paid" && !o._paid) return false;
+      if (fPaid === "unpaid" && o._paid) return false;
 
-        const task = (order.highestStatusTask?.Task || "").toLowerCase().trim();
-        const filterValue = (filter || "").toLowerCase().trim();
-        const matchesFilter = filterValue ? task === filterValue : true;
-
-        return matchesSearch && matchesFilter;
-      });
-  }, [orders, customers, hasBillableAmount, searchOrder, filter]);
+      return true;
+    });
+  }, [normalizedOrders, debouncedSearch, taskFilter, paidFilter]);
 
   const totals = useMemo(() => {
     const count = filteredOrders.length;
-    const sum = filteredOrders.reduce((acc, o) => acc + toNumber(o.billTotal), 0);
+    const sum = filteredOrders.reduce((acc, o) => acc + toNumber(o?.billTotal), 0);
     return { count, sum };
   }, [filteredOrders]);
 
   const exportPDF = () => {
     const doc = new jsPDF();
-    doc.text("Bills Report", 14, 15);
+    doc.text("Bills Report (Loaded Rows)", 14, 15);
     doc.autoTable({
       head: [
         [
@@ -344,6 +541,8 @@ export default function AllBills() {
           "Delivery Date",
           "Assigned",
           "Highest Status Task",
+          "Paid",
+          "Total",
         ],
       ],
       body: filteredOrders.map((order) => [
@@ -354,10 +553,12 @@ export default function AllBills() {
         formatDateDDMMYYYY(order.highestStatusTask?.Delivery_Date),
         order.highestStatusTask?.Assigned || "",
         order.highestStatusTask?.Task || "",
+        order._paid ? "Paid" : "Unpaid",
+        `₹${formatINR(order.billTotal)}`,
       ]),
       startY: 20,
     });
-    doc.save("bills_report.pdf");
+    doc.save("bills_report_loaded_rows.pdf");
   };
 
   const exportExcel = () => {
@@ -369,31 +570,28 @@ export default function AllBills() {
       "Delivery Date": formatDateDDMMYYYY(order.highestStatusTask?.Delivery_Date),
       Assigned: order.highestStatusTask?.Assigned || "",
       "Highest Status Task": order.highestStatusTask?.Task || "",
+      Paid: order._paid ? "Paid" : "Unpaid",
+      Total: Number(toNumber(order.billTotal)),
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(worksheetData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Bills");
-    XLSX.writeFile(workbook, "bills_report.xlsx");
+    XLSX.writeFile(workbook, "bills_report_loaded_rows.xlsx");
   };
 
-  // ✅ FIXED: opening edit modal
   const handleEditClick = (order) => {
-    const id = order._id || order.Order_id || null;
+    const id = order?._id || order?.Order_id || order?.Order_uuid || null;
     if (!id) {
       alert("⚠️ Invalid order ID. Cannot open edit modal.");
       return;
     }
-    setSelectedOrder({ ...order, _id: id });
+    setSelectedOrder({ ...order, _id: order?._id || id });
     setEditOpen(true);
   };
 
-  // ✅ FIXED: closing edit modal (do NOT set selectedOrder null here)
-  const closeEditModal = () => {
-    setEditOpen(false);
-  };
+  const closeEditModal = () => setEditOpen(false);
 
-  // ✅ Invoice modal helpers
   const openInvoice = (order) => {
     setInvoiceOrder(order);
     setShowInvoiceModal(true);
@@ -404,10 +602,8 @@ export default function AllBills() {
     setInvoiceOrder(null);
   };
 
-  // ✅ Build items for InvoicePreview: provide BOTH styles of keys
   const buildInvoiceItems = (order) => {
     const items = Array.isArray(order?.Items) ? order.Items : [];
-
     return items
       .map((it, idx) => {
         const qty = resolveQty(it);
@@ -416,7 +612,6 @@ export default function AllBills() {
         const name = String(it?.Item_name || it?.Name || it?.Product_name || it?.Item || "Item");
 
         return {
-          // our standard keys
           sr: idx + 1,
           name,
           qty,
@@ -424,7 +619,6 @@ export default function AllBills() {
           amount,
           remark: String(it?.Remark || ""),
 
-          // compatibility keys
           Item: name,
           Qty: qty,
           Rate: rate,
@@ -453,14 +647,12 @@ export default function AllBills() {
     return <Chip size="small" label={label} variant="outlined" />;
   };
 
-  /* ✅ PAID helpers (UI-only) */
-  const getOrderKey = (order) => order?.Order_uuid || order?._id || order?.Order_id || "";
-  const isPaid = (order) => Boolean(paidMap?.[getOrderKey(order)]);
-  const togglePaid = (order) => {
-    const key = getOrderKey(order);
-    if (!key) return;
-    setPaidMap((prev) => ({ ...(prev || {}), [key]: !Boolean(prev?.[key]) }));
-  };
+  const showingText =
+    total > 0
+      ? `Showing ${Math.min(orders.length, total)}/${total}`
+      : filteredOrders.length > 0
+      ? `Showing ${filteredOrders.length}`
+      : "";
 
   return (
     <>
@@ -471,8 +663,10 @@ export default function AllBills() {
             <Typography variant="h6" sx={{ flex: 1 }}>
               Bills Report
             </Typography>
+
             <Typography variant="body2" sx={{ opacity: 0.9 }}>
-              {totals.count} bills • ₹{formatINR(totals.sum)}
+              {showingText ? `${showingText} • ` : ""}
+              Loaded: {orders.length} • ₹{formatINR(totals.sum)}
             </Typography>
           </Toolbar>
           {loading && <LinearProgress />}
@@ -501,22 +695,36 @@ export default function AllBills() {
               />
 
               <FormControl sx={{ minWidth: { xs: "100%", md: 220 } }}>
-                <InputLabel id="filter-label">Filter by task</InputLabel>
+                <InputLabel id="task-filter-label">Filter by task</InputLabel>
                 <Select
-                  labelId="filter-label"
-                  value={filter}
+                  labelId="task-filter-label"
+                  value={taskFilter}
                   label="Filter by task"
-                  onChange={(e) => setFilter(e.target.value)}
+                  onChange={(e) => setTaskFilter(e.target.value)}
                 >
                   <MenuItem value="">All</MenuItem>
-                  <MenuItem value="delivered"></MenuItem>
+                  <MenuItem value="delivered">Delivered</MenuItem>
                   <MenuItem value="design">Design</MenuItem>
                   <MenuItem value="print">Print</MenuItem>
                 </Select>
               </FormControl>
 
+              <FormControl sx={{ minWidth: { xs: "100%", md: 220 } }}>
+                <InputLabel id="paid-filter-label">Payment</InputLabel>
+                <Select
+                  labelId="paid-filter-label"
+                  value={paidFilter}
+                  label="Payment"
+                  onChange={(e) => setPaidFilter(e.target.value)}
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="paid">Paid</MenuItem>
+                  <MenuItem value="unpaid">Unpaid</MenuItem>
+                </Select>
+              </FormControl>
+
               <Stack direction="row" spacing={1} justifyContent="flex-end">
-                <Tooltip title="Export as PDF">
+                <Tooltip title="Export as PDF (loaded rows only)">
                   <Button
                     variant="contained"
                     color="error"
@@ -528,7 +736,7 @@ export default function AllBills() {
                   </Button>
                 </Tooltip>
 
-                <Tooltip title="Export as Excel">
+                <Tooltip title="Export as Excel (loaded rows only)">
                   <Button
                     variant="contained"
                     startIcon={<GridOnIcon />}
@@ -544,7 +752,7 @@ export default function AllBills() {
 
           {/* Content */}
           <Paper variant="outlined" sx={{ borderRadius: 3, p: { xs: 1.5, sm: 2 } }}>
-            {loading ? (
+            {loading && orders.length === 0 ? (
               <Grid container spacing={1.5}>
                 {Array.from({ length: 12 }).map((_, i) => (
                   <Grid key={i} item xs={12} sm={6} md={4} lg={3} xl={2}>
@@ -567,153 +775,59 @@ export default function AllBills() {
                 No billed orders found.
               </Alert>
             ) : (
-              <Grid container spacing={1.5}>
-                {filteredOrders.map((order) => {
-                  const key =
-                    order._id || order.Order_id || order.Order_uuid || `o-${order.Order_Number}`;
+              <>
+                <Grid container spacing={1.5}>
+                  {filteredOrders.map((order) => {
+                    const key = getOrderKey(order) || `o-${order?.Order_Number || Math.random()}`;
+                    const paid = Boolean(order?._paid);
 
-                  const deliveryDate = formatDateDDMMYYYY(order.highestStatusTask?.Delivery_Date);
-                  const paid = isPaid(order);
+                    return (
+                      <Grid key={key} item xs={12} sm={6} md={4} lg={3} xl={2}>
+                        <BillCard
+                          order={order}
+                          paid={paid}
+                          onTogglePaid={togglePaid}
+                          onEdit={handleEditClick}
+                          onOpenInvoice={openInvoice}
+                          statusChip={statusChip}
+                          formatDateDDMMYYYY={formatDateDDMMYYYY}
+                          formatINR={formatINR}
+                        />
+                      </Grid>
+                    );
+                  })}
+                </Grid>
 
-                  return (
-                    <Grid key={key} item xs={12} sm={6} md={4} lg={3} xl={2}>
-                      <Card
-                        variant="outlined"
-                        sx={{
-                          borderRadius: 2,
-                          height: "100%",
-                          display: "flex",
-                          flexDirection: "column",
-                          position: "relative",
-                        }}
-                      >
-                        {/* ✅ Paid toggle button (top-right) */}
-                        <Tooltip title={paid ? "Mark as unpaid" : "Mark bill as paid"}>
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              togglePaid(order);
-                            }}
-                            sx={{
-                              position: "absolute",
-                              top: 6,
-                              right: 6,
-                              zIndex: 2,
-                              bgcolor: "background.paper",
-                              border: "1px solid",
-                              borderColor: "divider",
-                              "&:hover": { bgcolor: "background.default" },
-                            }}
-                            aria-label="toggle paid"
-                          >
-                            {paid ? (
-                              <DoneAllIcon fontSize="small" color="success" />
-                            ) : (
-                              <PendingActionsIcon fontSize="small" color="warning" />
-                            )}
-                          </IconButton>
-                        </Tooltip>
+                <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+                  <Button
+                    variant="outlined"
+                    disabled={!hasMore || loading}
+                    onClick={() => loadBillsPage(page + 1, false)}
+                    sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}
+                  >
+                    {hasMore ? `Load more (+${PAGE_SIZE})` : "No more bills"}
+                  </Button>
+                </Box>
 
-                        <CardActionArea onClick={() => handleEditClick(order)} sx={{ flex: 1 }}>
-                          <CardContent>
-                            <Stack spacing={0.8}>
-                              <Stack
-                                direction="row"
-                                alignItems="center"
-                                justifyContent="space-between"
-                                spacing={1}
-                              >
-                                <Typography variant="subtitle2" sx={{ fontWeight: 900 }}>
-                                  #{order.Order_Number}
-                                </Typography>
-                                {statusChip(order.highestStatusTask?.Task)}
-                              </Stack>
-
-                              <Typography
-                                variant="body2"
-                                sx={{ fontWeight: 800 }}
-                                noWrap
-                                title={order.Customer_name}
-                              >
-                                {order.Customer_name}
-                              </Typography>
-
-                              <Stack direction="row" spacing={1} alignItems="center">
-                                <TodayIcon fontSize="small" />
-                                <Typography variant="caption" color="text.secondary">
-                                  {deliveryDate || "—"}
-                                </Typography>
-                              </Stack>
-
-                              <Divider sx={{ my: 0.5 }} />
-
-                              <Stack
-                                direction="row"
-                                alignItems="center"
-                                justifyContent="space-between"
-                              >
-                                <Typography variant="caption" color="text.secondary">
-                                  Total
-                                </Typography>
-                                <Typography variant="body2" sx={{ fontWeight: 900 }}>
-                                  ₹{formatINR(order.billTotal)}
-                                </Typography>
-                              </Stack>
-
-                              {/* Optional: small paid label */}
-                              <Stack direction="row" justifyContent="flex-end">
-                                <Chip
-                                  size="small"
-                                  label={paid ? "Paid" : "Unpaid"}
-                                  color={paid ? "success" : "warning"}
-                                  variant={paid ? "filled" : "outlined"}
-                                  sx={{ borderRadius: 2, fontWeight: 800 }}
-                                />
-                              </Stack>
-                            </Stack>
-                          </CardContent>
-                        </CardActionArea>
-
-                        <Divider />
-
-                        <Box sx={{ p: 1.25 }}>
-                          {/* ✅ Bill button: Green if paid, Amber if unpaid */}
-                          <Button
-                            fullWidth
-                            variant="contained"
-                            color={paid ? "success" : "warning"}
-                            startIcon={<ReceiptLongIcon />}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openInvoice(order);
-                            }}
-                            sx={{ borderRadius: 2, textTransform: "none", fontWeight: 900 }}
-                          >
-                            Bill
-                          </Button>
-                        </Box>
-                      </Card>
-                    </Grid>
-                  );
-                })}
-              </Grid>
+                {loading && orders.length > 0 && (
+                  <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
+                    <LoadingSpinner size={34} />
+                  </Box>
+                )}
+              </>
             )}
           </Paper>
         </Container>
       </Box>
 
-      {/* ✅ UpdateDelivery Modal (MUI Dialog) — FIXED */}
+      {/* ✅ UpdateDelivery Modal */}
       <Dialog
         open={editOpen}
         onClose={closeEditModal}
         fullWidth
         maxWidth="lg"
         TransitionProps={{
-          onExited: () => {
-            // IMPORTANT: clear after the dialog exit animation completes
-            setSelectedOrder(null);
-          },
+          onExited: () => setSelectedOrder(null),
         }}
       >
         <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -725,18 +839,28 @@ export default function AllBills() {
         </DialogTitle>
 
         <DialogContent dividers>
-          {/* ✅ SAFE: UpdateDelivery never receives null */}
           <UpdateDelivery
             mode="edit"
             order={selectedOrder || {}}
             onClose={closeEditModal}
             onOrderPatched={(orderId, patch) => upsertOrderPatch(orderId, patch)}
-            onOrderReplaced={(full) => upsertOrderReplace(full)}
+            onOrderReplaced={(full) => {
+              if (!full) return;
+              const key = getOrderKey(full);
+              if (!key) return;
+              setOrders((prev) => {
+                const idx = prev.findIndex((o) => getOrderKey(o) === key);
+                if (idx === -1) return [full, ...prev];
+                const copy = prev.slice();
+                copy[idx] = { ...prev[idx], ...full };
+                return copy;
+              });
+            }}
           />
         </DialogContent>
       </Dialog>
 
-      {/* ✅ Invoice Modal (kept as-is for functionality) */}
+      {/* ✅ Invoice Modal */}
       <InvoiceModal
         open={showInvoiceModal}
         onClose={closeInvoice}

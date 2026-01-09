@@ -17,7 +17,8 @@ async function chooseBase() {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 1000);
-    const res = await fetch(`${LOCAL_BASE}/health`, { signal: controller.signal });
+    const res = await fetch(`${LOCAL_BASE}/`, { signal: controller.signal });
+
     clearTimeout(timeout);
     API_BASE = res.ok ? LOCAL_BASE : PROD_BASE;
   } catch {
