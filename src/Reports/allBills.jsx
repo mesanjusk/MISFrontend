@@ -1,4 +1,3 @@
-// src/Pages/AllBills.jsx
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { fetchBillListPaged, updateBillStatus } from "../services/orderService";
 import { fetchCustomers } from "../services/customerService";
@@ -85,7 +84,6 @@ const BillCard = React.memo(function BillCard({
         position: "relative",
       }}
     >
-      {/* ✅ Paid toggle button (top-right) */}
       <Tooltip title={paid ? "Mark as unpaid" : "Mark bill as paid"}>
         <IconButton
           size="small"
@@ -192,27 +190,21 @@ export default function AllBills() {
   const [searchOrder, setSearchOrder] = useState("");
   const debouncedSearch = useDebouncedValue(searchOrder, 250);
 
-  // task filter: "", "delivered", "design", "print"
   const [taskFilter, setTaskFilter] = useState("");
-
-  // paid filter: "", "paid", "unpaid"
   const [paidFilter, setPaidFilter] = useState("");
 
-  // backend paging
   const PAGE_SIZE = 50;
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
-  // UpdateDelivery modal state
   const [editOpen, setEditOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
-  // Invoice modal state
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceOrder, setInvoiceOrder] = useState(null);
 
-  /* fallback paidMap (only for old orders until backend is everywhere) */
+  /* ✅ fallback paidMap (only for old orders until backend is everywhere) */
   const [paidMap, setPaidMap] = useState(() => {
     try {
       const raw = localStorage.getItem("bills_paid_map");
@@ -319,14 +311,13 @@ export default function AllBills() {
       if (backend === "paid") return true;
       if (backend === "unpaid") return false;
 
-      // fallback for old records
       const key = getOrderKey(order);
       return Boolean(paidMap?.[key]);
     },
     [getOrderKey, paidMap]
   );
 
-  // Local state upsert helper (no reload)
+  // 🔁 Local state upsert helper (no reload)
   const upsertOrderPatch = useCallback(
     (orderId, patch) => {
       if (!orderId || !patch) return;
@@ -366,7 +357,8 @@ export default function AllBills() {
     [hasBillableAmount, getOrderKey, selectedOrder, invoiceOrder]
   );
 
-  // Paid toggle → backend persists (optimistic)
+  // ✅ Paid toggle → backend persists (optimistic)
+  // ✅ Fix: DO NOT show false alert if network/500 (because DB can still be updated)
   const togglePaid = useCallback(
     async (order) => {
       const key = getOrderKey(order);
@@ -391,9 +383,18 @@ export default function AllBills() {
           return copy;
         });
       } catch (e) {
+        const status = e?.response?.status; // may be undefined for network error
+        const isNetwork = !e?.response;
+
         console.error("Failed to update bill status:", e?.message || e);
 
-        // rollback
+        // ✅ If no response OR server 5xx => likely updated but response failed / timeout
+        // Keep optimistic UI and DON'T show scary alert
+        if (isNetwork || (typeof status === "number" && status >= 500)) {
+          return;
+        }
+
+        // ❌ Real 4xx failure => rollback
         upsertOrderPatch(key, {
           billStatus: currentlyPaid ? "paid" : "unpaid",
           billPaidAt: currentlyPaid ? order?.billPaidAt || null : null,
@@ -450,7 +451,7 @@ export default function AllBills() {
         setTotal(t);
         setPage(nextPage);
 
-        // ✅ compute hasMore correctly without stale closure
+        // ✅ compute hasMore using prev length (no stale closure)
         setOrders((prev) => {
           const next = reset ? rows : [...prev, ...rows];
           setHasMore(next.length < t);
@@ -516,7 +517,6 @@ export default function AllBills() {
     return normalizedOrders.filter((o) => {
       if (!o._billable) return false;
       if (s && !o._customerLower.includes(s)) return false;
-
       if (fTask && o._taskLower !== fTask) return false;
 
       if (fPaid === "paid" && !o._paid) return false;

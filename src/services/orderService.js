@@ -1,4 +1,3 @@
-// src/services/orderService.js
 import axios from "../apiClient.js";
 
 export const fetchOrders = () => axios.get("/order/GetOrderList");
@@ -7,18 +6,15 @@ export const fetchDeliveredOrders = () => axios.get("/order/GetDeliveredList");
 /**
  * ✅ Backend route: /order/updateOrder/:id
  */
-export const updateOrder = (orderId, payload) =>
-  axios.put(`/order/updateOrder/${orderId}`, payload);
+export const updateOrder = (orderId, payload) => axios.put(`/order/updateOrder/${orderId}`, payload);
 
 export const addOrder = (payload) => axios.post("/order/addOrder", payload);
 
 export const fetchBillList = () => axios.get("/order/GetBillList");
 
-export const fetchOrderStepsById = (orderId) =>
-  axios.get(`/order/getStepsByOrderId/${orderId}`);
+export const fetchOrderStepsById = (orderId) => axios.get(`/order/getStepsByOrderId/${orderId}`);
 
-export const updateOrderSteps = (payload) =>
-  axios.post("/order/updateOrderSteps", payload);
+export const updateOrderSteps = (payload) => axios.post("/order/updateOrderSteps", payload);
 
 export const toggleOrderStep = (payload) => axios.post("/order/steps/toggle", payload);
 
@@ -27,7 +23,7 @@ export const addOrderStatus = (payload) => axios.post("/order/addStatus", payloa
 export const updateOrderDelivery = (orderId, payload) =>
   axios.put(`/order/updateDelivery/${orderId}`, payload);
 
-/* ---------------- Bills: Paged + Paid/Unpaid ---------------- */
+/* ---------------- Bills: NEW ---------------- */
 
 /**
  * ✅ Paginated bills list
@@ -48,7 +44,7 @@ export const fetchBillListPaged = ({
 /**
  * ✅ Persist paid/unpaid
  * PATCH /order/bills/:id/status
- * Body: { billStatus: "paid" | "unpaid", paidBy?, paidNote?, txnUuid?, txnId? }
+ * Body MUST be: { billStatus: "paid" | "unpaid", paidBy?, paidNote?, txnUuid?, txnId? }
  */
 export const updateBillStatus = (orderId, billStatus, meta = {}) => {
   return axios.patch(`/order/bills/${orderId}/status`, {
