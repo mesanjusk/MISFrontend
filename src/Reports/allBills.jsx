@@ -1,3 +1,4 @@
+// src/Pages/AllBills.jsx
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { fetchBillListPaged, updateBillStatus } from "../services/orderService";
 import { fetchCustomers } from "../services/customerService";
@@ -84,6 +85,7 @@ const BillCard = React.memo(function BillCard({
         position: "relative",
       }}
     >
+      {/* ✅ Paid toggle button (top-right) */}
       <Tooltip title={paid ? "Mark as unpaid" : "Mark bill as paid"}>
         <IconButton
           size="small"
@@ -121,7 +123,12 @@ const BillCard = React.memo(function BillCard({
               {statusChip(order?.highestStatusTask?.Task)}
             </Stack>
 
-            <Typography variant="body2" sx={{ fontWeight: 800 }} noWrap title={order?.Customer_name || ""}>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 800 }}
+              noWrap
+              title={order?.Customer_name || ""}
+            >
               {order?.Customer_name || "Unknown"}
             </Typography>
 
@@ -185,20 +192,27 @@ export default function AllBills() {
   const [searchOrder, setSearchOrder] = useState("");
   const debouncedSearch = useDebouncedValue(searchOrder, 250);
 
+  // task filter: "", "delivered", "design", "print"
   const [taskFilter, setTaskFilter] = useState("");
+
+  // paid filter: "", "paid", "unpaid"
   const [paidFilter, setPaidFilter] = useState("");
 
+  // backend paging
   const PAGE_SIZE = 50;
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
+  // UpdateDelivery modal state
   const [editOpen, setEditOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
+  // Invoice modal state
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceOrder, setInvoiceOrder] = useState(null);
 
+  /* fallback paidMap (only for old orders until backend is everywhere) */
   const [paidMap, setPaidMap] = useState(() => {
     try {
       const raw = localStorage.getItem("bills_paid_map");
@@ -304,16 +318,20 @@ export default function AllBills() {
       const backend = String(order?.billStatus || "").toLowerCase().trim();
       if (backend === "paid") return true;
       if (backend === "unpaid") return false;
+
+      // fallback for old records
       const key = getOrderKey(order);
       return Boolean(paidMap?.[key]);
     },
     [getOrderKey, paidMap]
   );
 
+  // Local state upsert helper (no reload)
   const upsertOrderPatch = useCallback(
     (orderId, patch) => {
       if (!orderId || !patch) return;
 
+      // remove order if becomes non-billable
       if (patch.Items && !hasBillableAmount(patch.Items)) {
         setOrders((prev) => prev.filter((o) => getOrderKey(o) !== String(orderId)));
 
@@ -348,6 +366,7 @@ export default function AllBills() {
     [hasBillableAmount, getOrderKey, selectedOrder, invoiceOrder]
   );
 
+  // Paid toggle → backend persists (optimistic)
   const togglePaid = useCallback(
     async (order) => {
       const key = getOrderKey(order);
@@ -356,6 +375,7 @@ export default function AllBills() {
       const currentlyPaid = isPaid(order);
       const nextStatus = currentlyPaid ? "unpaid" : "paid";
 
+      // optimistic UI
       upsertOrderPatch(key, {
         billStatus: nextStatus,
         billPaidAt: nextStatus === "paid" ? new Date().toISOString() : null,
@@ -364,6 +384,7 @@ export default function AllBills() {
       try {
         await updateBillStatus(key, nextStatus, { paidBy: "admin" });
 
+        // remove local fallback for this order once saved in backend
         setPaidMap((prev) => {
           const copy = { ...(prev || {}) };
           delete copy[key];
@@ -372,6 +393,7 @@ export default function AllBills() {
       } catch (e) {
         console.error("Failed to update bill status:", e?.message || e);
 
+        // rollback
         upsertOrderPatch(key, {
           billStatus: currentlyPaid ? "paid" : "unpaid",
           billPaidAt: currentlyPaid ? order?.billPaidAt || null : null,
@@ -428,7 +450,7 @@ export default function AllBills() {
         setTotal(t);
         setPage(nextPage);
 
-        // ✅ compute hasMore using prev length (no stale closure)
+        // ✅ compute hasMore correctly without stale closure
         setOrders((prev) => {
           const next = reset ? rows : [...prev, ...rows];
           setHasMore(next.length < t);
@@ -446,13 +468,17 @@ export default function AllBills() {
     [PAGE_SIZE, debouncedSearch, taskFilter, paidFilter]
   );
 
+  // initial load
   useEffect(() => {
     loadBillsPage(1, true);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+  // reload page 1 when filters/search change
   useEffect(() => {
     loadBillsPage(1, true);
-  }, [debouncedSearch, taskFilter, paidFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, taskFilter, paidFilter]);
 
   /* ----------------------- derived lists ----------------------- */
   const normalizedOrders = useMemo(() => {
@@ -463,6 +489,8 @@ export default function AllBills() {
       const billTotal = items.reduce((sum, it) => sum + resolveAmount(it), 0);
 
       const customerName = customers?.[order?.Customer_uuid] || "Unknown";
+      const taskLower = String(highestStatusTask?.Task || "").toLowerCase().trim();
+
       const billable = hasBillableAmount(items);
       const paid = isPaid(order);
 
@@ -473,19 +501,30 @@ export default function AllBills() {
         billTotal,
         _billable: billable,
         _customerLower: String(customerName).toLowerCase(),
+        _taskLower: taskLower,
         _paid: paid,
       };
     });
   }, [orders, customers, hasBillableAmount, isPaid]);
 
+  // since backend already filters, this is mostly safety
   const filteredOrders = useMemo(() => {
     const s = String(debouncedSearch || "").toLowerCase().trim();
+    const fTask = String(taskFilter || "").toLowerCase().trim();
+    const fPaid = String(paidFilter || "").toLowerCase().trim();
+
     return normalizedOrders.filter((o) => {
       if (!o._billable) return false;
       if (s && !o._customerLower.includes(s)) return false;
+
+      if (fTask && o._taskLower !== fTask) return false;
+
+      if (fPaid === "paid" && !o._paid) return false;
+      if (fPaid === "unpaid" && o._paid) return false;
+
       return true;
     });
-  }, [normalizedOrders, debouncedSearch]);
+  }, [normalizedOrders, debouncedSearch, taskFilter, paidFilter]);
 
   const totals = useMemo(() => {
     const count = filteredOrders.length;
@@ -497,17 +536,19 @@ export default function AllBills() {
     const doc = new jsPDF();
     doc.text("Bills Report (Loaded Rows)", 14, 15);
     doc.autoTable({
-      head: [[
-        "Order Number",
-        "Customer Name",
-        "Created Date",
-        "Remark",
-        "Delivery Date",
-        "Assigned",
-        "Highest Status Task",
-        "Paid",
-        "Total",
-      ]],
+      head: [
+        [
+          "Order Number",
+          "Customer Name",
+          "Created Date",
+          "Remark",
+          "Delivery Date",
+          "Assigned",
+          "Highest Status Task",
+          "Paid",
+          "Total",
+        ],
+      ],
       body: filteredOrders.map((order) => [
         order.Order_Number || "",
         order.Customer_name || "",
@@ -581,6 +622,7 @@ export default function AllBills() {
           rate,
           amount,
           remark: String(it?.Remark || ""),
+
           Item: name,
           Qty: qty,
           Rate: rate,
@@ -610,7 +652,11 @@ export default function AllBills() {
   };
 
   const showingText =
-    total > 0 ? `Showing ${Math.min(orders.length, total)}/${total}` : filteredOrders.length > 0 ? `Showing ${filteredOrders.length}` : "";
+    total > 0
+      ? `Showing ${Math.min(orders.length, total)}/${total}`
+      : filteredOrders.length > 0
+      ? `Showing ${filteredOrders.length}`
+      : "";
 
   return (
     <>
@@ -631,8 +677,13 @@ export default function AllBills() {
         </AppBar>
 
         <Container maxWidth={false} sx={{ maxWidth: 2200, py: 2 }}>
+          {/* Filters + Exports */}
           <Paper variant="outlined" sx={{ borderRadius: 3, p: 2, mb: 2 }}>
-            <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} alignItems={{ xs: "stretch", md: "center" }}>
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              spacing={1.5}
+              alignItems={{ xs: "stretch", md: "center" }}
+            >
               <TextField
                 value={searchOrder}
                 onChange={(e) => setSearchOrder(e.target.value)}
@@ -703,6 +754,7 @@ export default function AllBills() {
             </Stack>
           </Paper>
 
+          {/* Content */}
           <Paper variant="outlined" sx={{ borderRadius: 3, p: { xs: 1.5, sm: 2 } }}>
             {loading && orders.length === 0 ? (
               <Grid container spacing={1.5}>
@@ -772,12 +824,15 @@ export default function AllBills() {
         </Container>
       </Box>
 
+      {/* ✅ UpdateDelivery Modal */}
       <Dialog
         open={editOpen}
         onClose={closeEditModal}
         fullWidth
         maxWidth="lg"
-        TransitionProps={{ onExited: () => setSelectedOrder(null) }}
+        TransitionProps={{
+          onExited: () => setSelectedOrder(null),
+        }}
       >
         <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           Update Delivery
@@ -809,6 +864,7 @@ export default function AllBills() {
         </DialogContent>
       </Dialog>
 
+      {/* ✅ Invoice Modal */}
       <InvoiceModal
         open={showInvoiceModal}
         onClose={closeInvoice}

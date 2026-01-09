@@ -1,3 +1,4 @@
+// src/services/orderService.js
 import axios from "../apiClient.js";
 
 export const fetchOrders = () => axios.get("/order/GetOrderList");
@@ -26,7 +27,7 @@ export const addOrderStatus = (payload) => axios.post("/order/addStatus", payloa
 export const updateOrderDelivery = (orderId, payload) =>
   axios.put(`/order/updateDelivery/${orderId}`, payload);
 
-/* ---------------- Bills: NEW ---------------- */
+/* ---------------- Bills: Paged + Paid/Unpaid ---------------- */
 
 /**
  * ✅ Paginated bills list
@@ -47,7 +48,7 @@ export const fetchBillListPaged = ({
 /**
  * ✅ Persist paid/unpaid
  * PATCH /order/bills/:id/status
- * Body MUST be: { billStatus: "paid" | "unpaid", paidBy?, paidNote?, txnUuid?, txnId? }
+ * Body: { billStatus: "paid" | "unpaid", paidBy?, paidNote?, txnUuid?, txnId? }
  */
 export const updateBillStatus = (orderId, billStatus, meta = {}) => {
   return axios.patch(`/order/bills/${orderId}/status`, {
