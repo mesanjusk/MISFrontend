@@ -93,6 +93,12 @@ export default function Sidebar({ collapsed, onExpand, onCollapse }) {
       ],
     },
     {
+      group: "WhatsApp",
+      items: [
+        { label: "Cloud API Dashboard", path: "/whatsapp-cloud" },
+      ],
+    },
+    {
       group: "Admin",
       items:
         userGroup === "Admin User"

@@ -74,6 +74,7 @@ import SendMessageAll from "./Pages/SendMessageAll";
 import WhatsAppLogin from "./Pages/WhatsAppLogin";
 import WhatsAppSession from "./Pages/WhatsAppSession";
 import WhatsAppAdminPanel from "./Pages/WhatsAppAdminPanel";
+import WhatsAppCloudDashboard from "./Pages/WhatsAppCloudDashboard";
 
 /* ---------------------------- Others ---------------------------------- */
 import PendingTasks from "./Pages/PendingTasks";
@@ -175,6 +176,7 @@ function App() {
             <Route path="/WhatsAppLogin" element={<WhatsAppLogin />} />
             <Route path="/WhatsAppAdminPanel" element={<WhatsAppAdminPanel />} />
             <Route path="/WhatsAppSession" element={<WhatsAppSession />} />
+            <Route path="/whatsapp-cloud" element={<WhatsAppCloudDashboard />} />
 
             {/* Others */}
             <Route path="/PendingTasks" element={<PendingTasks />} />
