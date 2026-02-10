@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types';
+
 const statusClasses = {
   sent: 'bg-blue-100 text-blue-700',
   delivered: 'bg-amber-100 text-amber-700',
@@ -56,3 +58,10 @@ export default function WebhookLogsPanel({ logs, loading, error, onRefresh }) {
     </section>
   );
 }
+
+WebhookLogsPanel.propTypes = {
+  logs: PropTypes.arrayOf(PropTypes.object),
+  loading: PropTypes.bool,
+  error: PropTypes.string,
+  onRefresh: PropTypes.func,
+};

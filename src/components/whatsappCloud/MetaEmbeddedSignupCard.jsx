@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { toast } from '../../Components';
 import { useMetaEmbeddedSignupSdk } from '../../hooks/useMetaEmbeddedSignup';
 import { whatsappCloudService } from '../../services/whatsappCloudService';
@@ -25,6 +26,10 @@ export default function MetaEmbeddedSignupCard({ onConnected }) {
     window.FB.login(
       async (response) => {
         try {
+          if (!response || response.status !== 'connected') {
+            throw new Error('Meta signup was cancelled or not completed.');
+          }
+
           const code = response?.authResponse?.code;
           if (!code) throw new Error('Meta did not return an authorization code.');
 
@@ -69,3 +74,7 @@ export default function MetaEmbeddedSignupCard({ onConnected }) {
     </section>
   );
 }
+
+MetaEmbeddedSignupCard.propTypes = {
+  onConnected: PropTypes.func,
+};

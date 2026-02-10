@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import PropTypes from 'prop-types';
 import { toast } from '../../Components';
 import { whatsappCloudService } from '../../services/whatsappCloudService';
 import { parseApiError } from '../../utils/parseApiError';
@@ -18,6 +19,10 @@ export default function SendMessagePanel({ selectedAccountId, selectedTemplateNa
   const [isSending, setIsSending] = useState(false);
 
   const updateField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  useEffect(() => {
+    setForm((prev) => ({ ...defaultForm, recipient: prev.recipient }));
+  }, [selectedAccountId]);
 
   const validateBeforeSend = () => {
     if (!selectedAccountId) return 'Select an account before sending.';
@@ -70,7 +75,7 @@ export default function SendMessagePanel({ selectedAccountId, selectedTemplateNa
       const response = await whatsappCloudService.sendMessage(payload);
       toast.success('Message sent successfully.');
       onMessageSent?.(response.data?.data || response.data);
-      setForm(defaultForm);
+      setForm((prev) => ({ ...defaultForm, recipient: prev.recipient }));
     } catch (err) {
       toast.error(parseApiError(err, 'Failed to send message.'));
     } finally {
@@ -172,3 +177,10 @@ export default function SendMessagePanel({ selectedAccountId, selectedTemplateNa
     </section>
   );
 }
+
+SendMessagePanel.propTypes = {
+  selectedAccountId: PropTypes.string,
+  selectedTemplateName: PropTypes.string,
+  templateVariables: PropTypes.object,
+  onMessageSent: PropTypes.func,
+};

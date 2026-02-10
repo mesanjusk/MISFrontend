@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { createContext, useContext, useMemo, useReducer } from 'react';
 
 const initialState = {
@@ -36,6 +37,10 @@ export function WhatsAppCloudProvider({ children }) {
 
   return <WhatsAppCloudContext.Provider value={value}>{children}</WhatsAppCloudContext.Provider>;
 }
+
+WhatsAppCloudProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};
 
 export function useWhatsAppCloudState() {
   const context = useContext(WhatsAppCloudContext);

@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import PropTypes from 'prop-types';
 
 function extractVariables(template) {
   const body = template?.components?.find((item) => item.type === 'BODY');
@@ -13,6 +14,10 @@ export default function TemplatesPanel({ templates, loading, error, selectedTemp
   );
 
   const [variables, setVariables] = useState({});
+
+  useEffect(() => {
+    setVariables({});
+  }, [selectedTemplateName]);
 
   const variableKeys = useMemo(() => extractVariables(selectedTemplate), [selectedTemplate]);
 
@@ -32,7 +37,7 @@ export default function TemplatesPanel({ templates, loading, error, selectedTemp
       <label className="block text-sm text-gray-700 mt-4 mb-1">Template</label>
       <select
         value={selectedTemplateName}
-        onChange={(event) => onTemplateChange(event.target.value, variables)}
+        onChange={(event) => onTemplateChange(event.target.value, {})}
         className="w-full rounded-lg border border-gray-300 px-3 py-2"
       >
         <option value="">Select template</option>
@@ -76,3 +81,11 @@ export default function TemplatesPanel({ templates, loading, error, selectedTemp
     </section>
   );
 }
+
+TemplatesPanel.propTypes = {
+  templates: PropTypes.arrayOf(PropTypes.object),
+  loading: PropTypes.bool,
+  error: PropTypes.string,
+  selectedTemplateName: PropTypes.string,
+  onTemplateChange: PropTypes.func.isRequired,
+};

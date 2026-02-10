@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { toast } from '../../Components';
 import { whatsappCloudService } from '../../services/whatsappCloudService';
 import { parseApiError } from '../../utils/parseApiError';
@@ -69,3 +70,12 @@ export default function WhatsAppAccountsPanel({ accounts, loading, error, select
     </section>
   );
 }
+
+WhatsAppAccountsPanel.propTypes = {
+  accounts: PropTypes.arrayOf(PropTypes.object),
+  loading: PropTypes.bool,
+  error: PropTypes.string,
+  selectedAccountId: PropTypes.string,
+  onSelectAccount: PropTypes.func.isRequired,
+  onReload: PropTypes.func,
+};

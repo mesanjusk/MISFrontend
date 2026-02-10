@@ -93,7 +93,6 @@ function WhatsAppCloudDashboardContent() {
           error={error.templates}
           selectedTemplateName={selectedTemplateName}
           onTemplateChange={handleTemplateChange}
-          onReload={reloadTemplates}
         />
       ) : null}
 
