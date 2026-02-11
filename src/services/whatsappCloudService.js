@@ -4,8 +4,10 @@ export const whatsappCloudService = {
   exchangeEmbeddedSignupCode: (payload) =>
     apiClient.post('/whatsapp-cloud/embedded-signup/exchange-code', payload),
 
-  getAccounts: () => apiClient.get('/whatsapp-cloud/accounts'),
-  disconnectAccount: (accountId) => apiClient.delete(`/whatsapp-cloud/accounts/${accountId}`),
+  getAccounts: () => apiClient.get('/api/whatsapp/accounts
+'),
+  disconnectAccount: (accountId) => apiClient.delete(`/api/whatsapp/accounts
+/${accountId}`),
 
   getTemplates: (accountId) =>
     apiClient.get('/whatsapp-cloud/templates', { params: accountId ? { accountId } : {} }),
