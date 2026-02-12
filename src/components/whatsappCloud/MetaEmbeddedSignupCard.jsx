@@ -9,7 +9,7 @@ export default function MetaEmbeddedSignupCard({ onConnected }) {
   const { isReady, sdkError } = useMetaEmbeddedSignupSdk();
   const [isConnecting, setIsConnecting] = useState(false);
 
-  const startEmbeddedSignup = async () => {
+  const startEmbeddedSignup = () => {
     if (!window.FB || !isReady) {
       toast.error('Facebook SDK is not ready yet.');
       return;
@@ -24,23 +24,35 @@ export default function MetaEmbeddedSignupCard({ onConnected }) {
     setIsConnecting(true);
 
     window.FB.login(
-      async (response) => {
-        try {
-          if (!response || response.status !== 'connected') {
-            throw new Error('Meta signup was cancelled or not completed.');
+      (response) => {
+        const handleResponse = async () => {
+          try {
+            if (!response || response.status !== 'connected') {
+              throw new Error('Meta signup was cancelled or not completed.');
+            }
+
+            const code = response?.authResponse?.code;
+            if (!code) {
+              throw new Error('Meta did not return an authorization code.');
+            }
+
+            await whatsappCloudService.exchangeEmbeddedSignupCode({ code });
+
+            toast.success('WhatsApp account connected successfully.');
+
+            if (onConnected) {
+              onConnected();
+            }
+          } catch (error) {
+            toast.error(
+              parseApiError(error, 'Unable to complete Meta signup.')
+            );
+          } finally {
+            setIsConnecting(false);
           }
+        };
 
-          const code = response?.authResponse?.code;
-          if (!code) throw new Error('Meta did not return an authorization code.');
-
-          await whatsappCloudService.exchangeEmbeddedSignupCode({ code });
-          toast.success('WhatsApp account connected successfully.');
-          onConnected?.();
-        } catch (error) {
-          toast.error(parseApiError(error, 'Unable to complete Meta signup.'));
-        } finally {
-          setIsConnecting(false);
-        }
+        handleResponse();
       },
       {
         config_id: configId,
@@ -50,18 +62,24 @@ export default function MetaEmbeddedSignupCard({ onConnected }) {
           feature: 'whatsapp_embedded_signup',
           sessionInfoVersion: 3,
         },
-      },
+      }
     );
   };
 
   return (
     <section className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-      <h2 className="text-lg font-semibold text-gray-800">Meta Embedded Signup</h2>
+      <h2 className="text-lg font-semibold text-gray-800">
+        Meta Embedded Signup
+      </h2>
+
       <p className="text-sm text-gray-600 mt-1">
-        Securely connect WhatsApp Business accounts. Only temporary authorization code is handled in frontend.
+        Securely connect WhatsApp Business accounts. Only temporary
+        authorization code is handled in frontend.
       </p>
 
-      {sdkError ? <p className="text-red-600 text-sm mt-3">{sdkError}</p> : null}
+      {sdkError && (
+        <p className="text-red-600 text-sm mt-3">{sdkError}</p>
+      )}
 
       <button
         type="button"
