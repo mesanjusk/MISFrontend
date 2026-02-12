@@ -20,47 +20,58 @@ export default function Login() {
 
     async function submit(e) {
         e.preventDefault();
-    
+
         try {
             const response = await axios.post("/user/login", {
                 User_name,
                 Password
             });
+
             const data = response.data;
-    
+
             if (data.status === "notexist") {
                 alert("User has not signed up");
                 return;
-            } else if (data.status === "invalid") {
+            }
+
+            if (data.status === "invalid") {
                 alert("Invalid credentials. Please check your username and password.");
                 return;
             }
 
-            const userGroup = data.userGroup;
-            const userMob =  data.userMob;
-            if (!userGroup) {
-                alert("User group not found in API response");
+            // ✅ IMPORTANT: Store JWT Token
+            if (!data.token) {
+                alert("Login successful but token not received from server.");
+                console.error("Token missing in response:", data);
                 return;
             }
 
+            localStorage.setItem("token", data.token);
+
+            // ✅ Store user info in context
             setAuthData({
                 userName: User_name,
-                userGroup,
-                mobileNumber: userMob,
+                userGroup: data.userGroup,
+                mobileNumber: data.userMob,
             });
-            const target = userGroup === "Vendor" ? "/vendorHome" : "/home";
+
+            const target = data.userGroup === "Vendor" ? "/vendorHome" : "/home";
             navigate(target, { replace: true });
-        } catch (e) {
+
+        } catch (error) {
+            console.error("Login error:", error);
             alert("An error occurred during login. Please try again.");
-            console.log(e);
         }
     }
-    
+
     return (
         <div className="flex justify-center items-center min-h-screen bg-background">
             <MobileContainer>
                 <Card>
-                    <h1 className="text-xl font-semibold mb-4 text-center flex items-center justify-center"><FiUser className="mr-2" />Login</h1>
+                    <h1 className="text-xl font-semibold mb-4 text-center flex items-center justify-center">
+                        <FiUser className="mr-2" />
+                        Login
+                    </h1>
                     <form onSubmit={submit}>
                         <InputField
                             label="User Name"
