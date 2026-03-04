@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { toast } from '../../Components';
 import { parseApiError } from '../../utils/parseApiError';
+import { whatsappCloudService } from '../../services/whatsappCloudService';
 
 const initialForm = {
   to: '',
@@ -29,7 +29,7 @@ export default function SendMessagePanel() {
 
     try {
       setIsSending(true);
-      await axios.post('/api/whatsapp/send-text', {
+      await whatsappCloudService.sendTextMessage({
         to: form.to.trim(),
         body: form.body.trim(),
       });

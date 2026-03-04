@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
 import { toast } from '../../Components';
 import { parseApiError } from '../../utils/parseApiError';
+import { whatsappCloudService } from '../../services/whatsappCloudService';
 
 const getMessageText = (message) => {
   if (typeof message.body === 'string') return message.body;
@@ -42,7 +42,7 @@ export default function MessagesPanel() {
   const loadMessages = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get('/api/whatsapp/messages');
+      const response = await whatsappCloudService.getMessages();
       const payload = response?.data?.data ?? response?.data ?? [];
       setMessages(Array.isArray(payload) ? payload : []);
     } catch (error) {
