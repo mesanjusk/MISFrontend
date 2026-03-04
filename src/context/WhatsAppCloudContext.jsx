@@ -2,17 +2,11 @@ import PropTypes from 'prop-types';
 import { createContext, useContext, useMemo, useReducer } from 'react';
 
 const initialState = {
-  selectedAccountId: '',
-  selectedTemplateName: '',
   lastMessageResult: null,
 };
 
 function reducer(state, action) {
   switch (action.type) {
-    case 'setSelectedAccountId':
-      return { ...state, selectedAccountId: action.payload };
-    case 'setSelectedTemplateName':
-      return { ...state, selectedTemplateName: action.payload };
     case 'setLastMessageResult':
       return { ...state, lastMessageResult: action.payload };
     default:
@@ -28,8 +22,6 @@ export function WhatsAppCloudProvider({ children }) {
   const value = useMemo(
     () => ({
       ...state,
-      setSelectedAccountId: (value) => dispatch({ type: 'setSelectedAccountId', payload: value }),
-      setSelectedTemplateName: (value) => dispatch({ type: 'setSelectedTemplateName', payload: value }),
       setLastMessageResult: (value) => dispatch({ type: 'setLastMessageResult', payload: value }),
     }),
     [state],

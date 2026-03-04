@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import SendMessagePanel from '../components/whatsappCloud/SendMessagePanel';
+import MessagesPanel from '../components/whatsappCloud/MessagesPanel';
 
 const tabs = [
   { key: 'send', label: 'Send Message' },
+  { key: 'inbox', label: 'Inbox' },
 ];
 
 export default function WhatsAppCloudDashboard() {
@@ -24,7 +26,6 @@ export default function WhatsAppCloudDashboard() {
         </p>
       </header>
 
-      {/* Tabs */}
       <nav className="flex gap-2">
         {tabs.map((tab) => (
           <button
@@ -41,9 +42,8 @@ export default function WhatsAppCloudDashboard() {
         ))}
       </nav>
 
-      {activeTab === 'send' && (
-        <SendMessagePanel />
-      )}
+      {activeTab === 'send' ? <SendMessagePanel /> : null}
+      {activeTab === 'inbox' ? <MessagesPanel /> : null}
     </div>
   );
 }
