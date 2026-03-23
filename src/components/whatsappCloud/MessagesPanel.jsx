@@ -9,6 +9,7 @@ const SOCKET_URL = 'http://localhost:5000';
 const getMessageText = (message) => {
   if (typeof message?.body === 'string' && message.body.trim()) return message.body;
   if (typeof message?.text === 'string' && message.text.trim()) return message.text;
+  if (typeof message?.text?.body === 'string' && message.text.body.trim()) return message.text.body;
   if (typeof message?.message === 'string' && message.message.trim()) return message.message;
   return 'Unsupported message payload';
 };
@@ -39,18 +40,44 @@ const getTimestamp = (message) => {
 };
 
 const normalizeMessages = (payload) => {
-  if (Array.isArray(payload)) return payload.filter(Boolean);
-  if (Array.isArray(payload?.messages)) return payload.messages.filter(Boolean);
-  if (Array.isArray(payload?.items)) return payload.items.filter(Boolean);
-  return [];
+  const candidateLists = [
+    payload,
+    payload?.messages,
+    payload?.items,
+    payload?.data,
+    payload?.data?.messages,
+    payload?.data?.items,
+  ];
+
+  const matchedList = candidateLists.find(Array.isArray);
+  return matchedList ? matchedList.filter(Boolean) : [];
 };
 
-const getMessageKey = (message, index = 0) => (
+const normalizeIncomingMessage = (message) => {
+  if (!message || typeof message !== 'object') return null;
+
+  if (message?.data && typeof message.data === 'object' && !Array.isArray(message.data)) {
+    return message.data;
+  }
+
+  if (message?.message && typeof message.message === 'object' && !Array.isArray(message.message)) {
+    return message.message;
+  }
+
+  return message;
+};
+
+const getMessageIdentity = (message) => (
   message?.id
   ?? message?._id
   ?? message?.messageId
   ?? message?.wamid
-  ?? `${message?.timestamp ?? message?.createdAt ?? message?.time ?? 'no-time'}-${message?.from ?? message?.sender ?? 'unknown-from'}-${message?.to ?? message?.recipient ?? 'unknown-to'}-${index}`
+  ?? [
+    message?.timestamp ?? message?.createdAt ?? message?.time ?? 'no-time',
+    message?.from ?? message?.sender ?? 'unknown-from',
+    message?.to ?? message?.recipient ?? 'unknown-to',
+    getMessageText(message),
+  ].join('-')
 );
 
 export default function MessagesPanel() {
@@ -58,16 +85,17 @@ export default function MessagesPanel() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesContainerRef = useRef(null);
 
-  const appendMessage = useCallback((message) => {
-    if (!message || typeof message !== 'object') return;
+  const appendMessage = useCallback((incomingMessage) => {
+    const message = normalizeIncomingMessage(incomingMessage);
+    if (!message) return;
 
     setMessages((prev) => {
-      const nextMessageKey = getMessageKey(message);
-      const exists = prev.some((item, index) => getMessageKey(item, index) === nextMessageKey);
+      const nextMessageIdentity = getMessageIdentity(message);
+      const exists = prev.some((item) => getMessageIdentity(item) === nextMessageIdentity);
 
       if (exists) {
-        return prev.map((item, index) => (
-          getMessageKey(item, index) === nextMessageKey ? { ...item, ...message } : item
+        return prev.map((item) => (
+          getMessageIdentity(item) === nextMessageIdentity ? { ...item, ...message } : item
         ));
       }
 
@@ -139,7 +167,7 @@ export default function MessagesPanel() {
         ) : null}
 
         <div className="space-y-3">
-          {orderedMessages.map((message, index) => {
+          {orderedMessages.map((message) => {
             const direction = getMessageDirection(message);
             const isOutgoing = direction === 'outgoing';
             const status = message?.status ?? 'unknown';
@@ -148,7 +176,7 @@ export default function MessagesPanel() {
 
             return (
               <article
-                key={getMessageKey(message, index)}
+                key={getMessageIdentity(message)}
                 className={`max-w-[85%] rounded-xl px-3 py-2 shadow-sm ${
                   isOutgoing
                     ? 'ml-auto bg-blue-600 text-white'
