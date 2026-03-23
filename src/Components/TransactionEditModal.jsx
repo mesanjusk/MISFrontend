@@ -1,27 +1,6 @@
 // src/Components/TransactionEditModal.jsx
 import React, { useEffect, useMemo, useState } from "react";
 
-/**
- * Reusable Transaction Edit Modal
- *
- * Props:
- * - open: boolean
- * - onClose: () => void
- * - onSave: (payload) => Promise<void> | void
- * - initialData: {
- *     Transaction_id: string;
- *     Transaction_date: string|Date;
- *     Amount: number;
- *     Description: string;
- *     Credit_id: string;
- *     Debit_id: string;
- *   }
- * - customers: [{ Customer_uuid, Customer_name }]
- *
- * Behavior:
- * - Dropdowns are alphabetical; native type-to-search supported.
- * - Save button is disabled until required fields are filled.
- */
 export default function TransactionEditModal({
   open,
   onClose,
@@ -31,6 +10,7 @@ export default function TransactionEditModal({
 }) {
   const [form, setForm] = useState(() => ({
     Transaction_id: "",
+    Transaction_uuid: "", // ✅ FIX ADDED
     Transaction_date: "",
     Amount: 0,
     Description: "",
@@ -42,8 +22,14 @@ export default function TransactionEditModal({
     if (open && initialData) {
       setForm({
         Transaction_id: initialData.Transaction_id || "",
+        Transaction_uuid: initialData.Transaction_uuid || "", // ✅ FIX
         Transaction_date: normalizeDateInput(initialData.Transaction_date),
-        Amount: Number(initialData.Amount || initialData.CreditAmount || initialData.DebitAmount || 0),
+        Amount: Number(
+          initialData.Amount ||
+          initialData.CreditAmount ||
+          initialData.DebitAmount ||
+          0
+        ),
         Description: initialData.Description || "",
         Credit_id: initialData.Credit_id || "",
         Debit_id: initialData.Debit_id || "",
@@ -53,7 +39,11 @@ export default function TransactionEditModal({
 
   const sortedCustomers = useMemo(() => {
     return [...customers].sort((a, b) =>
-      String(a.Customer_name || "").localeCompare(String(b.Customer_name || ""), "en", { sensitivity: "base" })
+      String(a.Customer_name || "").localeCompare(
+        String(b.Customer_name || ""),
+        "en",
+        { sensitivity: "base" }
+      )
     );
   }, [customers]);
 
@@ -71,15 +61,17 @@ export default function TransactionEditModal({
 
   const handleSave = async () => {
     if (!canSave) return;
-    // Standardize payload for the caller
+
     const payload = {
       Transaction_id: form.Transaction_id,
+      Transaction_uuid: form.Transaction_uuid, // ✅ FIX (IMPORTANT)
       Transaction_date: new Date(form.Transaction_date).toISOString(),
       Amount: Number(form.Amount),
       Description: form.Description || "",
       Credit_id: form.Credit_id,
       Debit_id: form.Debit_id,
     };
+
     await onSave?.(payload);
   };
 
@@ -89,14 +81,18 @@ export default function TransactionEditModal({
         <h3 className="text-lg font-semibold mb-4">Edit Transaction</h3>
 
         <div className="space-y-4">
-          <div className="text-xs text-gray-500">Txn ID: {form.Transaction_id}</div>
+          <div className="text-xs text-gray-500">
+            Txn ID: {form.Transaction_id}
+          </div>
 
           <label className="block text-sm">
             Date:
             <input
               type="date"
               value={form.Transaction_date}
-              onChange={(e) => handleChange("Transaction_date", e.target.value)}
+              onChange={(e) =>
+                handleChange("Transaction_date", e.target.value)
+              }
               className="w-full mt-1 border p-2 rounded"
             />
           </label>
@@ -160,7 +156,9 @@ export default function TransactionEditModal({
           </button>
           <button
             className={`px-4 py-2 rounded ${
-              !canSave ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"
+              !canSave
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-600 text-white hover:bg-blue-700"
             }`}
             disabled={!canSave}
             onClick={handleSave}
@@ -173,12 +171,10 @@ export default function TransactionEditModal({
   );
 }
 
-/** Normalize various date inputs to yyyy-MM-dd for <input type="date" /> */
 function normalizeDateInput(date) {
   if (!date) return "";
   const d = new Date(date);
   if (isNaN(d.getTime())) return "";
-  // convert to local yyyy-MM-dd
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
