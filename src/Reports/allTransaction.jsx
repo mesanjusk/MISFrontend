@@ -78,7 +78,8 @@ const AllTransaction = () => {
         '';
 
       return {
-        Transaction_id: txn.Transaction_id,
+        
+        Transaction_uuid: txn.Transaction_uuid,
         Transaction_date: txn.Transaction_date,
         Order_number: orderNo,
         Description: txn.Description || '',
@@ -136,11 +137,11 @@ const AllTransaction = () => {
   }, [transactions, searchQuery, dateFrom, dateTo, sortConfig, customerMap]);
 
   useEffect(() => {
-    setSelectedIds((prev) => prev.filter((id) => filteredEntries.some((g) => g.Transaction_id === id)));
+    setSelectedIds((prev) => prev.filter((id) => filteredEntries.some((g) => g.Transaction_uuid === id)));
   }, [filteredEntries]);
 
   const allVisibleSelected = useMemo(
-    () => filteredEntries.length > 0 && filteredEntries.every((t) => selectedIds.includes(t.Transaction_id)),
+    () => filteredEntries.length > 0 && filteredEntries.every((t) => selectedIds.includes(t.Transaction_uuid)),
     [filteredEntries, selectedIds]
   );
 
@@ -153,7 +154,7 @@ const AllTransaction = () => {
 
   const exportToExcel = () => {
     const exportRows = filteredEntries.map((txn) => ({
-      No: txn.Transaction_id,
+      No: txn.Transaction_uuid,
       'Order No': txn.Order_number || '',
       Date: formatDate(txn.Transaction_date),
       'Credit Name': customerMap[txn.Credit_id] || '-',
@@ -172,7 +173,7 @@ const AllTransaction = () => {
     doc.autoTable({
       head: [['No', 'Order No', 'Date', 'Credit Name', 'Credit', 'Debit Name', 'Debit']],
       body: filteredEntries.map((txn) => [
-        txn.Transaction_id,
+        txn.Transaction_uuid,
         txn.Order_number || '',
         formatDate(txn.Transaction_date),
         customerMap[txn.Credit_id] || '-',
@@ -195,7 +196,7 @@ const AllTransaction = () => {
   const saveEditedTransaction = async (payload) => {
     try {
       const res = await axios.put(
-        `/transaction/updateByTransactionId/${payload.Transaction_id}`,
+         `/transaction/${payload.Transaction_uuid}`,
         {
           updatedDescription: payload.Description || '',
           updatedAmount: payload.Amount,
@@ -212,7 +213,7 @@ const AllTransaction = () => {
         // Merge changes locally into original transaction structure
         setTransactions((prev) =>
           prev.map((txn) =>
-            txn.Transaction_id === payload.Transaction_id
+            txn.Transaction_uuid === payload.Transaction_uuid
               ? {
                   ...txn,
                   Transaction_date: payload.Transaction_date,
@@ -241,10 +242,10 @@ const AllTransaction = () => {
 
   const deleteTransaction = async (txnId) => {
     try {
-      const res = await axios.delete(`/transaction/deleteByTransactionId/${txnId}`);
+      const res = await axios.delete(`/transaction/${txnId}`);
       if (res.data?.success) {
         toast.success('Transaction deleted successfully');
-        setTransactions((prev) => prev.filter((txn) => txn.Transaction_id !== txnId));
+        setTransactions((prev) => prev.filter((txn) => txn.Transaction_uuid !== txnId));
         setSelectedIds((prev) => prev.filter((id) => id !== txnId));
       } else {
         toast.error('Unable to delete transaction');
@@ -257,11 +258,11 @@ const AllTransaction = () => {
 
   const toggleSelectAllVisible = () => {
     if (allVisibleSelected) {
-      const visibleIds = new Set(filteredEntries.map((t) => t.Transaction_id));
+      const visibleIds = new Set(filteredEntries.map((t) => t.Transaction_uuid));
       setSelectedIds((prev) => prev.filter((id) => !visibleIds.has(id)));
     } else {
       const idsToAdd = filteredEntries
-        .map((t) => t.Transaction_id)
+        .map((t) => t.Transaction_uuid)
         .filter((id) => !selectedIds.includes(id));
       setSelectedIds((prev) => [...prev, ...idsToAdd]);
     }
@@ -278,14 +279,14 @@ const AllTransaction = () => {
 
     try {
       const results = await Promise.allSettled(
-        selectedIds.map((id) => axios.delete(`/transaction/deleteByTransactionId/${id}`))
+        selectedIds.map((id) => axios.delete(`/transaction/${id}`))
       );
 
       const successCount = results.filter((r) => r.status === 'fulfilled' && r.value?.data?.success).length;
       const failCount = selectedIds.length - successCount;
 
       if (successCount > 0) {
-        setTransactions((prev) => prev.filter((t) => !selectedIds.includes(t.Transaction_id)));
+        setTransactions((prev) => prev.filter((t) => !selectedIds.includes(t.Transaction_uuid)));
         setSelectedIds([]);
         toast.success(`Deleted ${successCount} transaction(s)`);
       }
@@ -397,7 +398,7 @@ const AllTransaction = () => {
                     onChange={toggleSelectAllVisible}
                   />
                 </th>
-                <th onClick={() => handleSort('Transaction_id')} className="cursor-pointer px-4 py-2">No</th>
+                <th onClick={() => handleSort('Transaction_uuid')} className="cursor-pointer px-4 py-2">No</th>
                 <th onClick={() => handleSort('Order_number')} className="cursor-pointer px-4 py-2">Order No</th>
                 <th onClick={() => handleSort('Transaction_date')} className="cursor-pointer px-4 py-2">Date</th>
                 <th onClick={() => handleSort('Credit_id')} className="cursor-pointer px-4 py-2">Credit Name</th>
@@ -422,15 +423,15 @@ const AllTransaction = () => {
                 </tr>
               ) : (
                 filteredEntries.map((txn) => (
-                  <tr key={txn.Transaction_id} className="border-t hover:bg-gray-50">
+                  <tr key={txn.Transaction_uuid} className="border-t hover:bg-gray-50">
                     <td className="px-3 py-2 text-center">
                       <input
                         type="checkbox"
-                        checked={selectedIds.includes(txn.Transaction_id)}
-                        onChange={() => toggleRow(txn.Transaction_id)}
+                        checked={selectedIds.includes(txn.Transaction_uuid)}
+                        onChange={() => toggleRow(txn.Transaction_uuid)}
                       />
                     </td>
-                    <td className="px-4 py-2">{txn.Transaction_id}</td>
+                    <td className="px-4 py-2">{txn.Transaction_uuid}</td>
                     <td className="px-4 py-2">{txn.Order_number || '-'}</td>
                     <td className="px-4 py-2">{formatDate(txn.Transaction_date)}</td>
                     <td className="px-4 py-2">{customerMap[txn.Credit_id] || '-'}</td>
@@ -448,7 +449,7 @@ const AllTransaction = () => {
                           </button>
                           <button
                             className="text-red-600 hover:underline"
-                            onClick={() => requestDelete(txn.Transaction_id)}
+                            onClick={() => requestDelete(txn.Transaction_uuid)}
                           >
                             Delete
                           </button>
