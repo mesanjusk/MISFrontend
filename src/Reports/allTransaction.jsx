@@ -78,7 +78,7 @@ const AllTransaction = () => {
         '';
 
       return {
-        
+        Transaction_id: txn.Transaction_id,
         Transaction_uuid: txn.Transaction_uuid,
         Transaction_date: txn.Transaction_date,
         Order_number: orderNo,
@@ -431,7 +431,7 @@ const AllTransaction = () => {
                         onChange={() => toggleRow(txn.Transaction_uuid)}
                       />
                     </td>
-                    <td className="px-4 py-2">{txn.Transaction_uuid}</td>
+                    <td className="px-4 py-2">{txn.Transaction_id}</td>
                     <td className="px-4 py-2">{txn.Order_number || '-'}</td>
                     <td className="px-4 py-2">{formatDate(txn.Transaction_date)}</td>
                     <td className="px-4 py-2">{customerMap[txn.Credit_id] || '-'}</td>
