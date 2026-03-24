@@ -12,12 +12,14 @@ import {
 } from '../services/whatsappService.js';
 
 const buildMessageObject = (message) => {
-  const fromMe = typeof message.fromMe === 'boolean' ? message.fromMe : message.from === 'me';
+  const fromMe = typeof message.fromMe === 'boolean'
+    ? message.fromMe
+    : message.fromMe === 'true' || message.from === 'me';
 
   return {
     fromMe,
-    from: message.from || '',
-    to: message.to || '',
+    from: message.from || (!fromMe ? message.number || '' : ''),
+    to: message.to || (fromMe ? message.number || '' : ''),
     text: message.message ?? message.text ?? '',
     time: new Date(message.timestamp || message.time || Date.now()),
   };
@@ -57,7 +59,7 @@ export const useWhatsAppChat = () => {
     const handleIncomingMessage = async (data) => {
       const normalizedMessage = buildMessageObject(data);
       const senderNumber = normalizeWhatsAppNumber(
-        normalizedMessage.fromMe ? normalizedMessage.to : normalizedMessage.from,
+        data.number || (normalizedMessage.fromMe ? normalizedMessage.to : normalizedMessage.from),
       );
       const currentCustomer = selectedCustomerRef.current;
       const currentNumber = currentCustomer
