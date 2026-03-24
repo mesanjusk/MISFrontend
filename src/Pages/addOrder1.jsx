@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import AddCustomer from "./addCustomer";
 import InvoiceModal from "../Components/InvoiceModal";
 import { LoadingSpinner } from "../Components";
+import { extractPhoneNumber, sendWhatsAppText } from "../utils/whatsapp.js";
 
 /* ✅ MUI */
 import {
@@ -230,11 +231,7 @@ export default function AddOrder1() {
       const baseItems = buildItemsFromRemark(Remark);
       setInvoiceItems(baseItems);
 
-      const phoneNumber =
-        customer?.Mobile_number ||
-        customer?.mobile ||
-        customer?.phone ||
-        "";
+      const phoneNumber = extractPhoneNumber(customer);
       const orderAmount = Number(Amount) > 0 ? Number(Amount) : 0;
       const message = orderAmount > 0
         ? `Hello ${customer.Customer_name}, your order of ₹${orderAmount} has been placed successfully. Thank you!`
@@ -307,14 +304,10 @@ export default function AddOrder1() {
     setIsSendingWhatsApp(true);
 
     try {
-      let cleanPhone = String(phone).replace(/\D/g, "");
-      if (cleanPhone.length === 10) {
-        cleanPhone = `91${cleanPhone}`;
-      }
-
-      const { data } = await axios.post('/api/whatsapp/send-text', {
-        to: cleanPhone,
-        body: message,
+      const { data } = await sendWhatsAppText({
+        axiosInstance: axios,
+        phone,
+        message,
       });
 
       if (data?.success) {

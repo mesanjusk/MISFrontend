@@ -6,6 +6,7 @@ import InvoiceModal from "../Components/InvoiceModal";
 import { LoadingSpinner } from "../Components";
 import { fetchCustomers } from "../services/customerService.js";
 import { addTransaction } from "../services/transactionService.js";
+import { extractPhoneNumber, sendWhatsAppText } from "../utils/whatsapp.js";
 
 export default function AddTransaction1() {
   const navigate = useNavigate();
@@ -125,7 +126,7 @@ export default function AddTransaction1() {
       if (res.data.success) {
         toast.success("Transaction saved.");
         const message = `Hello ${creditCustomer?.Customer_name || Customer_name}, your payment of ₹${Amount} has been recorded. Thank you!`;
-        const phoneNumber = creditCustomer?.Mobile_number || creditCustomer?.mobile || creditCustomer?.phone || '';
+        const phoneNumber = extractPhoneNumber(creditCustomer);
         setWhatsAppMessage(message);
         setMobileToSend(phoneNumber);
         setIsTransactionSaved(true);
@@ -155,14 +156,10 @@ export default function AddTransaction1() {
     setIsSendingWhatsApp(true);
 
     try {
-      let cleanPhone = String(phone).replace(/\D/g, '');
-      if (cleanPhone.length === 10) {
-        cleanPhone = `91${cleanPhone}`;
-      }
-
-      const { data } = await axios.post('/api/whatsapp/send-text', {
-        to: cleanPhone,
-        body: message,
+      const { data } = await sendWhatsAppText({
+        axiosInstance: axios,
+        phone,
+        message,
       });
 
       if (data?.success) {

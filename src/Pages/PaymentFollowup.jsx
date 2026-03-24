@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from '../apiClient.js';
 import toast, { Toaster } from "react-hot-toast";
+import { extractPhoneNumber, sendWhatsAppText } from "../utils/whatsapp.js";
 
 const todayISO = () => new Date().toLocaleDateString("en-CA"); // yyyy-mm-dd
 
@@ -226,14 +227,10 @@ export default function PaymentFollowup() {
     setIsSendingWhatsApp(true);
 
     try {
-      let cleanPhone = String(phone).replace(/\D/g, "");
-      if (cleanPhone.length === 10) {
-        cleanPhone = `91${cleanPhone}`;
-      }
-
-      const { data } = await axios.post('/api/whatsapp/send-text', {
-        to: cleanPhone,
-        body: message,
+      const { data } = await sendWhatsAppText({
+        axiosInstance: axios,
+        phone,
+        message,
       });
 
       if (data?.success) {
@@ -275,11 +272,7 @@ export default function PaymentFollowup() {
         toast.error("A similar follow-up already exists for this customer/date.");
       } else {
         const selectedCustomer = customerDetails.find((item) => item.Customer_name === Customer);
-        const phoneNumber =
-          selectedCustomer?.Mobile_number ||
-          selectedCustomer?.mobile ||
-          selectedCustomer?.phone ||
-          "";
+        const phoneNumber = extractPhoneNumber(selectedCustomer);
         const message = `Hello ${Customer}, we will follow up with you for ₹${Number(Amount)}. Thank you!`;
 
         toast.success("Payment follow-up added.");

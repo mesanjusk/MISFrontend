@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import axios from '../apiClient.js';
 import InvoiceModal from "../Components/InvoiceModal";
+import { extractPhoneNumber, sendWhatsAppText } from "../utils/whatsapp.js";
 
 export default function AddUsertask() {
     const navigate = useNavigate();
@@ -60,11 +61,7 @@ export default function AddUsertask() {
                 toast.error("Task already exists");
             } else if (res.data === "notexist") {
                 const selectedUser = userOptions.find((option) => option.User_name === User);
-                const phoneNumber =
-                    selectedUser?.Mobile_number ||
-                    selectedUser?.mobile ||
-                    selectedUser?.phone ||
-                    '';
+                const phoneNumber = extractPhoneNumber(selectedUser);
                 const message = `Hello ${User}, your task has been created successfully. Thank you!`;
 
                 toast.success("Task added successfully");
@@ -94,14 +91,10 @@ export default function AddUsertask() {
         setIsSendingWhatsApp(true);
 
         try {
-            let cleanPhone = String(phone).replace(/\D/g, '');
-            if (cleanPhone.length === 10) {
-                cleanPhone = `91${cleanPhone}`;
-            }
-
-            const { data } = await axios.post('/api/whatsapp/send-text', {
-                to: cleanPhone,
-                body: message,
+            const { data } = await sendWhatsAppText({
+                axiosInstance: axios,
+                phone,
+                message,
             });
 
             if (data?.success) {
