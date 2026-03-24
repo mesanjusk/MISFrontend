@@ -1,4 +1,4 @@
-import React from "react";
+import PropTypes from "prop-types";
 
 const delayBadgeClass = (delayDays) => {
   if (delayDays >= 3) return "bg-rose-100 text-rose-700";
@@ -43,3 +43,16 @@ export default function ActionList({ title, items }) {
     </section>
   );
 }
+
+ActionList.propTypes = {
+  title: PropTypes.string.isRequired,
+  items: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+      title: PropTypes.string,
+      assignedTo: PropTypes.string,
+      dueDateLabel: PropTypes.string,
+      delayDays: PropTypes.number,
+    })
+  ).isRequired,
+};

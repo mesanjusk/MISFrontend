@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   HiOutlineBanknotes,
   HiOutlineBuildingLibrary,
@@ -46,6 +46,23 @@ const isToday = (value) => {
   if (!date) return false;
   const now = new Date();
   return date.toDateString() === now.toDateString();
+};
+
+const isInSelectedRange = (value, range) => {
+  if (range === "today") return isToday(value);
+
+  const date = parseDate(value);
+  if (!date) return false;
+
+  const now = new Date();
+  if (range === "week") {
+    const diffDays = (now - date) / DAY_MS;
+    return diffDays >= 0 && diffDays < 7;
+  }
+  if (range === "month") {
+    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+  }
+  return true;
 };
 
 const toAmount = (value) => {
@@ -134,7 +151,7 @@ export default function Dashboard() {
         if (failedCalls.length) {
           setLoadError("Some dashboard modules could not be loaded right now.");
         }
-      } catch (error) {
+      } catch {
         if (!isMounted) return;
         setLoadError("Failed to load dashboard data.");
       } finally {
@@ -157,27 +174,31 @@ export default function Dashboard() {
     return { ...dashboardData, followups, tasks, deliveries, orders };
   }, [dashboardData]);
 
-  const filteredByStatusAndUser = (items) => {
-    const byStatus =
-      filters.status === "all"
-        ? items
-        : items.filter((item) => {
-            if (filters.status === "delayed") return item.delayDays > 0;
-            return item.status === filters.status;
-          });
+  const filteredByStatusAndUser = useCallback(
+    (items) => {
+      const byRange = items.filter((item) => isInSelectedRange(item.dueDate, filters.range));
+      const byStatus =
+        filters.status === "all"
+          ? byRange
+          : byRange.filter((item) => {
+              if (filters.status === "delayed") return item.delayDays > 0;
+              return item.status === filters.status;
+            });
 
-    if (filters.user === "all") return byStatus;
-    return byStatus.filter((item) => item.assignedTo?.toLowerCase() === filters.user.toLowerCase());
-  };
+      if (filters.user === "all") return byStatus;
+      return byStatus.filter((item) => item.assignedTo?.toLowerCase() === filters.user.toLowerCase());
+    },
+    [filters.range, filters.status, filters.user]
+  );
 
   const pendingFollowups = useMemo(
     () => filteredByStatusAndUser(normalized.followups.filter((item) => item.status !== "done" && item.status !== "completed")),
-    [normalized.followups, filters.status, filters.user]
+    [normalized.followups, filteredByStatusAndUser]
   );
 
   const pendingTasks = useMemo(
     () => filteredByStatusAndUser(normalized.tasks.filter((item) => item.status !== "done" && item.status !== "completed")),
-    [normalized.tasks, filters.status, filters.user]
+    [normalized.tasks, filteredByStatusAndUser]
   );
 
   const pendingDeliveries = useMemo(
@@ -185,10 +206,24 @@ export default function Dashboard() {
       filteredByStatusAndUser(
         normalized.deliveries.filter((item) => item.status !== "delivered" && item.status !== "completed")
       ),
-    [normalized.deliveries, filters.status, filters.user]
+    [normalized.deliveries, filteredByStatusAndUser]
   );
 
-  const delayedOrders = useMemo(() => normalized.orders.filter((order) => order.delayDays > 0), [normalized.orders]);
+  const delayedOrders = useMemo(
+    () => normalized.orders.filter((order) => order.delayDays > 0 && isInSelectedRange(order.dueDate, filters.range)),
+    [normalized.orders, filters.range]
+  );
+  const completedOrders = useMemo(
+    () => normalized.orders.filter((order) => order.status === "completed" && isInSelectedRange(order.dueDate, filters.range)),
+    [normalized.orders, filters.range]
+  );
+  const pendingOrders = useMemo(
+    () =>
+      normalized.orders.filter(
+        (order) => order.status !== "completed" && order.status !== "delivered" && isInSelectedRange(order.dueDate, filters.range)
+      ),
+    [normalized.orders, filters.range]
+  );
 
   const totalDebit = useMemo(
     () =>
@@ -411,13 +446,11 @@ export default function Dashboard() {
                 </div>
                 <div className="rounded-lg bg-slate-50 p-3">
                   <p className="text-xs text-slate-500">Orders Pending</p>
-                  <p className="text-xl font-semibold text-amber-700">{normalized.orders.length - delayedOrders.length}</p>
+                  <p className="text-xl font-semibold text-amber-700">{pendingOrders.length}</p>
                 </div>
                 <div className="rounded-lg bg-slate-50 p-3">
                   <p className="text-xs text-slate-500">Completed Today</p>
-                  <p className="text-xl font-semibold text-emerald-700">
-                    {normalized.orders.filter((order) => order.status === "completed" && isToday(order.dueDate)).length}
-                  </p>
+                  <p className="text-xl font-semibold text-emerald-700">{completedOrders.length}</p>
                 </div>
                 <div className="rounded-lg bg-slate-50 p-3">
                   <p className="text-xs text-slate-500">Delayed Orders</p>

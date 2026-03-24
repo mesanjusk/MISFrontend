@@ -1,4 +1,4 @@
-import React from "react";
+import PropTypes from "prop-types";
 
 const statusStyles = {
   completed: {
@@ -41,3 +41,11 @@ export default function DashboardCard({ title, value, icon: Icon, status = "comp
     </article>
   );
 }
+
+DashboardCard.propTypes = {
+  title: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  icon: PropTypes.elementType,
+  status: PropTypes.oneOf(["completed", "pending", "delayed"]),
+  caption: PropTypes.string,
+};
