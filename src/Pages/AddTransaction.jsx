@@ -141,9 +141,17 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
 
       if (res.data.success) {
         toast.success("Transaction saved.");
-        const message = `Hello ${Customer?.Customer_name || Customer_name}, your payment of ₹${Amount} has been recorded. Thank you!`;
-        setWhatsAppMessage(message);
-        setMobileToSend(Customer?.Mobile_number);
+        const phoneNumber =
+  Customer?.Mobile_number ||
+  Customer?.mobile ||
+  Customer?.phone ||
+  '';
+
+const message = `Hello ${Customer?.Customer_name || Customer_name}, your payment of ₹${Amount} has been recorded. Thank you!`;
+
+setWhatsAppMessage(message);
+setMobileToSend(phoneNumber);
+
         setIsTransactionSaved(true);
         if (sendWhatsAppAfterSave) {
           await sendWhatsApp(Customer?.Mobile_number, message);
@@ -159,27 +167,40 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
     }
   };
 
-  const sendWhatsApp = async (phone = mobileToSend, message = whatsAppMessage) => {
-    if (!phone) {
-      toast.error("Customer phone number is required");
-      return;
+  
+const sendWhatsApp = async (phone = mobileToSend, message = whatsAppMessage) => {
+  if (!phone) {
+    toast.error("Customer phone number is required");
+    return;
+  }
+
+  setIsSendingWhatsApp(true);
+
+  try {
+    let cleanPhone = String(phone).replace(/\D/g, '');
+
+    // ✅ Add India country code
+    if (cleanPhone.length === 10) {
+      cleanPhone = '91' + cleanPhone;
     }
 
-    setIsSendingWhatsApp(true);
-    try {
-      const { data } = await axios.post('/whatsapp/send', {
-        phone,
-        message,
-      });
-      if (data?.error || data?.success === false) toast.error("Failed to send WhatsApp message");
-      else toast.success("WhatsApp message sent");
-    } catch {
-      toast.error("Failed to send WhatsApp message");
-    } finally {
-      setIsSendingWhatsApp(false);
-    }
-  };
+    const { data } = await axios.post('/api/whatsapp/send-text', {
+      to: cleanPhone,
+      body: message, // 🔥 FINAL FIX
+    });
 
+    if (data?.success) {
+      toast.success("WhatsApp message sent");
+    } else {
+      toast.error(data?.error || "Failed to send WhatsApp message");
+    }
+  } catch (error) {
+    console.error("WhatsApp FULL ERROR:", error.response?.data || error);
+    toast.error(error.response?.data?.error || "Failed to send WhatsApp message");
+  } finally {
+    setIsSendingWhatsApp(false);
+  }
+};
   const addCustomer = () => navigate("/addCustomer");
 
   return (
