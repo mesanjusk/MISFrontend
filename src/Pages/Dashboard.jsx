@@ -225,6 +225,11 @@ export default function Dashboard() {
       ),
     [normalized.orders, filters.range]
   );
+  const visibleOrders = useMemo(() => {
+    const byRange = normalized.orders.filter((order) => isInSelectedRange(order.dueDate, filters.range));
+    if (filters.user === "all") return byRange;
+    return byRange.filter((order) => order.assignedTo?.toLowerCase() === filters.user.toLowerCase());
+  }, [normalized.orders, filters.range, filters.user]);
 
   const totalDebit = useMemo(
     () =>
@@ -260,6 +265,7 @@ export default function Dashboard() {
       ...normalized.followups.map((f) => f.assignedTo),
       ...normalized.tasks.map((t) => t.assignedTo),
       ...normalized.deliveries.map((d) => d.assignedTo),
+      ...normalized.orders.map((order) => order.assignedTo),
     ]
       .filter(Boolean)
       .filter((value, idx, arr) => arr.indexOf(value) === idx);
@@ -304,7 +310,7 @@ export default function Dashboard() {
     },
     {
       title: "Total Active Orders",
-      value: normalized.orders.length,
+      value: visibleOrders.length,
       icon: HiOutlineClipboardDocumentList,
       status: bucketStatus(0, delayedOrders.length),
       caption: `${delayedOrders.length} delayed orders`,
@@ -455,7 +461,7 @@ export default function Dashboard() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-lg bg-slate-50 p-3">
                   <p className="text-xs text-slate-500">Total Active Orders</p>
-                  <p className="text-xl font-semibold text-slate-900">{normalized.orders.length}</p>
+                  <p className="text-xl font-semibold text-slate-900">{visibleOrders.length}</p>
                 </div>
                 <div className="rounded-lg bg-slate-50 p-3">
                   <p className="text-xs text-slate-500">Orders Pending</p>
@@ -472,7 +478,7 @@ export default function Dashboard() {
               </div>
 
               <div className="space-y-2">
-                {normalized.orders.slice(0, 6).map((order) => {
+                {visibleOrders.slice(0, 6).map((order) => {
                   const progress = order.status === "completed" ? 100 : order.delayDays > 0 ? 55 : 75;
                   return (
                     <div key={order.id} className="rounded-lg border border-slate-200 p-3">
