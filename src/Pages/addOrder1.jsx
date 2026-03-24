@@ -76,6 +76,9 @@ export default function AddOrder1() {
 
   // UX
   const [optionsLoading, setOptionsLoading] = useState(true);
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  const [isDateChecked, setIsDateChecked] = useState(false);
+  const [saveDate, setSaveDate] = useState(new Date().toISOString().split("T")[0]);
 
   // ✅ Add Customer modal state
   const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -88,6 +91,7 @@ export default function AddOrder1() {
   useEffect(() => {
     const userNameFromState = location.state?.id;
     const logInUser = userNameFromState || localStorage.getItem("User_name");
+    setIsAdminUser(localStorage.getItem("User_group") === "Admin User");
     if (logInUser) setLoggedInUser(logInUser);
     else navigate("/login");
   }, [location.state, navigate]);
@@ -160,6 +164,10 @@ export default function AddOrder1() {
 
   const handleCustomer = () => setShowCustomerModal(true);
   const exitModal = () => setShowCustomerModal(false);
+  const handleSaveDateCheckboxChange = () => {
+    setIsDateChecked((prev) => !prev);
+    setSaveDate(new Date().toISOString().split("T")[0]);
+  };
 
   /* ----------- Submit ----------- */
   const canSubmit = useMemo(() => {
@@ -268,7 +276,10 @@ export default function AddOrder1() {
         try {
           const txnRes = await axios.post(`/transaction/addTransaction`, {
             Description: Remark || "Advance received",
-            Transaction_date: new Date().toISOString().split("T")[0],
+            Transaction_date:
+              isAdminUser && isDateChecked
+                ? saveDate || new Date().toISOString().split("T")[0]
+                : new Date().toISOString().split("T")[0],
             Total_Credit: amt,
             Total_Debit: amt,
             Payment_mode: payModeCustomer?.Customer_name || "Advance",
@@ -633,6 +644,31 @@ export default function AddOrder1() {
                     >
                       {isEnquiryOnly ? "Save Enquiry" : "Submit Order"}
                     </Button>
+
+                    {isAdminUser && !isEnquiryOnly && (
+                      <>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <input
+                            type="checkbox"
+                            checked={isDateChecked}
+                            onChange={handleSaveDateCheckboxChange}
+                            className="h-4 w-4 text-[#25d366] border-gray-300 rounded"
+                          />
+                          <Typography variant="body2">Save Date</Typography>
+                        </Stack>
+
+                        {isDateChecked && (
+                          <TextField
+                            type="date"
+                            label="Date"
+                            value={saveDate}
+                            onChange={(e) => setSaveDate(e.target.value)}
+                            InputLabelProps={{ shrink: true }}
+                            fullWidth
+                          />
+                        )}
+                      </>
+                    )}
 
                     {!isEnquiryOnly && (
                       <Stack direction="row" alignItems="center" spacing={1}>

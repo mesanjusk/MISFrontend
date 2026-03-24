@@ -20,6 +20,7 @@ export default function AddTransaction1() {
   const [DebitCustomer, setDebitCustomer] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
   const [isDateChecked, setIsDateChecked] = useState(false);
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState('');
   const [loading, setLoading] = useState(false);
   const [optionsLoading, setOptionsLoading] = useState(true);
@@ -45,6 +46,7 @@ export default function AddTransaction1() {
     } else {
       navigate("/login");
     }
+    setIsAdminUser(localStorage.getItem("User_group") === "Admin User");
   }, [location.state, navigate]);
 
   useEffect(() => {
@@ -292,17 +294,19 @@ export default function AddTransaction1() {
               className="w-full border border-gray-300 rounded-lg p-2"
             />
 
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={isDateChecked}
-                onChange={handleDateCheckboxChange}
-                className="h-4 w-4 text-[#25d366] border-gray-300 rounded"
-              />
-              <label className="text-gray-700">Save Date</label>
-            </div>
+            {isAdminUser && (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={isDateChecked}
+                  onChange={handleDateCheckboxChange}
+                  className="h-4 w-4 text-[#25d366] border-gray-300 rounded"
+                />
+                <label className="text-gray-700">Save Date</label>
+              </div>
+            )}
 
-            {isDateChecked && (
+            {isAdminUser && isDateChecked && (
               <div>
                 <label className="block font-medium text-gray-700 mb-1">Date</label>
                 <input
