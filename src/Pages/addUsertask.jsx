@@ -14,6 +14,7 @@ export default function AddUsertask() {
     const [Remark, setRemark] = useState('');
     const [userOptions, setUserOptions] = useState([]);
     const [isDeadlineChecked, setIsDeadlineChecked] = useState(false);
+    const [isAdminUser, setIsAdminUser] = useState(false);
     const [showInvoiceModal, setShowInvoiceModal] = useState(false);
     const [invoiceItems, setInvoiceItems] = useState([]);
     const [whatsAppMessage, setWhatsAppMessage] = useState('');
@@ -24,6 +25,7 @@ export default function AddUsertask() {
     const previewRef = useRef();
 
     useEffect(() => {
+        setIsAdminUser(localStorage.getItem("User_group") === "Admin User");
         axios.get("/user/GetUserList")
             .then(res => {
                 if (res.data.success) {
@@ -171,17 +173,19 @@ export default function AddUsertask() {
                 />
               </div>
 
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={isDeadlineChecked}
-                  onChange={handleDeadlineCheckboxChange}
-                  className="h-4 w-4 text-[#25d366] focus:ring-[#25d366] border-gray-300 rounded"
-                />
-                <label className="text-gray-700">Add Deadline</label>
-              </div>
+              {isAdminUser && (
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={isDeadlineChecked}
+                    onChange={handleDeadlineCheckboxChange}
+                    className="h-4 w-4 text-[#25d366] focus:ring-[#25d366] border-gray-300 rounded"
+                  />
+                  <label className="text-gray-700">Save Date</label>
+                </div>
+              )}
 
-              {isDeadlineChecked && (
+              {isAdminUser && isDeadlineChecked && (
                 <div>
                   <label className="block font-medium text-gray-700 mb-1">Deadline</label>
                   <input

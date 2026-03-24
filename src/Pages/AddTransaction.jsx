@@ -17,6 +17,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
   const [selectedImage, setSelectedImage] = useState(null);
   const [isDateChecked, setIsDateChecked] = useState(false);
   const [userGroup, setUserGroup] = useState('');
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState('');
   const [loading, setLoading] = useState(false);
   const [optionsLoading, setOptionsLoading] = useState(true);
@@ -39,7 +40,9 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
     } else {
       navigate("/login");
     }
-    setUserGroup(localStorage.getItem("User_group") || '');
+    const currentUserGroup = localStorage.getItem("User_group") || '';
+    setUserGroup(currentUserGroup);
+    setIsAdminUser(currentUserGroup === "Admin User");
   }, [location.state, navigate]);
 
   useEffect(() => {
@@ -128,7 +131,9 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
     formData.append('Total_Debit', Number(Amount));
     formData.append('Payment_mode', Group.Customer_name);
     formData.append('Created_by', loggedInUser);
-    formData.append('Transaction_date', Transaction_date || todayDate);
+    const finalTransactionDate =
+      isAdminUser && isDateChecked ? (Transaction_date || todayDate) : todayDate;
+    formData.append('Transaction_date', finalTransactionDate);
     formData.append('Journal_entry', JSON.stringify(journal));
     if (editMode && existingData?._id) formData.append('_id', existingData._id);
     if (selectedImage) formData.append('image', selectedImage);
@@ -301,18 +306,20 @@ const sendWhatsApp = async (phone = mobileToSend, message = whatsAppMessage) => 
 
           <InputField type="file" accept="image/*" onChange={handleFileChange} />
 
-          <div className="mb-4 flex items-center space-x-2">
-            <input
-              id="saveDate"
-              type="checkbox"
-              className="h-4 w-4 text-primary border-gray-300 rounded"
-              checked={isDateChecked}
-              onChange={handleDateCheckboxChange}
-            />
-            <label htmlFor="saveDate" className="text-sm">Save Date</label>
-          </div>
+          {isAdminUser && (
+            <div className="mb-4 flex items-center space-x-2">
+              <input
+                id="saveDate"
+                type="checkbox"
+                className="h-4 w-4 text-primary border-gray-300 rounded"
+                checked={isDateChecked}
+                onChange={handleDateCheckboxChange}
+              />
+              <label htmlFor="saveDate" className="text-sm">Save Date</label>
+            </div>
+          )}
 
-          {isDateChecked && (
+          {isAdminUser && isDateChecked && (
             <InputField
               label="Date"
               type="date"

@@ -163,12 +163,16 @@ export default function PaymentFollowup() {
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
   const [isTransactionSaved, setIsTransactionSaved] = useState(false);
 
-  // Follow-up date ALWAYS visible; default today
+  const [isDateChecked, setIsDateChecked] = useState(false);
+  // Follow-up date (used when admin enables Save Date); default today fallback
   const [Deadline, setDeadline] = useState(todayISO());
 
   const [submitting, setSubmitting] = useState(false);
+  const [isAdminUser, setIsAdminUser] = useState(false);
 
   useEffect(() => {
+    setIsAdminUser(localStorage.getItem("User_group") === "Admin User");
+
     const loadCustomers = async () => {
       const normalizeNames = (arr) =>
         Array.from(
@@ -218,6 +222,11 @@ export default function PaymentFollowup() {
 
   const closeModal = () => navigate("/Home");
 
+  const handleDateCheckboxChange = () => {
+    setIsDateChecked((prev) => !prev);
+    setDeadline(todayISO());
+  };
+
   const sendWhatsApp = async (phone = mobileToSend, message = whatsAppMessage) => {
     if (!phone) {
       toast.error("Customer phone number is required");
@@ -256,7 +265,7 @@ export default function PaymentFollowup() {
     if (!Amount || Number(Amount) <= 0)
       return toast.error("Please enter a valid amount.");
 
-    const finalDate = Deadline || todayISO();
+    const finalDate = isAdminUser && isDateChecked ? (Deadline || todayISO()) : todayISO();
 
     try {
       setSubmitting(true);
@@ -345,18 +354,31 @@ export default function PaymentFollowup() {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
             />
           </div>
-{/* Follow-up Date (always visible) */}
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">
-              Follow-up Date
-            </label>
-            <input
-              type="date"
-              value={Deadline}
-              onChange={(e) => setDeadline(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-            />
-          </div>
+          {isAdminUser && (
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={isDateChecked}
+                onChange={handleDateCheckboxChange}
+                className="h-4 w-4 text-[#25d366] border-gray-300 rounded"
+              />
+              <label className="text-gray-700">Save Date</label>
+            </div>
+          )}
+
+          {isAdminUser && isDateChecked && (
+            <div>
+              <label className="block font-medium text-gray-700 mb-1">
+                Follow-up Date
+              </label>
+              <input
+                type="date"
+                value={Deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
+              />
+            </div>
+          )}
           {/* Title */}
           <div>
             <label className="block font-medium text-gray-700 mb-1">
