@@ -4,7 +4,11 @@ import { toast } from '../../Components';
 import { parseApiError } from '../../utils/parseApiError';
 import { whatsappCloudService } from '../../services/whatsappCloudService';
 
-const SOCKET_URL = 'http://localhost:5000';
+// ✅ PRODUCTION SAFE SOCKET URL
+const SOCKET_URL =
+  import.meta.env.VITE_SOCKET_URL ||
+  import.meta.env.VITE_API_BASE ||
+  window.location.origin;
 
 const getMessageText = (message) => {
   if (typeof message?.body === 'string' && message.body.trim()) return message.body;
@@ -90,13 +94,13 @@ export default function MessagesPanel() {
     if (!message) return;
 
     setMessages((prev) => {
-      const nextMessageIdentity = getMessageIdentity(message);
-      const exists = prev.some((item) => getMessageIdentity(item) === nextMessageIdentity);
+      const nextId = getMessageIdentity(message);
+      const exists = prev.some((item) => getMessageIdentity(item) === nextId);
 
       if (exists) {
-        return prev.map((item) => (
-          getMessageIdentity(item) === nextMessageIdentity ? { ...item, ...message } : item
-        ));
+        return prev.map((item) =>
+          getMessageIdentity(item) === nextId ? { ...item, ...message } : item
+        );
       }
 
       return [...prev, message];
@@ -107,6 +111,7 @@ export default function MessagesPanel() {
     try {
       setIsLoading(true);
       const response = await whatsappCloudService.getMessages();
+
       const payload =
         response?.data?.data ??
         response?.data ??
@@ -114,6 +119,7 @@ export default function MessagesPanel() {
 
       setMessages(normalizeMessages(payload));
     } catch (error) {
+      console.error(error);
       toast.error(parseApiError(error, 'Failed to load inbox messages.'));
     } finally {
       setIsLoading(false);
@@ -124,8 +130,22 @@ export default function MessagesPanel() {
     loadMessages();
   }, [loadMessages]);
 
+  // ✅ SOCKET CONNECTION (RENDER SAFE)
   useEffect(() => {
-    const socket = io(SOCKET_URL);
+    const socket = io(SOCKET_URL, {
+      transports: ['polling'], // 🔥 FIX for Render
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
+    });
+
+    socket.on('connect', () => {
+      console.log('✅ Socket connected:', socket.id);
+    });
+
+    socket.on('connect_error', (err) => {
+      console.error('❌ Socket connection error:', err.message);
+    });
 
     socket.on('new_message', (msg) => {
       appendMessage(msg);
@@ -136,15 +156,29 @@ export default function MessagesPanel() {
     };
   }, [appendMessage]);
 
+  // 🔁 BACKUP AUTO REFRESH (in case socket fails)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadMessages();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [loadMessages]);
+
   const orderedMessages = useMemo(
-    () => [...messages].sort((a, b) => new Date(a?.timestamp ?? a?.createdAt ?? a?.time ?? 0) - new Date(b?.timestamp ?? b?.createdAt ?? b?.time ?? 0)),
+    () =>
+      [...messages].sort(
+        (a, b) =>
+          new Date(a?.timestamp ?? a?.createdAt ?? a?.time ?? 0) -
+          new Date(b?.timestamp ?? b?.createdAt ?? b?.time ?? 0)
+      ),
     [messages],
   );
 
   useEffect(() => {
     if (!messagesContainerRef.current) return;
-
-    messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    messagesContainerRef.current.scrollTop =
+      messagesContainerRef.current.scrollHeight;
   }, [orderedMessages]);
 
   return (
@@ -161,10 +195,13 @@ export default function MessagesPanel() {
         </button>
       </div>
 
-      <div ref={messagesContainerRef} className="mt-4 max-h-[500px] overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-3">
-        {orderedMessages.length === 0 && !isLoading ? (
+      <div
+        ref={messagesContainerRef}
+        className="mt-4 max-h-[500px] overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-3"
+      >
+        {orderedMessages.length === 0 && !isLoading && (
           <p className="text-sm text-gray-500">No messages found.</p>
-        ) : null}
+        )}
 
         <div className="space-y-3">
           {orderedMessages.map((message) => {
@@ -183,9 +220,15 @@ export default function MessagesPanel() {
                     : 'mr-auto bg-gray-200 text-gray-900'
                 }`}
               >
-                <p className="whitespace-pre-wrap break-words text-sm">{getMessageText(message)}</p>
+                <p className="whitespace-pre-wrap break-words text-sm">
+                  {getMessageText(message)}
+                </p>
 
-                <div className={`mt-2 text-xs ${isOutgoing ? 'text-blue-100' : 'text-gray-600'}`}>
+                <div
+                  className={`mt-2 text-xs ${
+                    isOutgoing ? 'text-blue-100' : 'text-gray-600'
+                  }`}
+                >
                   <p>{isOutgoing ? `To: ${receiver}` : `From: ${sender}`}</p>
                   <p>{getTimestamp(message)}</p>
                   <p className="capitalize">Status: {status}</p>
