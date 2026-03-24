@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
+import axios from '../apiClient.js';
 import toast, { Toaster } from "react-hot-toast";
 import InvoiceModal from "../Components/InvoiceModal";
 import { LoadingSpinner } from "../Components";
 import { fetchCustomers } from "../services/customerService.js";
-import { addTransaction, sendTaskMessage } from "../services/transactionService.js";
+import { addTransaction } from "../services/transactionService.js";
 
 export default function AddTransaction1() {
   const navigate = useNavigate();
@@ -29,6 +30,9 @@ export default function AddTransaction1() {
 
   const [whatsAppMessage, setWhatsAppMessage] = useState('');
   const [mobileToSend, setMobileToSend] = useState('');
+  const [sendWhatsAppAfterSave, setSendWhatsAppAfterSave] = useState(false);
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+  const [isTransactionSaved, setIsTransactionSaved] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceItems, setInvoiceItems] = useState([]);
   const previewRef = useRef();
@@ -120,9 +124,16 @@ export default function AddTransaction1() {
 
       if (res.data.success) {
         toast.success("Transaction saved.");
-        const message = `Hello ${creditCustomer.Customer_name}, we have received your payment of ₹${Amount} on ${Transaction_date || todayDate} via ${debitCustomer.Customer_name}. Thank you!`;
+        const message = `Hello ${creditCustomer?.Customer_name || Customer_name}, your payment of ₹${Amount} has been recorded. Thank you!`;
+        const phoneNumber = creditCustomer?.Mobile_number || creditCustomer?.mobile || creditCustomer?.phone || '';
         setWhatsAppMessage(message);
-        setMobileToSend(creditCustomer.Mobile_number);
+        setMobileToSend(phoneNumber);
+        setIsTransactionSaved(true);
+
+        if (sendWhatsAppAfterSave) {
+          await sendWhatsApp(phoneNumber, message);
+        }
+
         setInvoiceItems([{ Item: Description || 'Payment', Quantity: 1, Rate: Amount, Amount: Amount }]);
         setShowInvoiceModal(true);
       } else {
@@ -135,21 +146,34 @@ export default function AddTransaction1() {
     }
   };
 
-  const sendWhatsApp = async () => {
+  const sendWhatsApp = async (phone = mobileToSend, message = whatsAppMessage) => {
+    if (!phone) {
+      toast.error("Customer phone number is required");
+      return;
+    }
+
+    setIsSendingWhatsApp(true);
+
     try {
-      const { data } = await sendTaskMessage({
-        mobile: mobileToSend,
-        userName: Customer_name,
-        type: 'customer',
-        message: whatsAppMessage,
+      let cleanPhone = String(phone).replace(/\D/g, '');
+      if (cleanPhone.length === 10) {
+        cleanPhone = `91${cleanPhone}`;
+      }
+
+      const { data } = await axios.post('/api/whatsapp/send-text', {
+        to: cleanPhone,
+        body: message,
       });
-      if (data?.error) toast.error("❌ Failed to send WhatsApp message");
-      else toast.success("✅ WhatsApp message sent successfully");
-    } catch {
-      toast.error("⚠️ Error sending WhatsApp");
+
+      if (data?.success) {
+        toast.success('WhatsApp message sent');
+      } else {
+        toast.error(data?.error || 'Failed to send WhatsApp message');
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.error || 'Failed to send WhatsApp message');
     } finally {
-      setShowInvoiceModal(false);
-      navigate("/home");
+      setIsSendingWhatsApp(false);
     }
   };
 
@@ -293,6 +317,16 @@ export default function AddTransaction1() {
               </div>
             )}
 
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={sendWhatsAppAfterSave}
+                onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)}
+                className="h-4 w-4 text-[#25d366] border-gray-300 rounded"
+              />
+              <label className="text-gray-700">Send WhatsApp after saving</label>
+            </div>
+
             <button
               type="submit"
               className="w-full bg-[#25d366] hover:bg-[#128c7e] text-white font-medium py-2 rounded-lg transition"
@@ -313,6 +347,18 @@ export default function AddTransaction1() {
                 "Submit"
               )}
             </button>
+
+            {isTransactionSaved && (
+              <button
+                type="button"
+                onClick={() => sendWhatsApp()}
+                disabled={isSendingWhatsApp}
+                className="w-full bg-[#075e54] hover:bg-[#064c44] text-white font-medium py-2 rounded-lg transition disabled:opacity-60"
+              >
+                {isSendingWhatsApp ? 'Sending WhatsApp...' : 'Send WhatsApp Receipt'}
+              </button>
+            )}
+
           </form>
         </div>
       </div>

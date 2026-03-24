@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from "react-router-dom";
+import toast, { Toaster } from "react-hot-toast";
 import axios from '../apiClient.js';
 import InvoiceModal from "../Components/InvoiceModal";
 
@@ -14,6 +15,11 @@ export default function AddUsertask() {
     const [isDeadlineChecked, setIsDeadlineChecked] = useState(false);
     const [showInvoiceModal, setShowInvoiceModal] = useState(false);
     const [invoiceItems, setInvoiceItems] = useState([]);
+    const [whatsAppMessage, setWhatsAppMessage] = useState('');
+    const [mobileToSend, setMobileToSend] = useState('');
+    const [sendWhatsAppAfterSave, setSendWhatsAppAfterSave] = useState(false);
+    const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+    const [isTransactionSaved, setIsTransactionSaved] = useState(false);
     const previewRef = useRef();
 
     useEffect(() => {
@@ -21,8 +27,7 @@ export default function AddUsertask() {
             .then(res => {
                 if (res.data.success) {
                     const filteredUsers = res.data.result
-                        .filter(item => item.User_group === "Office User")
-                        .map(item => item.User_name);
+                        .filter(item => item.User_group === "Office User");
                     setUserOptions(filteredUsers);
                 }
             })
@@ -35,7 +40,7 @@ export default function AddUsertask() {
         e.preventDefault();
 
         if (!User || !Usertask_name) {
-            alert("Please fill in both User and Task fields.");
+            toast.error("Please fill in both User and Task fields.");
             return;
         }
 
@@ -52,15 +57,62 @@ export default function AddUsertask() {
             });
 
             if (res.data === "exist") {
-                alert("Task already exists");
+                toast.error("Task already exists");
             } else if (res.data === "notexist") {
-                alert("Task added successfully");
+                const selectedUser = userOptions.find((option) => option.User_name === User);
+                const phoneNumber =
+                    selectedUser?.Mobile_number ||
+                    selectedUser?.mobile ||
+                    selectedUser?.phone ||
+                    '';
+                const message = `Hello ${User}, your task has been created successfully. Thank you!`;
+
+                toast.success("Task added successfully");
+                setWhatsAppMessage(message);
+                setMobileToSend(phoneNumber);
+                setIsTransactionSaved(true);
+
+                if (sendWhatsAppAfterSave) {
+                    await sendWhatsApp(phoneNumber, message);
+                }
+
                 setInvoiceItems([{ Item: Usertask_name, Quantity: 1, Rate: 0, Amount: 0 }]);
                 setShowInvoiceModal(true);
             }
         } catch (e) {
-            alert("Something went wrong.");
+            toast.error("Something went wrong.");
             console.error(e);
+        }
+    };
+
+    const sendWhatsApp = async (phone = mobileToSend, message = whatsAppMessage) => {
+        if (!phone) {
+            toast.error("Customer phone number is required");
+            return;
+        }
+
+        setIsSendingWhatsApp(true);
+
+        try {
+            let cleanPhone = String(phone).replace(/\D/g, '');
+            if (cleanPhone.length === 10) {
+                cleanPhone = `91${cleanPhone}`;
+            }
+
+            const { data } = await axios.post('/api/whatsapp/send-text', {
+                to: cleanPhone,
+                body: message,
+            });
+
+            if (data?.success) {
+                toast.success("WhatsApp message sent");
+            } else {
+                toast.error(data?.error || "Failed to send WhatsApp message");
+            }
+        } catch (error) {
+            toast.error(error?.response?.data?.error || "Failed to send WhatsApp message");
+        } finally {
+            setIsSendingWhatsApp(false);
         }
     };
 
@@ -75,6 +127,7 @@ export default function AddUsertask() {
 
     return (
         <>
+        <Toaster position="top-center" reverseOrder={false} />
         <InvoiceModal
           open={showInvoiceModal}
           onClose={() => {
@@ -83,8 +136,10 @@ export default function AddUsertask() {
           }}
           invoiceRef={previewRef}
           customerName={User}
+          customerMobile={mobileToSend}
           items={invoiceItems}
           remark={Remark}
+          onSendWhatsApp={sendWhatsApp}
         />
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-lg p-6 relative">
@@ -106,7 +161,7 @@ export default function AddUsertask() {
                 >
                   <option value="">-- Select User --</option>
                   {userOptions.map((option, index) => (
-                    <option key={index} value={option}>{option}</option>
+                    <option key={index} value={option.User_name}>{option.User_name}</option>
                   ))}
                 </select>
               </div>
@@ -155,6 +210,27 @@ export default function AddUsertask() {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
                 />
               </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={sendWhatsAppAfterSave}
+                  onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)}
+                  className="h-4 w-4 text-[#25d366] focus:ring-[#25d366] border-gray-300 rounded"
+                />
+                <label className="text-gray-700">Send WhatsApp after saving</label>
+              </div>
+
+              {isTransactionSaved && (
+                <button
+                  type="button"
+                  onClick={() => sendWhatsApp()}
+                  disabled={isSendingWhatsApp}
+                  className="bg-[#075e54] hover:bg-[#064c44] text-white font-medium py-2 rounded-lg transition disabled:opacity-60"
+                >
+                  {isSendingWhatsApp ? 'Sending WhatsApp...' : 'Send WhatsApp Receipt'}
+                </button>
+              )}
 
               <div className="flex flex-col space-y-2">
                 <button

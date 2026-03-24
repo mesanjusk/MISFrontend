@@ -66,6 +66,9 @@ export default function AddOrder1() {
   // WhatsApp + invoice
   const [whatsAppMessage, setWhatsAppMessage] = useState("");
   const [mobileToSend, setMobileToSend] = useState("");
+  const [sendWhatsAppAfterSave, setSendWhatsAppAfterSave] = useState(false);
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+  const [isTransactionSaved, setIsTransactionSaved] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceItems, setInvoiceItems] = useState([]);
   const [createdOrder, setCreatedOrder] = useState(null);
@@ -227,17 +230,26 @@ export default function AddOrder1() {
       const baseItems = buildItemsFromRemark(Remark);
       setInvoiceItems(baseItems);
 
-      const message = `Dear ${customer.Customer_name}, your order has been booked successfully.`;
+      const phoneNumber =
+        customer?.Mobile_number ||
+        customer?.mobile ||
+        customer?.phone ||
+        "";
+      const orderAmount = Number(Amount) > 0 ? Number(Amount) : 0;
+      const message = orderAmount > 0
+        ? `Hello ${customer.Customer_name}, your order of ₹${orderAmount} has been placed successfully. Thank you!`
+        : `Hello ${customer.Customer_name}, your order has been placed successfully. Thank you!`;
+
       setWhatsAppMessage(message);
-      setMobileToSend(customer.Mobile_number || "");
+      setMobileToSend(phoneNumber);
+      setIsTransactionSaved(true);
+
+      if (sendWhatsAppAfterSave) {
+        await sendWhatsApp(phoneNumber, message);
+      }
 
       setShowInvoiceModal(true);
       toast.success("Order Added");
-
-      setTimeout(() => {
-        setShowInvoiceModal(false);
-        navigate("/home");
-      }, 1500);
 
       // Optional: record advance in background
       if (isAdvanceChecked && Amount && group) {
@@ -286,25 +298,35 @@ export default function AddOrder1() {
     }
   };
 
-  const sendMessageToAPI = async (name, phone, message) => {
-    try {
-      const { data: result } = await axios.post(`/usertask/send-message`, {
-        mobile: phone,
-        userName: name,
-        type: "customer",
-        message,
-      });
-      if (result?.error) toast.error("Failed to send message");
-      else toast.success("WhatsApp message sent");
-    } catch {
-      toast.error("Failed to send WhatsApp");
+  const sendWhatsApp = async (phone = mobileToSend, message = whatsAppMessage) => {
+    if (!phone) {
+      toast.error("Customer phone number is required");
+      return;
     }
-  };
 
-  const sendWhatsApp = async () => {
-    await sendMessageToAPI(Customer_name, mobileToSend, whatsAppMessage);
-    setShowInvoiceModal(false);
-    navigate("/home");
+    setIsSendingWhatsApp(true);
+
+    try {
+      let cleanPhone = String(phone).replace(/\D/g, "");
+      if (cleanPhone.length === 10) {
+        cleanPhone = `91${cleanPhone}`;
+      }
+
+      const { data } = await axios.post('/api/whatsapp/send-text', {
+        to: cleanPhone,
+        body: message,
+      });
+
+      if (data?.success) {
+        toast.success("WhatsApp message sent");
+      } else {
+        toast.error(data?.error || "Failed to send WhatsApp message");
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "Failed to send WhatsApp message");
+    } finally {
+      setIsSendingWhatsApp(false);
+    }
   };
 
   const stepCandidates = useMemo(
@@ -618,6 +640,30 @@ export default function AddOrder1() {
                     >
                       {isEnquiryOnly ? "Save Enquiry" : "Submit Order"}
                     </Button>
+
+                    {!isEnquiryOnly && (
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <input
+                          type="checkbox"
+                          checked={sendWhatsAppAfterSave}
+                          onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)}
+                          className="h-4 w-4 text-[#25d366] border-gray-300 rounded"
+                        />
+                        <Typography variant="body2">Send WhatsApp after saving</Typography>
+                      </Stack>
+                    )}
+
+                    {isTransactionSaved && !isEnquiryOnly && (
+                      <Button
+                        type="button"
+                        variant="contained"
+                        onClick={() => sendWhatsApp()}
+                        disabled={isSendingWhatsApp}
+                        sx={{ borderRadius: 2, py: 1.1, textTransform: "none", fontWeight: 700, bgcolor: "#075e54" }}
+                      >
+                        {isSendingWhatsApp ? "Sending WhatsApp..." : "Send WhatsApp Receipt"}
+                      </Button>
+                    )}
 
                     {optionsLoading && (
                       <Stack direction="row" justifyContent="center">

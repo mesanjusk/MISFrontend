@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from '../apiClient.js';
+import toast, { Toaster } from "react-hot-toast";
 
 const todayISO = () => new Date().toLocaleDateString("en-CA"); // yyyy-mm-dd
 
@@ -153,6 +154,13 @@ export default function PaymentFollowup() {
   const [Remark, setRemark] = useState("");
 
   const [customerOptions, setCustomerOptions] = useState([]);
+  const [customerDetails, setCustomerDetails] = useState([]);
+
+  const [whatsAppMessage, setWhatsAppMessage] = useState("");
+  const [mobileToSend, setMobileToSend] = useState("");
+  const [sendWhatsAppAfterSave, setSendWhatsAppAfterSave] = useState(false);
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+  const [isTransactionSaved, setIsTransactionSaved] = useState(false);
 
   // Follow-up date ALWAYS visible; default today
   const [Deadline, setDeadline] = useState(todayISO());
@@ -180,6 +188,7 @@ export default function PaymentFollowup() {
         // Try singular
         const r1 = await axios.get("/customer/GetCustomerList");
         if (r1?.data?.success && Array.isArray(r1.data.result)) {
+          setCustomerDetails(r1.data.result);
           setCustomerOptions(normalizeNames(r1.data.result));
           return;
         }
@@ -189,6 +198,7 @@ export default function PaymentFollowup() {
           // Fallback to plural
           const r2 = await axios.get("/customer/GetCustomersList");
           if (r2?.data?.success && Array.isArray(r2.data.result)) {
+            setCustomerDetails(r2.data.result);
             setCustomerOptions(normalizeNames(r2.data.result));
             return;
           }
@@ -197,7 +207,7 @@ export default function PaymentFollowup() {
           const msg =
             err2?.response?.data?.message || err2?.message || "Unknown error";
           console.error("Error fetching customers:", msg, err2?.response?.data);
-          alert("Unable to load customers: " + msg);
+          toast.error("Unable to load customers: " + msg);
         }
       }
     };
@@ -207,16 +217,47 @@ export default function PaymentFollowup() {
 
   const closeModal = () => navigate("/Home");
 
+  const sendWhatsApp = async (phone = mobileToSend, message = whatsAppMessage) => {
+    if (!phone) {
+      toast.error("Customer phone number is required");
+      return;
+    }
+
+    setIsSendingWhatsApp(true);
+
+    try {
+      let cleanPhone = String(phone).replace(/\D/g, "");
+      if (cleanPhone.length === 10) {
+        cleanPhone = `91${cleanPhone}`;
+      }
+
+      const { data } = await axios.post('/api/whatsapp/send-text', {
+        to: cleanPhone,
+        body: message,
+      });
+
+      if (data?.success) {
+        toast.success("WhatsApp message sent");
+      } else {
+        toast.error(data?.error || "Failed to send WhatsApp message");
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "Failed to send WhatsApp message");
+    } finally {
+      setIsSendingWhatsApp(false);
+    }
+  };
+
   const submit = async (e) => {
     e.preventDefault();
 
     // Require selection from the list
-    if (!Customer) return alert("Please select a customer.");
+    if (!Customer) return toast.error("Please select a customer.");
     if (!customerOptions.includes(Customer)) {
-      return alert("Please pick a customer from the suggestions.");
+      return toast.error("Please pick a customer from the suggestions.");
     }
     if (!Amount || Number(Amount) <= 0)
-      return alert("Please enter a valid amount.");
+      return toast.error("Please enter a valid amount.");
 
     const finalDate = Deadline || todayISO();
 
@@ -231,22 +272,38 @@ export default function PaymentFollowup() {
       });
 
       if (res.data === "exist") {
-        alert("A similar follow-up already exists for this customer/date.");
+        toast.error("A similar follow-up already exists for this customer/date.");
       } else {
-        alert("Payment follow-up added.");
-        navigate("/Home");
+        const selectedCustomer = customerDetails.find((item) => item.Customer_name === Customer);
+        const phoneNumber =
+          selectedCustomer?.Mobile_number ||
+          selectedCustomer?.mobile ||
+          selectedCustomer?.phone ||
+          "";
+        const message = `Hello ${Customer}, we will follow up with you for ₹${Number(Amount)}. Thank you!`;
+
+        toast.success("Payment follow-up added.");
+        setWhatsAppMessage(message);
+        setMobileToSend(phoneNumber);
+        setIsTransactionSaved(true);
+
+        if (sendWhatsAppAfterSave) {
+          await sendWhatsApp(phoneNumber, message);
+        }
       }
     } catch (err) {
       const msg =
         err?.response?.data?.message || err?.message || "Unknown error";
       console.error("Save follow-up error:", msg, err?.response?.data);
-      alert("Something went wrong: " + msg);
+      toast.error("Something went wrong: " + msg);
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
+    <>
+      <Toaster position="top-center" reverseOrder={false} />
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
       <div className="bg-white w-full max-w-md rounded-2xl shadow-lg p-6 relative">
         <button
@@ -337,6 +394,27 @@ export default function PaymentFollowup() {
             />
           </div>
 
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={sendWhatsAppAfterSave}
+              onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)}
+              className="h-4 w-4 text-[#25d366] border-gray-300 rounded"
+            />
+            <label className="text-gray-700">Send WhatsApp after saving</label>
+          </div>
+
+          {isTransactionSaved && (
+            <button
+              type="button"
+              onClick={() => sendWhatsApp()}
+              disabled={isSendingWhatsApp}
+              className="w-full bg-[#075e54] hover:bg-[#064c44] text-white font-medium py-2 rounded-lg transition disabled:opacity-60"
+            >
+              {isSendingWhatsApp ? "Sending WhatsApp..." : "Send WhatsApp Receipt"}
+            </button>
+          )}
+
           {/* Actions */}
           <div className="flex flex-col space-y-2">
             <button
@@ -348,10 +426,17 @@ export default function PaymentFollowup() {
             >
               {submitting ? "Saving..." : "Submit"}
             </button>
-            
+            <button
+              type="button"
+              className="bg-gray-400 hover:bg-gray-600 text-white font-medium py-2 rounded-lg transition"
+              onClick={closeModal}
+            >
+              Close
+            </button>
           </div>
         </form>
       </div>
     </div>
+    </>
   );
 }
