@@ -1,9 +1,8 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from '../apiClient.js';
 import { Button, InputField, ToastContainer, toast, LoadingSpinner } from "../Components";
-import InvoiceModal from "../Components/InvoiceModal";
 
 export default function AddTransaction({ editMode, existingData, onClose, onSuccess }) {
   const navigate = useNavigate();
@@ -29,9 +28,8 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
 
   const [whatsAppMessage, setWhatsAppMessage] = useState('');
   const [mobileToSend, setMobileToSend] = useState('');
-  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
-  const [invoiceItems, setInvoiceItems] = useState([]);
-  const previewRef = useRef();
+  const [sendWhatsAppAfterSave, setSendWhatsAppAfterSave] = useState(false);
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
 
   useEffect(() => {
     const userNameFromState = location.state?.id || localStorage.getItem('User_name');
@@ -142,11 +140,16 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
 
       if (res.data.success) {
         toast.success("Transaction saved.");
-        const message = `Hello ${Customer?.Customer_name}, we have received your payment of ₹${Amount} on ${Transaction_date || todayDate} via ${Group?.Customer_name}. Thank you!`;
+        // NEW CODE START
+        const message = `Hello ${Customer?.Customer_name || Customer_name}, your payment of ₹${Amount} has been recorded. Thank you!`;
         setWhatsAppMessage(message);
         setMobileToSend(Customer?.Mobile_number);
-        setInvoiceItems([{ Item: Description || 'Payment', Quantity: 1, Rate: Amount, Amount: Amount }]);
-        setShowInvoiceModal(true);
+        if (sendWhatsAppAfterSave) {
+          await sendWhatsApp(Customer?.Mobile_number, message);
+        }
+        // NEW CODE END
+        onSuccess?.();
+        onClose?.();
       } else {
         toast.error("Failed to save transaction");
       }
@@ -157,23 +160,27 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
     }
   };
 
-  const sendWhatsApp = async () => {
-    try {
-      const { data } = await axios.post('/usertask/send-message', {
-        mobile: mobileToSend,
-        userName: Customer_name,
-        type: 'customer',
-        message: whatsAppMessage,
-      });
-      if (data?.error) toast.error("❌ Failed to send WhatsApp message");
-      else toast.success("✅ WhatsApp message sent successfully");
-    } catch {
-      toast.error("⚠️ Error sending WhatsApp");
-    } finally {
-      setShowInvoiceModal(false);
-      onSuccess?.();
-      onClose?.();
+  const sendWhatsApp = async (phone = mobileToSend, message = whatsAppMessage) => {
+    // NEW CODE START
+    if (!phone) {
+      toast.error("Customer phone number is required");
+      return;
     }
+
+    setIsSendingWhatsApp(true);
+    try {
+      const { data } = await axios.post('/whatsapp/send', {
+        phone,
+        message,
+      });
+      if (data?.error || data?.success === false) toast.error("Failed to send WhatsApp message");
+      else toast.success("WhatsApp message sent");
+    } catch {
+      toast.error("Failed to send WhatsApp message");
+    } finally {
+      setIsSendingWhatsApp(false);
+    }
+    // NEW CODE END
   };
 
   const addCustomer = () => navigate("/addCustomer");
@@ -181,21 +188,6 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
   return (
     <>
       <ToastContainer />
-
-      <InvoiceModal
-        open={showInvoiceModal}
-        onClose={() => {
-          setShowInvoiceModal(false);
-          onSuccess?.();
-          onClose?.();
-        }}
-        invoiceRef={previewRef}
-        customerName={Customer_name}
-        customerMobile={mobileToSend}
-        items={invoiceItems}
-        remark={Description}
-        onSendWhatsApp={sendWhatsApp}
-      />
 
       <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
         <div className="bg-white w-full max-w-2xl rounded-xl shadow-xl p-6 relative">
@@ -310,6 +302,26 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
               onChange={(e) => setTransaction_date(e.target.value)}
             />
           )}
+          {/* NEW CODE START */}
+          <div className="mb-2 flex items-center space-x-2">
+            <input
+              id="sendWhatsAppAfterSave"
+              type="checkbox"
+              className="h-4 w-4 text-primary border-gray-300 rounded"
+              checked={sendWhatsAppAfterSave}
+              onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)}
+            />
+            <label htmlFor="sendWhatsAppAfterSave" className="text-sm">
+              Send WhatsApp after saving
+            </label>
+          </div>
+          {isSendingWhatsApp && (
+            <div className="flex items-center text-sm text-gray-600">
+              <LoadingSpinner size={14} className="mr-2" />
+              Sending WhatsApp...
+            </div>
+          )}
+          {/* NEW CODE END */}
 
           <Button
             type="submit"
