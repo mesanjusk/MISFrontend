@@ -9,10 +9,12 @@ const ChatMessages = ({ selectedCustomer, messages, chatRef }) => (
       messages.map((msg, i) => (
         <div
           key={i}
-          className={`max-w-sm px-4 py-2 rounded-lg text-sm ${msg.from === 'me' ? 'bg-blue-100 ml-auto' : 'bg-white'} shadow-sm`}
+          className={`max-w-sm px-4 py-2 rounded-lg text-sm shadow-sm ${
+            msg.fromMe ? 'bg-blue-100 ml-auto text-right' : 'bg-white mr-auto text-left'
+          }`}
         >
-          <div>{msg.text}</div>
-          <div className="text-right text-xs text-gray-400 mt-1">
+          <div className="break-words">{msg.text}</div>
+          <div className={`text-xs text-gray-400 mt-1 ${msg.fromMe ? 'text-right' : 'text-left'}`}>
             {new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>

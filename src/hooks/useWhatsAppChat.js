@@ -11,11 +11,17 @@ import {
   sendWhatsAppMessage,
 } from '../services/whatsappService.js';
 
-const buildMessageObject = (message) => ({
-  from: message.from,
-  text: message.text,
-  time: new Date(message.time),
-});
+const buildMessageObject = (message) => {
+  const fromMe = typeof message.fromMe === 'boolean' ? message.fromMe : message.from === 'me';
+
+  return {
+    fromMe,
+    from: message.from || '',
+    to: message.to || '',
+    text: message.message ?? message.text ?? '',
+    time: new Date(message.timestamp || message.time || Date.now()),
+  };
+};
 
 export const useWhatsAppChat = () => {
   const chatRef = useRef(null);
@@ -49,21 +55,17 @@ export const useWhatsAppChat = () => {
     };
 
     const handleIncomingMessage = async (data) => {
-      const senderNumber = normalizeWhatsAppNumber(data.number || '');
+      const normalizedMessage = buildMessageObject(data);
+      const senderNumber = normalizeWhatsAppNumber(
+        normalizedMessage.fromMe ? normalizedMessage.to : normalizedMessage.from,
+      );
       const currentCustomer = selectedCustomerRef.current;
       const currentNumber = currentCustomer
         ? normalizeWhatsAppNumber(currentCustomer.Mobile_number)
         : null;
 
       if (currentCustomer && senderNumber === currentNumber) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            from: 'them',
-            text: data.message,
-            time: new Date(data.time || Date.now()),
-          },
-        ]);
+        setMessages((prev) => [...prev, normalizedMessage]);
       }
 
       try {
@@ -90,6 +92,7 @@ export const useWhatsAppChat = () => {
 
     socket.on('ready', handleReady);
     socket.on('message', handleIncomingMessage);
+    socket.on('new_message', handleIncomingMessage);
 
     fetchWhatsAppStatus()
       .then((res) => {
@@ -102,6 +105,7 @@ export const useWhatsAppChat = () => {
     return () => {
       socket.off('ready', handleReady);
       socket.off('message', handleIncomingMessage);
+      socket.off('new_message', handleIncomingMessage);
       socket.disconnect();
     };
   }, [socket]);
@@ -136,7 +140,13 @@ export const useWhatsAppChat = () => {
     if (!currentCustomer || !message || !isReady) return;
     const norm = normalizeWhatsAppNumber(currentCustomer.Mobile_number);
     const personalized = message.replace(/\{name\}/gi, currentCustomer.Customer_name || norm);
-    const msgObj = { from: 'me', text: personalized, time: new Date() };
+    const msgObj = buildMessageObject({
+      fromMe: true,
+      from: 'me',
+      to: norm,
+      message: personalized,
+      timestamp: Date.now(),
+    });
 
     setSending(true);
     try {
