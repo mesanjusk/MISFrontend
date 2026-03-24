@@ -30,6 +30,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
   const [mobileToSend, setMobileToSend] = useState('');
   const [sendWhatsAppAfterSave, setSendWhatsAppAfterSave] = useState(false);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+  const [isTransactionSaved, setIsTransactionSaved] = useState(false);
 
   useEffect(() => {
     const userNameFromState = location.state?.id || localStorage.getItem('User_name');
@@ -140,16 +141,14 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
 
       if (res.data.success) {
         toast.success("Transaction saved.");
-        // NEW CODE START
         const message = `Hello ${Customer?.Customer_name || Customer_name}, your payment of ₹${Amount} has been recorded. Thank you!`;
         setWhatsAppMessage(message);
         setMobileToSend(Customer?.Mobile_number);
+        setIsTransactionSaved(true);
         if (sendWhatsAppAfterSave) {
           await sendWhatsApp(Customer?.Mobile_number, message);
         }
-        // NEW CODE END
         onSuccess?.();
-        onClose?.();
       } else {
         toast.error("Failed to save transaction");
       }
@@ -161,7 +160,6 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
   };
 
   const sendWhatsApp = async (phone = mobileToSend, message = whatsAppMessage) => {
-    // NEW CODE START
     if (!phone) {
       toast.error("Customer phone number is required");
       return;
@@ -180,7 +178,6 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
     } finally {
       setIsSendingWhatsApp(false);
     }
-    // NEW CODE END
   };
 
   const addCustomer = () => navigate("/addCustomer");
@@ -302,7 +299,6 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
               onChange={(e) => setTransaction_date(e.target.value)}
             />
           )}
-          {/* NEW CODE START */}
           <div className="mb-2 flex items-center space-x-2">
             <input
               id="sendWhatsAppAfterSave"
@@ -321,7 +317,24 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
               Sending WhatsApp...
             </div>
           )}
-          {/* NEW CODE END */}
+
+          {isTransactionSaved && mobileToSend && (
+            <Button
+              type="button"
+              className="mt-1"
+              fullWidth
+              disabled={isSendingWhatsApp}
+              onClick={() => sendWhatsApp()}
+            >
+              {isSendingWhatsApp ? (
+                <>
+                  <LoadingSpinner size={16} className="mr-2" /> Sending WhatsApp...
+                </>
+              ) : (
+                "Send WhatsApp Receipt"
+              )}
+            </Button>
+          )}
 
           <Button
             type="submit"
