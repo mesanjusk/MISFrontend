@@ -155,7 +155,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
 const message = `Hello ${Customer?.Customer_name || Customer_name}, your payment of ₹${Amount} has been recorded. Thank you!`;
 
 setWhatsAppMessage(message);
-setMobileToSend(phoneNumber);
+setMobileToSend(phoneNumber || '');
 
         setIsTransactionSaved(true);
         if (sendWhatsAppAfterSave) {
@@ -173,7 +173,7 @@ setMobileToSend(phoneNumber);
   };
 
   
-const sendWhatsApp = async (phone = mobileToSend, message = whatsAppMessage) => {
+const sendWhatsApp = async (phone = mobileToSend) => {
   if (!phone) {
     toast.error("Customer phone number is required");
     return;
@@ -184,28 +184,44 @@ const sendWhatsApp = async (phone = mobileToSend, message = whatsAppMessage) => 
   try {
     let cleanPhone = String(phone).replace(/\D/g, '');
 
-    // ✅ Add India country code
     if (cleanPhone.length === 10) {
       cleanPhone = '91' + cleanPhone;
     }
 
-    const { data } = await axios.post('/api/whatsapp/send-text', {
+    const payload = {
       to: cleanPhone,
-      body: message, // 🔥 FINAL FIX
-    });
+      template_name: "payment_received_skdigital",
+      language: "en",
+      components: [
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: Customer_name || "Customer" }, // {{1}}
+            { type: "text", text: "successful" },                // {{2}}
+            { type: "text", text: new Date().toLocaleDateString("en-IN") }, // {{3}}
+            { type: "text", text: String(Amount || "0") },       // {{4}}
+            { type: "text", text: Description || "Payment received" } // {{5}}
+          ]
+        }
+      ]
+    };
+
+    const { data } = await axios.post('/api/whatsapp/send-template', payload);
 
     if (data?.success) {
       toast.success("WhatsApp message sent");
     } else {
-      toast.error(data?.error || "Failed to send WhatsApp message");
+      toast.error(data?.error || "Failed to send WhatsApp");
     }
+
   } catch (error) {
-    console.error("WhatsApp FULL ERROR:", error.response?.data || error);
-    toast.error(error.response?.data?.error || "Failed to send WhatsApp message");
+    console.error("❌ WhatsApp ERROR:", error.response?.data || error);
+    toast.error(error.response?.data?.error?.message || "Failed to send WhatsApp");
   } finally {
     setIsSendingWhatsApp(false);
   }
 };
+
   const addCustomer = () => navigate("/addCustomer");
 
   return (
