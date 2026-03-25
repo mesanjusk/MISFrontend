@@ -395,7 +395,7 @@ const sendWhatsApp = async (phone = mobileToSend) => {
           >
             {loading ? (
               <>
-                <LoadingSpinner size={16} className="mr-2" /> Saving...
+                <LoadingSpinner size={16} className="mr-2" /> Saving....
               </>
             ) : editMode ? (
               "Update"
