@@ -13,7 +13,7 @@ import {
 import { useOrderGrouping } from "../hooks/useOrderGrouping";
 import { useOrderDnD } from "../hooks/useOrderDnD";
 
-/* ✅ MUI (UI only) */
+/* ✅ MUI (UI nly) */
 import {
   AppBar,
   Toolbar,

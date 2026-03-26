@@ -191,20 +191,28 @@ const sendWhatsApp = async (phone = mobileToSend) => {
     const payload = {
       to: cleanPhone,
       template_name: "payment_received_skdigital",
-      language: "en",
-      components: [
+      language: "en_US", // ⚠️ IMPORTANT FIX
+    };
+
+    // ❗ ONLY ADD COMPONENTS IF 
+    const hasVariables = false; // 👈 CHANGE THIS WHEN YOU ADD VARIABLES
+
+    if (hasVariables) {
+      payload.components = [
         {
           type: "body",
           parameters: [
-            { type: "text", text: Customer_name || "Customer" }, // {{1}}
-            { type: "text", text: "successful" },                // {{2}}
-            { type: "text", text: new Date().toLocaleDateString("en-IN") }, // {{3}}
-            { type: "text", text: String(Amount || "0") },       // {{4}}
-            { type: "text", text: Description || "Payment received" } // {{5}}
+            { type: "text", text: Customer_name || "Customer" },
+            { type: "text", text: "successful" },
+            { type: "text", text: new Date().toLocaleDateString("en-IN") },
+            { type: "text", text: String(Amount || "0") },
+            { type: "text", text: Description || "Payment received" }
           ]
         }
-      ]
-    };
+      ];
+    }
+
+    console.log("📤 Sending WhatsApp payload:", payload);
 
     const { data } = await axios.post('/api/whatsapp/send-template', payload);
 
@@ -215,7 +223,7 @@ const sendWhatsApp = async (phone = mobileToSend) => {
     }
 
   } catch (error) {
-    console.error("❌ WhatsApp ERROR:", error.response?.data || error);
+    console.error("❌ WhatsApp ERROR FULL:", error.response?.data || error);
     toast.error(error.response?.data?.error?.message || "Failed to send WhatsApp");
   } finally {
     setIsSendingWhatsApp(false);
