@@ -191,26 +191,20 @@ const sendWhatsApp = async (phone = mobileToSend) => {
     const payload = {
       to: cleanPhone,
       template_name: "payment_received_skdigital",
-      language: "en_US", // ⚠️ IMPORTANT FIX
-    };
-
-    // ❗ ONLY ADD COMPONENTS IF 
-    const hasVariables = false; // 👈 CHANGE THIS WHEN YOU ADD VARIABLES
-
-    if (hasVariables) {
-      payload.components = [
+      language: "en_US",
+      components: [
         {
           type: "body",
           parameters: [
-            { type: "text", text: Customer_name || "Customer" },
-            { type: "text", text: "successful" },
-            { type: "text", text: new Date().toLocaleDateString("en-IN") },
-            { type: "text", text: String(Amount || "0") },
-            { type: "text", text: Description || "Payment received" }
+            { type: "text", text: Customer_name || "Customer" }, // {{1}}
+            { type: "text", text: "payment" },                  // {{2}}
+            { type: "text", text: new Date().toLocaleDateString("en-IN") }, // {{3}}
+            { type: "text", text: String(Amount || "0") },      // {{4}}
+            { type: "text", text: Description || "Payment received" } // {{5}}
           ]
         }
-      ];
-    }
+      ]
+    };
 
     console.log("📤 Sending WhatsApp payload:", payload);
 
