@@ -30,12 +30,13 @@ export default function WhatsAppCloudDashboard() {
         </p>
       </header>
 
-      <nav className="flex gap-2">
+      <nav className="flex flex-wrap gap-2" aria-label="WhatsApp Cloud sections">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium ${
+            aria-pressed={activeTab === tab.key}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               activeTab === tab.key
                 ? 'bg-blue-600 text-white'
                 : 'bg-white border border-gray-200 text-gray-700'

@@ -1,6 +1,6 @@
 import {
-  BarChart,
   Bar,
+  BarChart,
   CartesianGrid,
   Legend,
   Line,
@@ -47,6 +47,9 @@ const campaignPerformanceData = [
   { campaign: 'Feedback', delivered: 97, read: 82 },
 ];
 
+const messagesTooltipFormatter = (value, name) => [value.toLocaleString(), name];
+const campaignTooltipFormatter = (value, name) => [`${value}%`, name];
+
 function SummaryCard({ title, value, helper }) {
   return (
     <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -81,7 +84,7 @@ export default function AnalyticsDashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="day" />
                 <YAxis />
-                <Tooltip />
+                <Tooltip formatter={messagesTooltipFormatter} />
                 <Legend />
                 <Line
                   type="monotone"
@@ -119,8 +122,8 @@ export default function AnalyticsDashboard() {
               <BarChart data={campaignPerformanceData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="campaign" />
-                <YAxis unit="%" />
-                <Tooltip formatter={(value) => [`${value}%`]} />
+                <YAxis unit="%" domain={[0, 100]} />
+                <Tooltip formatter={campaignTooltipFormatter} />
                 <Legend />
                 <Bar dataKey="delivered" fill="#2563eb" name="Delivered %" />
                 <Bar dataKey="read" fill="#22c55e" name="Read %" />
