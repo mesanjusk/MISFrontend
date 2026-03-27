@@ -1,51 +1,32 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { HiOutlineSearch, HiOutlineTag, HiOutlineUserCircle } from "react-icons/hi";
-
-const CONTACTS = [
-  {
-    id: "c-1001",
-    name: "Ava Johnson",
-    company: "Northwind Traders",
-    status: "hot",
-    lastMessage: "Can we review the updated quote this afternoon?",
-    lastSeen: "10m ago",
-    tags: ["VIP", "Renewal"],
-    chat: [
-      { id: "m-1", sender: "contact", text: "Hey, need pricing update for Q2", time: "09:15" },
-      { id: "m-2", sender: "agent", text: "Sure, I can share this before lunch.", time: "09:20" },
-      { id: "m-3", sender: "contact", text: "Can we review the updated quote this afternoon?", time: "09:41" },
-    ],
-  },
-  {
-    id: "c-1002",
-    name: "Liam Chen",
-    company: "BluePeak Retail",
-    status: "warm",
-    lastMessage: "Please tag this as onboarding.",
-    lastSeen: "35m ago",
-    tags: ["Onboarding"],
-    chat: [
-      { id: "m-1", sender: "contact", text: "Sent signed documents.", time: "08:05" },
-      { id: "m-2", sender: "agent", text: "Great, adding your account now.", time: "08:12" },
-      { id: "m-3", sender: "contact", text: "Please tag this as onboarding.", time: "08:18" },
-    ],
-  },
-  {
-    id: "c-1003",
-    name: "Mia Rodriguez",
-    company: "Vertex Labs",
-    status: "cold",
-    lastMessage: "Following up next week works for me.",
-    lastSeen: "2h ago",
-    tags: ["Follow-up", "Email"],
-    chat: [
-      { id: "m-1", sender: "agent", text: "Any update from finance team?", time: "11:00" },
-      { id: "m-2", sender: "contact", text: "Following up next week works for me.", time: "11:16" },
-    ],
-  },
-];
+import normalizeWhatsAppNumber from "../../utils/normalizeNumber";
+import { fetchCustomers, fetchMessagesByNumber } from "../../services/whatsappService";
 
 const FILTERS = ["all", "hot", "warm", "cold"];
+
+const toMillis = (value) => {
+  const date = new Date(value || Date.now());
+  return Number.isNaN(date.getTime()) ? Date.now() : date.getTime();
+};
+
+const getStatusByLastActivity = (timestamp) => {
+  const ageHours = Math.abs(Date.now() - timestamp) / (1000 * 60 * 60);
+  if (ageHours <= 24) return "hot";
+  if (ageHours <= 72) return "warm";
+  return "cold";
+};
+
+const formatRelativeTime = (timestamp) => {
+  const diffMs = Math.max(0, Date.now() - timestamp);
+  const mins = Math.floor(diffMs / (1000 * 60));
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+};
 
 function StatusPill({ status }) {
   const palette = {
@@ -62,26 +43,64 @@ function StatusPill({ status }) {
 }
 
 export default function CrmSidebarPanel() {
-  const [contacts, setContacts] = useState(CONTACTS);
+  const [contacts, setContacts] = useState([]);
+  const [tagsByContact, setTagsByContact] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
-  const [selectedId, setSelectedId] = useState(CONTACTS[0]?.id);
+  const [selectedId, setSelectedId] = useState("");
   const [newTag, setNewTag] = useState("");
+  const [chatHistory, setChatHistory] = useState([]);
+  const [isContactsLoading, setIsContactsLoading] = useState(true);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+
+  useEffect(() => {
+    const loadContacts = async () => {
+      setIsContactsLoading(true);
+      try {
+        const response = await fetchCustomers();
+        const list = response?.data?.result || [];
+
+        const normalizedContacts = list.map((contact) => {
+          const updatedAt = toMillis(contact?.UpdatedAt || contact?.CreatedAt || Date.now());
+          return {
+            id: contact?._id || contact?.Customer_uuid || contact?.Mobile_number,
+            name: contact?.Customer_name || "Unknown",
+            company: contact?.Customer_group || "No Group",
+            mobile: normalizeWhatsAppNumber(contact?.Mobile_number || ""),
+            lastSeenAt: updatedAt,
+            status: getStatusByLastActivity(updatedAt),
+          };
+        });
+
+        setContacts(normalizedContacts);
+        setSelectedId((prev) => prev || normalizedContacts[0]?.id || "");
+      } catch (error) {
+        console.error("Failed to load CRM contacts", error);
+        setContacts([]);
+      } finally {
+        setIsContactsLoading(false);
+      }
+    };
+
+    loadContacts();
+  }, []);
 
   const filteredContacts = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
 
     return contacts.filter((contact) => {
+      const localTags = tagsByContact[contact.id] || [];
       const matchesFilter = activeFilter === "all" || contact.status === activeFilter;
       const matchesSearch =
         !query ||
         contact.name.toLowerCase().includes(query) ||
+        contact.mobile.toLowerCase().includes(query) ||
         contact.company.toLowerCase().includes(query) ||
-        contact.tags.some((tag) => tag.toLowerCase().includes(query));
+        localTags.some((tag) => tag.toLowerCase().includes(query));
 
       return matchesFilter && matchesSearch;
     });
-  }, [activeFilter, contacts, searchTerm]);
+  }, [activeFilter, contacts, searchTerm, tagsByContact]);
 
   const activeContact = useMemo(() => {
     const fromFiltered = filteredContacts.find((contact) => contact.id === selectedId);
@@ -89,23 +108,60 @@ export default function CrmSidebarPanel() {
     return filteredContacts[0] || null;
   }, [filteredContacts, selectedId]);
 
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      if (!activeContact?.mobile) {
+        setChatHistory([]);
+        return;
+      }
+
+      setIsChatLoading(true);
+      try {
+        const response = await fetchMessagesByNumber(activeContact.mobile);
+        const messages = response?.data?.messages || [];
+        const mappedMessages = messages.map((item, index) => {
+          const fromMe = typeof item?.fromMe === "boolean" ? item.fromMe : item?.fromMe === "true" || item?.from === "me";
+          const timestamp = toMillis(item?.timestamp || item?.time || item?.createdAt);
+
+          return {
+            id: `${activeContact.id}-${index}`,
+            sender: fromMe ? "agent" : "contact",
+            text: item?.message || item?.text || "",
+            time: new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          };
+        });
+
+        setChatHistory(mappedMessages.slice(-25));
+      } catch (error) {
+        console.error("Failed to load CRM chat history", error);
+        setChatHistory([]);
+      } finally {
+        setIsChatLoading(false);
+      }
+    };
+
+    loadChatHistory();
+  }, [activeContact?.id, activeContact?.mobile]);
+
+  const activeContactTags = activeContact ? tagsByContact[activeContact.id] || [] : [];
+
   const addTag = (event) => {
     event.preventDefault();
     const tagValue = newTag.trim();
 
     if (!tagValue || !activeContact) return;
 
-    setContacts((prev) =>
-      prev.map((contact) => {
-        if (contact.id !== activeContact.id) return contact;
+    setTagsByContact((prev) => {
+      const currentTags = prev[activeContact.id] || [];
+      if (currentTags.some((tag) => tag.toLowerCase() === tagValue.toLowerCase())) {
+        return prev;
+      }
 
-        if (contact.tags.some((tag) => tag.toLowerCase() === tagValue.toLowerCase())) {
-          return contact;
-        }
-
-        return { ...contact, tags: [...contact.tags, tagValue] };
-      }),
-    );
+      return {
+        ...prev,
+        [activeContact.id]: [...currentTags, tagValue],
+      };
+    });
 
     setNewTag("");
   };
@@ -113,12 +169,10 @@ export default function CrmSidebarPanel() {
   const removeTag = (tag) => {
     if (!activeContact) return;
 
-    setContacts((prev) =>
-      prev.map((contact) => {
-        if (contact.id !== activeContact.id) return contact;
-        return { ...contact, tags: contact.tags.filter((currentTag) => currentTag !== tag) };
-      }),
-    );
+    setTagsByContact((prev) => ({
+      ...prev,
+      [activeContact.id]: (prev[activeContact.id] || []).filter((currentTag) => currentTag !== tag),
+    }));
   };
 
   return (
@@ -154,7 +208,8 @@ export default function CrmSidebarPanel() {
       </div>
 
       <div className="mb-4 max-h-64 space-y-2 overflow-y-auto pr-1">
-        {filteredContacts.length === 0 && <p className="text-xs text-slate-500">No contacts match this search.</p>}
+        {isContactsLoading && <p className="text-xs text-slate-500">Loading contacts…</p>}
+        {!isContactsLoading && filteredContacts.length === 0 && <p className="text-xs text-slate-500">No contacts match this search.</p>}
         {filteredContacts.map((contact) => (
           <button
             key={contact.id}
@@ -169,7 +224,7 @@ export default function CrmSidebarPanel() {
               <StatusPill status={contact.status} />
             </div>
             <p className="text-[11px] text-slate-500">{contact.company}</p>
-            <p className="mt-1 line-clamp-1 text-[11px] text-slate-500">{contact.lastMessage}</p>
+            <p className="mt-1 text-[11px] text-slate-500">+{contact.mobile || "No number"}</p>
           </button>
         ))}
       </div>
@@ -180,14 +235,14 @@ export default function CrmSidebarPanel() {
             <HiOutlineUserCircle className="text-xl text-slate-400" />
             <div>
               <p className="text-sm font-semibold text-slate-900">{activeContact.name}</p>
-              <p className="text-xs text-slate-500">Last active {activeContact.lastSeen}</p>
+              <p className="text-xs text-slate-500">Last active {formatRelativeTime(activeContact.lastSeenAt)}</p>
             </div>
           </div>
 
           <div>
             <p className="mb-1 text-xs font-semibold text-slate-700">Tags</p>
             <div className="mb-2 flex flex-wrap gap-1">
-              {activeContact.tags.map((tag) => (
+              {activeContactTags.map((tag) => (
                 <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-[11px] text-slate-700">
                   <HiOutlineTag />
                   {tag}
@@ -196,6 +251,7 @@ export default function CrmSidebarPanel() {
                   </button>
                 </span>
               ))}
+              {activeContactTags.length === 0 && <p className="text-[11px] text-slate-400">No tags yet.</p>}
             </div>
             <form onSubmit={addTag} className="flex gap-1">
               <input
@@ -213,7 +269,9 @@ export default function CrmSidebarPanel() {
           <div>
             <p className="mb-1 text-xs font-semibold text-slate-700">Chat History</p>
             <div className="max-h-44 space-y-2 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2">
-              {activeContact.chat.map((item) => (
+              {isChatLoading && <p className="text-xs text-slate-500">Loading chat…</p>}
+              {!isChatLoading && chatHistory.length === 0 && <p className="text-xs text-slate-500">No chat history found.</p>}
+              {chatHistory.map((item) => (
                 <div
                   key={item.id}
                   className={`max-w-[90%] rounded-md px-2 py-1 text-xs ${
