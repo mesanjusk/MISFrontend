@@ -5,6 +5,7 @@ import SectionHeader from "../components/common/SectionHeader";
 import SummaryCard from "../components/dashboard/SummaryCard";
 import RoleWidget from "../components/dashboard/RoleWidget";
 import QuickActions from "../components/dashboard/QuickActions";
+import CrmSidebarPanel from "../components/dashboard/CrmSidebarPanel";
 import AllAttandance from "./AllAttandance";
 import UserTask from "./userTask";
 import { useDashboardData } from "../hooks/useDashboardData";
@@ -90,61 +91,66 @@ export default function Dashboard() {
     <div className="min-h-screen bg-slate-50">
       {loading && <div className="fixed top-0 left-0 right-0 h-1 bg-indigo-500 animate-pulse z-[60]" />}
 
-      <div className="mx-auto max-w-[1800px] px-3 py-4 space-y-4">
+      <div className="mx-auto max-w-[1800px] px-3 py-4">
         {data.loadError && (
-          <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
             {data.loadError}
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {summaryCards.map((card) => (
-            <SummaryCard key={card.title} {...card} />
-          ))}
-        </div>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {summaryCards.map((card) => (
+                <SummaryCard key={card.title} {...card} />
+              ))}
+            </div>
 
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-          <RoleWidget role={roleInfo.role} userName={roleInfo.userName} />
-          {roleInfo.isAdmin && <QuickActions />}
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <SectionHeader title="Today" />
-            <p className="text-sm text-slate-700">Status updates will appear here.</p>
-            <p className="text-xs text-slate-500">{statusNotice || "No changes yet."}</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-          <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <SectionHeader title="My Pending Orders" />
-            {loading ? (
-              <div className="py-10 text-center">
-                <LoadingSpinner />
-              </div>
-            ) : (
-              <OrderList items={data.myPendingOrders} emptyLabel="No pending orders assigned." />
-            )}
-          </div>
-
-          <div className="space-y-3">
-            {roleInfo.isAdmin ? (
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+              <RoleWidget role={roleInfo.role} userName={roleInfo.userName} />
+              {roleInfo.isAdmin && <QuickActions />}
               <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <SectionHeader title="Today Attendance" />
-                <div className="-mx-4">
-                  <AllAttandance />
+                <SectionHeader title="Today" />
+                <p className="text-sm text-slate-700">Status updates will appear here.</p>
+                <p className="text-xs text-slate-500">{statusNotice || "No changes yet."}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+              <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <SectionHeader title="My Pending Orders" />
+                {loading ? (
+                  <div className="py-10 text-center">
+                    <LoadingSpinner />
+                  </div>
+                ) : (
+                  <OrderList items={data.myPendingOrders} emptyLabel="No pending orders assigned." />
+                )}
+              </div>
+
+              <div className="space-y-3">
+                {roleInfo.isAdmin ? (
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <SectionHeader title="Today Attendance" />
+                    <div className="-mx-4">
+                      <AllAttandance />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <SectionHeader title="My Task Flow" />
+                    <UserTask />
+                  </div>
+                )}
+
+                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <SectionHeader title="Recent Updates" action={<button onClick={data.refresh}>Refresh</button>} />
+                  <OrderList items={data.recentOrders} emptyLabel="No recent orders." />
                 </div>
               </div>
-            ) : (
-              <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <SectionHeader title="My Task Flow" />
-                <UserTask />
-              </div>
-            )}
-
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <SectionHeader title="Recent Updates" action={<button onClick={data.refresh}>Refresh</button>} />
-              <OrderList items={data.recentOrders} emptyLabel="No recent orders." />
             </div>
           </div>
+          <CrmSidebarPanel />
         </div>
       </div>
 
