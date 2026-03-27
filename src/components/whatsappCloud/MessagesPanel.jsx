@@ -3,8 +3,11 @@ import { io } from 'socket.io-client';
 import { toast } from '../../Components';
 import { parseApiError } from '../../utils/parseApiError';
 import { whatsappCloudService } from '../../services/whatsappCloudService';
+import WhatsAppLayout from './WhatsAppLayout';
+import ConversationList from './ConversationList';
+import ChatHeader from './ChatHeader';
+import ChatWindow from './ChatWindow';
 
-// ✅ PRODUCTION SAFE SOCKET URL
 const SOCKET_URL =
   import.meta.env.VITE_SOCKET_URL ||
   import.meta.env.VITE_API_BASE ||
@@ -30,18 +33,7 @@ const getMessageDirection = (message) => {
   return 'incoming';
 };
 
-const getTimestamp = (message) => {
-  const raw = message?.timestamp ?? message?.createdAt ?? message?.time;
-  if (!raw) return 'Unknown time';
-
-  const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return String(raw);
-
-  return new Intl.DateTimeFormat('en-IN', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
-};
+const getTimestampRaw = (message) => message?.timestamp ?? message?.createdAt ?? message?.time;
 
 const normalizeMessages = (payload) => {
   const candidateLists = [
@@ -77,16 +69,31 @@ const getMessageIdentity = (message) => (
   ?? message?.messageId
   ?? message?.wamid
   ?? [
-    message?.timestamp ?? message?.createdAt ?? message?.time ?? 'no-time',
+    getTimestampRaw(message) ?? 'no-time',
     message?.from ?? message?.sender ?? 'unknown-from',
     message?.to ?? message?.recipient ?? 'unknown-to',
     getMessageText(message),
   ].join('-')
 );
 
+const getContactForMessage = (message) => {
+  const direction = getMessageDirection(message);
+  return direction === 'outgoing'
+    ? String(message?.to ?? message?.recipient ?? 'Unknown')
+    : String(message?.from ?? message?.sender ?? 'Unknown');
+};
+
+const isUnreadMessage = (message) => {
+  const status = String(message?.status ?? '').toLowerCase();
+  return getMessageDirection(message) === 'incoming' && !['read', 'seen'].includes(status);
+};
+
 export default function MessagesPanel() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [search, setSearch] = useState('');
+  const [activeConversationId, setActiveConversationId] = useState('');
   const messagesContainerRef = useRef(null);
 
   const appendMessage = useCallback((incomingMessage) => {
@@ -130,10 +137,9 @@ export default function MessagesPanel() {
     loadMessages();
   }, [loadMessages]);
 
-  // ✅ SOCKET CONNECTION (RENDER SAFE)
   useEffect(() => {
     const socket = io(SOCKET_URL, {
-      transports: ['polling'], // 🔥 FIX for Render
+      transports: ['polling'],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 2000,
@@ -156,7 +162,6 @@ export default function MessagesPanel() {
     };
   }, [appendMessage]);
 
-  // 🔁 BACKUP AUTO REFRESH (in case socket fails)
   useEffect(() => {
     const interval = setInterval(() => {
       loadMessages();
@@ -169,75 +174,169 @@ export default function MessagesPanel() {
     () =>
       [...messages].sort(
         (a, b) =>
-          new Date(a?.timestamp ?? a?.createdAt ?? a?.time ?? 0) -
-          new Date(b?.timestamp ?? b?.createdAt ?? b?.time ?? 0)
+          new Date(getTimestampRaw(a) ?? 0) -
+          new Date(getTimestampRaw(b) ?? 0)
       ),
     [messages],
   );
 
-  useEffect(() => {
-    if (!messagesContainerRef.current) return;
-    messagesContainerRef.current.scrollTop =
-      messagesContainerRef.current.scrollHeight;
+  const conversations = useMemo(() => {
+    const map = new Map();
+
+    orderedMessages.forEach((message) => {
+      const contact = getContactForMessage(message);
+      const existing = map.get(contact) || {
+        id: contact,
+        contact,
+        displayName: message?.profileName || message?.name || contact,
+        lastMessage: '',
+        lastTimestamp: null,
+        unreadCount: 0,
+      };
+
+      const timestamp = getTimestampRaw(message);
+      if (!existing.lastTimestamp || new Date(timestamp) >= new Date(existing.lastTimestamp)) {
+        existing.lastTimestamp = timestamp;
+        existing.lastMessage = getMessageText(message);
+      }
+
+      if (isUnreadMessage(message)) {
+        existing.unreadCount += 1;
+      }
+
+      if (!existing.displayName || existing.displayName === existing.contact) {
+        existing.displayName = message?.profileName || message?.name || contact;
+      }
+
+      map.set(contact, existing);
+    });
+
+    return [...map.values()].sort(
+      (a, b) => new Date(b.lastTimestamp ?? 0) - new Date(a.lastTimestamp ?? 0),
+    );
   }, [orderedMessages]);
 
-  return (
-    <section className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-lg font-semibold text-gray-800">Inbox</h3>
-        <button
-          type="button"
-          onClick={loadMessages}
-          disabled={isLoading}
-          className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-        >
-          {isLoading ? 'Refreshing...' : 'Refresh'}
-        </button>
+  const filteredConversations = useMemo(() => {
+    const searchValue = search.trim().toLowerCase();
+    if (!searchValue) return conversations;
+
+    return conversations.filter((conversation) =>
+      `${conversation.displayName} ${conversation.contact}`.toLowerCase().includes(searchValue)
+    );
+  }, [conversations, search]);
+
+  useEffect(() => {
+    if (!filteredConversations.length) {
+      setActiveConversationId('');
+      return;
+    }
+
+    const exists = filteredConversations.some((item) => item.id === activeConversationId);
+    if (!exists) {
+      setActiveConversationId(filteredConversations[0].id);
+    }
+  }, [filteredConversations, activeConversationId]);
+
+  const activeConversation = useMemo(
+    () => filteredConversations.find((item) => item.id === activeConversationId) || null,
+    [filteredConversations, activeConversationId],
+  );
+
+  const activeMessages = useMemo(() => {
+    if (!activeConversation?.contact) return [];
+
+    return orderedMessages.filter((message) => getContactForMessage(message) === activeConversation.contact);
+  }, [orderedMessages, activeConversation]);
+
+  useEffect(() => {
+    if (!messagesContainerRef.current) return;
+    messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+  }, [activeMessages]);
+
+  const handleSend = useCallback(async (body) => {
+    if (!activeConversation?.contact) {
+      toast.error('Please select a conversation first.');
+      return false;
+    }
+
+    try {
+      setIsSending(true);
+      await whatsappCloudService.sendTextMessage({
+        to: activeConversation.contact,
+        body,
+      });
+      toast.success('Message sent successfully.');
+      return true;
+    } catch (error) {
+      toast.error(parseApiError(error, 'Failed to send message.'));
+      return false;
+    } finally {
+      setIsSending(false);
+    }
+  }, [activeConversation]);
+
+  const rightPanel = activeConversation ? (
+    <div className="flex h-full min-h-0 flex-col bg-white">
+      <div className="border-b border-gray-200 p-5 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-xl font-semibold text-green-700">
+          {activeConversation.displayName.slice(0, 2).toUpperCase()}
+        </div>
+        <p className="mt-3 text-sm font-semibold text-gray-900">{activeConversation.displayName}</p>
+        <p className="text-xs text-gray-500">{activeConversation.contact}</p>
       </div>
 
-      <div
-        ref={messagesContainerRef}
-        className="mt-4 max-h-[500px] overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-3"
-      >
-        {orderedMessages.length === 0 && !isLoading && (
-          <p className="text-sm text-gray-500">No messages found.</p>
-        )}
-
-        <div className="space-y-3">
-          {orderedMessages.map((message) => {
-            const direction = getMessageDirection(message);
-            const isOutgoing = direction === 'outgoing';
-            const status = message?.status ?? 'unknown';
-            const sender = message?.from ?? message?.sender ?? 'Unknown';
-            const receiver = message?.to ?? message?.recipient ?? 'Unknown';
-
-            return (
-              <article
-                key={getMessageIdentity(message)}
-                className={`max-w-[85%] rounded-xl px-3 py-2 shadow-sm ${
-                  isOutgoing
-                    ? 'ml-auto bg-blue-600 text-white'
-                    : 'mr-auto bg-gray-200 text-gray-900'
-                }`}
-              >
-                <p className="whitespace-pre-wrap break-words text-sm">
-                  {getMessageText(message)}
-                </p>
-
-                <div
-                  className={`mt-2 text-xs ${
-                    isOutgoing ? 'text-blue-100' : 'text-gray-600'
-                  }`}
-                >
-                  <p>{isOutgoing ? `To: ${receiver}` : `From: ${sender}`}</p>
-                  <p>{getTimestamp(message)}</p>
-                  <p className="capitalize">Status: {status}</p>
-                </div>
-              </article>
-            );
-          })}
+      <div className="space-y-4 p-5 text-sm text-gray-700">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Phone</p>
+          <p className="mt-1">{activeConversation.contact}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Last Message</p>
+          <p className="mt-1 break-words">{activeConversation.lastMessage || '-'}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Open Status</p>
+          <p className="mt-1">Active conversation</p>
         </div>
       </div>
-    </section>
+    </div>
+  ) : (
+    <div className="flex h-full items-center justify-center p-6 text-sm text-gray-500">
+      Select a conversation to see details.
+    </div>
+  );
+
+  return (
+    <WhatsAppLayout
+      sidebar={(
+        <ConversationList
+          conversations={filteredConversations}
+          activeConversationId={activeConversationId}
+          onSelectConversation={setActiveConversationId}
+          search={search}
+          onSearch={setSearch}
+        />
+      )}
+      main={(
+        <div className="flex h-full min-h-0 flex-col">
+          <ChatHeader
+            conversation={activeConversation}
+            isLoading={isLoading}
+            onRefresh={loadMessages}
+          />
+          <ChatWindow
+            messages={activeMessages}
+            getMessageIdentity={getMessageIdentity}
+            getMessageText={getMessageText}
+            getMessageDirection={getMessageDirection}
+            getTimestampRaw={getTimestampRaw}
+            scrollRef={messagesContainerRef}
+            canSend={Boolean(activeConversation) && !isSending}
+            onSend={handleSend}
+          />
+        </div>
+      )}
+      details={rightPanel}
+    />
   );
 }
