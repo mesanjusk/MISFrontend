@@ -1,3 +1,15 @@
+const getInitials = (value) => {
+  const source = String(value || '').trim();
+  if (!source) return 'NA';
+
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length > 1) {
+    return `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase();
+  }
+
+  return source.slice(0, 2).toUpperCase();
+};
+
 const formatConversationTime = (dateValue) => {
   if (!dateValue) return '';
   const date = new Date(dateValue);
@@ -53,7 +65,7 @@ export default function ConversationList({
                 }`}
               >
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-green-100 text-sm font-semibold text-green-700">
-                  {conversation.displayName.slice(0, 2).toUpperCase()}
+                  {getInitials(conversation.displayName || conversation.contact)}
                 </div>
 
                 <div className="min-w-0 flex-1">

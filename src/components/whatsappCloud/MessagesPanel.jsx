@@ -88,6 +88,18 @@ const isUnreadMessage = (message) => {
   return getMessageDirection(message) === 'incoming' && !['read', 'seen'].includes(status);
 };
 
+const getInitials = (value) => {
+  const source = String(value || '').trim();
+  if (!source) return 'NA';
+
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length > 1) {
+    return `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase();
+  }
+
+  return source.slice(0, 2).toUpperCase();
+};
+
 export default function MessagesPanel() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -266,6 +278,7 @@ export default function MessagesPanel() {
         body,
       });
       toast.success('Message sent successfully.');
+      loadMessages();
       return true;
     } catch (error) {
       toast.error(parseApiError(error, 'Failed to send message.'));
@@ -273,13 +286,13 @@ export default function MessagesPanel() {
     } finally {
       setIsSending(false);
     }
-  }, [activeConversation]);
+  }, [activeConversation, loadMessages]);
 
   const rightPanel = activeConversation ? (
     <div className="flex h-full min-h-0 flex-col bg-white">
       <div className="border-b border-gray-200 p-5 text-center">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-xl font-semibold text-green-700">
-          {activeConversation.displayName.slice(0, 2).toUpperCase()}
+          {getInitials(activeConversation.displayName || activeConversation.contact)}
         </div>
         <p className="mt-3 text-sm font-semibold text-gray-900">{activeConversation.displayName}</p>
         <p className="text-xs text-gray-500">{activeConversation.contact}</p>
