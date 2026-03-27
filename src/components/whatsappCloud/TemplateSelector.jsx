@@ -46,7 +46,13 @@ const normalizeTemplates = (payload) => {
       return {
         ...template,
         name: template?.name || template?.templateName || 'unnamed_template',
-        language: template?.language || template?.lang || template?.languageCode || 'en',
+        language:
+          (typeof template?.language === 'string'
+            ? template.language
+            : template?.language?.code) ||
+          template?.lang ||
+          template?.languageCode ||
+          'en',
         category: String(template?.category || 'utility').toLowerCase(),
         body:
           template?.body ||

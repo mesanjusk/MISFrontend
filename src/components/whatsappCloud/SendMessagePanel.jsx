@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { toast } from '../../Components';
 import { parseApiError } from '../../utils/parseApiError';
-import { whatsappCloudService } from '../../services/whatsappCloudService';
+import { buildTemplatePayload, whatsappCloudService } from '../../services/whatsappCloudService';
 import TemplateSelector from './TemplateSelector';
 import BulkSender from './BulkSender';
 
@@ -58,14 +58,16 @@ export default function SendMessagePanel() {
 
     try {
       setIsSending(true);
-      await whatsappCloudService.sendTemplateMessage({
-        to: form.to.trim(),
-        template: {
-          name: template.name,
-          language: template.language,
-          parameters: template.parameters || [],
-        },
-      });
+      await whatsappCloudService.sendTemplateMessage(
+        buildTemplatePayload({
+          to: form.to.trim(),
+          template: {
+            name: template.name,
+            language: template.language,
+            parameters: template.parameters || [],
+          },
+        }),
+      );
       toast.success('Template sent successfully.');
     } catch (error) {
       toast.error(parseApiError(error, 'Failed to send template message.'));

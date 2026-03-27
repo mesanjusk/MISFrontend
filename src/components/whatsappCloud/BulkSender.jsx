@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { toast } from '../../Components';
-import { whatsappCloudService } from '../../services/whatsappCloudService';
+import { buildTemplatePayload, whatsappCloudService } from '../../services/whatsappCloudService';
 import TemplateSelector from './TemplateSelector';
 
 const splitNumbers = (rawValue) =>
@@ -47,14 +47,16 @@ export default function BulkSender() {
       const to = numbers[index];
 
       try {
-        await whatsappCloudService.sendTemplateMessage({
-          to,
-          template: {
-            name: template.name,
-            language: template.language,
-            parameters: template.parameters || [],
-          },
-        });
+        await whatsappCloudService.sendTemplateMessage(
+          buildTemplatePayload({
+            to,
+            template: {
+              name: template.name,
+              language: template.language,
+              parameters: template.parameters || [],
+            },
+          }),
+        );
         success += 1;
       } catch (error) {
         failed += 1;
