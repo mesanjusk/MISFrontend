@@ -92,6 +92,7 @@ import VendorHome from "./Pages/vendorHome";
 import AllTransactionOld from "./Reports/allTransactionOld";
 import AddTransactionOld from "./Pages/addTransactionOld.jsx";
 import AddTransaction1Old from "./Pages/addTransaction1Old.jsx";
+import FlowBuilderPage from "./Pages/FlowBuilderPage";
 
 function App() {
   useEffect(() => {
@@ -189,6 +190,7 @@ function App() {
             <Route path="/customerMobile" element={<SearchMobile />} />
             <Route path="/addUsertask" element={<AddUsertask />} />
             <Route path="/calllogs" element={<CallLogs />} />
+            <Route path="/flow-builder" element={<FlowBuilderPage />} />
 
             {/* Edit */}
             <Route path="/editCustomer/:id" element={<EditCustomer />} />
