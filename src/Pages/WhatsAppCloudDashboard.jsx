@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import SendMessagePanel from '../components/whatsappCloud/SendMessagePanel';
 import MessagesPanel from '../components/whatsappCloud/MessagesPanel';
+import AutoReplyManagementPanel from '../components/whatsappCloud/AutoReplyManagementPanel';
 
 const tabs = [
   { key: 'send', label: 'Send Message' },
   { key: 'inbox', label: 'Inbox' },
+  { key: 'autoReply', label: 'Auto Replies' },
 ];
 
 export default function WhatsAppCloudDashboard() {
@@ -44,6 +46,7 @@ export default function WhatsAppCloudDashboard() {
 
       {activeTab === 'send' ? <SendMessagePanel /> : null}
       {activeTab === 'inbox' ? <MessagesPanel /> : null}
+      {activeTab === 'autoReply' ? <AutoReplyManagementPanel /> : null}
     </div>
   );
 }
