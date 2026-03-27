@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import Modal from '../common/Modal';
 import { toast } from '../../Components';
+import { useNavigate } from 'react-router-dom';
 
 const matchTypeOptions = [
   { value: 'contains', label: 'Contains' },
@@ -70,6 +71,8 @@ function DeleteRuleModal({ rule, onClose, onConfirm }) {
 }
 
 export default function AutoReplyManagementPanel() {
+  const navigate = useNavigate();
+  const [mode, setMode] = useState('simple');
   const [rules, setRules] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState(null);
@@ -204,8 +207,36 @@ export default function AutoReplyManagementPanel() {
     closeModal();
   };
 
+  const handleModeChange = (nextMode) => {
+    setMode(nextMode);
+    if (nextMode === 'flow') {
+      navigate('/flow-builder');
+    }
+  };
+
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="mb-4 inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
+        <button
+          type="button"
+          onClick={() => handleModeChange('simple')}
+          className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+            mode === 'simple' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          Simple Auto Reply
+        </button>
+        <button
+          type="button"
+          onClick={() => handleModeChange('flow')}
+          className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+            mode === 'flow' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          Flow Builder
+        </button>
+      </div>
+
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold text-gray-800">Auto-Reply Management</h3>
