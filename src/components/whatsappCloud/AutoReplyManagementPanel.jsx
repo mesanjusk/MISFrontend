@@ -23,44 +23,67 @@ const initialFormState = {
   active: true,
 };
 
-const starterRules = [
-  {
-    id: 1,
-    keyword: 'pricing',
-    matchType: 'contains',
-    replyMode: 'text',
-    replyText: 'Thanks for reaching out! Our team will share the latest pricing shortly.',
-    templateName: '',
-    active: true,
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 2,
-    keyword: 'order status',
-    matchType: 'exact',
-    replyMode: 'template',
-    replyText: '',
-    templateName: 'order_status_v1',
-    active: false,
-    updatedAt: new Date().toISOString(),
-  },
-];
-
 const formatMatchType = (value) =>
   value
     .split('_')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 
+const formatDateTime = (value) => {
+  if (!value) return '--';
+
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) return '--';
+
+  return parsedDate.toLocaleString();
+};
+
+function DeleteRuleModal({ rule, onClose, onConfirm }) {
+  if (!rule) return null;
+
+  return (
+    <Modal onClose={onClose} title="Delete Auto-Reply Rule">
+      <p className="text-sm text-gray-700">
+        Are you sure you want to delete the rule for keyword{' '}
+        <strong className="text-gray-900">"{rule.keyword}"</strong>?
+      </p>
+      <p className="mt-2 text-xs text-gray-500">This action cannot be undone.</p>
+
+      <div className="mt-5 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+        >
+          Delete Rule
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 export default function AutoReplyManagementPanel() {
-  const [rules, setRules] = useState(starterRules);
+  const [rules, setRules] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState(null);
+  const [deletingRuleId, setDeletingRuleId] = useState(null);
   const [formData, setFormData] = useState(initialFormState);
 
   const editingRule = useMemo(
     () => rules.find((rule) => rule.id === editingRuleId) || null,
     [editingRuleId, rules],
+  );
+
+  const deletingRule = useMemo(
+    () => rules.find((rule) => rule.id === deletingRuleId) || null,
+    [deletingRuleId, rules],
   );
 
   const closeModal = () => {
@@ -88,17 +111,11 @@ export default function AutoReplyManagementPanel() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (ruleId) => {
-    const targetRule = rules.find((rule) => rule.id === ruleId);
-    if (!targetRule) return;
+  const handleDelete = () => {
+    if (!deletingRuleId) return;
 
-    const shouldDelete = window.confirm(
-      `Delete auto-reply rule for "${targetRule.keyword}"? This action cannot be undone.`,
-    );
-
-    if (!shouldDelete) return;
-
-    setRules((prev) => prev.filter((rule) => rule.id !== ruleId));
+    setRules((prev) => prev.filter((rule) => rule.id !== deletingRuleId));
+    setDeletingRuleId(null);
     toast.success('Auto-reply rule deleted.');
   };
 
@@ -117,23 +134,38 @@ export default function AutoReplyManagementPanel() {
   };
 
   const handleFieldChange = (key, value) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
+    setFormData((prev) => {
+      if (key === 'replyMode') {
+        return {
+          ...prev,
+          replyMode: value,
+          replyText: value === 'text' ? prev.replyText : '',
+          templateName: value === 'template' ? prev.templateName : '',
+        };
+      }
+
+      return { ...prev, [key]: value };
+    });
   };
 
   const handleSaveRule = (event) => {
     event.preventDefault();
 
-    if (!formData.keyword.trim()) {
+    const keyword = formData.keyword.trim();
+    const replyText = formData.replyText.trim();
+    const templateName = formData.templateName.trim();
+
+    if (!keyword) {
       toast.error('Keyword is required.');
       return;
     }
 
-    if (formData.replyMode === 'text' && !formData.replyText.trim()) {
+    if (formData.replyMode === 'text' && !replyText) {
       toast.error('Reply text is required when reply mode is text.');
       return;
     }
 
-    if (formData.replyMode === 'template' && !formData.templateName.trim()) {
+    if (formData.replyMode === 'template' && !templateName) {
       toast.error('Template name is required when reply mode is template.');
       return;
     }
@@ -145,9 +177,9 @@ export default function AutoReplyManagementPanel() {
             ? {
                 ...rule,
                 ...formData,
-                keyword: formData.keyword.trim(),
-                replyText: formData.replyMode === 'text' ? formData.replyText.trim() : '',
-                templateName: formData.replyMode === 'template' ? formData.templateName.trim() : '',
+                keyword,
+                replyText: formData.replyMode === 'text' ? replyText : '',
+                templateName: formData.replyMode === 'template' ? templateName : '',
                 updatedAt: new Date().toISOString(),
               }
             : rule,
@@ -157,11 +189,11 @@ export default function AutoReplyManagementPanel() {
     } else {
       setRules((prev) => [
         {
-          id: Date.now(),
+          id: crypto.randomUUID(),
           ...formData,
-          keyword: formData.keyword.trim(),
-          replyText: formData.replyMode === 'text' ? formData.replyText.trim() : '',
-          templateName: formData.replyMode === 'template' ? formData.templateName.trim() : '',
+          keyword,
+          replyText: formData.replyMode === 'text' ? replyText : '',
+          templateName: formData.replyMode === 'template' ? templateName : '',
           updatedAt: new Date().toISOString(),
         },
         ...prev,
@@ -199,6 +231,7 @@ export default function AutoReplyManagementPanel() {
               <th className="px-4 py-3 text-left font-semibold text-gray-600">Match Type</th>
               <th className="px-4 py-3 text-left font-semibold text-gray-600">Reply</th>
               <th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
+              <th className="px-4 py-3 text-left font-semibold text-gray-600">Updated</th>
               <th className="px-4 py-3 text-right font-semibold text-gray-600">Actions</th>
             </tr>
           </thead>
@@ -206,7 +239,7 @@ export default function AutoReplyManagementPanel() {
           <tbody className="divide-y divide-gray-100 bg-white">
             {rules.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">
                   No auto-reply rules yet. Add your first rule to get started.
                 </td>
               </tr>
@@ -221,7 +254,9 @@ export default function AutoReplyManagementPanel() {
                         Template: {rule.templateName}
                       </span>
                     ) : (
-                      <span className="line-clamp-2 max-w-[26rem]">{rule.replyText}</span>
+                      <span className="max-w-[26rem] block truncate" title={rule.replyText}>
+                        {rule.replyText}
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -235,6 +270,7 @@ export default function AutoReplyManagementPanel() {
                       {rule.active ? 'Active' : 'Inactive'}
                     </button>
                   </td>
+                  <td className="px-4 py-3 text-gray-500">{formatDateTime(rule.updatedAt)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
                       <button
@@ -246,7 +282,7 @@ export default function AutoReplyManagementPanel() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDelete(rule.id)}
+                        onClick={() => setDeletingRuleId(rule.id)}
                         className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
                       >
                         Delete
@@ -355,6 +391,14 @@ export default function AutoReplyManagementPanel() {
             </div>
           </form>
         </Modal>
+      ) : null}
+
+      {deletingRule ? (
+        <DeleteRuleModal
+          rule={deletingRule}
+          onClose={() => setDeletingRuleId(null)}
+          onConfirm={handleDelete}
+        />
       ) : null}
     </section>
   );
