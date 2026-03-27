@@ -12,7 +12,10 @@ const formatMessageTime = (timestamp) => {
   }).format(date);
 };
 
-export default function MessageBubble({ message, isOutgoing, text, timestamp }) {
+export default function MessageBubble({ message, isOutgoing, text, timestamp, onRetry }) {
+  const status = getStatusLabel(message?.status);
+  const canRetry = isOutgoing && ['failed', 'error', 'undelivered'].includes(status);
+
   return (
     <div className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
       <article
@@ -24,8 +27,18 @@ export default function MessageBubble({ message, isOutgoing, text, timestamp }) 
 
         <div className={`mt-2 flex items-center justify-end gap-2 text-[11px] ${isOutgoing ? 'text-green-100' : 'text-gray-500'}`}>
           <span>{formatMessageTime(timestamp)}</span>
-          <span className="capitalize">{getStatusLabel(message?.status)}</span>
+          <span className="capitalize">{status}</span>
         </div>
+
+        {canRetry ? (
+          <button
+            type="button"
+            onClick={() => onRetry?.(message)}
+            className="mt-2 rounded-md bg-white/95 px-2 py-1 text-xs font-semibold text-red-600"
+          >
+            Retry
+          </button>
+        ) : null}
       </article>
     </div>
   );

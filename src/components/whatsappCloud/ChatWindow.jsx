@@ -31,6 +31,7 @@ export default function ChatWindow({
   scrollRef,
   canSend,
   onSend,
+  onRetry,
 }) {
   let lastDateLabel = null;
 
@@ -68,6 +69,7 @@ export default function ChatWindow({
                 isOutgoing={isOutgoing}
                 text={getMessageText(message)}
                 timestamp={timestamp}
+                onRetry={onRetry}
               />
             </div>
           );

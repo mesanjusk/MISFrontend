@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { toast } from '../../Components';
 import { parseApiError } from '../../utils/parseApiError';
 import { whatsappCloudService } from '../../services/whatsappCloudService';
+import TemplateSelector from './TemplateSelector';
+import BulkSender from './BulkSender';
 
 const initialForm = {
   to: '',
@@ -10,13 +12,14 @@ const initialForm = {
 
 export default function SendMessagePanel() {
   const [form, setForm] = useState(initialForm);
+  const [template, setTemplate] = useState(null);
   const [isSending, setIsSending] = useState(false);
 
   const handleChange = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSend = async () => {
+  const handleSendText = async () => {
     if (!form.to.trim()) {
       toast.error('Recipient number is required.');
       return;
@@ -42,41 +45,87 @@ export default function SendMessagePanel() {
     }
   };
 
+  const handleSendTemplate = async () => {
+    if (!form.to.trim()) {
+      toast.error('Recipient number is required.');
+      return;
+    }
+
+    if (!template?.name || !template?.language) {
+      toast.error('Please select a template first.');
+      return;
+    }
+
+    try {
+      setIsSending(true);
+      await whatsappCloudService.sendTemplateMessage({
+        to: form.to.trim(),
+        template: {
+          name: template.name,
+          language: template.language,
+          parameters: template.parameters || [],
+        },
+      });
+      toast.success('Template sent successfully.');
+    } catch (error) {
+      toast.error(parseApiError(error, 'Failed to send template message.'));
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   return (
-    <section className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-      <h3 className="text-lg font-semibold text-gray-800">Send Message</h3>
+    <div className="space-y-5">
+      <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-800">Send Message</h3>
 
-      <div className="mt-4 grid grid-cols-1 gap-4">
-        <label className="text-sm text-gray-700">
-          Recipient Number
-          <input
-            value={form.to}
-            onChange={(event) => handleChange('to', event.target.value)}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-            placeholder="+14155552671"
-          />
-        </label>
+        <div className="mt-4 grid grid-cols-1 gap-4">
+          <label className="text-sm text-gray-700">
+            Recipient Number
+            <input
+              value={form.to}
+              onChange={(event) => handleChange('to', event.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              placeholder="+14155552671"
+            />
+          </label>
 
-        <label className="text-sm text-gray-700">
-          Message
-          <textarea
-            rows={4}
-            value={form.body}
-            onChange={(event) => handleChange('body', event.target.value)}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-            placeholder="Type your message"
-          />
-        </label>
-      </div>
+          <label className="text-sm text-gray-700">
+            Message
+            <textarea
+              rows={4}
+              value={form.body}
+              onChange={(event) => handleChange('body', event.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              placeholder="Type your message"
+            />
+          </label>
 
-      <button
-        type="button"
-        onClick={handleSend}
-        disabled={isSending}
-        className="mt-5 rounded-lg bg-green-600 text-white px-4 py-2.5 font-medium disabled:opacity-60"
-      >
-        {isSending ? 'Sending...' : 'Send WhatsApp Message'}
-      </button>
-    </section>
+          <TemplateSelector selectedTemplate={template} onTemplateChange={setTemplate} disabled={isSending} />
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={handleSendText}
+            disabled={isSending}
+            className="rounded-lg bg-green-600 px-4 py-2.5 font-medium text-white disabled:opacity-60"
+          >
+            {isSending ? 'Sending...' : 'Send WhatsApp Message'}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSendTemplate}
+            disabled={isSending || !template}
+            className="rounded-lg border border-blue-300 bg-blue-50 px-4 py-2.5 font-medium text-blue-700 disabled:opacity-60"
+          >
+            {isSending ? 'Sending...' : 'Send Template Message'}
+          </button>
+        </div>
+      </section>
+
+      <BulkSender />
+    </div>
   );
 }

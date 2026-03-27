@@ -150,6 +150,8 @@ export default function MessagesPanel() {
   }, [loadMessages]);
 
   useEffect(() => {
+    if (!SOCKET_URL || typeof io !== 'function') return undefined;
+
     const socket = io(SOCKET_URL, {
       transports: ['polling'],
       reconnection: true,
@@ -288,6 +290,32 @@ export default function MessagesPanel() {
     }
   }, [activeConversation, loadMessages]);
 
+  const handleRetry = useCallback(async (message) => {
+    const body = getMessageText(message);
+    const targetContact = getContactForMessage(message);
+
+    if (!body || body === 'Unsupported message payload' || !targetContact) {
+      toast.error('Unable to retry this message.');
+      return false;
+    }
+
+    try {
+      setIsSending(true);
+      await whatsappCloudService.sendTextMessage({
+        to: targetContact,
+        body,
+      });
+      toast.success('Message retried successfully.');
+      loadMessages();
+      return true;
+    } catch (error) {
+      toast.error(parseApiError(error, 'Retry failed. Please try again.'));
+      return false;
+    } finally {
+      setIsSending(false);
+    }
+  }, [loadMessages]);
+
   const rightPanel = activeConversation ? (
     <div className="flex h-full min-h-0 flex-col bg-white">
       <div className="border-b border-gray-200 p-5 text-center">
@@ -346,6 +374,7 @@ export default function MessagesPanel() {
             scrollRef={messagesContainerRef}
             canSend={Boolean(activeConversation) && !isSending}
             onSend={handleSend}
+            onRetry={handleRetry}
           />
         </div>
       )}
