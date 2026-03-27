@@ -173,56 +173,65 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
   };
 
 
-  const sendWhatsApp = async (phone = mobileToSend) => {
-    if (!phone) {
-      toast.error("Customer phone number is required");
-      return;
+ const sendWhatsApp = async (phone = mobileToSend) => {
+  if (!phone) {
+    toast.error("Customer phone number is required");
+    return;
+  }
+
+  setIsSendingWhatsApp(true);
+
+  try {
+    let cleanPhone = String(phone).replace(/\D/g, '');
+
+    if (cleanPhone.length === 10) {
+      cleanPhone = '91' + cleanPhone;
     }
 
-    setIsSendingWhatsApp(true);
+    const payload = {
+      to: cleanPhone,
 
-    try {
-      let cleanPhone = String(phone).replace(/\D/g, '');
+      // ✅ FIXED TEMPLATE NAME
+      template_name: "payment_received_sk",
 
-      if (cleanPhone.length === 10) {
-        cleanPhone = '91' + cleanPhone;
-      }
+      // ✅ FIXED LANGUAGE
+      language: "en_US",
 
-      const payload = {
-        to: cleanPhone,
-        template_name: "payment_received_skdigital",
-        language: "en_US",
-        components: [
-          {
-            type: "body",
-            parameters: [
-              { type: "text", text: Customer_name || "Customer" },   // {{name}}
-              { type: "text", text: "payment" },                     // {{payment_type}}
-              { type: "text", text: new Date().toLocaleDateString("en-IN") }, // {{date}}
-              { type: "text", text: String(Amount || "0") },         // {{amount}}
-              { type: "text", text: Description || "Payment received" } // {{description}}
-            ]
-          }
-        ]
-      };
+      components: [
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: Customer_name || "Customer" },        // {{1}}
+            { type: "text", text: "payment" },                           // {{2}}
+            { type: "text", text: new Date().toLocaleDateString("en-IN") }, // {{3}}
+            { type: "text", text: String(Amount || "0") },               // {{4}}
+            { type: "text", text: Description || "Payment received" }    // {{5}}
+          ]
+        }
+      ]
+    };
 
-      console.log("📤 Sending WhatsApp payload:", payload);
+    console.log("📤 Sending WhatsApp payload:", payload);
 
-      const { data } = await axios.post('/api/whatsapp/send-template', payload);
+    const { data } = await axios.post('/api/whatsapp/send-template', payload);
 
-      if (data?.success) {
-        toast.success("WhatsApp message sent");
-      } else {
-        toast.error(data?.error || "Failed to send WhatsApp");
-      }
-
-    } catch (error) {
-      console.error("❌ WhatsApp ERROR FULL:", error.response?.data || error);
-      toast.error(error.response?.data?.error?.message || "Failed to send WhatsApp");
-    } finally {
-      setIsSendingWhatsApp(false);
+    if (data?.success) {
+      toast.success("WhatsApp message sent ✅");
+    } else {
+      toast.error(data?.error || "Failed to send WhatsApp");
     }
-  };
+
+  } catch (error) {
+    console.error("❌ WhatsApp ERROR FULL:", error.response?.data || error);
+
+    toast.error(
+      error.response?.data?.error?.message ||
+      "Failed to send WhatsApp"
+    );
+  } finally {
+    setIsSendingWhatsApp(false);
+  }
+};
 
   const addCustomer = () => navigate("/addCustomer");
 
