@@ -1,5 +1,3 @@
-import React from 'react';
-
 const NODE_COLORS = {
   text: 'border-green-200 bg-green-50 text-green-900',
   delay: 'border-amber-200 bg-amber-50 text-amber-900',
