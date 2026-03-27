@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from '../../Components';
 import { ButtonNode, ConditionNode, MessageNode, QuestionNode } from './nodes';
 
@@ -23,11 +23,32 @@ const NODE_DEFAULTS = {
 
 const operatorOptions = ['equals', 'not_equals', 'contains', 'starts_with'];
 
+const NODE_CARD_STYLES = {
+  message: 'border-sky-200 bg-sky-50 text-sky-900',
+  question: 'border-violet-200 bg-violet-50 text-violet-900',
+  button: 'border-blue-200 bg-blue-50 text-blue-900',
+  condition: 'border-amber-200 bg-amber-50 text-amber-900',
+};
+
 function edgeLabel(sourceNode, targetNode) {
   const sourceLabel = sourceNode?.data?.label || sourceNode?.type || 'Node';
   const targetLabel = targetNode?.data?.label || targetNode?.type || 'Node';
 
   return `${sourceLabel} → ${targetLabel}`;
+}
+
+function legacyEdgePath(source, target) {
+  const x1 = source.position.x + 240;
+  const y1 = source.position.y + 42;
+  const x2 = target.position.x;
+  const y2 = target.position.y + 42;
+  const controlX = (x1 + x2) / 2;
+
+  return {
+    d: `M ${x1} ${y1} C ${controlX} ${y1}, ${controlX} ${y2}, ${x2} ${y2}`,
+    labelX: (x1 + x2) / 2,
+    labelY: (y1 + y2) / 2 - 8,
+  };
 }
 
 export default function FlowBuilder() {
@@ -37,6 +58,10 @@ export default function FlowBuilder() {
   const [connectFrom, setConnectFrom] = useState('');
   const [connectTo, setConnectTo] = useState('');
   const [isActive, setIsActive] = useState(false);
+
+  const [reactFlowLib, setReactFlowLib] = useState(null);
+  const [reactFlowInstance, setReactFlowInstance] = useState(null);
+
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
 
@@ -45,10 +70,39 @@ export default function FlowBuilder() {
     [nodes, selectedNodeId],
   );
 
+  useEffect(() => {
+    const loadReactFlow = async () => {
+      try {
+        const moduleName = 'reactflow';
+        const lib = await import(/* @vite-ignore */ moduleName);
+        setReactFlowLib(lib);
+      } catch {
+        setReactFlowLib(null);
+      }
+    };
+
+    loadReactFlow();
+  }, []);
+
   const onDragStart = (event, type) => {
     event.dataTransfer.setData('application/flow-node', type);
     event.dataTransfer.effectAllowed = 'move';
   };
+
+  const addNodeAtPosition = useCallback(
+    (type, position) => {
+      const newNode = {
+        id: crypto.randomUUID(),
+        type,
+        position,
+        data: { ...NODE_DEFAULTS[type] },
+      };
+
+      setNodes((prev) => [...prev, newNode]);
+      setSelectedNodeId(newNode.id);
+    },
+    [setNodes],
+  );
 
   const onDropCanvas = (event) => {
     event.preventDefault();
@@ -56,18 +110,17 @@ export default function FlowBuilder() {
     if (!type) return;
 
     const canvasBounds = event.currentTarget.getBoundingClientRect();
-    const newNode = {
-      id: crypto.randomUUID(),
-      type,
-      data: { ...NODE_DEFAULTS[type] },
-      position: {
-        x: Math.round((event.clientX - canvasBounds.left - pan.x) / zoom),
-        y: Math.round((event.clientY - canvasBounds.top - pan.y) / zoom),
-      },
-    };
 
-    setNodes((prev) => [...prev, newNode]);
-    setSelectedNodeId(newNode.id);
+    if (reactFlowLib && reactFlowInstance?.screenToFlowPosition) {
+      const position = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      addNodeAtPosition(type, position);
+      return;
+    }
+
+    addNodeAtPosition(type, {
+      x: Math.round((event.clientX - canvasBounds.left - pan.x) / zoom),
+      y: Math.round((event.clientY - canvasBounds.top - pan.y) / zoom),
+    });
   };
 
   const updateSelectedNode = (nextData) => {
@@ -78,7 +131,7 @@ export default function FlowBuilder() {
     );
   };
 
-  const addEdge = () => {
+  const addEdgeManual = () => {
     if (!connectFrom || !connectTo || connectFrom === connectTo) {
       toast.error('Pick two different nodes to connect.');
       return;
@@ -100,12 +153,34 @@ export default function FlowBuilder() {
         source: connectFrom,
         target: connectTo,
         label: edgeLabel(sourceNode, targetNode),
+        animated: false,
       },
     ]);
 
     setConnectFrom('');
     setConnectTo('');
   };
+
+  const onConnect = useCallback(
+    (connection) => {
+      if (!connection.source || !connection.target) return;
+
+      const sourceNode = nodes.find((node) => node.id === connection.source);
+      const targetNode = nodes.find((node) => node.id === connection.target);
+
+      setEdges((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          source: connection.source,
+          target: connection.target,
+          label: edgeLabel(sourceNode, targetNode),
+          animated: false,
+        },
+      ]);
+    },
+    [nodes],
+  );
 
   const saveFlow = () => {
     const payload = {
@@ -135,8 +210,9 @@ export default function FlowBuilder() {
   };
 
   const toggleActivation = () => {
-    setIsActive((prev) => !prev);
-    toast.success(`Flow ${isActive ? 'deactivated' : 'activated'}.`);
+    const next = !isActive;
+    setIsActive(next);
+    toast.success(`Flow ${next ? 'activated' : 'deactivated'}.`);
   };
 
   const removeNode = (nodeId) => {
@@ -147,7 +223,7 @@ export default function FlowBuilder() {
     }
   };
 
-  const renderNode = (node) => {
+  const renderPreviewNode = (node) => {
     const props = {
       node,
       selected: selectedNodeId === node.id,
@@ -157,9 +233,52 @@ export default function FlowBuilder() {
     if (node.type === 'message') return <MessageNode {...props} />;
     if (node.type === 'question') return <QuestionNode {...props} />;
     if (node.type === 'button') return <ButtonNode {...props} />;
-
     return <ConditionNode {...props} />;
   };
+
+  const ReactFlowView = reactFlowLib?.default;
+  const Controls = reactFlowLib?.Controls;
+  const Background = reactFlowLib?.Background;
+  const MiniMap = reactFlowLib?.MiniMap;
+  const Handle = reactFlowLib?.Handle;
+  const Position = reactFlowLib?.Position;
+
+  const flowNodeTypes = useMemo(() => {
+    if (!Handle || !Position) return {};
+
+    const makeNodeRenderer = (kind) =>
+      function NodeRenderer({ data, selected }) {
+        return (
+          <div
+            className={`w-60 rounded-xl border p-3 text-left shadow-sm ${NODE_CARD_STYLES[kind]} ${
+              selected ? 'ring-2 ring-blue-200' : ''
+            }`}
+          >
+            <Handle type="target" position={Position.Left} />
+            <div className="mb-1 text-xs font-semibold uppercase tracking-wide">{kind}</div>
+            <div className="text-sm font-semibold">{data?.label || kind}</div>
+            <div className="mt-1 text-xs opacity-90">
+              {kind === 'message' && (data?.message || 'Type your outgoing message.')}
+              {kind === 'question' && (data?.question || 'Ask a question to collect user input.')}
+              {kind === 'button' && ((data?.buttons || []).join(', ') || 'Add quick-reply buttons.')}
+              {kind === 'condition' &&
+                ((data?.conditions || [])
+                  .map((item) => `${item.key || 'field'} ${item.operator || 'equals'} ${item.value || 'value'}`)
+                  .join(' | ') ||
+                  'Add one or more rule checks.')}
+            </div>
+            <Handle type="source" position={Position.Right} />
+          </div>
+        );
+      };
+
+    return {
+      message: makeNodeRenderer('message'),
+      question: makeNodeRenderer('question'),
+      button: makeNodeRenderer('button'),
+      condition: makeNodeRenderer('condition'),
+    };
+  }, [Handle, Position]);
 
   return (
     <div className="space-y-4">
@@ -167,6 +286,9 @@ export default function FlowBuilder() {
         <div>
           <h2 className="text-xl font-semibold text-gray-800">Chatbot Flow Builder</h2>
           <p className="text-sm text-gray-500">Drag-and-drop nodes, connect paths, and configure your bot logic.</p>
+          {!reactFlowLib && (
+            <p className="mt-1 text-xs text-amber-600">React Flow package unavailable, using built-in canvas fallback.</p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -211,32 +333,34 @@ export default function FlowBuilder() {
             ))}
           </div>
 
-          <div className="mt-4 border-t border-gray-100 pt-4">
-            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Zoom / Pan</h4>
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => setZoom((prev) => Math.min(2, Number((prev + 0.1).toFixed(2))))}
-                className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs font-medium text-gray-700"
-              >
-                Zoom In
-              </button>
-              <button
-                type="button"
-                onClick={() => setZoom((prev) => Math.max(0.5, Number((prev - 0.1).toFixed(2))))}
-                className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs font-medium text-gray-700"
-              >
-                Zoom Out
-              </button>
-              <button
-                type="button"
-                onClick={() => setPan({ x: 0, y: 0 })}
-                className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs font-medium text-gray-700"
-              >
-                Reset Pan
-              </button>
+          {!reactFlowLib && (
+            <div className="mt-4 border-t border-gray-100 pt-4">
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Zoom / Pan</h4>
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setZoom((prev) => Math.min(2, Number((prev + 0.1).toFixed(2))))}
+                  className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs font-medium text-gray-700"
+                >
+                  Zoom In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoom((prev) => Math.max(0.5, Number((prev - 0.1).toFixed(2))))}
+                  className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs font-medium text-gray-700"
+                >
+                  Zoom Out
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPan({ x: 0, y: 0 })}
+                  className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs font-medium text-gray-700"
+                >
+                  Reset Pan
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </aside>
 
         <section
@@ -244,96 +368,74 @@ export default function FlowBuilder() {
           onDrop={onDropCanvas}
           onDragOver={(event) => event.preventDefault()}
         >
-          <div className="absolute left-4 top-4 z-10 rounded-lg border border-gray-200 bg-white p-2 shadow-sm">
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setPan((prev) => ({ ...prev, y: prev.y - 20 }))}
-                className="rounded border border-gray-300 px-2 py-1 text-xs"
+          {ReactFlowView ? (
+            <ReactFlowView
+              nodes={nodes}
+              edges={edges}
+              nodeTypes={flowNodeTypes}
+              onNodesChange={reactFlowLib.applyNodeChanges ? (changes) => setNodes((nds) => reactFlowLib.applyNodeChanges(changes, nds)) : undefined}
+              onEdgesChange={reactFlowLib.applyEdgeChanges ? (changes) => setEdges((eds) => reactFlowLib.applyEdgeChanges(changes, eds)) : undefined}
+              onConnect={onConnect}
+              onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+              fitView
+              onInit={setReactFlowInstance}
+            >
+              {Background ? <Background gap={22} size={1} /> : null}
+              {MiniMap ? <MiniMap /> : null}
+              {Controls ? <Controls /> : null}
+            </ReactFlowView>
+          ) : (
+            <>
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundImage:
+                    'linear-gradient(to right, rgba(148,163,184,0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.15) 1px, transparent 1px)',
+                  backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
+                }}
+              />
+
+              <div
+                className="absolute inset-0"
+                style={{
+                  transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                  transformOrigin: '0 0',
+                }}
               >
-                ↑
-              </button>
-              <button
-                type="button"
-                onClick={() => setPan((prev) => ({ ...prev, y: prev.y + 20 }))}
-                className="rounded border border-gray-300 px-2 py-1 text-xs"
-              >
-                ↓
-              </button>
-              <button
-                type="button"
-                onClick={() => setPan((prev) => ({ ...prev, x: prev.x - 20 }))}
-                className="rounded border border-gray-300 px-2 py-1 text-xs"
-              >
-                ←
-              </button>
-              <button
-                type="button"
-                onClick={() => setPan((prev) => ({ ...prev, x: prev.x + 20 }))}
-                className="rounded border border-gray-300 px-2 py-1 text-xs"
-              >
-                →
-              </button>
-            </div>
-          </div>
+                <svg className="pointer-events-none absolute inset-0 h-full w-full">
+                  {edges.map((edge) => {
+                    const source = nodes.find((node) => node.id === edge.source);
+                    const target = nodes.find((node) => node.id === edge.target);
+                    if (!source || !target) return null;
 
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage:
-                'linear-gradient(to right, rgba(148,163,184,0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.15) 1px, transparent 1px)',
-              backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
-            }}
-          />
+                    const path = legacyEdgePath(source, target);
 
-          <div
-            className="absolute inset-0"
-            style={{
-              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-              transformOrigin: '0 0',
-            }}
-          >
-            <svg className="pointer-events-none absolute inset-0 h-full w-full">
-              {edges.map((edge) => {
-                const source = nodes.find((node) => node.id === edge.source);
-                const target = nodes.find((node) => node.id === edge.target);
-                if (!source || !target) return null;
+                    return (
+                      <g key={edge.id}>
+                        <path d={path.d} stroke="#64748b" strokeWidth="2" fill="none" />
+                        <text x={path.labelX} y={path.labelY} fill="#475569" fontSize="11" textAnchor="middle">
+                          {edge.label}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
 
-                const x1 = source.position.x + 240;
-                const y1 = source.position.y + 42;
-                const x2 = target.position.x;
-                const y2 = target.position.y + 42;
-                const controlX = (x1 + x2) / 2;
-
-                return (
-                  <g key={edge.id}>
-                    <path
-                      d={`M ${x1} ${y1} C ${controlX} ${y1}, ${controlX} ${y2}, ${x2} ${y2}`}
-                      stroke="#64748b"
-                      strokeWidth="2"
-                      fill="none"
-                    />
-                    <text x={(x1 + x2) / 2} y={(y1 + y2) / 2 - 8} fill="#475569" fontSize="11" textAnchor="middle">
-                      {edge.label}
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
-
-            {nodes.map((node) => (
-              <div key={node.id} className="absolute" style={{ left: node.position.x, top: node.position.y }}>
-                {renderNode(node)}
-                <button
-                  type="button"
-                  onClick={() => removeNode(node.id)}
-                  className="mt-1 text-[11px] font-medium text-red-500 hover:text-red-600"
-                >
-                  Remove
-                </button>
+                {nodes.map((node) => (
+                  <div key={node.id} className="absolute" style={{ left: node.position.x, top: node.position.y }}>
+                    {renderPreviewNode(node)}
+                    <button
+                      type="button"
+                      onClick={() => removeNode(node.id)}
+                      className="mt-1 text-[11px] font-medium text-red-500 hover:text-red-600"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </section>
 
         <aside className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -453,10 +555,7 @@ export default function FlowBuilder() {
                     type="button"
                     onClick={() =>
                       updateSelectedNode({
-                        conditions: [
-                          ...(selectedNode.data.conditions || []),
-                          { key: '', operator: 'equals', value: '' },
-                        ],
+                        conditions: [...(selectedNode.data.conditions || []), { key: '', operator: 'equals', value: '' }],
                       })
                     }
                     className="mt-2 rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700"
@@ -497,7 +596,7 @@ export default function FlowBuilder() {
               </select>
               <button
                 type="button"
-                onClick={addEdge}
+                onClick={addEdgeManual}
                 className="w-full rounded-md bg-gray-800 px-3 py-2 text-sm font-medium text-white hover:bg-gray-900"
               >
                 Connect Nodes
