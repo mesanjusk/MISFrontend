@@ -13,12 +13,29 @@ const SOCKET_URL =
   import.meta.env.VITE_API_BASE ||
   window.location.origin;
 
+const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dadcprflr';
+const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'mern-images';
+
 const getMessageText = (message) => {
   if (typeof message?.body === 'string' && message.body.trim()) return message.body;
   if (typeof message?.text === 'string' && message.text.trim()) return message.text;
   if (typeof message?.text?.body === 'string' && message.text.body.trim()) return message.text.body;
   if (typeof message?.message === 'string' && message.message.trim()) return message.message;
+  if (message?.messageType && message.messageType !== 'text') return `[${message.messageType}]`;
   return 'Unsupported message payload';
+};
+
+const getMessageType = (message) => {
+  const rawType = String(message?.messageType || message?.payloadType || message?.contentType || message?.type || 'text').toLowerCase();
+
+  if (['image', 'video', 'document', 'audio', 'sticker', 'text'].includes(rawType)) return rawType;
+  if (rawType.includes('image')) return 'image';
+  if (rawType.includes('video')) return 'video';
+  if (rawType.includes('document') || rawType.includes('file')) return 'document';
+  if (rawType.includes('audio')) return 'audio';
+  if (rawType.includes('sticker')) return 'sticker';
+
+  return 'text';
 };
 
 const getMessageDirection = (message) => {
@@ -100,6 +117,14 @@ const getInitials = (value) => {
   return source.slice(0, 2).toUpperCase();
 };
 
+const isWindowOpen = (conversation) => {
+  if (!conversation?.lastTimestamp) return false;
+  const lastTs = new Date(conversation.lastTimestamp).getTime();
+  if (Number.isNaN(lastTs)) return false;
+
+  return Date.now() - lastTs <= 24 * 60 * 60 * 1000;
+};
+
 export default function MessagesPanel() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -118,7 +143,7 @@ export default function MessagesPanel() {
 
       if (exists) {
         return prev.map((item) =>
-          getMessageIdentity(item) === nextId ? { ...item, ...message } : item
+          getMessageIdentity(item) === nextId ? { ...item, ...message, isUploading: false } : item
         );
       }
 
@@ -204,6 +229,7 @@ export default function MessagesPanel() {
         contact,
         displayName: message?.profileName || message?.name || contact,
         lastMessage: '',
+        lastMessageType: 'text',
         lastTimestamp: null,
         unreadCount: 0,
       };
@@ -212,6 +238,7 @@ export default function MessagesPanel() {
       if (!existing.lastTimestamp || new Date(timestamp) >= new Date(existing.lastTimestamp)) {
         existing.lastTimestamp = timestamp;
         existing.lastMessage = getMessageText(message);
+        existing.lastMessageType = getMessageType(message);
       }
 
       if (isUnreadMessage(message)) {
@@ -262,6 +289,8 @@ export default function MessagesPanel() {
     return orderedMessages.filter((message) => getContactForMessage(message) === activeConversation.contact);
   }, [orderedMessages, activeConversation]);
 
+  const conversationWindowOpen = useMemo(() => isWindowOpen(activeConversation), [activeConversation]);
+
   useEffect(() => {
     if (!messagesContainerRef.current) return;
     messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
@@ -270,6 +299,11 @@ export default function MessagesPanel() {
   const handleSend = useCallback(async (body) => {
     if (!activeConversation?.contact) {
       toast.error('Please select a conversation first.');
+      return false;
+    }
+
+    if (!conversationWindowOpen) {
+      toast.error('24-hour session is closed. Use template messages only.');
       return false;
     }
 
@@ -284,6 +318,33 @@ export default function MessagesPanel() {
       return true;
     } catch (error) {
       toast.error(parseApiError(error, 'Failed to send message.'));
+      return false;
+    } finally {
+      setIsSending(false);
+    }
+  }, [activeConversation, conversationWindowOpen, loadMessages]);
+
+  const handleSendAttachment = useCallback(async ({ file, type, caption }) => {
+    if (!activeConversation?.contact) {
+      toast.error('Please select a conversation first.');
+      return false;
+    }
+
+    try {
+      setIsSending(true);
+      const uploaded = await whatsappCloudService.uploadToCloudinary({ file, type, cloudName: CLOUDINARY_CLOUD_NAME, uploadPreset: CLOUDINARY_UPLOAD_PRESET });
+      await whatsappCloudService.sendMediaMessage({
+        to: activeConversation.contact,
+        type,
+        mediaUrl: uploaded.secure_url,
+        filename: file.name,
+        caption,
+      });
+      toast.success('Attachment sent successfully.');
+      loadMessages();
+      return true;
+    } catch (error) {
+      toast.error(parseApiError(error, 'Failed to send attachment.'));
       return false;
     } finally {
       setIsSending(false);
@@ -337,7 +398,7 @@ export default function MessagesPanel() {
         </div>
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Open Status</p>
-          <p className="mt-1">Active conversation</p>
+          <p className="mt-1">{conversationWindowOpen ? 'Active (24h open)' : 'Outside 24h window'}</p>
         </div>
       </div>
     </div>
@@ -364,16 +425,18 @@ export default function MessagesPanel() {
             conversation={activeConversation}
             isLoading={isLoading}
             onRefresh={loadMessages}
+            windowOpen={conversationWindowOpen}
           />
           <ChatWindow
             messages={activeMessages}
             getMessageIdentity={getMessageIdentity}
-            getMessageText={getMessageText}
             getMessageDirection={getMessageDirection}
             getTimestampRaw={getTimestampRaw}
             scrollRef={messagesContainerRef}
-            canSend={Boolean(activeConversation) && !isSending}
+            canSend={Boolean(activeConversation) && !isSending && conversationWindowOpen}
+            canSendTemplateOnly={!conversationWindowOpen}
             onSend={handleSend}
+            onSendAttachment={handleSendAttachment}
             onRetry={handleRetry}
           />
         </div>

@@ -19,9 +19,34 @@ export const buildTemplatePayload = ({ to, template }) => {
   };
 };
 
+const getCloudinaryResourceType = (type) => {
+  if (type === 'image' || type === 'video') return type;
+  return 'raw';
+};
+
 export const whatsappCloudService = {
   sendTextMessage: (payload) => apiClient.post('/api/whatsapp/send-text', payload),
   sendTemplateMessage: (payload) => apiClient.post('/api/whatsapp/send-template', payload),
+  sendMediaMessage: (payload) => apiClient.post('/api/whatsapp/send-media', payload),
   getMessages: () => apiClient.get('/api/whatsapp/messages'),
   getTemplates: () => apiClient.get('/api/whatsapp/templates'),
+  uploadToCloudinary: async ({ file, type, cloudName, uploadPreset }) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', uploadPreset);
+
+    const resourceType = getCloudinaryResourceType(type);
+    const endpoint = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Cloudinary upload failed.');
+    }
+
+    return response.json();
+  },
 };

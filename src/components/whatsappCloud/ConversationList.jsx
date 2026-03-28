@@ -29,6 +29,16 @@ const formatConversationTime = (dateValue) => {
   }).format(date);
 };
 
+const mediaTypeIcon = (type) => {
+  const safe = String(type || '').toLowerCase();
+  if (safe === 'image') return '🖼️';
+  if (safe === 'video') return '🎬';
+  if (safe === 'audio') return '🎵';
+  if (safe === 'document') return '📄';
+  if (safe === 'sticker') return '😊';
+  return '';
+};
+
 export default function ConversationList({
   conversations,
   activeConversationId,
@@ -54,6 +64,7 @@ export default function ConversationList({
         ) : (
           conversations.map((conversation) => {
             const isActive = activeConversationId === conversation.id;
+            const hasUnread = conversation.unreadCount > 0;
 
             return (
               <button
@@ -61,7 +72,7 @@ export default function ConversationList({
                 type="button"
                 onClick={() => onSelectConversation(conversation.id)}
                 className={`flex w-full items-start gap-3 border-b border-gray-100 px-4 py-3 text-left transition hover:bg-gray-50 ${
-                  isActive ? 'bg-green-50' : 'bg-white'
+                  isActive ? 'bg-green-50' : hasUnread ? 'bg-emerald-50/40' : 'bg-white'
                 }`}
               >
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-green-100 text-sm font-semibold text-green-700">
@@ -78,12 +89,12 @@ export default function ConversationList({
                     </span>
                   </div>
 
-                  <p className="mt-1 truncate text-xs text-gray-600">
-                    {conversation.lastMessage}
+                  <p className={`mt-1 truncate text-xs ${hasUnread ? 'font-semibold text-gray-800' : 'text-gray-600'}`}>
+                    {mediaTypeIcon(conversation.lastMessageType)} {conversation.lastMessage}
                   </p>
                 </div>
 
-                {conversation.unreadCount > 0 ? (
+                {hasUnread ? (
                   <span className="mt-0.5 inline-flex min-w-5 items-center justify-center rounded-full bg-green-600 px-1.5 py-0.5 text-[11px] font-semibold text-white">
                     {conversation.unreadCount}
                   </span>

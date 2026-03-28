@@ -25,12 +25,13 @@ const formatDateLabel = (value) => {
 export default function ChatWindow({
   messages,
   getMessageIdentity,
-  getMessageText,
   getMessageDirection,
   getTimestampRaw,
   scrollRef,
   canSend,
+  canSendTemplateOnly,
   onSend,
+  onSendAttachment,
   onRetry,
 }) {
   let lastDateLabel = null;
@@ -67,7 +68,6 @@ export default function ChatWindow({
               <MessageBubble
                 message={message}
                 isOutgoing={isOutgoing}
-                text={getMessageText(message)}
                 timestamp={timestamp}
                 onRetry={onRetry}
               />
@@ -76,7 +76,12 @@ export default function ChatWindow({
         })}
       </div>
 
-      <MessageInput disabled={!canSend} onSend={onSend} />
+      <MessageInput
+        disabled={!canSend}
+        canSendTemplateOnly={canSendTemplateOnly}
+        onSend={onSend}
+        onSendAttachment={onSendAttachment}
+      />
     </div>
   );
 }
