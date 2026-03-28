@@ -118,6 +118,8 @@ const getInitials = (value) => {
 };
 
 const isWindowOpen = (conversation) => {
+  if (typeof conversation?.windowOpen === 'boolean') return conversation.windowOpen;
+  if (typeof conversation?.isWindowOpen === 'boolean') return conversation.isWindowOpen;
   if (!conversation?.lastTimestamp) return false;
   const lastTs = new Date(conversation.lastTimestamp).getTime();
   if (Number.isNaN(lastTs)) return false;
@@ -330,9 +332,30 @@ export default function MessagesPanel() {
       return false;
     }
 
+    const optimisticId = `optimistic-${Date.now()}-${file.name}`;
+
     try {
       setIsSending(true);
+      const optimisticMessage = {
+        id: optimisticId,
+        to: activeConversation.contact,
+        fromMe: true,
+        status: 'sending',
+        messageType: type,
+        body: caption || '',
+        filename: file.name,
+        timestamp: new Date().toISOString(),
+        isUploading: true,
+      };
+      setMessages((prev) => [...prev, optimisticMessage]);
+
       const uploaded = await whatsappCloudService.uploadToCloudinary({ file, type, cloudName: CLOUDINARY_CLOUD_NAME, uploadPreset: CLOUDINARY_UPLOAD_PRESET });
+      setMessages((prev) => prev.map((item) => (
+        item.id === optimisticId
+          ? { ...item, mediaUrl: uploaded?.secure_url || uploaded?.url, isUploading: false }
+          : item
+      )));
+
       await whatsappCloudService.sendMediaMessage({
         to: activeConversation.contact,
         type,
@@ -344,6 +367,7 @@ export default function MessagesPanel() {
       loadMessages();
       return true;
     } catch (error) {
+      setMessages((prev) => prev.filter((item) => item?.id !== optimisticId));
       toast.error(parseApiError(error, 'Failed to send attachment.'));
       return false;
     } finally {

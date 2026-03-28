@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+
 const getTextFromMessage = (msg) => {
   if (typeof msg?.body === 'string' && msg.body.trim()) return msg.body;
   if (typeof msg?.text === 'string' && msg.text.trim()) return msg.text;
@@ -14,17 +16,27 @@ export default function MessageRenderer({ message, type }) {
   const safeType = String(type || '').toLowerCase();
   const text = getTextFromMessage(message);
   const mediaUrl = getMediaUrl(message);
+  const [isMediaLoading, setIsMediaLoading] = useState(['image', 'video', 'sticker'].includes(safeType));
+
+  useEffect(() => {
+    setIsMediaLoading(Boolean(mediaUrl) && ['image', 'video', 'sticker'].includes(safeType));
+  }, [mediaUrl, safeType]);
 
   if (safeType === 'image') {
     return (
       <div className="space-y-2">
         {mediaUrl ? (
-          <img
-            src={mediaUrl}
-            alt="Shared media"
-            loading="lazy"
-            className="max-h-80 w-full rounded-xl object-cover"
-          />
+          <>
+            {isMediaLoading ? <p className="text-xs text-gray-500">Loading image...</p> : null}
+            <img
+              src={mediaUrl}
+              alt="Shared media"
+              loading="lazy"
+              onLoad={() => setIsMediaLoading(false)}
+              onError={() => setIsMediaLoading(false)}
+              className="max-h-80 w-full rounded-xl object-cover"
+            />
+          </>
         ) : (
           <p className="text-sm italic opacity-80">Image unavailable</p>
         )}
@@ -37,10 +49,13 @@ export default function MessageRenderer({ message, type }) {
     return (
       <div className="space-y-2">
         {mediaUrl ? (
-          <video controls preload="metadata" className="max-h-80 w-full rounded-xl bg-black">
-            <source src={mediaUrl} />
-            Your browser does not support video playback.
-          </video>
+          <>
+            {isMediaLoading ? <p className="text-xs text-gray-500">Loading video...</p> : null}
+            <video controls preload="metadata" className="max-h-80 w-full rounded-xl bg-black" onLoadedData={() => setIsMediaLoading(false)}>
+              <source src={mediaUrl} />
+              Your browser does not support video playback.
+            </video>
+          </>
         ) : (
           <p className="text-sm italic opacity-80">Video unavailable</p>
         )}
@@ -77,12 +92,17 @@ export default function MessageRenderer({ message, type }) {
 
   if (safeType === 'sticker') {
     return mediaUrl ? (
-      <img
-        src={mediaUrl}
-        alt="Sticker"
-        loading="lazy"
-        className="h-28 w-28 rounded-xl object-contain"
-      />
+      <>
+        {isMediaLoading ? <p className="text-xs text-gray-500">Loading sticker...</p> : null}
+        <img
+          src={mediaUrl}
+          alt="Sticker"
+          loading="lazy"
+          onLoad={() => setIsMediaLoading(false)}
+          onError={() => setIsMediaLoading(false)}
+          className="h-28 w-28 rounded-xl object-contain"
+        />
+      </>
     ) : (
       <p className="text-sm italic opacity-80">Sticker unavailable</p>
     );
