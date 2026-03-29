@@ -433,21 +433,7 @@ export default function UserTask() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
-            <h4 className="text-sm font-semibold text-slate-900">Mark Attendance via WhatsApp</h4>
-            <p className="mt-2 text-xs text-slate-600">
-              Send START or HI from your registered WhatsApp number
-            </p>
-            <a
-              href="https://wa.me/9372333633?text=START"
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-500"
-            >
-              <FaWhatsapp className="h-4 w-4" />
-              Open WhatsApp
-            </a>
-          </div>
+          
         </div>
       </div>
     </div>
