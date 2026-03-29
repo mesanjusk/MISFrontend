@@ -350,19 +350,33 @@ export default function MessagesPanel() {
       setMessages((prev) => [...prev, optimisticMessage]);
 
       const uploaded = await whatsappCloudService.uploadToCloudinary({ file, type, cloudName: CLOUDINARY_CLOUD_NAME, uploadPreset: CLOUDINARY_UPLOAD_PRESET });
+      const mediaUrl = typeof uploaded === 'string'
+        ? uploaded
+        : (uploaded?.secure_url || uploaded?.url || '');
       setMessages((prev) => prev.map((item) => (
         item.id === optimisticId
-          ? { ...item, mediaUrl: uploaded?.secure_url || uploaded?.url, isUploading: false }
+          ? { ...item, mediaUrl, isUploading: false }
           : item
       )));
 
-      await whatsappCloudService.sendMediaMessage({
-        to: activeConversation.contact,
-        type,
-        mediaUrl: uploaded.secure_url,
-        filename: file.name,
-        caption,
-      });
+      const mediaPayload = type === 'image'
+        ? {
+          to: activeConversation.contact,
+          type: 'image',
+          image: { link: mediaUrl },
+          mediaUrl,
+          filename: file.name,
+          caption,
+        }
+        : {
+          to: activeConversation.contact,
+          type,
+          mediaUrl,
+          filename: file.name,
+          caption,
+        };
+
+      await whatsappCloudService.sendMediaMessage(mediaPayload);
       toast.success('Attachment sent successfully.');
       loadMessages();
       return true;
