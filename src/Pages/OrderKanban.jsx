@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "../apiClient";
 import { toast, LoadingSpinner } from "../Components";
 import { useOrdersData } from "../hooks/useOrdersData";
@@ -17,6 +18,7 @@ const toDateInput = (value) => {
 };
 
 export default function OrderKanban() {
+  const navigate = useNavigate();
   const { orderList, isOrdersLoading, loadError, refresh, patchOrder } = useOrdersData();
   const [statusFilter, setStatusFilter] = useState("all");
   const [fromDate, setFromDate] = useState("");
@@ -46,8 +48,21 @@ export default function OrderKanban() {
         setStatusMessage?.(`Order moved to ${nextStage}`);
         toast.success(`Moved to ${nextStage}`);
       } catch (error) {
-        console.error("Failed to update stage", error);
-        toast.error("Could not update order stage.");
+        try {
+          await axios.post("/order/updateStatus", { Order_id: orderId, Task: nextStage });
+          patchOrder(orderId, {
+            highestStatusTask: {
+              ...(currentOrder?.highestStatusTask || {}),
+              Task: nextStage,
+              CreatedAt: new Date().toISOString(),
+            },
+          });
+          setStatusMessage?.(`Order moved to ${nextStage}`);
+          toast.success(`Moved to ${nextStage}`);
+        } catch (fallbackError) {
+          console.error("Failed to update stage", error, fallbackError);
+          toast.error("Could not update order stage.");
+        }
       }
     },
     [orderList, patchOrder]
@@ -161,9 +176,12 @@ export default function OrderKanban() {
             columnOrder={STAGES}
             groupedOrders={groupedOrders}
             isAdmin
-            isTouchDevice={false}
+            isTouchDevice={window.matchMedia?.("(pointer: coarse)")?.matches || false}
             dragHandlers={dragHandlers}
-            onView={() => {}}
+            onView={(order) => {
+              const oid = order?.Order_uuid || order?._id || order?.Order_id;
+              if (oid) navigate(`/orderUpdate/${oid}`);
+            }}
             onEdit={() => {}}
             onCancel={() => {}}
             onMove={() => {}}

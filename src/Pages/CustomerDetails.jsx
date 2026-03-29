@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "../apiClient";
 import { LoadingSpinner } from "../Components";
 
@@ -14,7 +14,9 @@ const tabMap = {
 
 export default function CustomerDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(TABS[0]);
+  const [customerIdInput, setCustomerIdInput] = useState(id || "");
   const [timeline, setTimeline] = useState({});
   const [loading, setLoading] = useState(true);
 
@@ -37,6 +39,10 @@ export default function CustomerDetails() {
     };
 
     if (id) loadTimeline();
+    else {
+      setTimeline({});
+      setLoading(false);
+    }
 
     return () => {
       mounted = false;
@@ -50,6 +56,25 @@ export default function CustomerDetails() {
       <div className="mx-auto max-w-5xl rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <h1 className="text-xl font-semibold text-slate-900">Customer 360 View</h1>
         <p className="text-sm text-slate-500">Customer ID: {id || "-"}</p>
+
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <input
+            value={customerIdInput}
+            onChange={(event) => setCustomerIdInput(event.target.value)}
+            placeholder="Enter customer id"
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              if (!customerIdInput?.trim()) return;
+              navigate(`/customer-360/${customerIdInput.trim()}`);
+            }}
+            className="rounded-md bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-700"
+          >
+            Load Customer
+          </button>
+        </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
           {TABS.map((tab) => (
@@ -68,7 +93,11 @@ export default function CustomerDetails() {
           ))}
         </div>
 
-        {loading ? (
+        {!id ? (
+          <div className="mt-4 rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+            Enter a customer ID to view timeline data.
+          </div>
+        ) : loading ? (
           <div className="py-8 text-center">
             <LoadingSpinner />
           </div>

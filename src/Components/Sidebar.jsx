@@ -27,7 +27,7 @@ export default function Sidebar({ collapsed, onExpand, onCollapse }) {
       items: [
         { label: "Ledger", path: "/customerReport" },
         { label: "Add Customer", path: "/addcustomer" },
-        { label: "Customer 360", path: "/customers/demo" },
+        { label: "Customer 360", path: "/customer-360" },
       ],
     },
     {

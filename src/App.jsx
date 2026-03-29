@@ -194,7 +194,8 @@ function App() {
             <Route path="/calllogs" element={<CallLogs />} />
             <Route path="/flow-builder" element={<FlowBuilderPage />} />
             <Route path="/order-kanban" element={<OrderKanban />} />
-            <Route path="/customers/:id" element={<CustomerDetails />} />
+            <Route path="/customer-360" element={<CustomerDetails />} />
+            <Route path="/customer-360/:id" element={<CustomerDetails />} />
 
             {/* Edit */}
             <Route path="/editCustomer/:id" element={<EditCustomer />} />

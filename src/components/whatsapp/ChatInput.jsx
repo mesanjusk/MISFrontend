@@ -10,7 +10,7 @@ const ChatInput = ({ darkMode, selectedCustomer, message, onChange, onSend, send
           <button
             key={reply}
             type="button"
-            onClick={() => onChange?.(reply)}
+            onClick={() => onChange?.(`${message ? `${message} ` : ""}${reply}`)}
             className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs hover:bg-slate-50"
           >
             {reply}

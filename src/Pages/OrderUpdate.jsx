@@ -266,17 +266,22 @@ export default function OrderUpdate({
     if (!stage || !values?.id) return;
     try {
       await axios.patch(`/orders/${values.id}/stage`, { stage });
+      const nextStatus = {
+        Task: stage,
+        CreatedAt: new Date().toISOString(),
+      };
       setValues((prev) => ({
         ...prev,
         Task: stage,
-        Status: [
-          ...(prev?.Status || []),
-          {
-            Task: stage,
-            CreatedAt: new Date().toISOString(),
-          },
-        ],
+        Status: [...(prev?.Status || []), nextStatus],
       }));
+      onOrderPatched(values?.Order_uuid || values?.id, {
+        highestStatusTask: {
+          ...(values?.highestStatusTask || {}),
+          Task: stage,
+          CreatedAt: nextStatus.CreatedAt,
+        },
+      });
       toast.success("Stage updated.");
     } catch (error) {
       console.error("Failed to patch order stage", error);
