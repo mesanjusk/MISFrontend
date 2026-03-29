@@ -23,8 +23,8 @@ const getCloudinaryResourceType = ({ type, fileType }) => {
   const normalizedType = String(type || '').toLowerCase();
   const normalizedFileType = String(fileType || '').toLowerCase();
 
-  if (normalizedType === 'image' || normalizedFileType.startsWith('image/')) return 'image';
-  if (normalizedType === 'video' || normalizedFileType.startsWith('video/')) return 'video';
+  if (normalizedType === 'image' || normalizedType.startsWith('image/') || normalizedFileType.startsWith('image/')) return 'image';
+  if (normalizedType === 'video' || normalizedType.startsWith('video/') || normalizedFileType.startsWith('video/')) return 'video';
   return 'raw';
 };
 
@@ -35,19 +35,27 @@ export const whatsappCloudService = {
   getMessages: () => apiClient.get('/api/whatsapp/messages'),
   getTemplates: () => apiClient.get('/api/whatsapp/templates'),
   uploadToCloudinary: async ({ file, type, cloudName, uploadPreset }) => {
+    const resolvedCloudName = cloudName || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dadcprflr';
+    const resolvedUploadPreset = uploadPreset || import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'mern-images';
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', uploadPreset || '');
+    formData.append('upload_preset', resolvedUploadPreset);
 
     const resourceType = getCloudinaryResourceType({ type, fileType: file?.type });
-    const endpoint = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+    const endpoint = `https://api.cloudinary.com/v1_1/${resolvedCloudName}/${resourceType}/upload`;
 
     const response = await fetch(endpoint, {
       method: 'POST',
       body: formData,
     });
 
-    const data = await response.json();
+    let data = {};
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      data = { error: { message: 'Invalid Cloudinary response payload' } };
+      console.error('Cloudinary response parse failed:', parseError);
+    }
 
     if (!response.ok) {
       console.error('Cloudinary upload failed:', {
@@ -56,6 +64,7 @@ export const whatsappCloudService = {
         endpoint,
         resourceType,
         fileType: file?.type,
+        uploadPreset: resolvedUploadPreset,
         response: data,
       });
       throw new Error(data?.error?.message || 'Cloudinary upload failed.');

@@ -359,7 +359,10 @@ export default function MessagesPanel() {
           : item
       )));
 
-      const mediaPayload = type === 'image'
+      const normalizedType = String(type || '').toLowerCase();
+      const isImageType = normalizedType === 'image' || normalizedType.startsWith('image/');
+
+      const mediaPayload = isImageType
         ? {
           to: activeConversation.contact,
           type: 'image',
