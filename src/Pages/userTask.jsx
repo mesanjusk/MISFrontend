@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "../apiClient.js";
 import { useNavigate, useLocation } from "react-router-dom";
 import { format } from "date-fns";
+import { FaWhatsapp } from "react-icons/fa";
 
 export default function UserTask() {
   const [tasks, setTasks] = useState([]);
@@ -28,6 +29,15 @@ export default function UserTask() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
+
+  useEffect(() => {
+    if (!userName) return undefined;
+    const intervalId = setInterval(() => {
+      fetchAttendanceData(userName);
+      initAttendanceState(userName);
+    }, 30000);
+    return () => clearInterval(intervalId);
+  }, [userName]);
 
   const sequence = ["In", "Break", "Start", "Out"];
 
@@ -185,7 +195,7 @@ export default function UserTask() {
     const groupedData = new Map();
     const todayDate = new Date().toISOString().split("T")[0];
 
-    data.forEach(({ Date: recordDate, User, Employee_uuid }) => {
+    data.forEach(({ Date: recordDate, User, Employee_uuid, Source: recordSource }) => {
       if (!recordDate) return;
       const parsedDate = new Date(recordDate);
       const dateKey = parsedDate.toISOString().split("T")[0];
@@ -203,10 +213,26 @@ export default function UserTask() {
           Start: "—",
           Out: "—",
           TotalHours: "—",
+          Source: (recordSource || "").trim() || "",
         });
       }
 
       const rec = groupedData.get(userDateKey);
+      const normalizeSource = (value) => {
+        const sourceValue = (value || "").toLowerCase();
+        if (sourceValue.includes("whatsapp") || sourceValue.includes("wa")) return "WhatsApp";
+        if (sourceValue.includes("dashboard")) return "Dashboard";
+        return "";
+      };
+      const userEntryWithSource = (User || []).find((entry) => normalizeSource(entry?.Source || entry?.source));
+      const resolvedSource = normalizeSource(
+        userEntryWithSource?.Source ||
+        userEntryWithSource?.source ||
+        recordSource ||
+        rec.Source
+      );
+      if (resolvedSource) rec.Source = resolvedSource;
+
       (User || []).forEach((entry) => {
         switch (entry.Type) {
           case "In":
@@ -227,7 +253,10 @@ export default function UserTask() {
       });
     });
 
-    return Array.from(groupedData.values());
+    return Array.from(groupedData.values()).map((row) => ({
+      ...row,
+      Source: row.Source || "Dashboard",
+    }));
   };
 
   useEffect(() => {
@@ -283,6 +312,13 @@ export default function UserTask() {
     return attendance.find((r) => r.User_name === loggedInUser);
   }, [attendance, loggedInUser]);
 
+  const isPresentToday = Boolean(
+    myTodayRow && ["In", "Break", "Start", "Out"].some((field) => myTodayRow[field] && myTodayRow[field] !== "—" && myTodayRow[field] !== "N/A")
+  );
+
+  const source = myTodayRow?.Source || "Dashboard";
+  const isWhatsAppSource = source === "WhatsApp";
+
   return (
     <div className="w-full">
       <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100">
@@ -296,6 +332,16 @@ export default function UserTask() {
                 {todayLabel}
               </span>
               {nextActionChip}
+              <span
+                className={[
+                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border",
+                  isPresentToday
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "bg-rose-50 text-rose-700 border-rose-200",
+                ].join(" ")}
+              >
+                {isPresentToday ? "🟢 Present" : "🔴 Not Marked"}
+              </span>
             </div>
           </div>
 
@@ -342,12 +388,13 @@ export default function UserTask() {
                     <th className="px-3 py-2 font-medium border-b border-slate-200">Lunch</th>
                     <th className="px-3 py-2 font-medium border-b border-slate-200">Start</th>
                     <th className="px-3 py-2 font-medium border-b border-slate-200">Out</th>
+                    <th className="px-3 py-2 font-medium border-b border-slate-200">Source</th>
                   </tr>
                 </thead>
                 <tbody>
                   {!myTodayRow ? (
                     <tr>
-                      <td colSpan="4" className="px-3 py-6 text-center text-slate-500">
+                      <td colSpan="5" className="px-3 py-6 text-center text-slate-500">
                         No attendance records found.
                       </td>
                     </tr>
@@ -365,6 +412,20 @@ export default function UserTask() {
                       <td className="px-3 py-2">
                         <Badge value={myTodayRow.Out} />
                       </td>
+                      <td className="px-3 py-2">
+                        <span
+                          className={[
+                            "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium border",
+                            isWhatsAppSource
+                              ? "bg-green-50 text-green-700 border-green-200"
+                              : "bg-slate-50 text-slate-700 border-slate-200",
+                          ].join(" ")}
+                          title={isWhatsAppSource ? "Marked via WhatsApp message" : "Marked from dashboard"}
+                        >
+                          {isWhatsAppSource ? <FaWhatsapp className="h-3 w-3" /> : null}
+                          {source}
+                        </span>
+                      </td>
                     </tr>
                   )}
                 </tbody>
@@ -372,7 +433,21 @@ export default function UserTask() {
             </div>
           </div>
 
-         
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+            <h4 className="text-sm font-semibold text-slate-900">Mark Attendance via WhatsApp</h4>
+            <p className="mt-2 text-xs text-slate-600">
+              Send START or HI from your registered WhatsApp number
+            </p>
+            <a
+              href="https://wa.me/9372333633?text=START"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-500"
+            >
+              <FaWhatsapp className="h-4 w-4" />
+              Open WhatsApp
+            </a>
+          </div>
         </div>
       </div>
     </div>

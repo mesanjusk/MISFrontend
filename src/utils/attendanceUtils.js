@@ -85,7 +85,7 @@ export const processAttendanceDataRange = (
   const start = startISO ? new Date(startISO) : null;
   const end = endISO ? new Date(endISO) : null;
 
-  records.forEach(({ Date: recDate, User, Employee_uuid }) => {
+  records.forEach(({ Date: recDate, User, Employee_uuid, Source: recordSource }) => {
     if (!recDate) return;
 
     const d = new Date(recDate);
@@ -112,10 +112,26 @@ export const processAttendanceDataRange = (
         TotalHours: "0.00",
         Late: false,
         HalfDay: false,
+        Source: (recordSource || "").trim() || "",
       });
     }
 
     const ref = grouped.get(key);
+    const normalizeSource = (value) => {
+      const sourceValue = (value || "").toLowerCase();
+      if (sourceValue.includes("whatsapp") || sourceValue.includes("wa")) return "WhatsApp";
+      if (sourceValue.includes("dashboard")) return "Dashboard";
+      return "";
+    };
+
+    const entryWithSource = (User || []).find((u) => normalizeSource(u?.Source || u?.source));
+    const resolvedSource = normalizeSource(
+      entryWithSource?.Source ||
+      entryWithSource?.source ||
+      recordSource ||
+      ref.Source
+    );
+    if (resolvedSource) ref.Source = resolvedSource;
 
     (User || []).forEach((u) => {
       if (u.Type === "In") ref.In = u.Time?.trim() || "N/A";
@@ -137,6 +153,7 @@ export const processAttendanceDataRange = (
       TotalHours: hours.toFixed(2),
       Late: inTime ? inTime > lateLimit : false,
       HalfDay: hours > 0 && hours < 4.5,
+      Source: r.Source || "Dashboard",
     };
   });
 };

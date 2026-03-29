@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { FaWhatsapp } from "react-icons/fa";
 import {
   fetchUserNames,
   fetchAttendanceList,
@@ -28,6 +29,14 @@ export default function AllAttandance() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
+
+  useEffect(() => {
+    if (!loggedInUser) return undefined;
+    const intervalId = setInterval(() => {
+      loadToday();
+    }, 30000);
+    return () => clearInterval(intervalId);
+  }, [loggedInUser]);
 
   const loadToday = async () => {
     try {
@@ -69,6 +78,24 @@ export default function AllAttandance() {
         title={has ? "Marked" : "Not marked"}
       >
         {has ? value : "—"}
+      </span>
+    );
+  };
+
+  const SourceBadge = ({ source }) => {
+    const isWhatsApp = source === "WhatsApp";
+    return (
+      <span
+        className={[
+          "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium border",
+          isWhatsApp
+            ? "bg-green-50 text-green-700 border-green-200"
+            : "bg-slate-50 text-slate-700 border-slate-200",
+        ].join(" ")}
+        title={isWhatsApp ? "Marked via WhatsApp message" : "Marked from dashboard"}
+      >
+        {isWhatsApp ? <FaWhatsapp className="h-3 w-3" /> : null}
+        {isWhatsApp ? "WhatsApp" : "Dashboard"}
       </span>
     );
   };
@@ -124,6 +151,10 @@ export default function AllAttandance() {
                     <Badge value={r.Start} />
                     <Badge value={r.Out} />
                   </div>
+                  <div className="mt-3">
+                    <div className="text-[11px] text-slate-500 mb-1">Source</div>
+                    <SourceBadge source={r.Source} />
+                  </div>
                 </div>
               ))
             )}
@@ -140,18 +171,19 @@ export default function AllAttandance() {
                     <th className="px-3 py-2 font-medium border-b border-slate-200">Break</th>
                     <th className="px-3 py-2 font-medium border-b border-slate-200">Start</th>
                     <th className="px-3 py-2 font-medium border-b border-slate-200">Out</th>
+                    <th className="px-3 py-2 font-medium border-b border-slate-200">Source</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan="5" className="px-3 py-6 text-center text-slate-500">
+                      <td colSpan="6" className="px-3 py-6 text-center text-slate-500">
                         Loading…
                       </td>
                     </tr>
                   ) : filtered.length === 0 ? (
                     <tr>
-                      <td colSpan="5" className="px-3 py-6 text-center text-slate-500">
+                      <td colSpan="6" className="px-3 py-6 text-center text-slate-500">
                         No attendance records found for today.
                       </td>
                     </tr>
@@ -166,6 +198,7 @@ export default function AllAttandance() {
                         <td className="px-3 py-2"><Badge value={r.Break} /></td>
                         <td className="px-3 py-2"><Badge value={r.Start} /></td>
                         <td className="px-3 py-2"><Badge value={r.Out} /></td>
+                        <td className="px-3 py-2"><SourceBadge source={r.Source} /></td>
                       </tr>
                     ))
                   )}
