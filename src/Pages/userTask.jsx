@@ -3,6 +3,10 @@ import axios from "../apiClient.js";
 import { useNavigate, useLocation } from "react-router-dom";
 import { format } from "date-fns";
 import { FaWhatsapp } from "react-icons/fa";
+import {
+  resolveAttendanceSource,
+} from "../utils/attendanceUtils";
+import AttendanceSourceBadge from "../components/attendance/AttendanceSourceBadge";
 
 export default function UserTask() {
   const [tasks, setTasks] = useState([]);
@@ -218,19 +222,7 @@ export default function UserTask() {
       }
 
       const rec = groupedData.get(userDateKey);
-      const normalizeSource = (value) => {
-        const sourceValue = (value || "").toLowerCase();
-        if (sourceValue.includes("whatsapp") || sourceValue.includes("wa")) return "WhatsApp";
-        if (sourceValue.includes("dashboard")) return "Dashboard";
-        return "";
-      };
-      const userEntryWithSource = (User || []).find((entry) => normalizeSource(entry?.Source || entry?.source));
-      const resolvedSource = normalizeSource(
-        userEntryWithSource?.Source ||
-        userEntryWithSource?.source ||
-        recordSource ||
-        rec.Source
-      );
+      const resolvedSource = resolveAttendanceSource(User, recordSource || rec.Source);
       if (resolvedSource) rec.Source = resolvedSource;
 
       (User || []).forEach((entry) => {
@@ -317,7 +309,8 @@ export default function UserTask() {
   );
 
   const source = myTodayRow?.Source || "Dashboard";
-  const isWhatsAppSource = source === "WhatsApp";
+  const whatsappBusinessNumber =
+    import.meta.env.VITE_WHATSAPP_BUSINESS_NUMBER || "9372333633";
 
   return (
     <div className="w-full">
@@ -413,18 +406,7 @@ export default function UserTask() {
                         <Badge value={myTodayRow.Out} />
                       </td>
                       <td className="px-3 py-2">
-                        <span
-                          className={[
-                            "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium border",
-                            isWhatsAppSource
-                              ? "bg-green-50 text-green-700 border-green-200"
-                              : "bg-slate-50 text-slate-700 border-slate-200",
-                          ].join(" ")}
-                          title={isWhatsAppSource ? "Marked via WhatsApp message" : "Marked from dashboard"}
-                        >
-                          {isWhatsAppSource ? <FaWhatsapp className="h-3 w-3" /> : null}
-                          {source}
-                        </span>
+                        <AttendanceSourceBadge source={source} />
                       </td>
                     </tr>
                   )}
@@ -439,7 +421,7 @@ export default function UserTask() {
               Send START or HI from your registered WhatsApp number
             </p>
             <a
-              href="https://wa.me/9372333633?text=START"
+              href={`https://wa.me/${whatsappBusinessNumber}?text=START`}
               target="_blank"
               rel="noreferrer"
               className="mt-3 inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-500"
