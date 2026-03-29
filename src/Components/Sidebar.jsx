@@ -27,7 +27,7 @@ export default function Sidebar({ collapsed, onExpand, onCollapse }) {
       items: [
         { label: "Ledger", path: "/customerReport" },
         { label: "Add Customer", path: "/addcustomer" },
-        { label: "Add Customer Group", path: "/addcustomergroup" },
+        { label: "Customer 360", path: "/customers/demo" },
       ],
     },
     {
@@ -64,7 +64,7 @@ export default function Sidebar({ collapsed, onExpand, onCollapse }) {
       items: [
         { label: "Add Order", path: "/addorder1" },
         { label: "All Bills", path: "/allbills" },
-        { label: "Vendor Home", path: "/vendorhome" },
+        { label: "Order Kanban", path: "/order-kanban" },
       ],
     },
     {
@@ -89,8 +89,7 @@ export default function Sidebar({ collapsed, onExpand, onCollapse }) {
         { label: "All Trancation", path: "/allTransaction" },
         { label: "All Account", path: "/alltranscation1" },
         { label: "Outstanding", path: "/alltransaction2" },
-        { label: "All Transaction 3", path: "/alltransaction3" },
-      ],
+              ],
     },
     {
       group: "WhatsApp",

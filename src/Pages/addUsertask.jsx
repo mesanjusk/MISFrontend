@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import axios from '../apiClient.js';
@@ -13,6 +13,9 @@ export default function AddUsertask() {
     const [Deadline, setDeadline] = useState('');
     const [Remark, setRemark] = useState('');
     const [userOptions, setUserOptions] = useState([]);
+    const [orderOptions, setOrderOptions] = useState([]);
+    const [LinkedOrder, setLinkedOrder] = useState('');
+    const [TaskStatus, setTaskStatus] = useState('pending');
     const [isDeadlineChecked, setIsDeadlineChecked] = useState(false);
     const [isAdminUser, setIsAdminUser] = useState(false);
     const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -37,6 +40,14 @@ export default function AddUsertask() {
             .catch(err => {
                 console.error("Error fetching user options:", err);
             });
+
+        axios.get('/order/GetOrderList?page=1&limit=200')
+            .then(res => {
+                if (res?.data?.success) {
+                    setOrderOptions(res?.data?.result || []);
+                }
+            })
+            .catch(() => setOrderOptions([]));
     }, []);
 
     const submit = async (e) => {
@@ -56,7 +67,9 @@ export default function AddUsertask() {
                 Usertask_name,
                 User,
                 Deadline: finalDeadline,
-                Remark
+                Remark,
+                LinkedOrder,
+                TaskStatus
             });
 
             if (res.data === "exist") {
@@ -118,6 +131,21 @@ export default function AddUsertask() {
     const handleDeadlineCheckboxChange = () => {
         setIsDeadlineChecked(prev => !prev);
         setDeadline('');
+    };
+
+
+    const statusText = useMemo(() => ({
+        pending: 'Pending',
+        in_progress: 'In Progress',
+        done: 'Done',
+    }[TaskStatus] || 'Pending'), [TaskStatus]);
+
+    const toggleStatus = () => {
+        setTaskStatus((prev) => {
+            if (prev === 'pending') return 'in_progress';
+            if (prev === 'in_progress') return 'done';
+            return 'pending';
+        });
     };
 
     return (
@@ -196,6 +224,37 @@ export default function AddUsertask() {
                   />
                 </div>
               )}
+
+
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">Linked Order</label>
+                <select
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
+                  value={LinkedOrder}
+                  onChange={(e) => setLinkedOrder(e.target.value)}
+                >
+                  <option value="">-- Select Order --</option>
+                  {orderOptions?.map((option) => (
+                    <option key={option?._id || option?.Order_uuid} value={option?.Order_uuid || option?._id || ''}>
+                      #{option?.Order_Number || '-'} - {option?.Customer_name || 'Unknown'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Task Status</p>
+                  <p className="text-xs text-slate-500">{statusText}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleStatus}
+                  className="rounded-md border border-slate-300 px-3 py-2 text-xs hover:bg-white"
+                >
+                  Toggle Status
+                </button>
+              </div>
 
               <div>
                 <label className="block font-medium text-gray-700 mb-1">Remark</label>

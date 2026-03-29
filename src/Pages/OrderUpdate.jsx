@@ -30,6 +30,8 @@ const isEnquiryTask = (task) => {
   return t === "enquiry" || t === "enquiries" || t === "inquiry" || t === "lead";
 };
 
+const WORKFLOW_STAGES = ["Enquiry", "Design", "Printing", "Finishing", "Ready", "Delivered"];
+
 export default function OrderUpdate({
   order = {},
   onClose = () => {},
@@ -260,6 +262,28 @@ export default function OrderUpdate({
     }
   };
 
+  const handleStagePatch = async (stage) => {
+    if (!stage || !values?.id) return;
+    try {
+      await axios.patch(`/orders/${values.id}/stage`, { stage });
+      setValues((prev) => ({
+        ...prev,
+        Task: stage,
+        Status: [
+          ...(prev?.Status || []),
+          {
+            Task: stage,
+            CreatedAt: new Date().toISOString(),
+          },
+        ],
+      }));
+      toast.success("Stage updated.");
+    } catch (error) {
+      console.error("Failed to patch order stage", error);
+      toast.error("Unable to update stage.");
+    }
+  };
+
   const canSubmit = useMemo(() => Boolean(values.Task), [values.Task]);
 
   const handleSaveChanges = async (e) => {
@@ -397,6 +421,53 @@ export default function OrderUpdate({
         {/* Scrollable Body */}
         <div className="overflow-y-auto px-6 pb-6 pt-4 max-h-[calc(90vh-140px)]">
           <StatusTable status={values.Status} />
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Current Stage</label>
+              <select
+                value={values?.Task || ""}
+                onChange={(event) => handleStagePatch(event.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2"
+              >
+                <option value="">Select Stage</option>
+                {WORKFLOW_STAGES.map((stage) => (
+                  <option key={stage} value={stage}>{stage}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-sm font-medium text-slate-700 mb-2">Linked Tasks</p>
+              <ul className="space-y-1 text-xs text-slate-600">
+                {(values?.Steps || []).length ? (
+                  (values?.Steps || []).map((step, index) => (
+                    <li key={step?.uuid || index}>
+                      • {step?.label || step?.Task_group_name || step?.Task_group || `Task ${index + 1}`}
+                    </li>
+                  ))
+                ) : (
+                  <li>No linked tasks yet.</li>
+                )}
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-lg border border-slate-200 bg-white p-3">
+            <p className="text-sm font-medium text-slate-700 mb-2">Stage Timeline</p>
+            <div className="max-h-32 overflow-y-auto space-y-2">
+              {(values?.Status || []).length ? (
+                [...(values?.Status || [])].reverse().map((entry, index) => (
+                  <div key={`${entry?.Task || "stage"}-${index}`} className="text-xs text-slate-600 border-l-2 border-indigo-200 pl-2">
+                    <p className="font-medium text-slate-700">{entry?.Task || "Unknown"}</p>
+                    <p>{entry?.CreatedAt ? new Date(entry.CreatedAt).toLocaleString() : "No date"}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-500">No timeline available.</p>
+              )}
+            </div>
+          </div>
 
           <form onSubmit={handleSaveChanges} className="space-y-4 mt-4">
             <div>
