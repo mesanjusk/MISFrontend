@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FaWhatsapp } from "react-icons/fa";
 import {
   fetchUserNames,
   fetchAttendanceList,
   processAttendanceDataForDate,
 } from "../utils/attendanceUtils";
+import AttendanceSourceBadge from "../components/attendance/AttendanceSourceBadge";
 
 export default function AllAttandance() {
   const [loggedInUser, setLoggedInUser] = useState(null);
@@ -82,24 +82,6 @@ export default function AllAttandance() {
     );
   };
 
-  const SourceBadge = ({ source }) => {
-    const isWhatsApp = source === "WhatsApp";
-    return (
-      <span
-        className={[
-          "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium border",
-          isWhatsApp
-            ? "bg-green-50 text-green-700 border-green-200"
-            : "bg-slate-50 text-slate-700 border-slate-200",
-        ].join(" ")}
-        title={isWhatsApp ? "Marked via WhatsApp message" : "Marked from dashboard"}
-      >
-        {isWhatsApp ? <FaWhatsapp className="h-3 w-3" /> : null}
-        {isWhatsApp ? "WhatsApp" : "Dashboard"}
-      </span>
-    );
-  };
-
   return (
     <div className="w-full">
       {/* Card */}
@@ -153,7 +135,7 @@ export default function AllAttandance() {
                   </div>
                   <div className="mt-3">
                     <div className="text-[11px] text-slate-500 mb-1">Source</div>
-                    <SourceBadge source={r.Source} />
+                    <AttendanceSourceBadge source={r.Source} />
                   </div>
                 </div>
               ))
@@ -198,7 +180,7 @@ export default function AllAttandance() {
                         <td className="px-3 py-2"><Badge value={r.Break} /></td>
                         <td className="px-3 py-2"><Badge value={r.Start} /></td>
                         <td className="px-3 py-2"><Badge value={r.Out} /></td>
-                        <td className="px-3 py-2"><SourceBadge source={r.Source} /></td>
+                        <td className="px-3 py-2"><AttendanceSourceBadge source={r.Source} /></td>
                       </tr>
                     ))
                   )}

@@ -29,6 +29,25 @@ export const fetchAttendanceList = async () => {
   return data?.result || [];
 };
 
+export const normalizeAttendanceSource = (value) => {
+  const sourceValue = String(value || "").trim().toLowerCase();
+  if (!sourceValue) return "";
+  if (sourceValue.includes("whatsapp")) return "WhatsApp";
+  if (sourceValue.includes("dashboard")) return "Dashboard";
+  return "";
+};
+
+export const resolveAttendanceSource = (entries = [], fallback = "") => {
+  const entryWithSource = (entries || []).find((entry) =>
+    normalizeAttendanceSource(entry?.Source || entry?.source)
+  );
+
+  return (
+    normalizeAttendanceSource(entryWithSource?.Source || entryWithSource?.source) ||
+    normalizeAttendanceSource(fallback)
+  );
+};
+
 /* ==================================================
    TIME HELPERS
 ================================================== */
@@ -117,20 +136,7 @@ export const processAttendanceDataRange = (
     }
 
     const ref = grouped.get(key);
-    const normalizeSource = (value) => {
-      const sourceValue = (value || "").toLowerCase();
-      if (sourceValue.includes("whatsapp") || sourceValue.includes("wa")) return "WhatsApp";
-      if (sourceValue.includes("dashboard")) return "Dashboard";
-      return "";
-    };
-
-    const entryWithSource = (User || []).find((u) => normalizeSource(u?.Source || u?.source));
-    const resolvedSource = normalizeSource(
-      entryWithSource?.Source ||
-      entryWithSource?.source ||
-      recordSource ||
-      ref.Source
-    );
+    const resolvedSource = resolveAttendanceSource(User, recordSource || ref.Source);
     if (resolvedSource) ref.Source = resolvedSource;
 
     (User || []).forEach((u) => {
