@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Modal from '../common/Modal';
 import { toast } from '../../Components';
-import { whatsappCloudService } from '../../services/whatsappCloudService';
+import { buildTemplatePayload, whatsappCloudService } from '../../services/whatsappCloudService';
 
-const STORAGE_KEY = 'wa_auto_reply_config_v2';
+const STORAGE_KEY = 'wa_auto_reply_config_v3';
 
 const initialFormState = {
   keyword: '',
   matchType: 'contains',
+  replyMode: 'text',
   replyText: '',
+  templateName: '',
+  templateLanguage: 'en',
   active: true,
 };
 
@@ -21,13 +25,11 @@ const matchesRule = (rule, input) => {
   return text.includes(keyword);
 };
 
-const findReply = (rules, fallbackReply, input) => {
-  const matched = rules.find((rule) => matchesRule(rule, input));
-  if (matched) return matched.replyText;
-  return fallbackReply?.trim() || '';
-};
+const normalizeIncomingBody = (message) => message?.body || message?.text?.body || message?.text || message?.message || '';
 
 export default function AutoReplyManagementPanel() {
+  const navigate = useNavigate();
+  const [mode, setMode] = useState('simple');
   const [rules, setRules] = useState([]);
   const [isEnabled, setIsEnabled] = useState(true);
   const [fallbackReply, setFallbackReply] = useState('Thanks for your message. Our team will reply shortly.');
@@ -56,7 +58,7 @@ export default function AutoReplyManagementPanel() {
   const editingRule = useMemo(() => rules.find((rule) => rule.id === editingRuleId) || null, [editingRuleId, rules]);
 
   useEffect(() => {
-    if (!isEnabled) return undefined;
+    if (!isEnabled || mode !== 'simple') return undefined;
 
     const runAutoReply = async () => {
       try {
@@ -73,23 +75,44 @@ export default function AutoReplyManagementPanel() {
         const timestamp = new Date(newest?.timestamp || newest?.createdAt || 0).getTime();
         if (!timestamp || timestamp <= lastProcessedTimestamp) return;
 
-        const text = newest?.body || newest?.text?.body || newest?.text || newest?.message || '';
+        const body = normalizeIncomingBody(newest);
         const to = newest?.from || newest?.sender;
-        const reply = findReply(rules, fallbackReply, text);
+        if (!to) return;
 
-        if (to && reply) {
-          await whatsappCloudService.sendTextMessage({ to, body: reply });
+        const matchedRule = rules.find((rule) => matchesRule(rule, body));
+        if (matchedRule) {
+          if (matchedRule.replyMode === 'template' && matchedRule.templateName) {
+            await whatsappCloudService.sendTemplateMessage(
+              buildTemplatePayload({
+                to,
+                template: {
+                  name: matchedRule.templateName,
+                  language: matchedRule.templateLanguage || 'en',
+                  parameters: [],
+                },
+              }),
+            );
+          } else if (matchedRule.replyText?.trim()) {
+            await whatsappCloudService.sendTextMessage({ to, body: matchedRule.replyText.trim() });
+          }
           setLastProcessedTimestamp(timestamp);
           toast.success('Auto reply triggered.');
+          return;
+        }
+
+        if (fallbackReply.trim()) {
+          await whatsappCloudService.sendTextMessage({ to, body: fallbackReply.trim() });
+          setLastProcessedTimestamp(timestamp);
+          toast.success('Fallback auto reply sent.');
         }
       } catch {
-        // silently ignore polling failures
+        // avoid breaking UI when polling fails
       }
     };
 
     const interval = setInterval(runAutoReply, 8000);
     return () => clearInterval(interval);
-  }, [fallbackReply, isEnabled, lastProcessedTimestamp, rules]);
+  }, [fallbackReply, isEnabled, lastProcessedTimestamp, mode, rules]);
 
   const openAddModal = () => {
     setEditingRuleId(null);
@@ -99,7 +122,7 @@ export default function AutoReplyManagementPanel() {
 
   const openEditModal = (rule) => {
     setEditingRuleId(rule.id);
-    setFormData(rule);
+    setFormData({ ...initialFormState, ...rule });
     setIsModalOpen(true);
   };
 
@@ -107,16 +130,36 @@ export default function AutoReplyManagementPanel() {
     event.preventDefault();
     const keyword = formData.keyword.trim();
     const replyText = formData.replyText.trim();
-    if (!keyword || !replyText) {
-      toast.error('Keyword and reply are required.');
+    const templateName = formData.templateName.trim();
+
+    if (!keyword) {
+      toast.error('Keyword is required.');
       return;
     }
 
+    if (formData.replyMode === 'text' && !replyText) {
+      toast.error('Reply text is required for text mode.');
+      return;
+    }
+
+    if (formData.replyMode === 'template' && !templateName) {
+      toast.error('Template name is required for template mode.');
+      return;
+    }
+
+    const payload = {
+      ...formData,
+      keyword,
+      replyText: formData.replyMode === 'text' ? replyText : '',
+      templateName: formData.replyMode === 'template' ? templateName : '',
+      updatedAt: new Date().toISOString(),
+    };
+
     if (editingRule) {
-      setRules((prev) => prev.map((rule) => (rule.id === editingRule.id ? { ...formData, keyword, replyText, id: editingRule.id } : rule)));
+      setRules((prev) => prev.map((rule) => (rule.id === editingRule.id ? { ...payload, id: editingRule.id } : rule)));
       toast.success('Rule updated.');
     } else {
-      setRules((prev) => [{ ...formData, keyword, replyText, id: crypto.randomUUID() }, ...prev]);
+      setRules((prev) => [{ ...payload, id: crypto.randomUUID() }, ...prev]);
       toast.success('Rule added.');
     }
 
@@ -126,24 +169,35 @@ export default function AutoReplyManagementPanel() {
   };
 
   const handleTest = () => {
-    const reply = findReply(rules, fallbackReply, testInput);
-    setTestResult(reply || 'No reply would be sent.');
+    const matchedRule = rules.find((rule) => matchesRule(rule, testInput));
+    if (matchedRule) {
+      setTestResult(matchedRule.replyMode === 'template' ? `Template: ${matchedRule.templateName} (${matchedRule.templateLanguage || 'en'})` : matchedRule.replyText);
+      return;
+    }
+    setTestResult(fallbackReply.trim() || 'No reply would be sent.');
+  };
+
+  const handleModeChange = (value) => {
+    setMode(value);
+    if (value === 'flow') navigate('/flow-builder');
   };
 
   return (
     <section className="space-y-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
+        <button type="button" onClick={() => handleModeChange('simple')} className={`rounded-md px-3 py-1.5 text-sm font-medium ${mode === 'simple' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'}`}>Simple Auto Reply</button>
+        <button type="button" onClick={() => handleModeChange('flow')} className={`rounded-md px-3 py-1.5 text-sm font-medium ${mode === 'flow' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'}`}>Flow Builder</button>
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold text-gray-800">Auto Reply</h3>
           <p className="text-sm text-gray-500">Keyword based replies with case-insensitive matching.</p>
         </div>
-        <button type="button" onClick={() => setIsEnabled((prev) => !prev)} className={`rounded-lg px-4 py-2 text-sm font-medium text-white ${isEnabled ? 'bg-emerald-600' : 'bg-gray-500'}`}>
-          {isEnabled ? 'ON' : 'OFF'}
-        </button>
+        <button type="button" onClick={() => setIsEnabled((prev) => !prev)} className={`rounded-lg px-4 py-2 text-sm font-medium text-white ${isEnabled ? 'bg-emerald-600' : 'bg-gray-500'}`}>{isEnabled ? 'ON' : 'OFF'}</button>
       </div>
 
-      <label className="block text-sm text-gray-700">
-        Default fallback reply
+      <label className="block text-sm text-gray-700">Default fallback reply
         <textarea value={fallbackReply} onChange={(event) => setFallbackReply(event.target.value)} rows={2} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
       </label>
 
@@ -162,30 +216,14 @@ export default function AutoReplyManagementPanel() {
 
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left font-semibold text-gray-600">Keyword</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-600">Reply</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
-              <th className="px-4 py-3 text-right font-semibold text-gray-600">Actions</th>
-            </tr>
-          </thead>
+          <thead className="bg-gray-50"><tr><th className="px-4 py-3 text-left font-semibold text-gray-600">Keyword</th><th className="px-4 py-3 text-left font-semibold text-gray-600">Reply</th><th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th><th className="px-4 py-3 text-right font-semibold text-gray-600">Actions</th></tr></thead>
           <tbody className="divide-y divide-gray-100 bg-white">
-            {rules.length === 0 ? (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500">No auto-reply rules configured.</td></tr>
-            ) : rules.map((rule) => (
+            {rules.length === 0 ? <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500">No auto-reply rules configured.</td></tr> : rules.map((rule) => (
               <tr key={rule.id}>
                 <td className="px-4 py-3 font-medium text-gray-800">{rule.keyword} <span className="ml-1 text-xs text-gray-500">({rule.matchType})</span></td>
-                <td className="max-w-md truncate px-4 py-3 text-gray-600" title={rule.replyText}>{rule.replyText}</td>
-                <td className="px-4 py-3">
-                  <button type="button" onClick={() => setRules((prev) => prev.map((item) => (item.id === rule.id ? { ...item, active: !item.active } : item)))} className={`rounded-full px-2.5 py-1 text-xs font-medium ${rule.active ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>{rule.active ? 'Active' : 'Inactive'}</button>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-end gap-2">
-                    <button type="button" onClick={() => openEditModal(rule)} className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700">Edit</button>
-                    <button type="button" onClick={() => setRules((prev) => prev.filter((item) => item.id !== rule.id))} className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700">Delete</button>
-                  </div>
-                </td>
+                <td className="max-w-md truncate px-4 py-3 text-gray-600" title={rule.replyMode === 'template' ? rule.templateName : rule.replyText}>{rule.replyMode === 'template' ? `Template: ${rule.templateName}` : rule.replyText}</td>
+                <td className="px-4 py-3"><button type="button" onClick={() => setRules((prev) => prev.map((item) => (item.id === rule.id ? { ...item, active: !item.active } : item)))} className={`rounded-full px-2.5 py-1 text-xs font-medium ${rule.active ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>{rule.active ? 'Active' : 'Inactive'}</button></td>
+                <td className="px-4 py-3"><div className="flex justify-end gap-2"><button type="button" onClick={() => openEditModal(rule)} className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700">Edit</button><button type="button" onClick={() => setRules((prev) => prev.filter((item) => item.id !== rule.id))} className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700">Delete</button></div></td>
               </tr>
             ))}
           </tbody>
@@ -195,24 +233,19 @@ export default function AutoReplyManagementPanel() {
       {isModalOpen ? (
         <Modal onClose={() => setIsModalOpen(false)} title={editingRule ? 'Edit Rule' : 'Add Rule'}>
           <form onSubmit={handleSaveRule} className="space-y-4">
-            <label className="block text-sm text-gray-700">Keyword
-              <input value={formData.keyword} onChange={(event) => setFormData((prev) => ({ ...prev, keyword: event.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
-            </label>
-            <label className="block text-sm text-gray-700">Match Type
-              <select value={formData.matchType} onChange={(event) => setFormData((prev) => ({ ...prev, matchType: event.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
-                <option value="contains">Contains</option>
-                <option value="exact">Exact</option>
-                <option value="starts_with">Starts with</option>
-              </select>
-            </label>
-            <label className="block text-sm text-gray-700">Reply
-              <textarea rows={3} value={formData.replyText} onChange={(event) => setFormData((prev) => ({ ...prev, replyText: event.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
-            </label>
+            <label className="block text-sm text-gray-700">Keyword<input value={formData.keyword} onChange={(event) => setFormData((prev) => ({ ...prev, keyword: event.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" /></label>
+            <label className="block text-sm text-gray-700">Match Type<select value={formData.matchType} onChange={(event) => setFormData((prev) => ({ ...prev, matchType: event.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"><option value="contains">Contains</option><option value="exact">Exact</option><option value="starts_with">Starts with</option></select></label>
+            <label className="block text-sm text-gray-700">Reply Mode<select value={formData.replyMode} onChange={(event) => setFormData((prev) => ({ ...prev, replyMode: event.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"><option value="text">Reply Text</option><option value="template">Reply Template</option></select></label>
+            {formData.replyMode === 'text' ? (
+              <label className="block text-sm text-gray-700">Reply<textarea rows={3} value={formData.replyText} onChange={(event) => setFormData((prev) => ({ ...prev, replyText: event.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" /></label>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label className="block text-sm text-gray-700">Template Name<input value={formData.templateName} onChange={(event) => setFormData((prev) => ({ ...prev, templateName: event.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" /></label>
+                <label className="block text-sm text-gray-700">Language<input value={formData.templateLanguage} onChange={(event) => setFormData((prev) => ({ ...prev, templateLanguage: event.target.value }))} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" /></label>
+              </div>
+            )}
             <label className="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" checked={formData.active} onChange={(event) => setFormData((prev) => ({ ...prev, active: event.target.checked }))} />Active</label>
-            <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setIsModalOpen(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm">Cancel</button>
-              <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white">Save</button>
-            </div>
+            <div className="flex justify-end gap-2"><button type="button" onClick={() => setIsModalOpen(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm">Cancel</button><button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white">Save</button></div>
           </form>
         </Modal>
       ) : null}
