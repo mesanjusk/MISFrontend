@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { toast } from '../../Components';
 import { parseApiError } from '../../utils/parseApiError';
+import { isOutside24hWindow } from '../../utils/whatsappWindow';
 import { whatsappCloudService } from '../../services/whatsappCloudService';
 import WhatsAppLayout from './WhatsAppLayout';
 import ConversationList from './ConversationList';
@@ -117,16 +118,6 @@ const getInitials = (value) => {
   return source.slice(0, 2).toUpperCase();
 };
 
-const isWindowOpen = (conversation) => {
-  if (typeof conversation?.windowOpen === 'boolean') return conversation.windowOpen;
-  if (typeof conversation?.isWindowOpen === 'boolean') return conversation.isWindowOpen;
-  if (!conversation?.lastTimestamp) return false;
-  const lastTs = new Date(conversation.lastTimestamp).getTime();
-  if (Number.isNaN(lastTs)) return false;
-
-  return Date.now() - lastTs <= 24 * 60 * 60 * 1000;
-};
-
 export default function MessagesPanel() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -233,6 +224,7 @@ export default function MessagesPanel() {
         lastMessage: '',
         lastMessageType: 'text',
         lastTimestamp: null,
+        lastUserMessageAt: null,
         unreadCount: 0,
       };
 
@@ -245,6 +237,14 @@ export default function MessagesPanel() {
 
       if (isUnreadMessage(message)) {
         existing.unreadCount += 1;
+      }
+
+      if (getMessageDirection(message) === 'incoming') {
+        const lastUserTs = new Date(existing.lastUserMessageAt ?? 0).getTime();
+        const currentTs = new Date(timestamp ?? 0).getTime();
+        if (!existing.lastUserMessageAt || currentTs >= lastUserTs) {
+          existing.lastUserMessageAt = timestamp;
+        }
       }
 
       if (!existing.displayName || existing.displayName === existing.contact) {
@@ -291,7 +291,11 @@ export default function MessagesPanel() {
     return orderedMessages.filter((message) => getContactForMessage(message) === activeConversation.contact);
   }, [orderedMessages, activeConversation]);
 
-  const conversationWindowOpen = useMemo(() => isWindowOpen(activeConversation), [activeConversation]);
+  const is24hExpired = useMemo(
+    () => isOutside24hWindow(activeConversation?.lastUserMessageAt),
+    [activeConversation?.lastUserMessageAt],
+  );
+  const conversationWindowOpen = !is24hExpired;
 
   useEffect(() => {
     if (!messagesContainerRef.current) return;
@@ -329,6 +333,11 @@ export default function MessagesPanel() {
   const handleSendAttachment = useCallback(async ({ file, type, caption }) => {
     if (!activeConversation?.contact) {
       toast.error('Please select a conversation first.');
+      return false;
+    }
+
+    if (!conversationWindowOpen) {
+      toast.error('24-hour session is closed. Use template messages only.');
       return false;
     }
 
@@ -390,7 +399,7 @@ export default function MessagesPanel() {
     } finally {
       setIsSending(false);
     }
-  }, [activeConversation, loadMessages]);
+  }, [activeConversation, conversationWindowOpen, loadMessages]);
 
   const handleRetry = useCallback(async (message) => {
     const body = getMessageText(message);
@@ -475,7 +484,8 @@ export default function MessagesPanel() {
             getTimestampRaw={getTimestampRaw}
             scrollRef={messagesContainerRef}
             canSend={Boolean(activeConversation) && !isSending && conversationWindowOpen}
-            canSendTemplateOnly={!conversationWindowOpen}
+            canSendTemplateOnly={is24hExpired}
+            recipient={activeConversation?.contact || ''}
             onSend={handleSend}
             onSendAttachment={handleSendAttachment}
             onRetry={handleRetry}

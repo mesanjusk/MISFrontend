@@ -30,6 +30,7 @@ export default function ChatWindow({
   scrollRef,
   canSend,
   canSendTemplateOnly,
+  recipient,
   onSend,
   onSendAttachment,
   onRetry,
@@ -79,6 +80,7 @@ export default function ChatWindow({
       <MessageInput
         disabled={!canSend}
         canSendTemplateOnly={canSendTemplateOnly}
+        recipient={recipient}
         onSend={onSend}
         onSendAttachment={onSendAttachment}
       />
