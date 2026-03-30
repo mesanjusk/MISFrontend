@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../common/Modal';
 import { toast } from '../../Components';
@@ -41,6 +41,25 @@ export default function AutoReplyManagementPanel() {
   const [lastProcessedTimestamp, setLastProcessedTimestamp] = useState(0);
   const [isSavingRule, setIsSavingRule] = useState(false);
 
+  const normalizeRules = useCallback((list) => (
+    (Array.isArray(list) ? list : []).map((rule) => ({
+      ...rule,
+      id: rule?.id || rule?._id || crypto.randomUUID(),
+      active: typeof rule?.active === 'boolean' ? rule.active : Boolean(rule?.isActive),
+      isActive: typeof rule?.isActive === 'boolean' ? rule.isActive : Boolean(rule?.active),
+    }))
+  ), []);
+
+  const loadAutoReplyRules = useCallback(async ({ shouldUpdateState = true } = {}) => {
+    const response = await whatsappCloudService.getAutoReplyRules();
+    const list = response?.data?.data?.rules || response?.data?.rules || response?.data?.data || response?.data || [];
+    const normalizedRules = normalizeRules(list);
+
+    console.log('Auto reply rules fetched:', normalizedRules);
+    if (shouldUpdateState) setRules(normalizedRules);
+    return normalizedRules;
+  }, [normalizeRules]);
+
   useEffect(() => {
     let mounted = true;
 
@@ -55,17 +74,8 @@ export default function AutoReplyManagementPanel() {
       }
 
       try {
-        const response = await whatsappCloudService.getAutoReplyRules();
-        const list = response?.data?.data?.rules || response?.data?.rules || response?.data?.data || response?.data || [];
-        const normalizedRules = (Array.isArray(list) ? list : []).map((rule) => ({
-          ...rule,
-          id: rule?.id || rule?._id || crypto.randomUUID(),
-          active: typeof rule?.active === 'boolean' ? rule.active : Boolean(rule?.isActive),
-        }));
-        if (mounted && normalizedRules.length) {
-          console.log('Auto reply rules fetched:', normalizedRules);
-          setRules(normalizedRules);
-        }
+        const normalizedRules = await loadAutoReplyRules({ shouldUpdateState: false });
+        if (mounted && normalizedRules.length) setRules(normalizedRules);
       } catch (error) {
         console.error('Auto reply rules fetch failed; using local cache.', error);
       }
@@ -76,7 +86,7 @@ export default function AutoReplyManagementPanel() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [loadAutoReplyRules]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ rules, isEnabled, fallbackReply }));
@@ -191,6 +201,7 @@ export default function AutoReplyManagementPanel() {
       templateName: payload.templateName || '',
       templateLanguage: payload.templateLanguage || 'en',
       isActive: Boolean(payload.isActive),
+      active: Boolean(payload.active),
     };
 
     console.log('Submitting Auto Reply:', sanitizedPayload);
@@ -206,6 +217,7 @@ export default function AutoReplyManagementPanel() {
         ...(serverRule || sanitizedPayload),
         id: serverRule?.id || serverRule?._id || editingRule?.id || crypto.randomUUID(),
         active: typeof serverRule?.active === 'boolean' ? serverRule.active : Boolean(serverRule?.isActive ?? sanitizedPayload.active),
+        isActive: typeof serverRule?.isActive === 'boolean' ? serverRule.isActive : Boolean(serverRule?.active ?? sanitizedPayload.isActive),
       };
 
       if (editingRule) {
@@ -219,9 +231,22 @@ export default function AutoReplyManagementPanel() {
       setIsModalOpen(false);
       setFormData(initialFormState);
       setEditingRuleId(null);
+      await loadAutoReplyRules();
     } catch (error) {
       console.error('Auto reply save failed:', error);
-      toast.error('Failed to save rule on server.');
+      const fallbackRule = {
+        ...sanitizedPayload,
+        id: editingRule?.id || crypto.randomUUID(),
+      };
+      if (editingRule) {
+        setRules((prev) => prev.map((rule) => (rule.id === editingRule.id ? fallbackRule : rule)));
+      } else {
+        setRules((prev) => [fallbackRule, ...prev]);
+      }
+      toast.error('Server save failed, rule stored locally as fallback.');
+      setIsModalOpen(false);
+      setFormData(initialFormState);
+      setEditingRuleId(null);
     } finally {
       setIsSavingRule(false);
     }

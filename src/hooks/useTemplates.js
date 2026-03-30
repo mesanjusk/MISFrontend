@@ -65,15 +65,17 @@ const normalizeTemplates = (response) => {
 
 let templatesCache = null;
 let inFlightPromise = null;
+let cacheUsesFallback = false;
 
 export function useTemplates() {
   const [templates, setTemplates] = useState(Array.isArray(templatesCache) ? templatesCache : []);
   const [isLoading, setIsLoading] = useState(!Array.isArray(templatesCache));
-  const [usingFallback, setUsingFallback] = useState(false);
+  const [usingFallback, setUsingFallback] = useState(cacheUsesFallback);
 
   const fetchTemplates = useCallback(async ({ force = false } = {}) => {
     if (!force && Array.isArray(templatesCache)) {
       setTemplates(templatesCache);
+      setUsingFallback(cacheUsesFallback);
       setIsLoading(false);
       return templatesCache;
     }
@@ -97,16 +99,19 @@ export function useTemplates() {
 
         if (normalized.length > 0) {
           templatesCache = normalized;
+          cacheUsesFallback = false;
           setUsingFallback(false);
           return normalized;
         }
 
         templatesCache = fallbackTemplates;
+        cacheUsesFallback = true;
         setUsingFallback(true);
         return fallbackTemplates;
       } catch (error) {
         console.error('Templates fetch failed:', error);
         templatesCache = fallbackTemplates;
+        cacheUsesFallback = true;
         setUsingFallback(true);
         return fallbackTemplates;
       } finally {

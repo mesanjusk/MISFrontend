@@ -35,13 +35,40 @@ export const whatsappCloudService = {
   getMessages: () => apiClient.get('/api/whatsapp/messages'),
   getTemplates: () => apiClient.get('/api/whatsapp/templates'),
 
-  getAutoReplyRules: () => apiClient.get('/api/whatsapp/auto-replies'),
-  createAutoReplyRule: (payload) =>
-    apiClient.post('/api/whatsapp/auto-replies', payload, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    }),
+  getAutoReplyRules: async () => {
+    const candidates = ['/api/whatsapp/auto-replies', '/api/whatsapp/auto-reply-rules', '/api/whatsapp/auto-reply'];
+    let lastError = null;
+
+    for (const endpoint of candidates) {
+      try {
+        const response = await apiClient.get(endpoint);
+        return response;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError;
+  },
+  createAutoReplyRule: async (payload) => {
+    const candidates = ['/api/whatsapp/auto-replies', '/api/whatsapp/auto-reply-rules', '/api/whatsapp/auto-reply'];
+    let lastError = null;
+
+    for (const endpoint of candidates) {
+      try {
+        const response = await apiClient.post(endpoint, payload, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        return response;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError;
+  },
   uploadToCloudinary: async ({ file, type, cloudName, uploadPreset }) => {
     const resolvedCloudName = cloudName || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dadcprflr';
     const resolvedUploadPreset = uploadPreset || import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'mern-images';
