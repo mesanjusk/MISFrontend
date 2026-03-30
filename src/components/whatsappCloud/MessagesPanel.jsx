@@ -4,101 +4,32 @@ import { toast } from '../../Components';
 import { parseApiError } from '../../utils/parseApiError';
 import { isOutside24hWindow } from '../../utils/whatsappWindow';
 import { whatsappCloudService } from '../../services/whatsappCloudService';
-import WhatsAppLayout from './WhatsAppLayout';
 import ConversationList from './ConversationList';
 import ChatHeader from './ChatHeader';
 import ChatWindow from './ChatWindow';
+import EmptyState from './EmptyState';
+import LoadingSkeleton from './LoadingSkeleton';
 
-const SOCKET_URL =
-  import.meta.env.VITE_SOCKET_URL ||
-  import.meta.env.VITE_API_BASE ||
-  window.location.origin;
-
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_BASE || window.location.origin;
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dadcprflr';
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'mern-images';
 
-const getMessageText = (message) => {
-  if (typeof message?.body === 'string' && message.body.trim()) return message.body;
-  if (typeof message?.text === 'string' && message.text.trim()) return message.text;
-  if (typeof message?.text?.body === 'string' && message.text.body.trim()) return message.text.body;
-  if (typeof message?.message === 'string' && message.message.trim()) return message.message;
-  if (message?.messageType && message.messageType !== 'text') return `[${message.messageType}]`;
-  return 'Unsupported message payload';
-};
-
-const getMessageType = (message) => {
-  const rawType = String(message?.messageType || message?.payloadType || message?.contentType || message?.type || 'text').toLowerCase();
-
-  if (['image', 'video', 'document', 'audio', 'sticker', 'text'].includes(rawType)) return rawType;
-  if (rawType.includes('image')) return 'image';
-  if (rawType.includes('video')) return 'video';
-  if (rawType.includes('document') || rawType.includes('file')) return 'document';
-  if (rawType.includes('audio')) return 'audio';
-  if (rawType.includes('sticker')) return 'sticker';
-
-  return 'text';
-};
-
+const getMessageText = (message) => message?.body || message?.text?.body || message?.text || message?.message || 'Unsupported message payload';
+const getTimestampRaw = (message) => message?.timestamp ?? message?.createdAt ?? message?.time;
+const getMessageIdentity = (message) => message?.id || message?._id || message?.messageId || message?.wamid || `${getTimestampRaw(message)}-${message?.from}-${message?.to}-${getMessageText(message)}`;
+const normalizeIncomingMessage = (message) => message?.data || message?.message || message;
 const getMessageDirection = (message) => {
-  const direction = String(
-    message?.direction ?? message?.type ?? message?.messageType ?? '',
-  ).toLowerCase();
-
+  const direction = String(message?.direction ?? message?.type ?? '').toLowerCase();
   if (direction.includes('out')) return 'outgoing';
   if (direction.includes('in')) return 'incoming';
-
   if (message?.fromMe || message?.isOutbound) return 'outgoing';
   return 'incoming';
 };
-
-const getTimestampRaw = (message) => message?.timestamp ?? message?.createdAt ?? message?.time;
+const getContactForMessage = (message) => (getMessageDirection(message) === 'outgoing' ? String(message?.to ?? message?.recipient ?? 'Unknown') : String(message?.from ?? message?.sender ?? 'Unknown'));
 
 const normalizeMessages = (payload) => {
-  const candidateLists = [
-    payload,
-    payload?.messages,
-    payload?.items,
-    payload?.data,
-    payload?.data?.messages,
-    payload?.data?.items,
-  ];
-
-  const matchedList = candidateLists.find(Array.isArray);
-  return matchedList ? matchedList.filter(Boolean) : [];
-};
-
-const normalizeIncomingMessage = (message) => {
-  if (!message || typeof message !== 'object') return null;
-
-  if (message?.data && typeof message.data === 'object' && !Array.isArray(message.data)) {
-    return message.data;
-  }
-
-  if (message?.message && typeof message.message === 'object' && !Array.isArray(message.message)) {
-    return message.message;
-  }
-
-  return message;
-};
-
-const getMessageIdentity = (message) => (
-  message?.id
-  ?? message?._id
-  ?? message?.messageId
-  ?? message?.wamid
-  ?? [
-    getTimestampRaw(message) ?? 'no-time',
-    message?.from ?? message?.sender ?? 'unknown-from',
-    message?.to ?? message?.recipient ?? 'unknown-to',
-    getMessageText(message),
-  ].join('-')
-);
-
-const getContactForMessage = (message) => {
-  const direction = getMessageDirection(message);
-  return direction === 'outgoing'
-    ? String(message?.to ?? message?.recipient ?? 'Unknown')
-    : String(message?.from ?? message?.sender ?? 'Unknown');
+  const list = [payload, payload?.messages, payload?.items, payload?.data, payload?.data?.messages, payload?.data?.items].find(Array.isArray);
+  return list ? list.filter(Boolean) : [];
 };
 
 const isUnreadMessage = (message) => {
@@ -107,15 +38,10 @@ const isUnreadMessage = (message) => {
 };
 
 const getInitials = (value) => {
-  const source = String(value || '').trim();
-  if (!source) return 'NA';
-
-  const parts = source.split(/\s+/).filter(Boolean);
-  if (parts.length > 1) {
-    return `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase();
-  }
-
-  return source.slice(0, 2).toUpperCase();
+  const parts = String(value || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return 'NA';
+  if (parts.length > 1) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return parts[0].slice(0, 2).toUpperCase();
 };
 
 export default function MessagesPanel() {
@@ -124,22 +50,16 @@ export default function MessagesPanel() {
   const [isSending, setIsSending] = useState(false);
   const [search, setSearch] = useState('');
   const [activeConversationId, setActiveConversationId] = useState('');
+  const [showConversationList, setShowConversationList] = useState(true);
   const messagesContainerRef = useRef(null);
 
   const appendMessage = useCallback((incomingMessage) => {
     const message = normalizeIncomingMessage(incomingMessage);
     if (!message) return;
-
     setMessages((prev) => {
       const nextId = getMessageIdentity(message);
       const exists = prev.some((item) => getMessageIdentity(item) === nextId);
-
-      if (exists) {
-        return prev.map((item) =>
-          getMessageIdentity(item) === nextId ? { ...item, ...message, isUploading: false } : item
-        );
-      }
-
+      if (exists) return prev.map((item) => (getMessageIdentity(item) === nextId ? { ...item, ...message, isUploading: false } : item));
       return [...prev, message];
     });
   }, []);
@@ -148,15 +68,9 @@ export default function MessagesPanel() {
     try {
       setIsLoading(true);
       const response = await whatsappCloudService.getMessages();
-
-      const payload =
-        response?.data?.data ??
-        response?.data ??
-        [];
-
+      const payload = response?.data?.data ?? response?.data ?? [];
       setMessages(normalizeMessages(payload));
     } catch (error) {
-      console.error(error);
       toast.error(parseApiError(error, 'Failed to load inbox messages.'));
     } finally {
       setIsLoading(false);
@@ -169,103 +83,43 @@ export default function MessagesPanel() {
 
   useEffect(() => {
     if (!SOCKET_URL || typeof io !== 'function') return undefined;
-
-    const socket = io(SOCKET_URL, {
-      transports: ['polling'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 2000,
-    });
-
-    socket.on('connect', () => {
-      console.log('✅ Socket connected:', socket.id);
-    });
-
-    socket.on('connect_error', (err) => {
-      console.error('❌ Socket connection error:', err.message);
-    });
-
-    socket.on('new_message', (msg) => {
-      appendMessage(msg);
-    });
-
-    return () => {
-      socket.disconnect();
-    };
+    const socket = io(SOCKET_URL, { transports: ['polling'], reconnection: true, reconnectionAttempts: 5, reconnectionDelay: 2000 });
+    socket.on('new_message', appendMessage);
+    return () => socket.disconnect();
   }, [appendMessage]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      loadMessages();
-    }, 5000);
-
+    const interval = setInterval(loadMessages, 5000);
     return () => clearInterval(interval);
   }, [loadMessages]);
 
-  const orderedMessages = useMemo(
-    () =>
-      [...messages].sort(
-        (a, b) =>
-          new Date(getTimestampRaw(a) ?? 0) -
-          new Date(getTimestampRaw(b) ?? 0)
-      ),
-    [messages],
-  );
+  const orderedMessages = useMemo(() => [...messages].sort((a, b) => new Date(getTimestampRaw(a) ?? 0) - new Date(getTimestampRaw(b) ?? 0)), [messages]);
 
   const conversations = useMemo(() => {
     const map = new Map();
-
     orderedMessages.forEach((message) => {
       const contact = getContactForMessage(message);
-      const existing = map.get(contact) || {
-        id: contact,
-        contact,
-        displayName: message?.profileName || message?.name || contact,
-        lastMessage: '',
-        lastMessageType: 'text',
-        lastTimestamp: null,
-        lastUserMessageAt: null,
-        unreadCount: 0,
-      };
-
+      const existing = map.get(contact) || { id: contact, contact, displayName: message?.profileName || message?.name || contact, lastMessage: '', lastTimestamp: null, lastUserMessageAt: null, unreadCount: 0 };
       const timestamp = getTimestampRaw(message);
       if (!existing.lastTimestamp || new Date(timestamp) >= new Date(existing.lastTimestamp)) {
         existing.lastTimestamp = timestamp;
         existing.lastMessage = getMessageText(message);
-        existing.lastMessageType = getMessageType(message);
       }
-
-      if (isUnreadMessage(message)) {
-        existing.unreadCount += 1;
-      }
-
+      if (isUnreadMessage(message)) existing.unreadCount += 1;
       if (getMessageDirection(message) === 'incoming') {
-        const lastUserTs = new Date(existing.lastUserMessageAt ?? 0).getTime();
         const currentTs = new Date(timestamp ?? 0).getTime();
-        if (!existing.lastUserMessageAt || currentTs >= lastUserTs) {
-          existing.lastUserMessageAt = timestamp;
-        }
+        const previousTs = new Date(existing.lastUserMessageAt ?? 0).getTime();
+        if (!existing.lastUserMessageAt || currentTs >= previousTs) existing.lastUserMessageAt = timestamp;
       }
-
-      if (!existing.displayName || existing.displayName === existing.contact) {
-        existing.displayName = message?.profileName || message?.name || contact;
-      }
-
       map.set(contact, existing);
     });
-
-    return [...map.values()].sort(
-      (a, b) => new Date(b.lastTimestamp ?? 0) - new Date(a.lastTimestamp ?? 0),
-    );
+    return [...map.values()].sort((a, b) => new Date(b.lastTimestamp ?? 0) - new Date(a.lastTimestamp ?? 0));
   }, [orderedMessages]);
 
   const filteredConversations = useMemo(() => {
     const searchValue = search.trim().toLowerCase();
     if (!searchValue) return conversations;
-
-    return conversations.filter((conversation) =>
-      `${conversation.displayName} ${conversation.contact}`.toLowerCase().includes(searchValue)
-    );
+    return conversations.filter((conversation) => `${conversation.displayName} ${conversation.contact}`.toLowerCase().includes(searchValue));
   }, [conversations, search]);
 
   useEffect(() => {
@@ -273,28 +127,14 @@ export default function MessagesPanel() {
       setActiveConversationId('');
       return;
     }
-
-    const exists = filteredConversations.some((item) => item.id === activeConversationId);
-    if (!exists) {
+    if (!filteredConversations.some((item) => item.id === activeConversationId)) {
       setActiveConversationId(filteredConversations[0].id);
     }
   }, [filteredConversations, activeConversationId]);
 
-  const activeConversation = useMemo(
-    () => filteredConversations.find((item) => item.id === activeConversationId) || null,
-    [filteredConversations, activeConversationId],
-  );
-
-  const activeMessages = useMemo(() => {
-    if (!activeConversation?.contact) return [];
-
-    return orderedMessages.filter((message) => getContactForMessage(message) === activeConversation.contact);
-  }, [orderedMessages, activeConversation]);
-
-  const is24hExpired = useMemo(
-    () => isOutside24hWindow(activeConversation?.lastUserMessageAt),
-    [activeConversation?.lastUserMessageAt],
-  );
+  const activeConversation = useMemo(() => filteredConversations.find((item) => item.id === activeConversationId) || null, [filteredConversations, activeConversationId]);
+  const activeMessages = useMemo(() => (!activeConversation?.contact ? [] : orderedMessages.filter((message) => getContactForMessage(message) === activeConversation.contact)), [orderedMessages, activeConversation]);
+  const is24hExpired = useMemo(() => isOutside24hWindow(activeConversation?.lastUserMessageAt), [activeConversation?.lastUserMessageAt]);
   const conversationWindowOpen = !is24hExpired;
 
   useEffect(() => {
@@ -303,23 +143,14 @@ export default function MessagesPanel() {
   }, [activeMessages]);
 
   const handleSend = useCallback(async (body) => {
-    if (!activeConversation?.contact) {
-      toast.error('Please select a conversation first.');
-      return false;
-    }
-
+    if (!activeConversation?.contact) return false;
     if (!conversationWindowOpen) {
       toast.error('24-hour session is closed. Use template messages only.');
       return false;
     }
-
     try {
       setIsSending(true);
-      await whatsappCloudService.sendTextMessage({
-        to: activeConversation.contact,
-        body,
-      });
-      toast.success('Message sent successfully.');
+      await whatsappCloudService.sendTextMessage({ to: activeConversation.contact, body });
       loadMessages();
       return true;
     } catch (error) {
@@ -331,65 +162,15 @@ export default function MessagesPanel() {
   }, [activeConversation, conversationWindowOpen, loadMessages]);
 
   const handleSendAttachment = useCallback(async ({ file, type, caption }) => {
-    if (!activeConversation?.contact) {
-      toast.error('Please select a conversation first.');
-      return false;
-    }
-
-    if (!conversationWindowOpen) {
-      toast.error('24-hour session is closed. Use template messages only.');
-      return false;
-    }
-
+    if (!activeConversation?.contact || !conversationWindowOpen) return false;
     const optimisticId = `optimistic-${Date.now()}-${file.name}`;
-
     try {
       setIsSending(true);
-      const optimisticMessage = {
-        id: optimisticId,
-        to: activeConversation.contact,
-        fromMe: true,
-        status: 'sending',
-        messageType: type,
-        body: caption || '',
-        filename: file.name,
-        timestamp: new Date().toISOString(),
-        isUploading: true,
-      };
-      setMessages((prev) => [...prev, optimisticMessage]);
-
-      const uploaded = await whatsappCloudService.uploadToCloudinary({ file, type, cloudName: CLOUDINARY_CLOUD_NAME, uploadPreset: CLOUDINARY_UPLOAD_PRESET });
-      const mediaUrl = typeof uploaded === 'string'
-        ? uploaded
-        : (uploaded?.secure_url || uploaded?.url || '');
-      setMessages((prev) => prev.map((item) => (
-        item.id === optimisticId
-          ? { ...item, mediaUrl, isUploading: false }
-          : item
-      )));
-
-      const normalizedType = String(type || '').toLowerCase();
-      const isImageType = normalizedType === 'image' || normalizedType.startsWith('image/');
-
-      const mediaPayload = isImageType
-        ? {
-          to: activeConversation.contact,
-          type: 'image',
-          image: { link: mediaUrl },
-          mediaUrl,
-          filename: file.name,
-          caption,
-        }
-        : {
-          to: activeConversation.contact,
-          type,
-          mediaUrl,
-          filename: file.name,
-          caption,
-        };
-
-      await whatsappCloudService.sendMediaMessage(mediaPayload);
-      toast.success('Attachment sent successfully.');
+      setMessages((prev) => [...prev, { id: optimisticId, to: activeConversation.contact, fromMe: true, status: 'sending', messageType: type, body: caption || '', filename: file.name, timestamp: new Date().toISOString(), isUploading: true }]);
+      const mediaUrl = await whatsappCloudService.uploadToCloudinary({ file, type, cloudName: CLOUDINARY_CLOUD_NAME, uploadPreset: CLOUDINARY_UPLOAD_PRESET });
+      setMessages((prev) => prev.map((item) => (item.id === optimisticId ? { ...item, mediaUrl, isUploading: false } : item)));
+      const isImageType = String(type || '').toLowerCase().includes('image');
+      await whatsappCloudService.sendMediaMessage(isImageType ? { to: activeConversation.contact, type: 'image', image: { link: mediaUrl }, mediaUrl, filename: file.name, caption } : { to: activeConversation.contact, type, mediaUrl, filename: file.name, caption });
       loadMessages();
       return true;
     } catch (error) {
@@ -402,25 +183,13 @@ export default function MessagesPanel() {
   }, [activeConversation, conversationWindowOpen, loadMessages]);
 
   const handleRetry = useCallback(async (message) => {
-    const body = getMessageText(message);
-    const targetContact = getContactForMessage(message);
-
-    if (!body || body === 'Unsupported message payload' || !targetContact) {
-      toast.error('Unable to retry this message.');
-      return false;
-    }
-
     try {
       setIsSending(true);
-      await whatsappCloudService.sendTextMessage({
-        to: targetContact,
-        body,
-      });
-      toast.success('Message retried successfully.');
+      await whatsappCloudService.sendTextMessage({ to: getContactForMessage(message), body: getMessageText(message) });
       loadMessages();
       return true;
-    } catch (error) {
-      toast.error(parseApiError(error, 'Retry failed. Please try again.'));
+    } catch {
+      toast.error('Retry failed. Please try again.');
       return false;
     } finally {
       setIsSending(false);
@@ -428,71 +197,71 @@ export default function MessagesPanel() {
   }, [loadMessages]);
 
   const rightPanel = activeConversation ? (
-    <div className="flex h-full min-h-0 flex-col bg-white">
-      <div className="border-b border-gray-200 p-5 text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-xl font-semibold text-green-700">
-          {getInitials(activeConversation.displayName || activeConversation.contact)}
-        </div>
-        <p className="mt-3 text-sm font-semibold text-gray-900">{activeConversation.displayName}</p>
-        <p className="text-xs text-gray-500">{activeConversation.contact}</p>
+    <div className="hidden h-full min-h-0 flex-col bg-white p-5 xl:flex">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-xl font-semibold text-green-700">{getInitials(activeConversation.displayName || activeConversation.contact)}</div>
+      <p className="mt-3 text-center text-sm font-semibold text-gray-900">{activeConversation.displayName}</p>
+      <p className="text-center text-xs text-gray-500">{activeConversation.contact}</p>
+      <div className="mt-6 space-y-3 text-sm text-gray-700">
+        <p><span className="font-medium">Phone:</span> {activeConversation.contact}</p>
+        <p><span className="font-medium">24h Window:</span> {conversationWindowOpen ? 'Active' : 'Expired'}</p>
       </div>
+    </div>
+  ) : null;
 
-      <div className="space-y-4 p-5 text-sm text-gray-700">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Phone</p>
-          <p className="mt-1">{activeConversation.contact}</p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Last Message</p>
-          <p className="mt-1 break-words">{activeConversation.lastMessage || '-'}</p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Open Status</p>
-          <p className="mt-1">{conversationWindowOpen ? 'Active (24h open)' : 'Outside 24h window'}</p>
-        </div>
+  const renderChatArea = () => {
+    if (!activeConversation) {
+      return <EmptyState title="Select a conversation" description="Choose a chat from the left panel to start messaging." />;
+    }
+
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        <ChatHeader
+          conversation={activeConversation}
+          isLoading={isLoading}
+          onRefresh={loadMessages}
+          windowOpen={conversationWindowOpen}
+          onBack={() => setShowConversationList(true)}
+        />
+        <ChatWindow
+          messages={activeMessages}
+          getMessageIdentity={getMessageIdentity}
+          getMessageDirection={getMessageDirection}
+          getTimestampRaw={getTimestampRaw}
+          scrollRef={messagesContainerRef}
+          canSend={Boolean(activeConversation) && !isSending && conversationWindowOpen}
+          canSendTemplateOnly={is24hExpired}
+          recipient={activeConversation?.contact || ''}
+          onSend={handleSend}
+          onSendAttachment={handleSendAttachment}
+          onRetry={handleRetry}
+        />
       </div>
-    </div>
-  ) : (
-    <div className="flex h-full items-center justify-center p-6 text-sm text-gray-500">
-      Select a conversation to see details.
-    </div>
-  );
+    );
+  };
+
+  if (isLoading && !messages.length) {
+    return <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"><LoadingSkeleton lines={8} /></section>;
+  }
 
   return (
-    <WhatsAppLayout
-      sidebar={(
-        <ConversationList
-          conversations={filteredConversations}
-          activeConversationId={activeConversationId}
-          onSelectConversation={setActiveConversationId}
-          search={search}
-          onSearch={setSearch}
-        />
-      )}
-      main={(
-        <div className="flex h-full min-h-0 flex-col">
-          <ChatHeader
-            conversation={activeConversation}
-            isLoading={isLoading}
-            onRefresh={loadMessages}
-            windowOpen={conversationWindowOpen}
+    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <div className="grid h-[calc(100vh-13rem)] min-h-[580px] grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)_280px]">
+        <aside className={`${showConversationList ? 'block' : 'hidden'} border-r border-gray-200 lg:block`}>
+          <ConversationList
+            conversations={filteredConversations}
+            activeConversationId={activeConversationId}
+            onSelectConversation={(id) => {
+              setActiveConversationId(id);
+              setShowConversationList(false);
+            }}
+            search={search}
+            onSearch={setSearch}
           />
-          <ChatWindow
-            messages={activeMessages}
-            getMessageIdentity={getMessageIdentity}
-            getMessageDirection={getMessageDirection}
-            getTimestampRaw={getTimestampRaw}
-            scrollRef={messagesContainerRef}
-            canSend={Boolean(activeConversation) && !isSending && conversationWindowOpen}
-            canSendTemplateOnly={is24hExpired}
-            recipient={activeConversation?.contact || ''}
-            onSend={handleSend}
-            onSendAttachment={handleSendAttachment}
-            onRetry={handleRetry}
-          />
-        </div>
-      )}
-      details={rightPanel}
-    />
+        </aside>
+
+        <main className={`${showConversationList ? 'hidden' : 'block'} min-h-0 lg:block`}>{renderChatArea()}</main>
+        {rightPanel}
+      </div>
+    </section>
   );
 }

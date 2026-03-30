@@ -1,4 +1,5 @@
-import MessageBubble from './MessageBubble';
+import ChatBubble from './ChatBubble';
+import EmptyState from './EmptyState';
 import MessageInput from './MessageInput';
 
 const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
@@ -44,7 +45,7 @@ export default function ChatWindow({
         className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.04)_1px,transparent_0)] bg-[size:24px_24px] p-4"
       >
         {messages.length === 0 ? (
-          <p className="pt-8 text-center text-sm text-gray-500">No messages for this conversation.</p>
+          <EmptyState title="No messages yet" description="Start the conversation by sending a message." />
         ) : null}
 
         {messages.map((message) => {
@@ -66,7 +67,7 @@ export default function ChatWindow({
                 </div>
               ) : null}
 
-              <MessageBubble
+              <ChatBubble
                 message={message}
                 isOutgoing={isOutgoing}
                 timestamp={timestamp}
