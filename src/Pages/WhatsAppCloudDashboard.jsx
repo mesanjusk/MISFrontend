@@ -22,14 +22,21 @@ export default function WhatsAppCloudDashboard() {
   const [search, setSearch] = useState('');
   const [connectionStatus, setConnectionStatus] = useState('Checking...');
 
-  useEffect(() => {
+ useEffect(() => {
   fetchWhatsAppStatus()
     .then((res) => {
-      const isConnected = Array.isArray(res?.data) && res.data.length > 0;
+      console.log("ACCOUNTS:", res.data);
+
+      const accounts = res?.data?.data || res?.data || [];
+
+      const isConnected = Array.isArray(accounts) && accounts.length > 0;
 
       setConnectionStatus(isConnected ? 'Connected' : 'Disconnected');
     })
-    .catch(() => setConnectionStatus('Disconnected'));
+    .catch((err) => {
+      console.error(err);
+      setConnectionStatus('Disconnected');
+    });
 }, []);
 
   const renderSection = useMemo(() => {
