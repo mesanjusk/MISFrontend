@@ -34,6 +34,14 @@ export const whatsappCloudService = {
   sendMediaMessage: (payload) => apiClient.post('/api/whatsapp/send-media', payload),
   getMessages: () => apiClient.get('/api/whatsapp/messages'),
   getTemplates: () => apiClient.get('/api/whatsapp/templates'),
+
+  getAutoReplyRules: () => apiClient.get('/api/whatsapp/auto-replies'),
+  createAutoReplyRule: (payload) =>
+    apiClient.post('/api/whatsapp/auto-replies', payload, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }),
   uploadToCloudinary: async ({ file, type, cloudName, uploadPreset }) => {
     const resolvedCloudName = cloudName || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dadcprflr';
     const resolvedUploadPreset = uploadPreset || import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'mern-images';

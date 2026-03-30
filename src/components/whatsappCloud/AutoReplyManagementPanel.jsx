@@ -39,16 +39,43 @@ export default function AutoReplyManagementPanel() {
   const [testInput, setTestInput] = useState('');
   const [testResult, setTestResult] = useState('');
   const [lastProcessedTimestamp, setLastProcessedTimestamp] = useState(0);
+  const [isSavingRule, setIsSavingRule] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      if (Array.isArray(saved.rules)) setRules(saved.rules);
-      if (typeof saved.isEnabled === 'boolean') setIsEnabled(saved.isEnabled);
-      if (typeof saved.fallbackReply === 'string') setFallbackReply(saved.fallbackReply);
-    } catch {
-      // no-op
-    }
+    let mounted = true;
+
+    const hydrateAutoReplyState = async () => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        if (Array.isArray(saved.rules) && mounted) setRules(saved.rules);
+        if (typeof saved.isEnabled === 'boolean' && mounted) setIsEnabled(saved.isEnabled);
+        if (typeof saved.fallbackReply === 'string' && mounted) setFallbackReply(saved.fallbackReply);
+      } catch {
+        // no-op
+      }
+
+      try {
+        const response = await whatsappCloudService.getAutoReplyRules();
+        const list = response?.data?.data?.rules || response?.data?.rules || response?.data?.data || response?.data || [];
+        const normalizedRules = (Array.isArray(list) ? list : []).map((rule) => ({
+          ...rule,
+          id: rule?.id || rule?._id || crypto.randomUUID(),
+          active: typeof rule?.active === 'boolean' ? rule.active : Boolean(rule?.isActive),
+        }));
+        if (mounted && normalizedRules.length) {
+          console.log('Auto reply rules fetched:', normalizedRules);
+          setRules(normalizedRules);
+        }
+      } catch (error) {
+        console.error('Auto reply rules fetch failed; using local cache.', error);
+      }
+    };
+
+    hydrateAutoReplyState();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -126,7 +153,7 @@ export default function AutoReplyManagementPanel() {
     setIsModalOpen(true);
   };
 
-  const handleSaveRule = (event) => {
+  const handleSaveRule = async (event) => {
     event.preventDefault();
     const keyword = formData.keyword.trim();
     const replyText = formData.replyText.trim();
@@ -152,20 +179,52 @@ export default function AutoReplyManagementPanel() {
       keyword,
       replyText: formData.replyMode === 'text' ? replyText : '',
       templateName: formData.replyMode === 'template' ? templateName : '',
+      isActive: Boolean(formData.active),
+      active: Boolean(formData.active),
       updatedAt: new Date().toISOString(),
     };
 
-    if (editingRule) {
-      setRules((prev) => prev.map((rule) => (rule.id === editingRule.id ? { ...payload, id: editingRule.id } : rule)));
-      toast.success('Rule updated.');
-    } else {
-      setRules((prev) => [{ ...payload, id: crypto.randomUUID() }, ...prev]);
-      toast.success('Rule added.');
-    }
+    const sanitizedPayload = {
+      ...payload,
+      keyword: payload.keyword || '',
+      replyText: payload.replyText || '',
+      templateName: payload.templateName || '',
+      templateLanguage: payload.templateLanguage || 'en',
+      isActive: Boolean(payload.isActive),
+    };
 
-    setIsModalOpen(false);
-    setFormData(initialFormState);
-    setEditingRuleId(null);
+    console.log('Submitting Auto Reply:', sanitizedPayload);
+
+    setIsSavingRule(true);
+
+    try {
+      const response = await whatsappCloudService.createAutoReplyRule(sanitizedPayload);
+      console.log('Auto reply save response:', response?.data);
+
+      const serverRule = response?.data?.data?.rule || response?.data?.rule || response?.data?.data || response?.data || null;
+      const mergedRule = {
+        ...(serverRule || sanitizedPayload),
+        id: serverRule?.id || serverRule?._id || editingRule?.id || crypto.randomUUID(),
+        active: typeof serverRule?.active === 'boolean' ? serverRule.active : Boolean(serverRule?.isActive ?? sanitizedPayload.active),
+      };
+
+      if (editingRule) {
+        setRules((prev) => prev.map((rule) => (rule.id === editingRule.id ? mergedRule : rule)));
+        toast.success('Rule updated.');
+      } else {
+        setRules((prev) => [mergedRule, ...prev]);
+        toast.success('Rule added.');
+      }
+
+      setIsModalOpen(false);
+      setFormData(initialFormState);
+      setEditingRuleId(null);
+    } catch (error) {
+      console.error('Auto reply save failed:', error);
+      toast.error('Failed to save rule on server.');
+    } finally {
+      setIsSavingRule(false);
+    }
   };
 
   const handleTest = () => {
@@ -245,7 +304,7 @@ export default function AutoReplyManagementPanel() {
               </div>
             )}
             <label className="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" checked={formData.active} onChange={(event) => setFormData((prev) => ({ ...prev, active: event.target.checked }))} />Active</label>
-            <div className="flex justify-end gap-2"><button type="button" onClick={() => setIsModalOpen(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm">Cancel</button><button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white">Save</button></div>
+            <div className="flex justify-end gap-2"><button type="button" onClick={() => setIsModalOpen(false)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm">Cancel</button><button type="submit" disabled={isSavingRule} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60">{isSavingRule ? 'Saving...' : 'Save'}</button></div>
           </form>
         </Modal>
       ) : null}

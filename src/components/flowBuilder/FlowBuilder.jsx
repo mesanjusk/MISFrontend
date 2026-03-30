@@ -159,6 +159,7 @@ export default function FlowBuilder() {
   };
 
   const loadFlowIntoCanvas = (flowId) => {
+    console.log('Selected flow ID:', flowId);
     setSelectedFlowId(flowId);
     const found = flows.find((flow) => flow.id === flowId);
     if (!found) return;
@@ -201,6 +202,7 @@ export default function FlowBuilder() {
     });
 
     setIsSaving(true);
+    console.log('Selected flow before sending:', selectedFlowId || 'new-flow');
 
     try {
       if (selectedFlowId) {

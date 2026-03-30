@@ -1,67 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { whatsappCloudService } from '../../services/whatsappCloudService';
-
-const fallbackTemplates = [
-  {
-    name: 'order_update',
-    language: 'en',
-    category: 'utility',
-    body: 'Hi {{1}}, your order {{2}} is now {{3}}.',
-  },
-  {
-    name: 'promo_offer',
-    language: 'en',
-    category: 'marketing',
-    body: 'Hello {{1}}, enjoy {{2}}% off with code {{3}}.',
-  },
-  {
-    name: 'otp_auth',
-    language: 'en',
-    category: 'auth',
-    body: 'Your OTP for login is {{1}}. It expires in {{2}} minutes.',
-  },
-];
-
-const normalizeTemplates = (payload) => {
-  const lists = [
-    payload,
-    payload?.templates,
-    payload?.items,
-    payload?.data,
-    payload?.data?.templates,
-    payload?.data?.items,
-  ];
-
-  const list = lists.find(Array.isArray);
-  if (!list?.length) return [];
-
-  return list
-    .filter(Boolean)
-    .map((template) => {
-      const components = Array.isArray(template?.components) ? template.components : [];
-      const bodyComponent = components.find((component) =>
-        String(component?.type || '').toUpperCase() === 'BODY'
-      );
-
-      return {
-        ...template,
-        name: template?.name || template?.templateName || 'unnamed_template',
-        language:
-          (typeof template?.language === 'string'
-            ? template.language
-            : template?.language?.code) ||
-          template?.lang ||
-          template?.languageCode ||
-          'en',
-        category: String(template?.category || 'utility').toLowerCase(),
-        body:
-          template?.body ||
-          template?.content ||
-          bodyComponent?.text ||
-          'Template preview unavailable.',
-      };
-    });
-};
+import { useMemo } from 'react';
+import { useTemplates } from '../../hooks/useTemplates';
 
 const getVariableCount = (body) => {
   const matches = String(body || '').match(/\{\{\d+\}\}/g) || [];
@@ -74,44 +12,7 @@ const getVariableCount = (body) => {
 };
 
 export default function TemplateSelector({ selectedTemplate, onTemplateChange, disabled = false }) {
-  const [templates, setTemplates] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [usingFallback, setUsingFallback] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const loadTemplates = async () => {
-      setIsLoading(true);
-      try {
-        const response = await whatsappCloudService.getTemplates();
-        const normalized = normalizeTemplates(response?.data?.data ?? response?.data ?? []);
-
-        if (!mounted) return;
-
-        if (normalized.length > 0) {
-          setTemplates(normalized);
-          setUsingFallback(false);
-          return;
-        }
-
-        setTemplates(fallbackTemplates);
-        setUsingFallback(true);
-      } catch (error) {
-        if (!mounted) return;
-        setTemplates(fallbackTemplates);
-        setUsingFallback(true);
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
-    };
-
-    loadTemplates();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const { templates, isLoading, usingFallback, isEmpty } = useTemplates();
 
   const resolvedSelectedTemplate = useMemo(() => {
     if (!selectedTemplate?.name) return null;
@@ -183,6 +84,7 @@ export default function TemplateSelector({ selectedTemplate, onTemplateChange, d
           onChange={(event) => handleSelect(event.target.value)}
         >
           <option value="">Select template</option>
+          {isEmpty ? <option value="" disabled>No templates found</option> : null}
           {templates.map((template) => (
             <option
               key={`${template.name}-${template.language}`}
@@ -193,6 +95,10 @@ export default function TemplateSelector({ selectedTemplate, onTemplateChange, d
           ))}
         </select>
       </label>
+
+      {isLoading ? (
+        <p className="mt-2 text-xs text-gray-500">Loading templates...</p>
+      ) : null}
 
       {resolvedSelectedTemplate ? (
         <>
