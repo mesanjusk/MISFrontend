@@ -31,7 +31,7 @@ export default function WhatsAppCloudDashboard() {
 
       const isConnected = Array.isArray(accounts) && accounts.length > 0;
 
-      setConnectionStatus(isConnected ? 'Connected' : 'Disconnected');
+      setConnectionStatus(res?.data?.connected ? 'Connected' : 'Disconnected');
     })
     .catch((err) => {
       console.error(err);
