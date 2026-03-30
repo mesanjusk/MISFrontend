@@ -7,7 +7,7 @@ export const startSession = (sessionId) => axios.post('/whatsapp/start-session',
 export const fetchSessionQr = (sessionId) => axios.get(`/whatsapp/session/${sessionId}/qr`);
 
 // Chat operations
-export const fetchWhatsAppStatus = () => axios.get('/whatsapp-status');
+export const fetchWhatsAppStatus = () => axios.get('/whatsapp/sessions');
 export const fetchChatList = () => axios.get('/chatlist');
 export const fetchCustomers = () => axios.get('/customer/GetCustomersList');
 export const fetchMessagesByNumber = (number) => axios.get(`/messages/${number}`);

@@ -23,10 +23,14 @@ export default function WhatsAppCloudDashboard() {
   const [connectionStatus, setConnectionStatus] = useState('Checking...');
 
   useEffect(() => {
-    fetchWhatsAppStatus()
-      .then((res) => setConnectionStatus(res?.data?.status === 'connected' ? 'Connected' : 'Disconnected'))
-      .catch(() => setConnectionStatus('Disconnected'));
-  }, []);
+  fetchWhatsAppStatus()
+    .then((res) => {
+      const isConnected = Array.isArray(res?.data) && res.data.length > 0;
+
+      setConnectionStatus(isConnected ? 'Connected' : 'Disconnected');
+    })
+    .catch(() => setConnectionStatus('Disconnected'));
+}, []);
 
   const renderSection = useMemo(() => {
     if (activeTab === 'inbox') return <MessagesPanel />;
