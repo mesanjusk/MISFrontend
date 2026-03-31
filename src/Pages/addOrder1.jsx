@@ -240,7 +240,10 @@ export default function AddOrder1() {
 
       const phoneNumber = extractPhoneNumber(customer);
       const orderAmount = Number(Amount) > 0 ? Number(Amount) : 0;
-      
+      const message = orderAmount > 0
+        ? `Hello ${customer.Customer_name}, your order of ₹${orderAmount} has been placed successfully. Thank you!`
+        : `Hello ${customer.Customer_name}, your order has been placed successfully. Thank you!`;
+
       setWhatsAppMessage(message);
       setMobileToSend(phoneNumber);
       setIsTransactionSaved(true);
@@ -302,65 +305,32 @@ export default function AddOrder1() {
     }
   };
 
-  
-  const sendWhatsApp = async (phone = mobileToSend) => {
-  if (!phone) {
-    toast.error("Customer phone number is required");
-    return;
-  }
-
-  setIsSendingWhatsApp(true);
-
-  try {
-    let cleanPhone = String(phone).replace(/\D/g, '');
-
-    if (cleanPhone.length === 10) {
-      cleanPhone = '91' + cleanPhone;
+  const sendWhatsApp = async (phone = mobileToSend, message = whatsAppMessage) => {
+    if (!phone) {
+      toast.error("Customer phone number is required");
+      return;
     }
 
-    const payload = {
-      to: cleanPhone,
+    setIsSendingWhatsApp(true);
 
-      // ✅ YOUR APPROVED TEMPLATE
-      template_name: "order_sk",
+    try {
+      const { data } = await sendWhatsAppText({
+        axiosInstance: axios,
+        phone,
+        message,
+      });
 
-      // ✅ LANGUAGE
-      language: "en_US",
-
-      components: [
-        {
-          type: "body",
-          parameters: [
-            { type: "text", text: Customer_name || "Customer" },   // {{1}}
-            { type: "text", text: new Date().toLocaleDateString("en-IN") }, // {{2}}
-            { type: "text", text: String(Amount || "0") },          // {{3}}
-            { type: "text", text: Remark || "Order" }               // {{4}}
-          ]
-        }
-      ]
-    };
-
-    console.log("📤 Sending Order Template:", payload);
-
-    const { data } = await axios.post('/api/whatsapp/send-template', payload);
-
-    if (data?.success) {
-      toast.success("WhatsApp message sent ✅");
-    } else {
-      toast.error(data?.error || "Failed to send WhatsApp");
+      if (data?.success) {
+        toast.success("WhatsApp message sent");
+      } else {
+        toast.error(data?.error || "Failed to send WhatsApp message");
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "Failed to send WhatsApp message");
+    } finally {
+      setIsSendingWhatsApp(false);
     }
-
-  } catch (error) {
-    console.error("❌ WhatsApp ERROR:", error.response?.data || error);
-
-    toast.error(
-      error.response?.data?.error?.message ||
-      "Failed to send WhatsApp"
-    );
-  } finally {
-    setIsSendingWhatsApp(false);
-  }
-};
+  };
 
   const stepCandidates = useMemo(
     () => taskGroups.filter((tg) => tg.Id === 1),
