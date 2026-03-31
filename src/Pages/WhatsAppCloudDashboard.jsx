@@ -20,23 +20,20 @@ const navItems = [
 export default function WhatsAppCloudDashboard() {
   const [activeTab, setActiveTab] = useState('inbox');
   const [search, setSearch] = useState('');
-  const [connectionStatus, setConnectionStatus] = useState('Checking...');
+  const [connectionStatus, setConnectionStatus] = useState('Checking..');
 
  useEffect(() => {
   fetchWhatsAppStatus()
     .then((res) => {
-      console.log("ACCOUNTS:", res.data);
+      const accounts = res?.data?.data || [];
 
-      const accounts = res?.data?.data || res?.data || [];
+      const isConnected =
+        Array.isArray(accounts) &&
+        accounts.some(acc => acc.status === 'connected');
 
-      const isConnected = Array.isArray(accounts) && accounts.length > 0;
-
-      setConnectionStatus(res?.data?.connected ? 'Connected' : 'Disconnected');
+      setConnectionStatus(isConnected ? 'Connected' : 'Disconnected');
     })
-    .catch((err) => {
-      console.error(err);
-      setConnectionStatus('Disconnected');
-    });
+    .catch(() => setConnectionStatus('Disconnected'));
 }, []);
 
   const renderSection = useMemo(() => {
