@@ -8,7 +8,9 @@ const client = axios.create({
 });
 
 const tokenKeys = ["token", "authToken", "access_token", "ACCESS_TOKEN"];
-const getToken = () => tokenKeys.map((key) => localStorage.getItem(key)).find(Boolean);
+
+const getToken = () =>
+  tokenKeys.map((key) => localStorage.getItem(key)).find(Boolean);
 
 client.interceptors.request.use((config) => {
   const token = getToken();
@@ -23,7 +25,7 @@ client.interceptors.request.use((config) => {
 
 client.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error),
+  (error) => Promise.reject(error)
 );
 
 export default client;
