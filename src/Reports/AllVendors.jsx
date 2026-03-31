@@ -25,6 +25,7 @@ export default function AllVendors() {
   const [customersList, setCustomersList] = useState([]);
 
   const [taskGroups, setTaskGroups] = useState([]);
+  const [stepOptions, setStepOptions] = useState([]);
 
   const [searchText, setSearchText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -71,7 +72,7 @@ export default function AllVendors() {
 
   // Step preset labels from TaskGroups
   const stepLabelOptions = useMemo(() => {
-    const pool = new Set();
+    const pool = new Set(stepOptions);
     (taskGroups || []).forEach((tg) => {
       const steps = tg?.Steps || tg?.steps || [];
       steps.forEach((s) => {
@@ -80,7 +81,7 @@ export default function AllVendors() {
       });
     });
     return Array.from(pool).sort((a, b) => a.localeCompare(b));
-  }, [taskGroups]);
+  }, [stepOptions, taskGroups]);
 
   // ---- transform rawRows from backend into what UI needs
   // NOTE: we are NOT filtering out orders that have 0 pending steps anymore.
@@ -194,6 +195,31 @@ export default function AllVendors() {
     fetchData();
   }, []);
 
+  const fetchSteps = async () => {
+    try {
+      const res = await getWithFallback(["/steps", "/step", "/task/steps"]);
+      const list = Array.isArray(res?.data)
+        ? res.data
+        : Array.isArray(res?.data?.result)
+          ? res.data.result
+          : Array.isArray(res?.data?.steps)
+            ? res.data.steps
+            : [];
+
+      const mapped = list
+        .map((step) => String(step?.name || step?.label || step?.Step_name || "").trim())
+        .filter(Boolean);
+      setStepOptions(mapped);
+    } catch (err) {
+      console.error("Failed to load steps", err);
+      setStepOptions([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchSteps();
+  }, []);
+
   /* ----------------- Assign Vendor flow ----------------- */
   const openAssignModal = (order, step) => {
     setActiveOrder(order);
@@ -267,12 +293,12 @@ export default function AllVendors() {
   const addStep = async () => {
     if (!addStepOrder) return;
 
-    const resolvedLabel =
+    const finalStep =
       newStepLabelChoice === "__CUSTOM__"
         ? newStepLabel.trim()
         : newStepLabelChoice;
 
-    if (!resolvedLabel)
+    if (!finalStep)
       return alert("Please choose a task or enter a custom label.");
 
     try {
@@ -282,7 +308,7 @@ export default function AllVendors() {
       // backend route:
       // POST /order/orders/:orderId/steps
       await axios.post(`${ORDER_BASE}/orders/${orderId}/steps`, {
-        label: resolvedLabel,
+        label: finalStep,
         vendorCustomerUuid: newStepVendorUuid || null,
         costAmount: Number(newStepCost || 0),
         plannedDate: newStepPlannedDate || null,
@@ -457,10 +483,10 @@ export default function AllVendors() {
   /* ----------------- UI ----------------- */
   return (
     <>
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-3">
+      <div className="p-3 sm:p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <h1 className="text-lg font-semibold text-gray-700">All Vendors</h1>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <button
               onClick={exportToExcel}
               className="bg-green-500 hover:bg-green-600 text-white text-sm px-3 py-1 rounded"
@@ -476,11 +502,11 @@ export default function AllVendors() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 mb-3 text-xs text-gray-600">
+        <div className="flex flex-wrap items-center gap-2 mb-3 text-xs text-gray-600">
           <input
             type="text"
             placeholder="Search Order No. / Remark"
-            className="border border-gray-300 rounded-md px-3 py-1 w-64 text-sm"
+            className="border border-gray-300 rounded-md px-3 py-1 w-full sm:w-64 text-sm"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
           />
@@ -492,91 +518,93 @@ export default function AllVendors() {
         {loading ? (
           <div className="text-center text-gray-500 py-10">Loading...</div>
         ) : enriched.length === 0 ? (
-          <div className="text-center text-gray-400 py-10">
-            No delivered orders found.
-          </div>
+          <p className="text-center text-gray-400 py-10">No vendors found</p>
         ) : (
-          enriched.map((o) => (
-            <div
-              key={o._id || o.Order_uuid || o.Order_Number}
-              className="border border-gray-200 rounded-lg p-3 mb-3 bg-white shadow-sm"
-            >
+          <div className="overflow-x-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {enriched.map((o) => (
+                <div
+                  key={o._id || o.Order_uuid || o.Order_Number}
+                  className="bg-white rounded-2xl shadow-md border border-gray-200 p-3 sm:p-4 hover:shadow-lg transition"
+                >
               {/* Header row */}
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="font-semibold text-gray-700">
-                    #{o.Order_Number}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h2 className="text-lg font-semibold text-gray-700 truncate">
+                        #{o.Order_Number}
+                      </h2>
+                      <p className="text-xs text-gray-500 truncate">{o.Customer_name}</p>
+                    </div>
+                    <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
+                      {o.Status || "Active"}
+                    </span>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {o.Customer_name}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => openOrderUpdate(o)}
-                    className="text-blue-600 hover:underline text-xs"
-                  >
-                    View / Update
-                  </button>
-                  <button
-                    onClick={() => openAddStepModal(o)}
-                    className="text-emerald-600 hover:underline text-xs"
-                  >
-                    + Add Step
-                  </button>
-                </div>
-              </div>
 
               {/* Remarks */}
-              <div className="mt-2 text-xs text-gray-600">
+                  <div className="mt-2 text-xs text-gray-600 truncate">
                 <span className="font-medium">Remarks:</span>{" "}
                 {o.RemarkText || "-"}
               </div>
 
               {/* StepsPending */}
-              <div className="mt-3">
-                <div className="text-xs font-medium text-gray-700 mb-2">
+                  <div className="mt-3">
+                    <div className="text-xs font-medium text-gray-700 mb-2">
                   Pending / Unposted Steps
                 </div>
 
-                {(o.StepsPending || []).length === 0 ? (
-                  <div className="text-[11px] text-gray-400 border border-dashed border-gray-300 rounded p-2">
-                    No pending vendor steps. (You can still add a step.)
-                  </div>
-                ) : (
-                  <div className="grid md:grid-cols-2 gap-2">
-                    {(o.StepsPending || []).map((s) => (
-                      <div
-                        key={s.stepId + s.label}
-                        className="border border-gray-200 rounded p-2 text-sm flex items-center justify-between"
-                      >
-                        <div>
-                          <div className="font-medium text-gray-800">
-                            {s.label || "-"}
-                          </div>
-                          <div className="text-[11px] text-gray-500">
+                    {(o.StepsPending || []).length === 0 ? (
+                      <div className="text-[11px] text-gray-400 border border-dashed border-gray-300 rounded p-2">
+                        No pending vendor steps. (You can still add a step.)
+                      </div>
+                    ) : (
+                      <div className="grid gap-2">
+                        {(o.StepsPending || []).map((s) => (
+                          <div
+                            key={s.stepId + s.label}
+                            className="border border-gray-200 rounded p-2 text-sm flex items-start justify-between gap-2"
+                          >
+                            <div className="min-w-0">
+                              <div className="font-medium text-gray-800 truncate">
+                                {s.label || "-"}
+                              </div>
+                              <div className="text-[11px] text-gray-500">
                             Vendor: {s.vendorName || s.vendorCustomerUuid || "—"} • Cost:{" "}
                             {Number.isFinite(s.costAmount) ? s.costAmount : 0} • Planned:{" "}
                             {s.plannedDate
                               ? new Date(s.plannedDate).toLocaleDateString()
                               : "—"}{" "}
                             • Posted: {s.isPosted ? "Yes" : "No"}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => openAssignModal(o, s)}
+                              className="text-indigo-600 hover:underline text-xs shrink-0"
+                            >
+                              Assign / Post
+                            </button>
                           </div>
-                        </div>
-                        <button
-                          onClick={() => openAssignModal(o, s)}
-                          className="text-indigo-600 hover:underline text-xs"
-                        >
-                          Assign / Post
-                        </button>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
-              </div>
+                  <div className="mt-3 flex gap-2 flex-wrap">
+                    <button
+                      onClick={() => openOrderUpdate(o)}
+                      className="px-3 py-1 text-sm bg-blue-500 text-white rounded-lg"
+                    >
+                      View
+                    </button>
+                    <button
+                      onClick={() => openAddStepModal(o)}
+                      className="px-3 py-1 text-sm bg-gray-200 rounded-lg"
+                    >
+                      + Add Step
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))
+          </div>
         )}
       </div>
 
@@ -691,7 +719,7 @@ export default function AllVendors() {
                     {lbl}
                   </option>
                 ))}
-                <option value="__CUSTOM__">➕ Custom…</option>
+                <option value="__CUSTOM__">Custom</option>
               </select>
             </div>
 
