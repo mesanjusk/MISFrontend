@@ -9,7 +9,8 @@ import ReactFlow, {
   addEdge,
   applyNodeChanges,
   applyEdgeChanges,
-} from '../../utils/reactflowShim.jsx';
+} from 'reactflow';
+import 'reactflow/dist/style.css';
 import { toast } from '../../Components';
 import FlowNodeCard from './nodes/FlowNodeCard';
 import { createFlow, deleteFlow, getFlows, updateFlow } from '../../services/flowService';
