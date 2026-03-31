@@ -554,7 +554,11 @@ export default function AllVendors() {
                       <p className="text-xs text-gray-500 truncate">{o.Customer_name}</p>
                     </div>
                     <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
-                      {o.Status || "Active"}
+                      {Array.isArray(o.Status)
+  ? o.Status[o.Status.length - 1]?.Task || "Active"
+  : typeof o.Status === "object"
+  ? JSON.stringify(o.Status)
+  : o.Status || "Active"}
                     </span>
                   </div>
 
