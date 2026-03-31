@@ -55,6 +55,7 @@ export const useWhatsAppChat = () => {
   const [lastMessageMap, setLastMessageMap] = useState({});
   const [socket, setSocket] = useState(null);
   const selectedCustomerRef = useRef(null);
+  const latestOpenChatRequestRef = useRef(0);
 
   const checkStatus = useCallback(async () => {
     setStatusState((prev) => (prev === 'connected' || prev === 'disconnected' ? prev : 'loading'));
@@ -166,15 +167,29 @@ export const useWhatsAppChat = () => {
   const loadChatList = useCallback(async () => {
     setIsChatListLoading(true);
     setChatListError('');
-    try {
-      const [chatListRes, customersRes] = await Promise.all([fetchChatList(), fetchCustomers()]);
-      if (chatListRes.data.success) setRecentChats(chatListRes.data.list || []);
-      if (customersRes.data.success) setContactList(customersRes.data.result || []);
-    } catch (error) {
-      setChatListError(toFriendlyError(error, 'Failed to load chats.'));
-    } finally {
-      setIsChatListLoading(false);
+
+    const [chatListResult, customersResult] = await Promise.allSettled([fetchChatList(), fetchCustomers()]);
+
+    let hasFailure = false;
+
+    if (chatListResult.status === 'fulfilled' && chatListResult.value?.data?.success) {
+      setRecentChats(chatListResult.value.data.list || []);
+    } else if (chatListResult.status === 'rejected') {
+      hasFailure = true;
     }
+
+    if (customersResult.status === 'fulfilled' && customersResult.value?.data?.success) {
+      setContactList(customersResult.value.data.result || []);
+    } else if (customersResult.status === 'rejected') {
+      hasFailure = true;
+    }
+
+    if (hasFailure) {
+      const sourceError = chatListResult.status === 'rejected' ? chatListResult.reason : customersResult.reason;
+      setChatListError(toFriendlyError(sourceError, 'Failed to load chats.'));
+    }
+
+    setIsChatListLoading(false);
   }, []);
 
   useEffect(() => {
@@ -186,6 +201,9 @@ export const useWhatsAppChat = () => {
   }, [selectedCustomer]);
 
   const openChat = async (customer) => {
+    const requestId = Date.now();
+    latestOpenChatRequestRef.current = requestId;
+
     setSelectedCustomer(customer);
     selectedCustomerRef.current = customer;
     setMessages([]);
@@ -195,13 +213,19 @@ export const useWhatsAppChat = () => {
     try {
       const number = normalizeWhatsAppNumber(customer.Mobile_number);
       const res = await fetchMessagesByNumber(number);
+
+      if (latestOpenChatRequestRef.current !== requestId) return;
+
       if (res.data.success) {
         setMessages((res.data.messages || []).map((msg) => buildMessageObject(msg)));
       }
     } catch (error) {
+      if (latestOpenChatRequestRef.current !== requestId) return;
       setMessagesError(toFriendlyError(error, 'Failed to load messages for this number.'));
     } finally {
-      setIsMessagesLoading(false);
+      if (latestOpenChatRequestRef.current === requestId) {
+        setIsMessagesLoading(false);
+      }
     }
   };
 
