@@ -68,35 +68,29 @@ export default function AllVendors() {
       .filter((c) => isOfficeVendor(c.Customer_group || c.Group || c.group))
       .map((c) => ({ uuid: c.Customer_uuid, name: c.Customer_name }));
   }, [customersList]);
+const stepLabelOptions = useMemo(() => {
+  const pool = new Map();
 
-  // Step preset labels from TaskGroups
-  const stepLabelOptions = useMemo(() => {
-    const pool = new Map();
+  (taskGroups || []).forEach((tg) => {
+    const label =
+      tg?.Task_group_name ||
+      tg?.Task_group ||
+      tg?.name ||
+      "";
 
-    (taskGroups || []).forEach((tg) => {
-      if (tg?.Task_group_name) {
-        pool.set(tg.Task_group_name, {
-          id: tg.Task_group_uuid || tg.Task_group_name,
-          name: tg.Task_group_name,
-        });
-      }
-
-      const steps = tg?.Steps || tg?.steps || [];
-      steps.forEach((s) => {
-        const lbl = String(s?.label || s?.name || "").trim();
-        if (lbl && !pool.has(lbl)) {
-          pool.set(lbl, {
-            id: lbl,
-            name: lbl,
-          });
-        }
+    if (label) {
+      pool.set(label, {
+        id: tg?.Task_group_uuid || label,
+        name: label,
       });
-    });
+    }
+  });
 
-    return Array.from(pool.values()).sort((a, b) =>
-      a.name.localeCompare(b.name)
-    );
-  }, [taskGroups]);
+  return Array.from(pool.values()).sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+}, [taskGroups]);
+ 
 
   // ---- transform rawRows from backend into what UI needs
   // NOTE: we are NOT filtering out orders that have 0 pending steps anymore.
