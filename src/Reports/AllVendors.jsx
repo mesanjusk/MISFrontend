@@ -41,8 +41,8 @@ export default function AllVendors() {
   // add step modal
   const [showAddStepModal, setShowAddStepModal] = useState(false);
   const [addStepOrder, setAddStepOrder] = useState(null);
-  const [newStepLabelChoice, setNewStepLabelChoice] = useState("");
-  const [newStepLabel, setNewStepLabel] = useState("");
+  const [selectedStep, setSelectedStep] = useState("");
+  const [customStep, setCustomStep] = useState("");
   const [newStepVendorUuid, setNewStepVendorUuid] = useState("");
   const [newStepCost, setNewStepCost] = useState("");
   const [newStepPlannedDate, setNewStepPlannedDate] = useState(getLocalYMD());
@@ -72,15 +72,27 @@ export default function AllVendors() {
 
   // Step preset labels from TaskGroups
   const stepLabelOptions = useMemo(() => {
-    const pool = new Set(stepOptions);
+    const pool = new Map();
+    (stepOptions || []).forEach((step) => {
+      const label = String(step?.name || "").trim();
+      if (!label) return;
+      pool.set(label, {
+        id: String(step?.id || step?.uuid || label),
+        name: label,
+      });
+    });
     (taskGroups || []).forEach((tg) => {
       const steps = tg?.Steps || tg?.steps || [];
       steps.forEach((s) => {
         const lbl = String(s?.label || s?.name || "").trim();
-        if (lbl) pool.add(lbl);
+        if (lbl && !pool.has(lbl)) {
+          pool.set(lbl, { id: lbl, name: lbl });
+        }
       });
     });
-    return Array.from(pool).sort((a, b) => a.localeCompare(b));
+    return Array.from(pool.values()).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
   }, [stepOptions, taskGroups]);
 
   // ---- transform rawRows from backend into what UI needs
@@ -207,8 +219,17 @@ export default function AllVendors() {
             : [];
 
       const mapped = list
-        .map((step) => String(step?.name || step?.label || step?.Step_name || "").trim())
-        .filter(Boolean);
+        .map((step) => ({
+          id:
+            step?.id ||
+            step?._id ||
+            step?.uuid ||
+            step?.Step_uuid ||
+            step?.name ||
+            step?.label,
+          name: String(step?.name || step?.label || step?.Step_name || "").trim(),
+        }))
+        .filter((step) => step.name);
       setStepOptions(mapped);
     } catch (err) {
       console.error("Failed to load steps", err);
@@ -277,8 +298,8 @@ export default function AllVendors() {
   /* ----------------- Add Step flow ----------------- */
   const openAddStepModal = (order) => {
     setAddStepOrder(order);
-    setNewStepLabelChoice("");
-    setNewStepLabel("");
+    setSelectedStep("");
+    setCustomStep("");
     setNewStepVendorUuid("");
     setNewStepCost("");
     setNewStepPlannedDate(getLocalYMD());
@@ -293,10 +314,7 @@ export default function AllVendors() {
   const addStep = async () => {
     if (!addStepOrder) return;
 
-    const finalStep =
-      newStepLabelChoice === "__CUSTOM__"
-        ? newStepLabel.trim()
-        : newStepLabelChoice;
+    const finalStep = selectedStep === "custom" ? customStep.trim() : selectedStep;
 
     if (!finalStep)
       return alert("Please choose a task or enter a custom label.");
@@ -709,29 +727,29 @@ export default function AllVendors() {
                 Choose Label
               </label>
               <select
-                value={newStepLabelChoice}
-                onChange={(e) => setNewStepLabelChoice(e.target.value)}
+                value={selectedStep}
+                onChange={(e) => setSelectedStep(e.target.value)}
                 className="border border-gray-300 rounded px-3 py-2 w-full text-sm"
               >
                 <option value="">Select…</option>
-                {stepLabelOptions.map((lbl) => (
-                  <option key={lbl} value={lbl}>
-                    {lbl}
+                {stepLabelOptions.map((step) => (
+                  <option key={step.id} value={step.name}>
+                    {step.name}
                   </option>
                 ))}
-                <option value="__CUSTOM__">Custom</option>
+                <option value="custom">Custom</option>
               </select>
             </div>
 
-            {newStepLabelChoice === "__CUSTOM__" && (
+            {selectedStep === "custom" && (
               <div>
                 <label className="block text-xs text-gray-500 mb-1">
                   Custom Label
                 </label>
                 <input
                   type="text"
-                  value={newStepLabel}
-                  onChange={(e) => setNewStepLabel(e.target.value)}
+                  value={customStep}
+                  onChange={(e) => setCustomStep(e.target.value)}
                   className="border border-gray-300 rounded px-3 py-2 w-full text-sm"
                   placeholder="e.g., Lamination"
                 />
@@ -830,22 +848,23 @@ export default function AllVendors() {
                     order card.
                   </div>
                 ) : (
-                  stepLabelOptions.map((lbl) => {
-                    const checked = selectedStepLabels.has(lbl);
-                    const busy = togglingLabel === lbl;
+                  stepLabelOptions.map((step) => {
+                    const label = step.name;
+                    const checked = selectedStepLabels.has(label);
+                    const busy = togglingLabel === label;
                     return (
                       <label
-                        key={lbl}
+                        key={step.id}
                         className="flex items-center gap-2 text-sm"
                       >
                         <input
                           type="checkbox"
                           className="h-4 w-4"
                           checked={checked}
-                          onChange={(e) => toggleStep(lbl, e.target.checked)}
+                          onChange={(e) => toggleStep(label, e.target.checked)}
                           disabled={busy}
                         />
-                        <span className={busy ? "opacity-60" : ""}>{lbl}</span>
+                        <span className={busy ? "opacity-60" : ""}>{label}</span>
                       </label>
                     );
                   })
