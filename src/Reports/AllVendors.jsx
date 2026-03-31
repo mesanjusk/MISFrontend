@@ -76,7 +76,7 @@ export default function AllVendors() {
     (taskGroups || []).forEach((tg) => {
       if (tg?.Task_group_name) {
         pool.set(tg.Task_group_name, {
-          id: tg.Task_group_uuid,
+          id: tg.Task_group_uuid || tg.Task_group_name,
           name: tg.Task_group_name,
         });
       }
@@ -827,7 +827,7 @@ export default function AllVendors() {
                     const busy = togglingLabel === label;
                     return (
                       <label
-                        key={step.id}
+                        key={step.id || step.name}
                         className="flex items-center gap-2 text-sm"
                       >
                         <input
