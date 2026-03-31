@@ -12,7 +12,7 @@ const getVariableCount = (body) => {
 };
 
 export default function TemplateSelector({ selectedTemplate, onTemplateChange, disabled = false }) {
-  const { templates, isLoading, usingFallback, isEmpty } = useTemplates();
+  const { templates, isLoading, error, isEmpty, refetchTemplates } = useTemplates();
 
   const resolvedSelectedTemplate = useMemo(() => {
     if (!selectedTemplate?.name) return null;
@@ -68,11 +68,7 @@ export default function TemplateSelector({ selectedTemplate, onTemplateChange, d
     <div className="rounded-xl border border-gray-200 p-4">
       <div className="flex items-center justify-between gap-3">
         <h4 className="text-sm font-semibold text-gray-900">Template Selector</h4>
-        {usingFallback ? (
-          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700">
-            Local templates
-          </span>
-        ) : null}
+
       </div>
 
       <label className="mt-3 block text-sm text-gray-700">
@@ -98,6 +94,12 @@ export default function TemplateSelector({ selectedTemplate, onTemplateChange, d
 
       {isLoading ? (
         <p className="mt-2 text-xs text-gray-500">Loading templates...</p>
+      ) : null}
+      {error ? (
+        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          <p>{error}</p>
+          <button type="button" onClick={refetchTemplates} className="mt-2 rounded bg-red-600 px-2 py-1 text-[11px] font-semibold text-white">Retry</button>
+        </div>
       ) : null}
 
       {resolvedSelectedTemplate ? (

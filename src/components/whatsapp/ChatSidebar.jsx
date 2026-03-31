@@ -9,6 +9,9 @@ const ChatSidebar = ({
   selectedCustomer,
   onSelectCustomer,
   onToggleDarkMode,
+  isLoading,
+  error,
+  onRetry,
 }) => (
   <div
     className={`${darkMode ? 'bg-[#202c33]' : 'bg-white'} md:w-80 w-full md:border-r border-b md:border-b-0 flex flex-col`}
@@ -32,7 +35,15 @@ const ChatSidebar = ({
       </button>
     </div>
     <div className="overflow-y-auto flex-1">
-      {filteredList.map((c) => (
+      {isLoading ? <p className="p-4 text-sm text-gray-500">Loading chats...</p> : null}
+      {error ? (
+        <div className="p-4 text-sm">
+          <p className="text-red-500">{error}</p>
+          <button type="button" onClick={onRetry} className="mt-2 rounded bg-blue-600 px-2.5 py-1 text-xs text-white">Retry</button>
+        </div>
+      ) : null}
+
+      {!isLoading && !error && filteredList.map((c) => (
         <div
           key={c._id}
           onClick={() => onSelectCustomer(c)}
@@ -47,6 +58,7 @@ const ChatSidebar = ({
           </div>
         </div>
       ))}
+      {!isLoading && !error && !filteredList.length ? <p className="p-4 text-sm text-gray-500">No chats found.</p> : null}
     </div>
   </div>
 );

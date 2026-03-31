@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { fetchWhatsAppStatus } from '../services/whatsappService';
+import { parseApiError } from '../utils/parseApiError';
 import LoadingSkeleton from '../components/whatsappCloud/LoadingSkeleton';
 
 const MessagesPanel = lazy(() => import('../components/whatsappCloud/MessagesPanel'));
@@ -17,24 +18,59 @@ const navItems = [
   { key: 'settings', label: 'Settings' },
 ];
 
+const getFriendlyStatusError = (error) => {
+  const statusCode = error?.response?.status;
+  if (statusCode === 401 || statusCode === 403) return 'Token expired. Please sign in again.';
+  if (!error?.response) return 'Network issue. Please check your internet connection.';
+  if (statusCode >= 500) return 'Server error while checking WhatsApp status.';
+  return parseApiError(error, 'Unable to check WhatsApp status right now.');
+};
+
 export default function WhatsAppCloudDashboard() {
   const [activeTab, setActiveTab] = useState('inbox');
   const [search, setSearch] = useState('');
-  const [connectionStatus, setConnectionStatus] = useState('Checking..');
+  const [connectionState, setConnectionState] = useState('loading');
+  const [connectionStatus, setConnectionStatus] = useState('Checking...');
+  const [statusError, setStatusError] = useState('');
+  const [lastCheckedAt, setLastCheckedAt] = useState(null);
 
- useEffect(() => {
-  fetchWhatsAppStatus()
-    .then((res) => {
-      const accounts = res?.data?.data || [];
+  const [statusTick, setStatusTick] = useState(0);
 
-      const isConnected =
-        Array.isArray(accounts) &&
-        accounts.some(acc => acc.status === 'connected');
+  useEffect(() => {
+    let active = true;
 
-      setConnectionStatus(isConnected ? 'Connected' : 'Disconnected');
-    })
-    .catch(() => setConnectionStatus('Disconnected'));
-}, []);
+    const refreshConnectionStatus = async () => {
+      if (!active) return;
+
+      setConnectionState((prev) => (prev === 'connected' || prev === 'disconnected' ? prev : 'loading'));
+      setStatusError('');
+
+      try {
+        const res = await fetchWhatsAppStatus();
+        const data = res?.data;
+        const isConnected = data?.status === 'connected' || (Array.isArray(data?.data) && data.data.some((acc) => acc?.status === 'connected'));
+
+        if (!active) return;
+        setConnectionState(isConnected ? 'connected' : 'disconnected');
+        setConnectionStatus(isConnected ? 'Connected' : 'Disconnected');
+      } catch (error) {
+        if (!active) return;
+        setConnectionState('error');
+        setConnectionStatus('Unavailable');
+        setStatusError(getFriendlyStatusError(error));
+      } finally {
+        if (active) setLastCheckedAt(new Date());
+      }
+    };
+
+    refreshConnectionStatus();
+    const interval = setInterval(refreshConnectionStatus, 12000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [statusTick]);
 
   const renderSection = useMemo(() => {
     if (activeTab === 'inbox') return <MessagesPanel />;
@@ -44,6 +80,12 @@ export default function WhatsAppCloudDashboard() {
     if (activeTab === 'analytics') return <AnalyticsDashboard />;
     return <section className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-600 shadow-sm">Settings panel is ready for configuration controls.</section>;
   }, [activeTab]);
+
+  const connectionChipClass = connectionState === 'connected'
+    ? 'bg-emerald-50 text-emerald-700'
+    : connectionState === 'loading'
+      ? 'bg-amber-50 text-amber-700'
+      : 'bg-red-50 text-red-700';
 
   return (
     <div className="flex min-h-[calc(100vh-5rem)] rounded-2xl border border-gray-200 bg-[#f8fafc] shadow-sm">
@@ -75,7 +117,12 @@ export default function WhatsAppCloudDashboard() {
             />
           </div>
           <div className="flex items-center gap-3">
-            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${connectionStatus === 'Connected' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>WhatsApp {connectionStatus}</span>
+            <div className="text-right">
+              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${connectionChipClass}`}>WhatsApp {connectionStatus}</span>
+              <p className="mt-1 text-[11px] text-gray-500">{lastCheckedAt ? `Last checked ${lastCheckedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'Checking status...'}</p>
+              {statusError ? <p className="mt-1 text-[11px] text-red-500">{statusError}</p> : null}
+              {statusError ? <button type="button" onClick={() => setStatusTick((prev) => prev + 1)} className="mt-1 text-[11px] font-semibold text-blue-600">Retry now</button> : null}
+            </div>
             <button type="button" className="rounded-full bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white">Profile</button>
           </div>
           <div className="flex w-full gap-2 overflow-x-auto md:hidden">

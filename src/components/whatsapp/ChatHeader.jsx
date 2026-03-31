@@ -1,6 +1,20 @@
 import React from 'react';
 
-const ChatHeader = ({ selectedCustomer, status, darkMode }) => {
+const statusStyles = {
+  loading: 'bg-amber-50 text-amber-700',
+  connected: 'bg-emerald-50 text-emerald-700',
+  disconnected: 'bg-red-50 text-red-700',
+  error: 'bg-red-50 text-red-700',
+};
+
+const formatCheckedAt = (value) => {
+  if (!value) return 'Not checked yet';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not checked yet';
+  return `Last checked ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+};
+
+const ChatHeader = ({ selectedCustomer, status, statusState, statusError, lastStatusCheckedAt, darkMode }) => {
   const linkedOrders = selectedCustomer?.linkedOrders || selectedCustomer?.Orders || [];
 
   return (
@@ -15,7 +29,13 @@ const ChatHeader = ({ selectedCustomer, status, darkMode }) => {
               {linkedOrders?.length ? ` • #${linkedOrders?.[0]?.Order_Number || linkedOrders?.[0]}` : ''}
             </div>
           </div>
-          <div className="text-sm text-gray-400">{status}</div>
+          <div className="text-right">
+            <div className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[statusState] || statusStyles.disconnected}`}>
+              WhatsApp {status || 'Unavailable'}
+            </div>
+            <div className="mt-1 text-[11px] text-gray-400">{formatCheckedAt(lastStatusCheckedAt)}</div>
+            {statusError ? <div className="mt-1 text-[11px] text-red-500">{statusError}</div> : null}
+          </div>
         </>
       ) : (
         <div className="text-gray-500">Select a chat</div>

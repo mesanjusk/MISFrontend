@@ -7,7 +7,12 @@ const ChatWindow = ({
   darkMode,
   selectedCustomer,
   status,
+  statusState,
+  statusError,
+  lastStatusCheckedAt,
   messages,
+  isMessagesLoading,
+  messagesError,
   chatRef,
   message,
   onMessageChange,
@@ -15,8 +20,21 @@ const ChatWindow = ({
   sending,
 }) => (
   <div className="flex-1 flex flex-col">
-    <ChatHeader selectedCustomer={selectedCustomer} status={status} darkMode={darkMode} />
-    <ChatMessages selectedCustomer={selectedCustomer} messages={messages} chatRef={chatRef} />
+    <ChatHeader
+      selectedCustomer={selectedCustomer}
+      status={status}
+      statusState={statusState}
+      statusError={statusError}
+      lastStatusCheckedAt={lastStatusCheckedAt}
+      darkMode={darkMode}
+    />
+    <ChatMessages
+      selectedCustomer={selectedCustomer}
+      messages={messages}
+      isLoading={isMessagesLoading}
+      error={messagesError}
+      chatRef={chatRef}
+    />
     <ChatInput
       darkMode={darkMode}
       selectedCustomer={selectedCustomer}
@@ -24,6 +42,7 @@ const ChatWindow = ({
       onChange={onMessageChange}
       onSend={onSend}
       sending={sending}
+      canSend={statusState === 'connected'}
     />
   </div>
 );

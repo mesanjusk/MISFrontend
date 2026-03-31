@@ -22,6 +22,14 @@ export default function WhatsAppClient() {
     setMessage,
     setSearch,
     status,
+    statusState,
+    statusError,
+    lastStatusCheckedAt,
+    isChatListLoading,
+    chatListError,
+    isMessagesLoading,
+    messagesError,
+    reloadChatList,
     openChat,
   } = useWhatsAppChat();
 
@@ -43,13 +51,21 @@ export default function WhatsAppClient() {
         selectedCustomer={selectedCustomer}
         onSelectCustomer={openChat}
         onToggleDarkMode={() => setDarkMode(!darkMode)}
+        isLoading={isChatListLoading}
+        error={chatListError}
+        onRetry={reloadChatList}
       />
 
       <ChatWindow
         darkMode={darkMode}
         selectedCustomer={selectedCustomer}
         status={status}
+        statusState={statusState}
+        statusError={statusError}
+        lastStatusCheckedAt={lastStatusCheckedAt}
         messages={messages}
+        isMessagesLoading={isMessagesLoading}
+        messagesError={messagesError}
         chatRef={chatRef}
         message={message}
         onMessageChange={setMessage}

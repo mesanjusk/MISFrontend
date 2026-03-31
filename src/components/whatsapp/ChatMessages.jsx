@@ -1,11 +1,17 @@
 import React from 'react';
 
-const ChatMessages = ({ selectedCustomer, messages, chatRef }) => (
+const ChatMessages = ({ selectedCustomer, messages, isLoading, error, chatRef }) => (
   <div
     ref={chatRef}
     className="flex-1 overflow-y-auto p-4 space-y-2 bg-[url('/whatsapp-bg.png')] bg-cover"
   >
-    {selectedCustomer && messages.length ? (
+    {!selectedCustomer ? (
+      <div className="text-center text-gray-400 mt-10">Select a contact to load messages</div>
+    ) : isLoading ? (
+      <div className="text-center text-gray-400 mt-10">Loading messages...</div>
+    ) : error ? (
+      <div className="text-center text-red-500 mt-10">{error}</div>
+    ) : messages.length ? (
       messages.map((msg, i) => (
         <div
           key={i}

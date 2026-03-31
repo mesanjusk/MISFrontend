@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Modal from '../common/Modal';
 import { toast } from '../../Components';
 import { buildTemplatePayload, whatsappCloudService } from '../../services/whatsappCloudService';
+import { parseApiError } from '../../utils/parseApiError';
 
 const STORAGE_KEY = 'wa_auto_reply_config_v3';
 
@@ -184,6 +185,11 @@ export default function AutoReplyManagementPanel() {
       return;
     }
 
+    if (formData.replyMode === 'template' && !String(formData.templateLanguage || '').trim()) {
+      toast.error('Template language is required for template mode.');
+      return;
+    }
+
     const payload = {
       ...formData,
       keyword,
@@ -234,19 +240,7 @@ export default function AutoReplyManagementPanel() {
       await loadAutoReplyRules();
     } catch (error) {
       console.error('Auto reply save failed:', error);
-      const fallbackRule = {
-        ...sanitizedPayload,
-        id: editingRule?.id || crypto.randomUUID(),
-      };
-      if (editingRule) {
-        setRules((prev) => prev.map((rule) => (rule.id === editingRule.id ? fallbackRule : rule)));
-      } else {
-        setRules((prev) => [fallbackRule, ...prev]);
-      }
-      toast.error('Server save failed, rule stored locally as fallback.');
-      setIsModalOpen(false);
-      setFormData(initialFormState);
-      setEditingRuleId(null);
+      toast.error(parseApiError(error, 'Failed to save rule. Please try again.'));
     } finally {
       setIsSavingRule(false);
     }

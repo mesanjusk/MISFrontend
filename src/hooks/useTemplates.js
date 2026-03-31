@@ -1,26 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { whatsappCloudService } from '../services/whatsappCloudService';
-
-const fallbackTemplates = [
-  {
-    name: 'order_update',
-    language: 'en',
-    category: 'utility',
-    body: 'Hi {{1}}, your order {{2}} is now {{3}}.',
-  },
-  {
-    name: 'promo_offer',
-    language: 'en',
-    category: 'marketing',
-    body: 'Hello {{1}}, enjoy {{2}}% off with code {{3}}.',
-  },
-  {
-    name: 'otp_auth',
-    language: 'en',
-    category: 'auth',
-    body: 'Your OTP for login is {{1}}. It expires in {{2}} minutes.',
-  },
-];
+import { parseApiError } from '../utils/parseApiError';
 
 const normalizeTemplates = (response) => {
   const candidates = [
@@ -65,17 +45,16 @@ const normalizeTemplates = (response) => {
 
 let templatesCache = null;
 let inFlightPromise = null;
-let cacheUsesFallback = false;
 
 export function useTemplates() {
   const [templates, setTemplates] = useState(Array.isArray(templatesCache) ? templatesCache : []);
   const [isLoading, setIsLoading] = useState(!Array.isArray(templatesCache));
-  const [usingFallback, setUsingFallback] = useState(cacheUsesFallback);
+  const [error, setError] = useState('');
 
   const fetchTemplates = useCallback(async ({ force = false } = {}) => {
     if (!force && Array.isArray(templatesCache)) {
       setTemplates(templatesCache);
-      setUsingFallback(cacheUsesFallback);
+      setError('');
       setIsLoading(false);
       return templatesCache;
     }
@@ -89,31 +68,18 @@ export function useTemplates() {
     }
 
     setIsLoading(true);
-    console.log('Fetching templates...');
+    setError('');
 
     inFlightPromise = (async () => {
       try {
         const response = await whatsappCloudService.getTemplates();
-        console.log('Templates API response:', response?.data);
         const normalized = normalizeTemplates(response);
-
-        if (normalized.length > 0) {
-          templatesCache = normalized;
-          cacheUsesFallback = false;
-          setUsingFallback(false);
-          return normalized;
-        }
-
-        templatesCache = fallbackTemplates;
-        cacheUsesFallback = true;
-        setUsingFallback(true);
-        return fallbackTemplates;
-      } catch (error) {
-        console.error('Templates fetch failed:', error);
-        templatesCache = fallbackTemplates;
-        cacheUsesFallback = true;
-        setUsingFallback(true);
-        return fallbackTemplates;
+        templatesCache = normalized;
+        return normalized;
+      } catch (fetchError) {
+        setError(parseApiError(fetchError, 'Failed to load templates.'));
+        templatesCache = [];
+        return [];
       } finally {
         inFlightPromise = null;
       }
@@ -132,7 +98,7 @@ export function useTemplates() {
   return {
     templates,
     isLoading,
-    usingFallback,
+    error,
     isEmpty: !isLoading && templates.length === 0,
     refetchTemplates: () => fetchTemplates({ force: true }),
   };
