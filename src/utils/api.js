@@ -1,3 +1,6 @@
+import axios from "axios";
+import client, { getApiBase } from "../apiClient";
+
 function attachAuth(config = {}) {
   const token = localStorage.getItem("token");
 
@@ -14,6 +17,8 @@ function attachAuth(config = {}) {
 export async function getWithFallback(urls, config = {}) {
   const attempts = [];
 
+  const API_BASE = getApiBase(); // ✅ ALWAYS FETCH LATEST BASE
+
   for (const u of urls) {
     const isAbsolute = /^https?:\/\//i.test(u);
     if (isAbsolute) {
@@ -25,21 +30,23 @@ export async function getWithFallback(urls, config = {}) {
   }
 
   const seen = new Set();
+
   for (const url of attempts) {
     if (seen.has(url)) continue;
     seen.add(url);
+
     try {
       const res = await axios.get(url, attachAuth(config));
-      if (res && res.status >= 200 && res.status < 300) {
-        return res;
-      }
-    } catch (e) {}
+      if (res.status >= 200 && res.status < 300) return res;
+    } catch {}
   }
+
   throw new Error("All endpoints failed: " + attempts.join(" | "));
 }
 
 export async function postWithFallback(urls, body, config = {}) {
   const attempts = [];
+  const API_BASE = getApiBase();
 
   for (const u of urls) {
     const isAbsolute = /^https?:\/\//i.test(u);
@@ -52,15 +59,16 @@ export async function postWithFallback(urls, body, config = {}) {
   }
 
   const seen = new Set();
+
   for (const url of attempts) {
     if (seen.has(url)) continue;
     seen.add(url);
+
     try {
       const res = await axios.post(url, body, attachAuth(config));
-      if (res && res.status >= 200 && res.status < 300) {
-        return res;
-      }
-    } catch (e) {}
+      if (res.status >= 200 && res.status < 300) return res;
+    } catch {}
   }
+
   throw new Error("All POST endpoints failed: " + attempts.join(" | "));
 }
