@@ -25,7 +25,6 @@ export default function AllVendors() {
   const [customersList, setCustomersList] = useState([]);
 
   const [taskGroups, setTaskGroups] = useState([]);
-  const [stepOptions, setStepOptions] = useState([]);
 
   const [searchText, setSearchText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -73,27 +72,31 @@ export default function AllVendors() {
   // Step preset labels from TaskGroups
   const stepLabelOptions = useMemo(() => {
     const pool = new Map();
-    (stepOptions || []).forEach((step) => {
-      const label = String(step?.name || "").trim();
-      if (!label) return;
-      pool.set(label, {
-        id: String(step?.id || step?.uuid || label),
-        name: label,
-      });
-    });
+
     (taskGroups || []).forEach((tg) => {
+      if (tg?.Task_group_name) {
+        pool.set(tg.Task_group_name, {
+          id: tg.Task_group_uuid,
+          name: tg.Task_group_name,
+        });
+      }
+
       const steps = tg?.Steps || tg?.steps || [];
       steps.forEach((s) => {
         const lbl = String(s?.label || s?.name || "").trim();
         if (lbl && !pool.has(lbl)) {
-          pool.set(lbl, { id: lbl, name: lbl });
+          pool.set(lbl, {
+            id: lbl,
+            name: lbl,
+          });
         }
       });
     });
+
     return Array.from(pool.values()).sort((a, b) =>
       a.name.localeCompare(b.name)
     );
-  }, [stepOptions, taskGroups]);
+  }, [taskGroups]);
 
   // ---- transform rawRows from backend into what UI needs
   // NOTE: we are NOT filtering out orders that have 0 pending steps anymore.
@@ -205,40 +208,6 @@ export default function AllVendors() {
 
   useEffect(() => {
     fetchData();
-  }, []);
-
-  const fetchSteps = async () => {
-    try {
-      const res = await getWithFallback(["/steps", "/step", "/task/steps"]);
-      const list = Array.isArray(res?.data)
-        ? res.data
-        : Array.isArray(res?.data?.result)
-          ? res.data.result
-          : Array.isArray(res?.data?.steps)
-            ? res.data.steps
-            : [];
-
-      const mapped = list
-        .map((step) => ({
-          id:
-            step?.id ||
-            step?._id ||
-            step?.uuid ||
-            step?.Step_uuid ||
-            step?.name ||
-            step?.label,
-          name: String(step?.name || step?.label || step?.Step_name || "").trim(),
-        }))
-        .filter((step) => step.name);
-      setStepOptions(mapped);
-    } catch (err) {
-      console.error("Failed to load steps", err);
-      setStepOptions([]);
-    }
-  };
-
-  useEffect(() => {
-    fetchSteps();
   }, []);
 
   /* ----------------- Assign Vendor flow ----------------- */
