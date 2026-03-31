@@ -1,3 +1,5 @@
+import client, { getApiBase } from "../apiClient";
+
 function attachAuth(config = {}) {
   const token = localStorage.getItem("token");
 
@@ -12,6 +14,7 @@ function attachAuth(config = {}) {
 }
 
 export async function getWithFallback(urls, config = {}) {
+  const API_BASE = getApiBase();
   const attempts = [];
 
   for (const u of urls) {
@@ -29,7 +32,7 @@ export async function getWithFallback(urls, config = {}) {
     if (seen.has(url)) continue;
     seen.add(url);
     try {
-      const res = await axios.get(url, attachAuth(config));
+      const res = await client.get(url, attachAuth(config));
       if (res && res.status >= 200 && res.status < 300) {
         return res;
       }
@@ -39,6 +42,7 @@ export async function getWithFallback(urls, config = {}) {
 }
 
 export async function postWithFallback(urls, body, config = {}) {
+  const API_BASE = getApiBase();
   const attempts = [];
 
   for (const u of urls) {
@@ -56,7 +60,7 @@ export async function postWithFallback(urls, body, config = {}) {
     if (seen.has(url)) continue;
     seen.add(url);
     try {
-      const res = await axios.post(url, body, attachAuth(config));
+      const res = await client.post(url, body, attachAuth(config));
       if (res && res.status >= 200 && res.status < 300) {
         return res;
       }

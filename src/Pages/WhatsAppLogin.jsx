@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import io from 'socket.io-client';
-import { apiBasePromise } from '../apiClient.js';
+import { getApiBase } from '../apiClient.js';
 
 let socket;
 
@@ -12,19 +12,18 @@ export default function WhatsAppLogin() {
 
   useEffect(() => {
     let s;
-    apiBasePromise.then((base) => {
-      s = io(base);
-      socket = s;
-      s.on('qr', (data) => {
-        console.log("QR Code Data:", data);
-        setQrCode(data);
-        setIsModalOpen(true);
-      });
-      s.on('ready', () => setIsReady(true));
-      s.on('error', (error) => {
-        console.error("Socket Error:", error);
-        setError("Failed to connect. Please try again.");
-      });
+    const base = getApiBase();
+    s = io(base);
+    socket = s;
+    s.on('qr', (data) => {
+      console.log("QR Code Data:", data);
+      setQrCode(data);
+      setIsModalOpen(true);
+    });
+    s.on('ready', () => setIsReady(true));
+    s.on('error', (error) => {
+      console.error("Socket Error:", error);
+      setError("Failed to connect. Please try again.");
     });
 
     return () => {

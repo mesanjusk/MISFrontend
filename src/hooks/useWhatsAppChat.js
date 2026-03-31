@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import normalizeWhatsAppNumber from '../utils/normalizeNumber.js';
-import { apiBasePromise } from '../apiClient.js';
+import { getApiBase } from '../apiClient.js';
 import {
   fetchChatList,
   fetchCustomerByNumber,
@@ -80,11 +80,11 @@ export const useWhatsAppChat = () => {
 
   useEffect(() => {
     let active = true;
-    apiBasePromise.then((base) => {
-      if (!active) return;
+    const base = getApiBase();
+    if (active) {
       const socketInstance = io(base, { transports: ['websocket', 'polling'] });
       setSocket(socketInstance);
-    });
+    }
     return () => {
       active = false;
     };

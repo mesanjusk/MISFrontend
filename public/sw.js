@@ -26,26 +26,13 @@ self.addEventListener('activate', event => {
   );
 });
 
-self.addEventListener('fetch', event => {
-  const { request } = event;
-  if (request.method !== 'GET' || !request.url.startsWith(self.location.origin)) {
-    return;
-  }
-
+self.addEventListener("fetch", (event) => {
   event.respondWith(
-    caches.match(request).then(cached => {
-      const fetchAndCache = fetch(request).then(response => {
-        return caches.open(CACHE_NAME).then(cache => {
-          cache.put(request, response.clone());
-          return response;
-        });
-      }).catch(() => cached);
-
-      if (cached) {
-        event.waitUntil(fetchAndCache);
-        return cached;
-      }
-      return fetchAndCache;
+    fetch(event.request).catch(() => {
+      return new Response("Offline", {
+        status: 503,
+        headers: { "Content-Type": "text/plain" },
+      });
     })
   );
 });
