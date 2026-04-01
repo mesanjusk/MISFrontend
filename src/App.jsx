@@ -181,6 +181,18 @@ function App() {
             <Route path="/editUser/:id" element={withSuspense(<EditUser />)} />
             <Route path="/editPayment/:id" element={withSuspense(<EditPayment />)} />
             <Route path="/editPriority/:id" element={withSuspense(<EditPriority />)} />
+            <Route path={ROUTE_ALIASES.ADD_CUSTOMER_LOWER} element={<Navigate to={ROUTES.ADD_CUSTOMER} replace />} />
+            <Route path={ROUTE_ALIASES.ADD_ITEM_LOWER} element={<Navigate to={ROUTES.ADD_ITEM} replace />} />
+            <Route path={ROUTE_ALIASES.ADD_TASK_LOWER} element={<Navigate to={ROUTES.ADD_TASK} replace />} />
+            <Route path={ROUTE_ALIASES.ADD_USER_LOWER} element={<Navigate to={ROUTES.ADD_USER} replace />} />
+            <Route path={ROUTE_ALIASES.ADD_USER_GROUP_LOWER} element={<Navigate to={ROUTES.ADD_USER_GROUP} replace />} />
+            <Route path={ROUTE_ALIASES.ADD_ORDER_V2_LOWER} element={<Navigate to={ROUTES.ADD_ORDER_V2} replace />} />
+            <Route path={ROUTE_ALIASES.ALL_BILLS_LOWER} element={<Navigate to={ROUTES.ALL_BILLS} replace />} />
+            <Route path={ROUTE_ALIASES.ADD_ENQUIRY_LOWER} element={<Navigate to={ROUTES.ADD_ENQUIRY} replace />} />
+            <Route path={ROUTE_ALIASES.PENDING_TASK_LOWER} element={<Navigate to={ROUTES.PENDING_TASKS} replace />} />
+            <Route path={ROUTE_ALIASES.ATTENDANCE_REPORT_MIXED} element={<Navigate to={ROUTES.ATTENDANCE_REPORT} replace />} />
+            <Route path={ROUTE_ALIASES.ADD_PAYABLE_TYPO} element={<Navigate to={ROUTES.ADD_PAYABLE} replace />} />
+            <Route path={ROUTE_ALIASES.ALL_TRANSACTION_2_LOWER} element={<Navigate to={ROUTES.ALL_TRANSACTION_2} replace />} />
             <Route path={ROUTE_ALIASES.ALL_TRANSACTION_1_TYPO} element={<Navigate to={ROUTES.ALL_TRANSACTION_1} replace />} />
             <Route path="*" element={<div className="p-8">404 Not Found</div>} />
           </Route>

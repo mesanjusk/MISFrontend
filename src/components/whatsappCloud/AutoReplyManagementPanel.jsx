@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../common/Modal';
 import { useAutoReplyManagement } from './hooks/useAutoReplyManagement';
+import { ROUTES } from '../../constants/routes';
 
 export default function AutoReplyManagementPanel() {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ export default function AutoReplyManagementPanel() {
 
   const handleModeChange = (value) => {
     setMode(value);
-    if (value === 'flow') navigate('/flow-builder');
+    if (value === 'flow') navigate(ROUTES.FLOW_BUILDER);
   };
 
   return (

@@ -36,4 +36,16 @@ export const ROUTES = {
 export const ROUTE_ALIASES = {
   ALL_TRANSACTION_1_TYPO: '/alltranscation1',
   ADD_NOTE_LOWER: '/addnote',
+  ADD_CUSTOMER_LOWER: '/addcustomer',
+  ADD_ITEM_LOWER: '/additem',
+  ADD_TASK_LOWER: '/addtask',
+  ADD_USER_LOWER: '/adduser',
+  ADD_USER_GROUP_LOWER: '/addusergroup',
+  ADD_ORDER_V2_LOWER: '/addorder1',
+  ALL_BILLS_LOWER: '/allbills',
+  ADD_ENQUIRY_LOWER: '/addenquiry',
+  PENDING_TASK_LOWER: '/pendingtask',
+  ATTENDANCE_REPORT_MIXED: '/Attendance-Report',
+  ADD_PAYABLE_TYPO: '/addPayble',
+  ALL_TRANSACTION_2_LOWER: '/alltransaction2',
 };
