@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../common/Modal';
+import client from '../../apiClient';
 import { useAutoReplyManagement } from './hooks/useAutoReplyManagement';
 import { ROUTES } from '../../constants/routes';
 
 export default function AutoReplyManagementPanel() {
   const navigate = useNavigate();
   const [mode, setMode] = useState('simple');
+  const [templates, setTemplates] = useState([]);
   const {
     rules,
     fallbackReply,
@@ -29,6 +31,31 @@ export default function AutoReplyManagementPanel() {
     handleToggle,
     handleTest,
   } = useAutoReplyManagement();
+
+  useEffect(() => {
+    const loadTemplates = async () => {
+      try {
+        const res = await client.get('/whatsapp/templates');
+        const list = Array.isArray(res?.data?.templates) ? res.data.templates : [];
+
+        // keep only static templates (no body variables)
+        const safeTemplates = list.filter((tpl) => {
+          const components = Array.isArray(tpl?.components) ? tpl.components : [];
+          const body = components.find(
+            (component) => String(component?.type || '').toUpperCase() === 'BODY'
+          );
+          return !String(body?.text || '').includes('{{');
+        });
+
+        setTemplates(safeTemplates);
+      } catch (err) {
+        console.error('Failed to load templates', err);
+        setTemplates([]);
+      }
+    };
+
+    loadTemplates();
+  }, []);
 
   const handleModeChange = (value) => {
     setMode(value);
@@ -247,7 +274,12 @@ export default function AutoReplyManagementPanel() {
               <select
                 value={formData.replyMode}
                 onChange={(event) =>
-                  setFormData((prev) => ({ ...prev, replyMode: event.target.value }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    replyMode: event.target.value,
+                    templateName: event.target.value === 'template' ? prev.templateName : '',
+                    replyText: event.target.value === 'text' ? prev.replyText : '',
+                  }))
                 }
                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
               >
@@ -272,7 +304,7 @@ export default function AutoReplyManagementPanel() {
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="block text-sm text-gray-700">
                   Template Name
-                  <input
+                  <select
                     value={formData.templateName}
                     onChange={(event) =>
                       setFormData((prev) => ({
@@ -281,7 +313,14 @@ export default function AutoReplyManagementPanel() {
                       }))
                     }
                     className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-                  />
+                  >
+                    <option value="">Select template</option>
+                    {templates.map((tpl) => (
+                      <option key={tpl.id || tpl.name} value={tpl.name}>
+                        {tpl.name}
+                      </option>
+                    ))}
+                  </select>
                 </label>
 
                 <label className="block text-sm text-gray-700">
