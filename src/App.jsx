@@ -1,100 +1,91 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import "./apiClient.js";
 import Layout from "./Pages/Layout";
 import { initVersionChecker } from "./utils/versionChecker";
 import { ToastContainer } from "./Components";
 
-/* ---------------------------- Public Pages ---------------------------- */
-import Login from "./Pages/login";
-import Register from "./Pages/Register";
+const Login = lazy(() => import("./Pages/login"));
+const Register = lazy(() => import("./Pages/Register"));
+const Planner = lazy(() => import("./Pages/Planner"));
+const Review = lazy(() => import("./Pages/Review"));
+const Team = lazy(() => import("./Pages/Team"));
+const Dashboard = lazy(() => import("./Pages/Dashboard"));
+const AddCustomer = lazy(() => import("./Pages/addCustomer"));
+const AddCustGroup = lazy(() => import("./Pages/addCustomergroup"));
+const AddUser = lazy(() => import("./Pages/addUser"));
+const AddUserGroup = lazy(() => import("./Pages/addUsergroup"));
+const AddItem = lazy(() => import("./Pages/addItem"));
+const AddItemGroup = lazy(() => import("./Pages/addItemgroup"));
+const AddTask = lazy(() => import("./Pages/addTask"));
+const AddTaskGroup = lazy(() => import("./Pages/addTaskgroup"));
+const AddPriority = lazy(() => import("./Pages/addPriority"));
+const AddOrder = lazy(() => import("./Pages/addOrder"));
+const AddOrder1 = lazy(() => import("./Pages/addOrder1"));
+const AllOrderTableView = lazy(() => import("./Reports/AllOrderTableView"));
+const AllOrder = lazy(() => import("./Reports/allOrder"));
+const AllOrderMobile = lazy(() => import("./Reports/allOrderMobile"));
+const AllDelivery = lazy(() => import("./Reports/allDelivery"));
+const OrderUpdate = lazy(() => import("./Pages/OrderUpdate"));
+const UpdateDelivery = lazy(() => import("./Pages/updateDelivery"));
+const AddEnquiry = lazy(() => import("./Pages/addEnquiry"));
+const AddPayment = lazy(() => import("./Pages/addPayment"));
+const AddTransaction = lazy(() => import("./Pages/AddTransaction"));
+const AddTransaction1 = lazy(() => import("./Pages/addTransaction1"));
+const AddRecievable = lazy(() => import("./Pages/addRecievable"));
+const AddPayable = lazy(() => import("./Pages/addPayable"));
+const AllTransaction = lazy(() => import("./Reports/allTransaction"));
+const AllTransaction1 = lazy(() => import("./Reports/allTransaction1"));
+const AllTransaction2 = lazy(() => import("./Reports/allTransaction2"));
+const AllTransaction3 = lazy(() => import("./Reports/allTransaction3"));
+const AllTransaction4D = lazy(() => import("./Reports/allTransaction4D"));
+const CustomerReport = lazy(() => import("./Reports/customerReport"));
+const TaskReport = lazy(() => import("./Reports/taskReport"));
+const UserReport = lazy(() => import("./Reports/userReport"));
+const ItemReport = lazy(() => import("./Reports/itemReport"));
+const PaymentReport = lazy(() => import("./Reports/paymentReport"));
+const PriorityReport = lazy(() => import("./Reports/priorityReport"));
+const AllBills = lazy(() => import("./Reports/allBills"));
+const VendorBills = lazy(() => import("./Reports/vendorBills"));
+const AllVendors = lazy(() => import("./Reports/AllVendors"));
+const EditCustomer = lazy(() => import("./Reports/editCustomer"));
+const EditTask = lazy(() => import("./Reports/editTask"));
+const EditItem = lazy(() => import("./Reports/editItem"));
+const EditUser = lazy(() => import("./Reports/editUser"));
+const EditPayment = lazy(() => import("./Reports/editPayment"));
+const EditPriority = lazy(() => import("./Reports/editPriority"));
+const SendMessage = lazy(() => import("./Pages/SendMessage"));
+const SendMessageAll = lazy(() => import("./Pages/SendMessageAll"));
+const WhatsAppLogin = lazy(() => import("./Pages/WhatsAppLogin"));
+const WhatsAppSession = lazy(() => import("./Pages/WhatsAppSession"));
+const WhatsAppAdminPanel = lazy(() => import("./Pages/WhatsAppAdminPanel"));
+const WhatsAppCloudDashboard = lazy(() => import("./Pages/WhatsAppCloudDashboard"));
+const PendingTasks = lazy(() => import("./Pages/PendingTasks"));
+const AllAttandance = lazy(() => import("./Pages/AllAttandance"));
+const CashLedger = lazy(() => import("./Pages/CashLedger"));
+const Vendor = lazy(() => import("./Pages/vendor"));
+const MigrateOrders = lazy(() => import("./Pages/MigrateOrders"));
+const PaymentFollowup = lazy(() => import("./Pages/PaymentFollowup"));
+const AttendanceReport = lazy(() => import("./Pages/AttendanceReport"));
+const SearchMobile = lazy(() => import("./Pages/searchMobile"));
+const AddUsertask = lazy(() => import("./Pages/addUsertask"));
+const CallLogs = lazy(() => import("./Pages/callLogs"));
+const AdminHome = lazy(() => import("./Pages/adminHome"));
+const VendorHome = lazy(() => import("./Pages/vendorHome"));
+const AllTransactionOld = lazy(() => import("./Reports/allTransactionOld"));
+const AddTransactionOld = lazy(() => import("./Pages/addTransactionOld.jsx"));
+const AddTransaction1Old = lazy(() => import("./Pages/addTransaction1Old.jsx"));
+const FlowBuilderPage = lazy(() => import("./Pages/FlowBuilderPage"));
+const OrderKanban = lazy(() => import("./Pages/OrderKanban"));
+const CustomerDetails = lazy(() => import("./Pages/CustomerDetails"));
 
-/* ---------------------------- Main Pages ------------------------------ */
-import Planner from "./Pages/Planner";
-import Review from "./Pages/Review";
-import Team from "./Pages/Team";
-import Dashboard from "./Pages/Dashboard";
+function RouteLoader() {
+  return <div className="p-4 text-sm text-slate-600">Loading...</div>;
+}
 
-/* ---------------------------- Master Pages ---------------------------- */
-import AddCustomer from "./Pages/addCustomer";
-import AddCustGroup from "./Pages/addCustomergroup";
-import AddUser from "./Pages/addUser";
-import AddUserGroup from "./Pages/addUsergroup";
-import AddItem from "./Pages/addItem";
-import AddItemGroup from "./Pages/addItemgroup";
-import AddTask from "./Pages/addTask";
-import AddTaskGroup from "./Pages/addTaskgroup";
-import AddPriority from "./Pages/addPriority";
-
-/* ---------------------------- Order Pages ----------------------------- */
-import AddOrder from "./Pages/addOrder";
-import AddOrder1 from "./Pages/addOrder1";
-import AllOrderTableView from "./Reports/AllOrderTableView";
-import AllOrder from "./Reports/allOrder";
-import AllOrderMobile from "./Reports/allOrderMobile";
-import AllDelivery from "./Reports/allDelivery";
-import OrderUpdate from "./Pages/OrderUpdate";
-import UpdateDelivery from "./Pages/updateDelivery";
-
-/* ---------------------------- Enquiry & Payment ----------------------- */
-import AddEnquiry from "./Pages/addEnquiry";
-import AddPayment from "./Pages/addPayment";
-import AddTransaction from "./Pages/AddTransaction";
-import AddTransaction1 from "./Pages/addTransaction1";
-import AddRecievable from "./Pages/addRecievable";
-import AddPayable from "./Pages/addPayable";
-
-/* ---------------------------- Reports -------------------------------- */
-import AllTransaction from "./Reports/allTransaction";
-import AllTransaction1 from "./Reports/allTransaction1";
-import AllTransaction2 from "./Reports/allTransaction2";
-import AllTransaction3 from "./Reports/allTransaction3";
-import AllTransaction4D from "./Reports/allTransaction4D";
-import CustomerReport from "./Reports/customerReport";
-import TaskReport from "./Reports/taskReport";
-import UserReport from "./Reports/userReport";
-import ItemReport from "./Reports/itemReport";
-import PaymentReport from "./Reports/paymentReport";
-import PriorityReport from "./Reports/priorityReport";
-import AllBills from "./Reports/allBills";
-import VendorBills from "./Reports/vendorBills";
-import AllVendors from "./Reports/AllVendors";
-
-/* ---------------------------- Edit Pages ------------------------------ */
-import EditCustomer from "./Reports/editCustomer";
-import EditTask from "./Reports/editTask";
-import EditItem from "./Reports/editItem";
-import EditUser from "./Reports/editUser";
-import EditPayment from "./Reports/editPayment";
-import EditPriority from "./Reports/editPriority";
-
-/* ---------------------------- WhatsApp & Chat ------------------------- */
-import SendMessage from "./Pages/SendMessage";
-import SendMessageAll from "./Pages/SendMessageAll";
-import WhatsAppLogin from "./Pages/WhatsAppLogin";
-import WhatsAppSession from "./Pages/WhatsAppSession";
-import WhatsAppAdminPanel from "./Pages/WhatsAppAdminPanel";
-import WhatsAppCloudDashboard from "./Pages/WhatsAppCloudDashboard";
-
-/* ---------------------------- Others ---------------------------------- */
-import PendingTasks from "./Pages/PendingTasks";
-import AllAttandance from "./Pages/AllAttandance";
-import CashLedger from "./Pages/CashLedger";
-import Vendor from "./Pages/vendor";
-import MigrateOrders from "./Pages/MigrateOrders";
-import PaymentFollowup from "./Pages/PaymentFollowup";
-import AttendanceReport from "./Pages/AttendanceReport";
-import SearchMobile from "./Pages/searchMobile";
-import AddUsertask from "./Pages/addUsertask";
-import CallLogs from "./Pages/callLogs";
-import AdminHome from "./Pages/adminHome";
-import VendorHome from "./Pages/vendorHome";
-import AllTransactionOld from "./Reports/allTransactionOld";
-import AddTransactionOld from "./Pages/addTransactionOld.jsx";
-import AddTransaction1Old from "./Pages/addTransaction1Old.jsx";
-import FlowBuilderPage from "./Pages/FlowBuilderPage";
-import OrderKanban from "./Pages/OrderKanban";
-import CustomerDetails from "./Pages/CustomerDetails";
+function withSuspense(element) {
+  return <Suspense fallback={<RouteLoader />}>{element}</Suspense>;
+}
 
 function App() {
   useEffect(() => {
@@ -109,103 +100,83 @@ function App() {
       <ToastContainer />
       <div className="min-h-screen bg-background text-gray-900">
         <Routes>
-          {/* ---------- Public (no layout) ---------- */}
-          <Route path="/" element={<Login />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/" element={withSuspense(<Login />)} />
+          <Route path="/login" element={withSuspense(<Login />)} />
+          <Route path="/register" element={withSuspense(<Register />)} />
 
-          {/* ---------- Protected (inside Layout with Sidebar) ---------- */}
           <Route element={<Layout />}>
-            {/* Dashboard */}
-            <Route path="/home" element={<Dashboard />} />
-
-            {/* Core */}
-            <Route path="/planner" element={<Planner />} />
-            <Route path="/review" element={<Review />} />
-            <Route path="/team" element={<Team />} />
-            <Route path="/adminHome" element={<AdminHome />} />
-            <Route path="/vendorHome" element={<VendorHome />} />
-
-            {/* Master */}
-            <Route path="/addCustomer" element={<AddCustomer />} />
-            <Route path="/addCustgroup" element={<AddCustGroup />} />
-            <Route path="/addUser" element={<AddUser />} />
-            <Route path="/addUsergroup" element={<AddUserGroup />} />
-            <Route path="/addItem" element={<AddItem />} />
-            <Route path="/addItemgroup" element={<AddItemGroup />} />
-            <Route path="/addTask" element={<AddTask />} />
-            <Route path="/addTaskgroup" element={<AddTaskGroup />} />
-            <Route path="/addPriority" element={<AddPriority />} />
-
-            {/* Orders */}
-            <Route path="/addOrder" element={<AddOrder />} />
-            <Route path="/addOrder1" element={<AddOrder1 />} />
-            <Route path="/allOrderT" element={<AllOrderTableView />} />
-            <Route path="/allOrder" element={<AllOrder />} />
-            <Route path="/allOrderM" element={<AllOrderMobile />} />
-            <Route path="/allDelivery" element={<AllDelivery />} />
-            <Route path="/orderUpdate/:id" element={<OrderUpdate />} />
-            <Route path="/updateDelivery/:id" element={<UpdateDelivery />} />
-
-            {/* Payments & Transactions */}
-            <Route path="/addTransaction" element={<AddTransaction />} />
-            <Route path="/addTransactionOld" element={<AddTransactionOld />} />
-            <Route path="/addTransaction1" element={<AddTransaction1 />} />
-            <Route path="/addTransaction1Old" element={<AddTransaction1Old />} />
-            <Route path="/addPayment" element={<AddPayment />} />
-            <Route path="/addRecievable" element={<AddRecievable />} />
-            <Route path="/addPayable" element={<AddPayable />} />
-            <Route path="/allTransaction" element={<AllTransaction />} />
-            <Route path="/allTransaction1" element={<AllTransaction1 />} />
-            <Route path="/allTransactionOld" element={<AllTransactionOld />} />
-            <Route path="/allTransaction2" element={<AllTransaction2 />} />
-            <Route path="/allTransaction3" element={<AllTransaction3 />} />
-            <Route path="/allTransaction4D" element={<AllTransaction4D />} />
-
-            {/* Reports */}
-            <Route path="/customerReport" element={<CustomerReport />} />
-            <Route path="/taskReport" element={<TaskReport />} />
-            <Route path="/userReport" element={<UserReport />} />
-            <Route path="/itemReport" element={<ItemReport />} />
-            <Route path="/paymentReport" element={<PaymentReport />} />
-            <Route path="/priorityReport" element={<PriorityReport />} />
-            <Route path="/allBills" element={<AllBills />} />
-            <Route path="/vendorBills" element={<VendorBills />} />
-            <Route path="/AllVendors" element={<AllVendors />} />
-
-            {/* WhatsApp */}
-            <Route path="/SendMessage" element={<SendMessage />} />
-            <Route path="/SendMessageAll" element={<SendMessageAll />} />
-            <Route path="/WhatsAppLogin" element={<WhatsAppLogin />} />
-            <Route path="/WhatsAppAdminPanel" element={<WhatsAppAdminPanel />} />
-            <Route path="/WhatsAppSession" element={<WhatsAppSession />} />
-            <Route path="/whatsapp-cloud" element={<WhatsAppCloudDashboard />} />
-
-            {/* Others */}
-            <Route path="/PendingTasks" element={<PendingTasks />} />
-            <Route path="/AllAttandance" element={<AllAttandance />} />
-            <Route path="/CashLedger" element={<CashLedger />} />
-            <Route path="/addVendor" element={<Vendor />} />
-            <Route path="/migrate-orders" element={<MigrateOrders />} />
-            <Route path="/Followups" element={<PaymentFollowup />} />
-            <Route path="/attendance-report" element={<AttendanceReport />} />
-            <Route path="/customerMobile" element={<SearchMobile />} />
-            <Route path="/addUsertask" element={<AddUsertask />} />
-            <Route path="/calllogs" element={<CallLogs />} />
-            <Route path="/flow-builder" element={<FlowBuilderPage />} />
-            <Route path="/order-kanban" element={<OrderKanban />} />
-            <Route path="/customer-360" element={<CustomerDetails />} />
-            <Route path="/customer-360/:id" element={<CustomerDetails />} />
-
-            {/* Edit */}
-            <Route path="/editCustomer/:id" element={<EditCustomer />} />
-            <Route path="/editTask/:id" element={<EditTask />} />
-            <Route path="/editItem/:id" element={<EditItem />} />
-            <Route path="/editUser/:id" element={<EditUser />} />
-            <Route path="/editPayment/:id" element={<EditPayment />} />
-            <Route path="/editPriority/:id" element={<EditPriority />} />
-
-            {/* Redirect & 404 */}
+            <Route path="/home" element={withSuspense(<Dashboard />)} />
+            <Route path="/planner" element={withSuspense(<Planner />)} />
+            <Route path="/review" element={withSuspense(<Review />)} />
+            <Route path="/team" element={withSuspense(<Team />)} />
+            <Route path="/adminHome" element={withSuspense(<AdminHome />)} />
+            <Route path="/vendorHome" element={withSuspense(<VendorHome />)} />
+            <Route path="/addCustomer" element={withSuspense(<AddCustomer />)} />
+            <Route path="/addCustgroup" element={withSuspense(<AddCustGroup />)} />
+            <Route path="/addUser" element={withSuspense(<AddUser />)} />
+            <Route path="/addUsergroup" element={withSuspense(<AddUserGroup />)} />
+            <Route path="/addItem" element={withSuspense(<AddItem />)} />
+            <Route path="/addItemgroup" element={withSuspense(<AddItemGroup />)} />
+            <Route path="/addTask" element={withSuspense(<AddTask />)} />
+            <Route path="/addTaskgroup" element={withSuspense(<AddTaskGroup />)} />
+            <Route path="/addPriority" element={withSuspense(<AddPriority />)} />
+            <Route path="/addOrder" element={withSuspense(<AddOrder />)} />
+            <Route path="/addOrder1" element={withSuspense(<AddOrder1 />)} />
+            <Route path="/allOrderT" element={withSuspense(<AllOrderTableView />)} />
+            <Route path="/allOrder" element={withSuspense(<AllOrder />)} />
+            <Route path="/allOrderM" element={withSuspense(<AllOrderMobile />)} />
+            <Route path="/allDelivery" element={withSuspense(<AllDelivery />)} />
+            <Route path="/orderUpdate/:id" element={withSuspense(<OrderUpdate />)} />
+            <Route path="/updateDelivery/:id" element={withSuspense(<UpdateDelivery />)} />
+            <Route path="/addEnquiry" element={withSuspense(<AddEnquiry />)} />
+            <Route path="/addTransaction" element={withSuspense(<AddTransaction />)} />
+            <Route path="/addTransactionOld" element={withSuspense(<AddTransactionOld />)} />
+            <Route path="/addTransaction1" element={withSuspense(<AddTransaction1 />)} />
+            <Route path="/addTransaction1Old" element={withSuspense(<AddTransaction1Old />)} />
+            <Route path="/addPayment" element={withSuspense(<AddPayment />)} />
+            <Route path="/addRecievable" element={withSuspense(<AddRecievable />)} />
+            <Route path="/addPayable" element={withSuspense(<AddPayable />)} />
+            <Route path="/allTransaction" element={withSuspense(<AllTransaction />)} />
+            <Route path="/allTransaction1" element={withSuspense(<AllTransaction1 />)} />
+            <Route path="/allTransactionOld" element={withSuspense(<AllTransactionOld />)} />
+            <Route path="/allTransaction2" element={withSuspense(<AllTransaction2 />)} />
+            <Route path="/allTransaction3" element={withSuspense(<AllTransaction3 />)} />
+            <Route path="/allTransaction4D" element={withSuspense(<AllTransaction4D />)} />
+            <Route path="/customerReport" element={withSuspense(<CustomerReport />)} />
+            <Route path="/taskReport" element={withSuspense(<TaskReport />)} />
+            <Route path="/userReport" element={withSuspense(<UserReport />)} />
+            <Route path="/itemReport" element={withSuspense(<ItemReport />)} />
+            <Route path="/paymentReport" element={withSuspense(<PaymentReport />)} />
+            <Route path="/priorityReport" element={withSuspense(<PriorityReport />)} />
+            <Route path="/allBills" element={withSuspense(<AllBills />)} />
+            <Route path="/vendorBills" element={withSuspense(<VendorBills />)} />
+            <Route path="/AllVendors" element={withSuspense(<AllVendors />)} />
+            <Route path="/SendMessage" element={withSuspense(<SendMessage />)} />
+            <Route path="/SendMessageAll" element={withSuspense(<SendMessageAll />)} />
+            <Route path="/WhatsAppLogin" element={withSuspense(<WhatsAppLogin />)} />
+            <Route path="/WhatsAppAdminPanel" element={withSuspense(<WhatsAppAdminPanel />)} />
+            <Route path="/WhatsAppSession" element={withSuspense(<WhatsAppSession />)} />
+            <Route path="/whatsapp-cloud" element={withSuspense(<WhatsAppCloudDashboard />)} />
+            <Route path="/PendingTasks" element={withSuspense(<PendingTasks />)} />
+            <Route path="/AllAttandance" element={withSuspense(<AllAttandance />)} />
+            <Route path="/CashLedger" element={withSuspense(<CashLedger />)} />
+            <Route path="/addVendor" element={withSuspense(<Vendor />)} />
+            <Route path="/migrate-orders" element={withSuspense(<MigrateOrders />)} />
+            <Route path="/Followups" element={withSuspense(<PaymentFollowup />)} />
+            <Route path="/attendance-report" element={withSuspense(<AttendanceReport />)} />
+            <Route path="/customerMobile" element={withSuspense(<SearchMobile />)} />
+            <Route path="/addUsertask" element={withSuspense(<AddUsertask />)} />
+            <Route path="/calllogs" element={withSuspense(<CallLogs />)} />
+            <Route path="/flow-builder" element={withSuspense(<FlowBuilderPage />)} />
+            <Route path="/order-kanban" element={withSuspense(<OrderKanban />)} />
+            <Route path="/customer-360" element={withSuspense(<CustomerDetails />)} />
+            <Route path="/customer-360/:id" element={withSuspense(<CustomerDetails />)} />
+            <Route path="/editCustomer/:id" element={withSuspense(<EditCustomer />)} />
+            <Route path="/editTask/:id" element={withSuspense(<EditTask />)} />
+            <Route path="/editItem/:id" element={withSuspense(<EditItem />)} />
+            <Route path="/editUser/:id" element={withSuspense(<EditUser />)} />
+            <Route path="/editPayment/:id" element={withSuspense(<EditPayment />)} />
+            <Route path="/editPriority/:id" element={withSuspense(<EditPriority />)} />
             <Route path="/alltranscation1" element={<Navigate to="/allTransaction1" replace />} />
             <Route path="*" element={<div className="p-8">404 Not Found</div>} />
           </Route>

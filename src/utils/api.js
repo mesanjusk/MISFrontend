@@ -1,7 +1,8 @@
 import client, { getApiBase } from "../apiClient";
+import { getStoredToken } from "./authStorage";
 
 function attachAuth(config = {}) {
-  const token = localStorage.getItem("token");
+  const token = getStoredToken();
 
   if (token) {
     config.headers = {
@@ -43,7 +44,7 @@ export async function getWithFallback(urls, config = {}) {
       if (res && res.status >= 200 && res.status < 300) {
         return res;
       }
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   throw new Error("All endpoints failed: " + attempts.join(" | "));
@@ -79,7 +80,7 @@ export async function postWithFallback(urls, body, config = {}) {
       if (res && res.status >= 200 && res.status < 300) {
         return res;
       }
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   throw new Error("All POST endpoints failed: " + attempts.join(" | "));

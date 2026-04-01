@@ -4,6 +4,7 @@ import axios from '../apiClient.js';
 import { Card, InputField, Button, MobileContainer } from '../Components';
 import { FiUser, FiLock, FiLogIn } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import { setStoredToken } from '../utils/authStorage';
 
 export default function Login() {
     const navigate = useNavigate();
@@ -46,13 +47,13 @@ export default function Login() {
                 return;
             }
 
-            localStorage.setItem("token", data.token);
+            setStoredToken(data.token);
 
             // ✅ Store user info in context
             setAuthData({
                 userName: User_name,
                 userGroup: data.userGroup,
-                mobileNumber: data.userMob,
+                mobileNumber: data.userMobile || data.userMob || "",
             });
 
             const target = data.userGroup === "Vendor" ? "/vendorHome" : "/home";

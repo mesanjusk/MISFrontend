@@ -1,32 +1,55 @@
 import axios from "axios";
+import { getStoredToken } from "./utils/authStorage";
 
-const API_BASE =
-  import.meta.env.VITE_API_BASE || "https://misbackend-e078.onrender.com";
+const LOCAL_API = import.meta.env.VITE_API_LOCAL;
+const SERVER_API = import.meta.env.VITE_API_SERVER;
 
+let currentBaseURL = LOCAL_API;
+
+// create instance
 const client = axios.create({
-  baseURL: API_BASE,
+  baseURL: currentBaseURL,
 });
 
-const tokenKeys = ["token", "authToken", "access_token", "ACCESS_TOKEN"];
+// 🔁 dynamic fallback logic
+client.interceptors.request.use(async (config) => {
+  const token = getStoredToken();
 
-const getToken = () =>
-  tokenKeys.map((key) => localStorage.getItem(key)).find(Boolean);
-
-client.interceptors.request.use((config) => {
-  const token = getToken();
   if (token) {
     config.headers = {
       ...(config.headers || {}),
       Authorization: `Bearer ${token}`,
     };
   }
+
   return config;
 });
 
+// 🔥 fallback on error
 client.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error)
+  async (error) => {
+    // if local fails → switch to server
+    if (
+      error.config &&
+      currentBaseURL === LOCAL_API &&
+      !error.config._retry
+    ) {
+      console.warn("⚠️ Local backend failed → switching to server");
+
+      error.config._retry = true;
+      currentBaseURL = SERVER_API;
+
+      // update baseURL dynamically
+      client.defaults.baseURL = SERVER_API;
+      error.config.baseURL = SERVER_API;
+
+      return client(error.config);
+    }
+
+    return Promise.reject(error);
+  }
 );
 
 export default client;
-export const getApiBase = () => API_BASE;
+export const getApiBase = () => currentBaseURL;

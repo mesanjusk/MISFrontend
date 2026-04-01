@@ -23,60 +23,114 @@ const getCloudinaryResourceType = ({ type, fileType }) => {
   const normalizedType = String(type || '').toLowerCase();
   const normalizedFileType = String(fileType || '').toLowerCase();
 
-  if (normalizedType === 'image' || normalizedType.startsWith('image/') || normalizedFileType.startsWith('image/')) return 'image';
-  if (normalizedType === 'video' || normalizedType.startsWith('video/') || normalizedFileType.startsWith('video/')) return 'video';
+  if (
+    normalizedType === 'image' ||
+    normalizedType.startsWith('image/') ||
+    normalizedFileType.startsWith('image/')
+  ) {
+    return 'image';
+  }
+
+  if (
+    normalizedType === 'video' ||
+    normalizedType.startsWith('video/') ||
+    normalizedFileType.startsWith('video/')
+  ) {
+    return 'video';
+  }
+
   return 'raw';
+};
+
+const AUTO_REPLY_ENDPOINTS = [
+  '/api/whatsapp/auto-reply',
+  '/api/whatsapp/auto-replies',
+  '/api/whatsapp/auto-reply-rules',
+];
+
+const tryAutoReplyEndpoints = async (requestFactory) => {
+  let lastError = null;
+
+  for (const endpoint of AUTO_REPLY_ENDPOINTS) {
+    try {
+      const response = await requestFactory(endpoint);
+      return response;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError;
 };
 
 export const whatsappCloudService = {
   sendTextMessage: (payload) => apiClient.post('/api/whatsapp/send-text', payload),
-  sendTemplateMessage: (payload) => apiClient.post('/api/whatsapp/send-template', payload),
-  sendMediaMessage: (payload) => apiClient.post('/api/whatsapp/send-media', payload),
+
+  sendTemplateMessage: (payload) =>
+    apiClient.post('/api/whatsapp/send-template', payload),
+
+  sendMediaMessage: (payload) => {
+    const isFormData =
+      typeof FormData !== 'undefined' && payload instanceof FormData;
+
+    return apiClient.post(
+      '/api/whatsapp/send-media',
+      payload,
+      isFormData
+        ? {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          }
+        : undefined
+    );
+  },
+
   getMessages: () => apiClient.get('/api/whatsapp/messages'),
   getTemplates: () => apiClient.get('/api/whatsapp/templates'),
 
-  getAutoReplyRules: async () => {
-    const candidates = ['/api/whatsapp/auto-replies', '/api/whatsapp/auto-reply-rules', '/api/whatsapp/auto-reply'];
-    let lastError = null;
+  getAutoReplyRules: () =>
+    tryAutoReplyEndpoints((endpoint) => apiClient.get(endpoint)),
 
-    for (const endpoint of candidates) {
-      try {
-        const response = await apiClient.get(endpoint);
-        return response;
-      } catch (error) {
-        lastError = error;
-      }
-    }
+  createAutoReplyRule: (payload) =>
+    tryAutoReplyEndpoints((endpoint) =>
+      apiClient.post(endpoint, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+    ),
 
-    throw lastError;
-  },
-  createAutoReplyRule: async (payload) => {
-    const candidates = ['/api/whatsapp/auto-replies', '/api/whatsapp/auto-reply-rules', '/api/whatsapp/auto-reply'];
-    let lastError = null;
+  updateAutoReplyRule: (id, payload) =>
+    apiClient.put(`/api/whatsapp/auto-reply/${id}`, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }),
 
-    for (const endpoint of candidates) {
-      try {
-        const response = await apiClient.post(endpoint, payload, {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        return response;
-      } catch (error) {
-        lastError = error;
-      }
-    }
+  deleteAutoReplyRule: (id) =>
+    apiClient.delete(`/api/whatsapp/auto-reply/${id}`),
 
-    throw lastError;
-  },
+  toggleAutoReplyRule: (id) =>
+    apiClient.patch(`/api/whatsapp/auto-reply/${id}/toggle`),
+
   uploadToCloudinary: async ({ file, type, cloudName, uploadPreset }) => {
-    const resolvedCloudName = cloudName || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dadcprflr';
-    const resolvedUploadPreset = uploadPreset || import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'mern-images';
+    const resolvedCloudName =
+      cloudName || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dadcprflr';
+    const resolvedUploadPreset =
+      uploadPreset ||
+      import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET ||
+      'mern-images';
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', resolvedUploadPreset);
 
-    const resourceType = getCloudinaryResourceType({ type, fileType: file?.type });
+    const resourceType = getCloudinaryResourceType({
+      type,
+      fileType: file?.type,
+    });
+
     const endpoint = `https://api.cloudinary.com/v1_1/${resolvedCloudName}/${resourceType}/upload`;
 
     const response = await fetch(endpoint, {

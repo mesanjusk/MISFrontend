@@ -18,15 +18,42 @@ import { createFlow, deleteFlow, getFlows, updateFlow } from '../../services/flo
 const NODE_LIBRARY = [
   { type: 'text', label: 'Text Message' },
   { type: 'delay', label: 'Delay' },
-  { type: 'condition', label: 'Condition (keyword)' },
+  { type: 'condition', label: 'Options / Branch' },
   { type: 'end', label: 'End' },
 ];
 
 const NODE_DEFAULTS = {
   text: { label: 'Text Message', message: 'Hi! Welcome to Sanju Sk Digital 👋', delay: 0, options: [] },
   delay: { label: 'Delay', message: '', delay: 2, options: [] },
-  condition: { label: 'Condition', message: '', delay: 0, keyword: '', options: ['yes', 'no'] },
-  end: { label: 'End', message: '', delay: 0, options: [] },
+  condition: { label: 'Options / Branch', message: 'Please choose an option', delay: 0, keyword: '', options: ['yes', 'no'] },
+  end: { label: 'End', message: 'Thanks! Conversation completed.', delay: 0, options: [] },
+};
+
+const deriveEdgesFromFlow = (flow) => {
+  const explicitEdges = Array.isArray(flow.edges) ? flow.edges : [];
+  if (explicitEdges.length > 0) {
+    return explicitEdges.map((edge) => ({
+      id: edge.id || crypto.randomUUID(),
+      source: edge.source,
+      target: edge.target,
+    }));
+  }
+
+  const derived = [];
+  (flow.nodes || []).forEach((node) => {
+    if (node.nextNodeId) {
+      derived.push({ id: `${node.id}-${node.nextNodeId}`, source: node.id, target: node.nextNodeId });
+    }
+
+    const options = Array.isArray(node.options) ? node.options : Array.isArray(node.buttons) ? node.buttons : [];
+    options.forEach((option, index) => {
+      if (option?.nextNodeId) {
+        derived.push({ id: `${node.id}-${option.nextNodeId}-${index}`, source: node.id, target: option.nextNodeId });
+      }
+    });
+  });
+
+  return derived;
 };
 
 const normalizeFlows = (payload) => {
@@ -35,47 +62,84 @@ const normalizeFlows = (payload) => {
   return [];
 };
 
+const mapBackendNodeToCanvasType = (node) => {
+  if (node?.type === 'button') return 'condition';
+  return node?.type || 'text';
+};
+
 const mapFlowToCanvas = (flow) => ({
   id: flow.id || flow._id,
   name: flow.name || 'Untitled flow',
   triggerKeywords: flow.triggerKeywords || [],
   isActive: Boolean(flow.isActive),
-  nodes: (flow.nodes || []).map((node, index) => ({
-    id: node.id || crypto.randomUUID(),
-    type: node.type || 'text',
-    position: node.position || { x: 80 + index * 70, y: 120 + index * 60 },
-    data: {
-      ...NODE_DEFAULTS[node.type || 'text'],
-      ...node.data,
-      label: node.data?.label || NODE_DEFAULTS[node.type || 'text']?.label || 'Node',
-    },
-  })),
-  edges: (flow.edges || []).map((edge) => ({
-    id: edge.id || crypto.randomUUID(),
-    source: edge.source,
-    target: edge.target,
-  })),
+  nodes: (flow.nodes || []).map((node, index) => {
+    const canvasType = mapBackendNodeToCanvasType(node);
+    const nodeDefaults = NODE_DEFAULTS[canvasType] || NODE_DEFAULTS.text;
+    const optionLabels = Array.isArray(node.options)
+      ? node.options.map((item) => item?.label).filter(Boolean)
+      : Array.isArray(node.buttons)
+      ? node.buttons.map((item) => item?.label).filter(Boolean)
+      : [];
+
+    return {
+      id: node.id || crypto.randomUUID(),
+      type: canvasType,
+      position: node.position || { x: 80 + index * 70, y: 120 + index * 60 },
+      data: {
+        ...nodeDefaults,
+        label: node?.data?.label || node.label || nodeDefaults.label || 'Node',
+        message: node?.message || node?.data?.message || nodeDefaults.message || '',
+        delay: Number(node?.delayMs || 0) / 1000,
+        keyword: node?.data?.keyword || '',
+        options: optionLabels.length ? optionLabels : nodeDefaults.options,
+      },
+    };
+  }),
+  edges: deriveEdgesFromFlow(flow),
 });
 
-const mapCanvasToPayload = ({ flowName, triggerKeywords, nodes, edges, isActive }) => ({
-  name: flowName,
-  triggerKeywords,
-  isActive,
-  nodes: nodes.map((node) => ({
-    id: node.id,
-    type: node.type,
-    position: node.position,
-    data: {
-      label: node.data?.label || '',
-      message: node.data?.message || '',
-      delay: Number(node.data?.delay || 0),
-      keyword: node.data?.keyword || '',
-      options: Array.isArray(node.data?.options) ? node.data.options : [],
-    },
-    next: edges.filter((edge) => edge.source === node.id).map((edge) => edge.target),
-  })),
-  edges: edges.map((edge) => ({ id: edge.id, source: edge.source, target: edge.target })),
-});
+const getOutgoingEdges = (edges, nodeId) => edges.filter((edge) => edge.source === nodeId);
+
+const mapCanvasToPayload = ({ flowName, triggerKeywords, nodes, edges, isActive }) => {
+  const nodeIdsWithIncomingEdges = new Set(edges.map((edge) => edge.target));
+
+  return {
+    name: flowName,
+    triggerKeywords,
+    isActive,
+    nodes: nodes.map((node, index) => {
+      const outgoingEdges = getOutgoingEdges(edges, node.id);
+      const isStart = !nodeIdsWithIncomingEdges.has(node.id) || index === 0;
+
+      if (node.type === 'condition') {
+        return {
+          id: node.id,
+          type: 'button',
+          position: node.position,
+          message: node.data?.message || 'Please choose an option',
+          options: (Array.isArray(node.data?.options) ? node.data.options : []).map((label, optionIndex) => ({
+            label,
+            value: label,
+            nextNodeId: outgoingEdges[optionIndex]?.target || null,
+          })),
+          variableKey: node.data?.keyword || `${node.id}_selection`,
+          isStart,
+        };
+      }
+
+      return {
+        id: node.id,
+        type: node.type,
+        position: node.position,
+        message: node.data?.message || '',
+        delayMs: node.type === 'delay' ? Math.max(0, Number(node.data?.delay || 0)) * 1000 : 0,
+        nextNodeId: outgoingEdges[0]?.target || null,
+        isStart,
+      };
+    }),
+    edges: edges.map((edge) => ({ id: edge.id, source: edge.source, target: edge.target })),
+  };
+};
 
 export default function FlowBuilder() {
   const navigate = useNavigate();
@@ -90,10 +154,7 @@ export default function FlowBuilder() {
   const [isSaving, setIsSaving] = useState(false);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
 
-  const selectedNode = useMemo(
-    () => nodes.find((node) => node.id === selectedNodeId) || null,
-    [nodes, selectedNodeId],
-  );
+  const selectedNode = useMemo(() => nodes.find((node) => node.id === selectedNodeId) || null, [nodes, selectedNodeId]);
 
   const loadFlows = useCallback(async () => {
     try {
@@ -114,33 +175,26 @@ export default function FlowBuilder() {
     event.dataTransfer.effectAllowed = 'move';
   };
 
-  const onDrop = useCallback(
-    (event) => {
-      event.preventDefault();
-      const type = event.dataTransfer.getData('application/reactflow');
-      if (!type) return;
+  const onDrop = useCallback((event) => {
+    event.preventDefault();
+    const type = event.dataTransfer.getData('application/reactflow');
+    if (!type) return;
 
-      const bounds = event.currentTarget.getBoundingClientRect();
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const position = reactFlowInstance?.screenToFlowPosition
+      ? reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      : { x: event.clientX - bounds.left - 80, y: event.clientY - bounds.top - 20 };
 
-      const position = reactFlowInstance?.screenToFlowPosition
-        ? reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY })
-        : {
-            x: event.clientX - bounds.left - 80,
-            y: event.clientY - bounds.top - 20,
-          };
+    const newNode = {
+      id: crypto.randomUUID(),
+      type,
+      position,
+      data: { ...NODE_DEFAULTS[type] },
+    };
 
-      const newNode = {
-        id: crypto.randomUUID(),
-        type,
-        position,
-        data: { ...NODE_DEFAULTS[type] },
-      };
-
-      setNodes((prev) => [...prev, newNode]);
-      setSelectedNodeId(newNode.id);
-    },
-    [reactFlowInstance],
-  );
+    setNodes((prev) => [...prev, newNode]);
+    setSelectedNodeId(newNode.id);
+  }, [reactFlowInstance]);
 
   const resetBuilder = () => {
     setSelectedFlowId('');
@@ -167,9 +221,7 @@ export default function FlowBuilder() {
 
   const updateNodeData = (patch) => {
     if (!selectedNodeId) return;
-    setNodes((prev) =>
-      prev.map((node) => (node.id === selectedNodeId ? { ...node, data: { ...node.data, ...patch } } : node)),
-    );
+    setNodes((prev) => prev.map((node) => (node.id === selectedNodeId ? { ...node, data: { ...node.data, ...patch } } : node)));
   };
 
   const handleSave = async () => {
@@ -185,10 +237,7 @@ export default function FlowBuilder() {
 
     const payload = mapCanvasToPayload({
       flowName: flowName.trim(),
-      triggerKeywords: triggerKeywords
-        .split(',')
-        .map((keyword) => keyword.trim())
-        .filter(Boolean),
+      triggerKeywords: triggerKeywords.split(',').map((keyword) => keyword.trim()).filter(Boolean),
       isActive,
       nodes,
       edges,
@@ -228,16 +277,12 @@ export default function FlowBuilder() {
     }
   };
 
-  const nodeTypes = useMemo(() => {
-    return {
-      text: (props) => <FlowNodeCard {...props} type="text" HandleComponent={Handle} PositionMap={Position} />,
-      delay: (props) => <FlowNodeCard {...props} type="delay" HandleComponent={Handle} PositionMap={Position} />,
-      condition: (props) => (
-        <FlowNodeCard {...props} type="condition" HandleComponent={Handle} PositionMap={Position} />
-      ),
-      end: (props) => <FlowNodeCard {...props} type="end" HandleComponent={Handle} PositionMap={Position} />,
-    };
-  }, [Handle, Position]);
+  const nodeTypes = useMemo(() => ({
+    text: (props) => <FlowNodeCard {...props} type="text" HandleComponent={Handle} PositionMap={Position} />,
+    delay: (props) => <FlowNodeCard {...props} type="delay" HandleComponent={Handle} PositionMap={Position} />,
+    condition: (props) => <FlowNodeCard {...props} type="condition" HandleComponent={Handle} PositionMap={Position} />,
+    end: (props) => <FlowNodeCard {...props} type="end" HandleComponent={Handle} PositionMap={Position} />,
+  }), []);
 
   return (
     <div className="space-y-4">
@@ -248,63 +293,25 @@ export default function FlowBuilder() {
             <p className="text-sm text-gray-500">Build drag-and-drop reply journeys with trigger keywords.</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => navigate('/whatsapp-cloud')}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Back to Auto Reply
-            </button>
-            <button
-              type="button"
-              onClick={resetBuilder}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              New Flow
-            </button>
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
-            >
-              Delete
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={isSaving}
-              className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSaving ? 'Saving...' : 'Save Flow'}
-            </button>
+            <button type="button" onClick={() => navigate('/whatsapp-cloud')} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Back to Auto Reply</button>
+            <button type="button" onClick={resetBuilder} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">New Flow</button>
+            <button type="button" onClick={handleDelete} className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100">Delete</button>
+            <button type="button" onClick={handleSave} disabled={isSaving} className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">{isSaving ? 'Saving...' : 'Save Flow'}</button>
           </div>
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
           <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
             Existing Flows
-            <select
-              value={selectedFlowId}
-              onChange={(event) => loadFlowIntoCanvas(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700"
-            >
+            <select value={selectedFlowId} onChange={(event) => loadFlowIntoCanvas(event.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700">
               <option value="">Select a flow</option>
-              {flows.map((flow) => (
-                <option key={flow.id} value={flow.id}>
-                  {flow.name}
-                </option>
-              ))}
+              {flows.map((flow) => <option key={flow.id} value={flow.id}>{flow.name}</option>)}
             </select>
           </label>
 
           <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 md:col-span-2">
             Flow Name
-            <input
-              value={flowName}
-              onChange={(event) => setFlowName(event.target.value)}
-              placeholder="Support Flow"
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700"
-            />
+            <input value={flowName} onChange={(event) => setFlowName(event.target.value)} placeholder="Support Flow" className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700" />
           </label>
 
           <label className="flex items-end gap-2 rounded-lg border border-gray-200 px-3 py-2">
@@ -315,12 +322,7 @@ export default function FlowBuilder() {
 
         <label className="mt-3 block text-xs font-semibold uppercase tracking-wide text-gray-500">
           Trigger Keywords (comma separated)
-          <input
-            value={triggerKeywords}
-            onChange={(event) => setTriggerKeywords(event.target.value)}
-            placeholder="hi, hello, support"
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700"
-          />
+          <input value={triggerKeywords} onChange={(event) => setTriggerKeywords(event.target.value)} placeholder="hi, hello, support" className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700" />
         </label>
       </div>
 
@@ -329,14 +331,7 @@ export default function FlowBuilder() {
           <h3 className="mb-3 text-sm font-semibold text-gray-700">Nodes</h3>
           <div className="space-y-2">
             {NODE_LIBRARY.map((node) => (
-              <div
-                key={node.type}
-                draggable
-                onDragStart={(event) => onDragStart(event, node.type)}
-                className="cursor-grab rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3 text-sm font-medium text-gray-700 hover:border-emerald-300 hover:bg-emerald-50"
-              >
-                {node.label}
-              </div>
+              <div key={node.type} draggable onDragStart={(event) => onDragStart(event, node.type)} className="cursor-grab rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3 text-sm font-medium text-gray-700 hover:border-emerald-300 hover:bg-emerald-50">{node.label}</div>
             ))}
           </div>
 
@@ -344,20 +339,12 @@ export default function FlowBuilder() {
             <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Flow Preview</h4>
             <p className="mt-1 text-xs text-gray-500">{nodes.length} nodes · {edges.length} connections</p>
             <div className="mt-2 max-h-52 space-y-1 overflow-auto pr-1">
-              {nodes.map((node, index) => (
-                <p key={node.id} className="rounded bg-gray-50 px-2 py-1 text-xs text-gray-600">
-                  {index + 1}. {node.data?.label || node.type}
-                </p>
-              ))}
+              {nodes.map((node, index) => <p key={node.id} className="rounded bg-gray-50 px-2 py-1 text-xs text-gray-600">{index + 1}. {node.data?.label || node.type}</p>)}
             </div>
           </div>
         </aside>
 
-        <section
-          onDrop={onDrop}
-          onDragOver={(event) => event.preventDefault()}
-          className="relative h-[620px] overflow-hidden rounded-xl border border-gray-200 bg-slate-50 shadow-sm"
-        >
+        <section onDrop={onDrop} onDragOver={(event) => event.preventDefault()} className="relative h-[620px] overflow-hidden rounded-xl border border-gray-200 bg-slate-50 shadow-sm">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -383,64 +370,35 @@ export default function FlowBuilder() {
             <div className="mt-3 space-y-3">
               <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Label
-                <input
-                  value={selectedNode.data?.label || ''}
-                  onChange={(event) => updateNodeData({ label: event.target.value })}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                />
+                <input value={selectedNode.data?.label || ''} onChange={(event) => updateNodeData({ label: event.target.value })} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
               </label>
 
-              {(selectedNode.type === 'text' || selectedNode.type === 'condition') && (
+              {(selectedNode.type === 'text' || selectedNode.type === 'condition' || selectedNode.type === 'end') && (
                 <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500">
                   Message
-                  <textarea
-                    rows={4}
-                    value={selectedNode.data?.message || ''}
-                    onChange={(event) => updateNodeData({ message: event.target.value })}
-                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                  />
+                  <textarea rows={4} value={selectedNode.data?.message || ''} onChange={(event) => updateNodeData({ message: event.target.value })} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
                 </label>
               )}
 
-              {(selectedNode.type === 'delay' || selectedNode.type === 'text') && (
+              {selectedNode.type === 'delay' && (
                 <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500">
                   Delay (seconds)
-                  <input
-                    type="number"
-                    min="0"
-                    value={selectedNode.data?.delay || 0}
-                    onChange={(event) => updateNodeData({ delay: event.target.value })}
-                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                  />
+                  <input type="number" min="0" value={selectedNode.data?.delay || 0} onChange={(event) => updateNodeData({ delay: event.target.value })} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
                 </label>
               )}
 
               {selectedNode.type === 'condition' && (
                 <>
                   <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Keyword
-                    <input
-                      value={selectedNode.data?.keyword || ''}
-                      onChange={(event) => updateNodeData({ keyword: event.target.value })}
-                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                    />
+                    Save Selection As
+                    <input value={selectedNode.data?.keyword || ''} onChange={(event) => updateNodeData({ keyword: event.target.value })} placeholder="optional_variable_name" className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
                   </label>
 
                   <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Options (comma separated)
-                    <input
-                      value={(selectedNode.data?.options || []).join(', ')}
-                      onChange={(event) =>
-                        updateNodeData({
-                          options: event.target.value
-                            .split(',')
-                            .map((item) => item.trim())
-                            .filter(Boolean),
-                        })
-                      }
-                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                    />
+                    <input value={(selectedNode.data?.options || []).join(', ')} onChange={(event) => updateNodeData({ options: event.target.value.split(',').map((item) => item.trim()).filter(Boolean) })} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
                   </label>
+                  <p className="text-xs text-gray-500">Connect outgoing edges in the same order as the options above.</p>
                 </>
               )}
             </div>
