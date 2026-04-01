@@ -6,7 +6,10 @@ import InvoiceModal from "../Components/InvoiceModal";
 import { LoadingSpinner } from "../Components";
 import { fetchCustomers } from "../services/customerService.js";
 import { addTransaction } from "../services/transactionService.js";
-import { extractPhoneNumber, sendWhatsAppText } from "../utils/whatsapp.js";
+import {
+  extractPhoneNumber,
+  sendTemplateWithTextFallback,
+} from "../utils/whatsapp.js";
 
 export default function AddTransaction1() {
   const navigate = useNavigate();
@@ -55,7 +58,9 @@ export default function AddTransaction1() {
       .then(res => {
         if (res.data.success) {
           setAllCustomerOptions(res.data.result);
-          const accountOptions = res.data.result.filter(item => item.Customer_group === "Bank and Account");
+          const accountOptions = res.data.result.filter(
+            item => item.Customer_group === "Bank and Account"
+          );
           setAccountCustomerOptions(accountOptions);
         }
       })
@@ -73,7 +78,9 @@ export default function AddTransaction1() {
       setFilteredOptions(filtered);
       setShowOptions(true);
     } else {
+      setFilteredOptions([]);
       setShowOptions(false);
+      setCreditCustomer('');
     }
   };
 
@@ -99,12 +106,20 @@ export default function AddTransaction1() {
   const submit = async (e) => {
     e.preventDefault();
 
-    if (!Amount || isNaN(Amount) || Amount <= 0) return toast.error("Enter valid amount.");
-    if (!CreditCustomer || !DebitCustomer) return toast.error("Select both Credit and Debit customer.");
+    if (!Amount || isNaN(Amount) || Number(Amount) <= 0) {
+      return toast.error("Enter valid amount.");
+    }
+    if (!CreditCustomer || !DebitCustomer) {
+      return toast.error("Select both Credit and Debit customer.");
+    }
 
     const creditCustomer = allCustomerOptions.find(c => c.Customer_uuid === CreditCustomer);
     const debitCustomer = accountCustomerOptions.find(c => c.Customer_uuid === DebitCustomer);
     const todayDate = new Date().toISOString().split("T")[0];
+
+    if (!creditCustomer || !debitCustomer) {
+      return toast.error("Selected customer or payment mode is invalid.");
+    }
 
     const journal = [
       { Account_id: debitCustomer.Customer_uuid, Type: 'Debit', Amount: Number(Amount) },
@@ -123,21 +138,31 @@ export default function AddTransaction1() {
 
     try {
       setLoading(true);
-      const res = await addTransaction(formData, { headers: { "Content-Type": "multipart/form-data" } });
+      const res = await addTransaction(formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
 
       if (res.data.success) {
         toast.success("Transaction saved.");
         const message = `Hello ${creditCustomer?.Customer_name || Customer_name}, your payment of ₹${Amount} has been recorded. Thank you!`;
         const phoneNumber = extractPhoneNumber(creditCustomer);
+
         setWhatsAppMessage(message);
         setMobileToSend(phoneNumber);
         setIsTransactionSaved(true);
 
         if (sendWhatsAppAfterSave) {
-          await sendWhatsApp(phoneNumber, message);
+          await sendWhatsApp(phoneNumber, message, creditCustomer);
         }
 
-        setInvoiceItems([{ Item: Description || 'Payment', Quantity: 1, Rate: Amount, Amount: Amount }]);
+        setInvoiceItems([
+          {
+            Item: Description || 'Payment',
+            Quantity: 1,
+            Rate: Number(Amount),
+            Amount: Number(Amount)
+          }
+        ]);
         setShowInvoiceModal(true);
       } else {
         toast.error("Failed to save transaction");
@@ -149,7 +174,11 @@ export default function AddTransaction1() {
     }
   };
 
-  const sendWhatsApp = async (phone = mobileToSend, message = whatsAppMessage) => {
+  const sendWhatsApp = async (
+    phone = mobileToSend,
+    message = whatsAppMessage,
+    customerData = null
+  ) => {
     if (!phone) {
       toast.error("Customer phone number is required");
       return;
@@ -158,10 +187,19 @@ export default function AddTransaction1() {
     setIsSendingWhatsApp(true);
 
     try {
-      const { data } = await sendWhatsAppText({
+      const selectedCustomer =
+        customerData ||
+        allCustomerOptions.find((c) => c.Customer_uuid === CreditCustomer);
+
+      const customerLabel =
+        selectedCustomer?.Customer_name || Customer_name || 'Customer';
+
+      const { data } = await sendTemplateWithTextFallback({
         axiosInstance: axios,
         phone,
-        message,
+        templateName: 'payment',
+        bodyParameters: [customerLabel],
+        fallbackMessage: message,
       });
 
       if (data?.success) {
@@ -216,7 +254,9 @@ export default function AddTransaction1() {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
                   value={Customer_name}
                   onChange={handleInputChange}
-                  onFocus={() => setShowOptions(true)}
+                  onFocus={() => {
+                    if (filteredOptions.length > 0) setShowOptions(true);
+                  }}
                 />
                 {showOptions && filteredOptions.length > 0 && (
                   <ul className="absolute z-10 w-full bg-white border rounded-md max-h-40 overflow-y-auto">
@@ -335,7 +375,7 @@ export default function AddTransaction1() {
                 loading ||
                 !Amount ||
                 isNaN(Amount) ||
-                Amount <= 0 ||
+                Number(Amount) <= 0 ||
                 !CreditCustomer ||
                 !DebitCustomer
               }
@@ -359,7 +399,6 @@ export default function AddTransaction1() {
                 {isSendingWhatsApp ? 'Sending WhatsApp...' : 'Send WhatsApp Receipt'}
               </button>
             )}
-
           </form>
         </div>
       </div>

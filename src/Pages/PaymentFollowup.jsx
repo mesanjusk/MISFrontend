@@ -3,7 +3,10 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from '../apiClient.js';
 import toast, { Toaster } from "react-hot-toast";
-import { extractPhoneNumber, sendWhatsAppText } from "../utils/whatsapp.js";
+import {
+  extractPhoneNumber,
+  sendTemplateWithTextFallback,
+} from "../utils/whatsapp.js";
 
 const todayISO = () => new Date().toLocaleDateString("en-CA"); // yyyy-mm-dd
 
@@ -18,11 +21,10 @@ function SearchableSelect({
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value || "");
-  const [hi, setHi] = useState(0); // highlighted index
+  const [hi, setHi] = useState(0);
   const rootRef = useRef(null);
   const inputRef = useRef(null);
 
-  // keep input text in sync with external value
   useEffect(() => {
     setQuery(value || "");
   }, [value]);
@@ -127,7 +129,6 @@ function SearchableSelect({
                 aria-selected={value === opt}
                 onMouseEnter={() => setHi(idx)}
                 onMouseDown={(e) => {
-                  // prevent input blur before click handles
                   e.preventDefault();
                   commitSelect(opt);
                 }}
@@ -164,7 +165,6 @@ export default function PaymentFollowup() {
   const [isTransactionSaved, setIsTransactionSaved] = useState(false);
 
   const [isDateChecked, setIsDateChecked] = useState(false);
-  // Follow-up date (used when admin enables Save Date); default today fallback
   const [Deadline, setDeadline] = useState(todayISO());
 
   const [submitting, setSubmitting] = useState(false);
@@ -190,7 +190,6 @@ export default function PaymentFollowup() {
         );
 
       try {
-        // Try singular
         const r1 = await axios.get("/customer/GetCustomerList");
         if (r1?.data?.success && Array.isArray(r1.data.result)) {
           setCustomerDetails(r1.data.result);
@@ -200,7 +199,6 @@ export default function PaymentFollowup() {
         throw new Error("Singular route returned unexpected response");
       } catch {
         try {
-          // Fallback to plural
           const r2 = await axios.get("/customer/GetCustomersList");
           if (r2?.data?.success && Array.isArray(r2.data.result)) {
             setCustomerDetails(r2.data.result);
@@ -227,7 +225,11 @@ export default function PaymentFollowup() {
     setDeadline(todayISO());
   };
 
-  const sendWhatsApp = async (phone = mobileToSend, message = whatsAppMessage) => {
+  const sendWhatsApp = async (
+    phone = mobileToSend,
+    message = whatsAppMessage,
+    customerData = null
+  ) => {
     if (!phone) {
       toast.error("Customer phone number is required");
       return;
@@ -236,10 +238,18 @@ export default function PaymentFollowup() {
     setIsSendingWhatsApp(true);
 
     try {
-      const { data } = await sendWhatsAppText({
+      const selectedCustomer =
+        customerData ||
+        customerDetails.find((item) => item.Customer_name === Customer);
+
+      const customerLabel = selectedCustomer?.Customer_name || Customer || "Customer";
+
+      const { data } = await sendTemplateWithTextFallback({
         axiosInstance: axios,
         phone,
-        message,
+        templateName: "outstanding_sk",
+        bodyParameters: [customerLabel],
+        fallbackMessage: message,
       });
 
       if (data?.success) {
@@ -257,15 +267,16 @@ export default function PaymentFollowup() {
   const submit = async (e) => {
     e.preventDefault();
 
-    // Require selection from the list
     if (!Customer) return toast.error("Please select a customer.");
     if (!customerOptions.includes(Customer)) {
       return toast.error("Please pick a customer from the suggestions.");
     }
-    if (!Amount || Number(Amount) <= 0)
+    if (!Amount || Number(Amount) <= 0) {
       return toast.error("Please enter a valid amount.");
+    }
 
-    const finalDate = isAdminUser && isDateChecked ? (Deadline || todayISO()) : todayISO();
+    const finalDate =
+      isAdminUser && isDateChecked ? (Deadline || todayISO()) : todayISO();
 
     try {
       setSubmitting(true);
@@ -280,7 +291,9 @@ export default function PaymentFollowup() {
       if (res.data === "exist") {
         toast.error("A similar follow-up already exists for this customer/date.");
       } else {
-        const selectedCustomer = customerDetails.find((item) => item.Customer_name === Customer);
+        const selectedCustomer = customerDetails.find(
+          (item) => item.Customer_name === Customer
+        );
         const phoneNumber = extractPhoneNumber(selectedCustomer);
         const message = `Hello ${Customer}, we will follow up with you for ₹${Number(Amount)}. Thank you!`;
 
@@ -290,7 +303,7 @@ export default function PaymentFollowup() {
         setIsTransactionSaved(true);
 
         if (sendWhatsAppAfterSave) {
-          await sendWhatsApp(phoneNumber, message);
+          await sendWhatsApp(phoneNumber, message, selectedCustomer);
         }
       }
     } catch (err) {
@@ -306,152 +319,147 @@ export default function PaymentFollowup() {
   return (
     <>
       <Toaster position="top-center" reverseOrder={false} />
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-lg p-6 relative">
-        <button
-          onClick={closeModal}
-          className="absolute right-2 top-2 text-xl text-gray-400 hover:text-blue-500"
-          type="button"
-        >
-          ×
-        </button>
+      <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+        <div className="bg-white w-full max-w-md rounded-2xl shadow-lg p-6 relative">
+          <button
+            onClick={closeModal}
+            className="absolute right-2 top-2 text-xl text-gray-400 hover:text-blue-500"
+            type="button"
+          >
+            ×
+          </button>
 
-        <h2 className="text-xl font-semibold mb-4 text-center text-[#075e54]">
-          Add Payment Follow-up
-        </h2>
+          <h2 className="text-xl font-semibold mb-4 text-center text-[#075e54]">
+            Add Payment Follow-up
+          </h2>
 
-        <form onSubmit={submit} className="space-y-4">
-          {/* Customer (searchable dropdown) */}
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">
-              Select Customer
-            </label>
-            <SearchableSelect
-              options={customerOptions}
-              value={Customer}
-              onChange={setCustomer}
-              placeholder="Select customer"
-              searchPlaceholder="Search customer..."
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              {customerOptions.length} customer
-              {customerOptions.length === 1 ? "" : "s"} available
-            </p>
-          </div>
-
-          {/* Amount */}
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">
-              Amount (₹)
-            </label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={Amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="Enter amount"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-            />
-          </div>
-          {isAdminUser && (
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={isDateChecked}
-                onChange={handleDateCheckboxChange}
-                className="h-4 w-4 text-[#25d366] border-gray-300 rounded"
-              />
-              <label className="text-gray-700">Save Date</label>
-            </div>
-          )}
-
-          {isAdminUser && isDateChecked && (
+          <form onSubmit={submit} className="space-y-4">
             <div>
               <label className="block font-medium text-gray-700 mb-1">
-                Follow-up Date
+                Select Customer
+              </label>
+              <SearchableSelect
+                options={customerOptions}
+                value={Customer}
+                onChange={setCustomer}
+                placeholder="Select customer"
+                searchPlaceholder="Search customer..."
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {customerOptions.length} customer
+                {customerOptions.length === 1 ? "" : "s"} available
+              </p>
+            </div>
+
+            <div>
+              <label className="block font-medium text-gray-700 mb-1">
+                Amount (₹)
               </label>
               <input
-                type="date"
-                value={Deadline}
-                onChange={(e) => setDeadline(e.target.value)}
+                type="number"
+                min="0"
+                step="0.01"
+                value={Amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Enter amount"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
               />
             </div>
-          )}
-          {/* Title */}
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">
-              Short Title / Reason
-            </label>
-            <input
-              type="text"
-              value={Title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Pending invoice for July"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-            />
-          </div>
 
-          
+            {isAdminUser && (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={isDateChecked}
+                  onChange={handleDateCheckboxChange}
+                  className="h-4 w-4 text-[#25d366] border-gray-300 rounded"
+                />
+                <label className="text-gray-700">Save Date</label>
+              </div>
+            )}
 
-          {/* Remark */}
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">
-              Remark
-            </label>
-            <input
-              type="text"
-              value={Remark}
-              onChange={(e) => setRemark(e.target.value)}
-              placeholder="Add remark"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-            />
-          </div>
+            {isAdminUser && isDateChecked && (
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">
+                  Follow-up Date
+                </label>
+                <input
+                  type="date"
+                  value={Deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
+                />
+              </div>
+            )}
 
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={sendWhatsAppAfterSave}
-              onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)}
-              className="h-4 w-4 text-[#25d366] border-gray-300 rounded"
-            />
-            <label className="text-gray-700">Send WhatsApp after saving</label>
-          </div>
+            <div>
+              <label className="block font-medium text-gray-700 mb-1">
+                Short Title / Reason
+              </label>
+              <input
+                type="text"
+                value={Title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g., Pending invoice for July"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
+              />
+            </div>
 
-          {isTransactionSaved && (
-            <button
-              type="button"
-              onClick={() => sendWhatsApp()}
-              disabled={isSendingWhatsApp}
-              className="w-full bg-[#075e54] hover:bg-[#064c44] text-white font-medium py-2 rounded-lg transition disabled:opacity-60"
-            >
-              {isSendingWhatsApp ? "Sending WhatsApp..." : "Send WhatsApp Receipt"}
-            </button>
-          )}
+            <div>
+              <label className="block font-medium text-gray-700 mb-1">
+                Remark
+              </label>
+              <input
+                type="text"
+                value={Remark}
+                onChange={(e) => setRemark(e.target.value)}
+                placeholder="Add remark"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
+              />
+            </div>
 
-          {/* Actions */}
-          <div className="flex flex-col space-y-2">
-            <button
-              type="submit"
-              disabled={submitting}
-              className={`${
-                submitting ? "opacity-70 cursor-not-allowed" : ""
-              } bg-[#25d366] hover:bg-[#128c7e] text-white font-medium py-2 rounded-lg transition`}
-            >
-              {submitting ? "Saving..." : "Submit"}
-            </button>
-            <button
-              type="button"
-              className="bg-gray-400 hover:bg-gray-600 text-white font-medium py-2 rounded-lg transition"
-              onClick={closeModal}
-            >
-              Close
-            </button>
-          </div>
-        </form>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={sendWhatsAppAfterSave}
+                onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)}
+                className="h-4 w-4 text-[#25d366] border-gray-300 rounded"
+              />
+              <label className="text-gray-700">Send WhatsApp after saving</label>
+            </div>
+
+            {isTransactionSaved && (
+              <button
+                type="button"
+                onClick={() => sendWhatsApp()}
+                disabled={isSendingWhatsApp}
+                className="w-full bg-[#075e54] hover:bg-[#064c44] text-white font-medium py-2 rounded-lg transition disabled:opacity-60"
+              >
+                {isSendingWhatsApp ? "Sending WhatsApp..." : "Send WhatsApp Receipt"}
+              </button>
+            )}
+
+            <div className="flex flex-col space-y-2">
+              <button
+                type="submit"
+                disabled={submitting}
+                className={`${
+                  submitting ? "opacity-70 cursor-not-allowed" : ""
+                } bg-[#25d366] hover:bg-[#128c7e] text-white font-medium py-2 rounded-lg transition`}
+              >
+                {submitting ? "Saving..." : "Submit"}
+              </button>
+              <button
+                type="button"
+                className="bg-gray-400 hover:bg-gray-600 text-white font-medium py-2 rounded-lg transition"
+                onClick={closeModal}
+              >
+                Close
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
     </>
   );
 }

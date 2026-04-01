@@ -6,7 +6,10 @@ import toast from "react-hot-toast";
 import AddCustomer from "./addCustomer";
 import InvoiceModal from "../Components/InvoiceModal";
 import { LoadingSpinner } from "../Components";
-import { extractPhoneNumber } from "../utils/whatsapp.js";
+import {
+  extractPhoneNumber,
+  sendTemplateWithTextFallback,
+} from "../utils/whatsapp.js";
 /* ✅ MUI */
 import {
   AppBar,
@@ -240,16 +243,17 @@ export default function AddOrder1() {
 
       const phoneNumber = extractPhoneNumber(customer);
       const orderAmount = Number(Amount) > 0 ? Number(Amount) : 0;
-      const message = orderAmount > 0
-        ? `Hello ${customer.Customer_name}, your order of ₹${orderAmount} has been placed successfully. Thank you!`
-        : `Hello ${customer.Customer_name}, your order has been placed successfully. Thank you!`;
+      const message =
+        orderAmount > 0
+          ? `Hello ${customer.Customer_name}, your order of ₹${orderAmount} has been placed successfully. Thank you!`
+          : `Hello ${customer.Customer_name}, your order has been placed successfully. Thank you!`;
 
       setWhatsAppMessage(message);
       setMobileToSend(phoneNumber);
       setIsTransactionSaved(true);
 
       if (sendWhatsAppAfterSave) {
-        await sendWhatsApp(phoneNumber, message);
+        await sendWhatsApp(phoneNumber, message, customer);
       }
 
       setShowInvoiceModal(true);
@@ -305,7 +309,11 @@ export default function AddOrder1() {
     }
   };
 
-  const sendWhatsApp = async (phone = mobileToSend, message = whatsAppMessage) => {
+  const sendWhatsApp = async (
+    phone = mobileToSend,
+    message = whatsAppMessage,
+    customerData = null
+  ) => {
     if (!phone) {
       toast.error("Customer phone number is required");
       return;
@@ -314,10 +322,18 @@ export default function AddOrder1() {
     setIsSendingWhatsApp(true);
 
     try {
-      const { data } = await sendWhatsAppText({
+      const customer =
+        customerData ||
+        customerOptions.find((opt) => opt.Customer_name === Customer_name);
+
+      const customerLabel = customer?.Customer_name || Customer_name || "Customer";
+
+      const { data } = await sendTemplateWithTextFallback({
         axiosInstance: axios,
         phone,
-        message,
+        templateName: "order_sk",
+        bodyParameters: [customerLabel],
+        fallbackMessage: message,
       });
 
       if (data?.success) {
@@ -687,7 +703,13 @@ export default function AddOrder1() {
                         variant="contained"
                         onClick={() => sendWhatsApp()}
                         disabled={isSendingWhatsApp}
-                        sx={{ borderRadius: 2, py: 1.1, textTransform: "none", fontWeight: 700, bgcolor: "#075e54" }}
+                        sx={{
+                          borderRadius: 2,
+                          py: 1.1,
+                          textTransform: "none",
+                          fontWeight: 700,
+                          bgcolor: "#075e54",
+                        }}
                       >
                         {isSendingWhatsApp ? "Sending WhatsApp..." : "Send WhatsApp Receipt"}
                       </Button>
