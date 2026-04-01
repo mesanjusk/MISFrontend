@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { ROUTE_ALIASES, ROUTES } from "../constants/routes";
 
 const IconChevronRight = ({ open }) => (
   <svg
@@ -26,18 +27,18 @@ export default function Sidebar({ collapsed, onExpand, onCollapse }) {
       group: "Customer",
       items: [
         { label: "Ledger", path: "/customerReport" },
-        { label: "Add Customer", path: "/addcustomer" },
-        { label: "Customer 360", path: "/customer-360" },
+        { label: "Add Customer", path: ROUTES.ADD_CUSTOMER },
+        { label: "Customer 360", path: ROUTES.CUSTOMER_360 },
       ],
     },
     {
       group: "Item",
       items: [
         { label: "Item Report", path: "/itemReport" },
-        { label: "Add Item", path: "/additem" },
-        { label: "Add Item Group", path: "/additemgroup" },
+        { label: "Add Item", path: ROUTES.ADD_ITEM },
+        { label: "Add Item Group", path: ROUTES.ADD_ITEM_GROUP },
         ...(userGroup === "Vendor"
-          ? [{ label: "Vendor Bills", path: "/vendorBills" }]
+          ? [{ label: "Vendor Bills", path: ROUTES.VENDOR_BILLS }]
           : []),
       ],
     },
@@ -45,63 +46,63 @@ export default function Sidebar({ collapsed, onExpand, onCollapse }) {
       group: "Task",
       items: [
         { label: "Task Report", path: "/taskReport" },
-        { label: "Pending Task", path: "/pendingtask" },
-        { label: "Add Task", path: "/addtask" },
-        { label: "Add Task Group", path: "/addtaskgroup" },
+        { label: "Pending Task", path: ROUTES.PENDING_TASKS },
+        { label: "Add Task", path: ROUTES.ADD_TASK },
+        { label: "Add Task Group", path: ROUTES.ADD_TASK_GROUP },
       ],
     },
     {
       group: "User",
       items: [
         { label: "User Report", path: "/userReport" },
-        { label: "Add User", path: "/adduser" },
-        { label: "Add User Group", path: "/addusergroup" },
-        { label: "Attendance", path: "/Attendance-Report" },
+        { label: "Add User", path: ROUTES.ADD_USER },
+        { label: "Add User Group", path: ROUTES.ADD_USER_GROUP },
+        { label: "Attendance", path: ROUTES.ATTENDANCE_REPORT },
       ],
     },
     {
       group: "Order",
       items: [
-        { label: "Add Order", path: "/addorder1" },
-        { label: "All Bills", path: "/allbills" },
-        { label: "Order Kanban", path: "/order-kanban" },
+        { label: "Add Order", path: ROUTES.ADD_ORDER_V2 },
+        { label: "All Bills", path: ROUTES.ALL_BILLS },
+        { label: "Order Kanban", path: ROUTES.ORDER_KANBAN },
       ],
     },
     {
       group: "Enquiry",
       items: [
-        { label: "Add Enquiry", path: "/addenquiry" },
-        { label: "Add Note", path: "/addnote" },
+        { label: "Add Enquiry", path: ROUTES.ADD_ENQUIRY },
+        { label: "Add Note", path: ROUTE_ALIASES.ADD_NOTE_LOWER },
       ],
     },
     {
       group: "Account",
       items: [
-        { label: "Payment Report", path: "/paymentReport" },
-        { label: "Priority Report", path: "/priorityReport" },
-        { label: "Add Payable", path: "/addPayble" },
-        { label: "Add Receivable", path: "/addRecievable" },
+        { label: "Payment Report", path: ROUTES.PAYMENT_REPORT },
+        { label: "Priority Report", path: ROUTES.PRIORITY_REPORT },
+        { label: "Add Payable", path: ROUTES.ADD_PAYABLE },
+        { label: "Add Receivable", path: ROUTES.ADD_RECEIVABLE },
       ],
     },
     {
       group: "Transaction",
       items: [
-        { label: "All Trancation", path: "/allTransaction" },
-        { label: "All Account", path: "/alltranscation1" },
-        { label: "Outstanding", path: "/alltransaction2" },
+        { label: "All Trancation", path: ROUTES.ALL_TRANSACTION },
+        { label: "All Account", path: ROUTE_ALIASES.ALL_TRANSACTION_1_TYPO },
+        { label: "Outstanding", path: ROUTES.ALL_TRANSACTION_2 },
               ],
     },
     {
       group: "WhatsApp",
       items: [
-        { label: "Cloud API Dashboard", path: "/whatsapp-cloud" },
+        { label: "Cloud API Dashboard", path: ROUTES.WHATSAPP_CLOUD },
       ],
     },
     {
       group: "Admin",
       items:
         userGroup === "Admin User"
-          ? [{ label: "Call Logs", path: "/calllogs" }]
+          ? [{ label: "Call Logs", path: ROUTES.CALL_LOGS }]
           : [],
     },
   ];

@@ -1,3 +1,4 @@
+// ARCHIVED: Legacy duplicate report file moved from src/Reports/allBills copy.jsx. Not routed or imported by App.
 import React, { useState, useEffect } from "react";
 import { fetchBillList } from '../services/orderService.js';
 import { fetchCustomers as fetchCustomersList } from '../services/customerService.js';

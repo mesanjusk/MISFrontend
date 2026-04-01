@@ -4,6 +4,7 @@ import "./apiClient.js";
 import Layout from "./Pages/Layout";
 import { initVersionChecker } from "./utils/versionChecker";
 import { ToastContainer } from "./Components";
+import { ROUTE_ALIASES, ROUTES } from "./constants/routes";
 
 const Login = lazy(() => import("./Pages/login"));
 const Register = lazy(() => import("./Pages/Register"));
@@ -69,6 +70,7 @@ const PaymentFollowup = lazy(() => import("./Pages/PaymentFollowup"));
 const AttendanceReport = lazy(() => import("./Pages/AttendanceReport"));
 const SearchMobile = lazy(() => import("./Pages/searchMobile"));
 const AddUsertask = lazy(() => import("./Pages/addUsertask"));
+const AddNote = lazy(() => import("./Pages/addNote"));
 const CallLogs = lazy(() => import("./Pages/callLogs"));
 const AdminHome = lazy(() => import("./Pages/adminHome"));
 const VendorHome = lazy(() => import("./Pages/vendorHome"));
@@ -100,84 +102,86 @@ function App() {
       <ToastContainer />
       <div className="min-h-screen bg-background text-gray-900">
         <Routes>
-          <Route path="/" element={withSuspense(<Login />)} />
-          <Route path="/login" element={withSuspense(<Login />)} />
-          <Route path="/register" element={withSuspense(<Register />)} />
+          <Route path={ROUTES.ROOT} element={withSuspense(<Login />)} />
+          <Route path={ROUTES.LOGIN} element={withSuspense(<Login />)} />
+          <Route path={ROUTES.REGISTER} element={withSuspense(<Register />)} />
 
           <Route element={<Layout />}>
-            <Route path="/home" element={withSuspense(<Dashboard />)} />
+            <Route path={ROUTES.HOME} element={withSuspense(<Dashboard />)} />
             <Route path="/planner" element={withSuspense(<Planner />)} />
             <Route path="/review" element={withSuspense(<Review />)} />
             <Route path="/team" element={withSuspense(<Team />)} />
             <Route path="/adminHome" element={withSuspense(<AdminHome />)} />
             <Route path="/vendorHome" element={withSuspense(<VendorHome />)} />
-            <Route path="/addCustomer" element={withSuspense(<AddCustomer />)} />
+            <Route path={ROUTES.ADD_CUSTOMER} element={withSuspense(<AddCustomer />)} />
             <Route path="/addCustgroup" element={withSuspense(<AddCustGroup />)} />
-            <Route path="/addUser" element={withSuspense(<AddUser />)} />
-            <Route path="/addUsergroup" element={withSuspense(<AddUserGroup />)} />
-            <Route path="/addItem" element={withSuspense(<AddItem />)} />
-            <Route path="/addItemgroup" element={withSuspense(<AddItemGroup />)} />
-            <Route path="/addTask" element={withSuspense(<AddTask />)} />
-            <Route path="/addTaskgroup" element={withSuspense(<AddTaskGroup />)} />
+            <Route path={ROUTES.ADD_USER} element={withSuspense(<AddUser />)} />
+            <Route path={ROUTES.ADD_USER_GROUP} element={withSuspense(<AddUserGroup />)} />
+            <Route path={ROUTES.ADD_ITEM} element={withSuspense(<AddItem />)} />
+            <Route path={ROUTES.ADD_ITEM_GROUP} element={withSuspense(<AddItemGroup />)} />
+            <Route path={ROUTES.ADD_TASK} element={withSuspense(<AddTask />)} />
+            <Route path={ROUTES.ADD_TASK_GROUP} element={withSuspense(<AddTaskGroup />)} />
             <Route path="/addPriority" element={withSuspense(<AddPriority />)} />
-            <Route path="/addOrder" element={withSuspense(<AddOrder />)} />
-            <Route path="/addOrder1" element={withSuspense(<AddOrder1 />)} />
+            <Route path={ROUTES.ADD_ORDER} element={withSuspense(<AddOrder />)} />
+            <Route path={ROUTES.ADD_ORDER_V2} element={withSuspense(<AddOrder1 />)} />
             <Route path="/allOrderT" element={withSuspense(<AllOrderTableView />)} />
             <Route path="/allOrder" element={withSuspense(<AllOrder />)} />
             <Route path="/allOrderM" element={withSuspense(<AllOrderMobile />)} />
             <Route path="/allDelivery" element={withSuspense(<AllDelivery />)} />
             <Route path="/orderUpdate/:id" element={withSuspense(<OrderUpdate />)} />
             <Route path="/updateDelivery/:id" element={withSuspense(<UpdateDelivery />)} />
-            <Route path="/addEnquiry" element={withSuspense(<AddEnquiry />)} />
+            <Route path={ROUTES.ADD_ENQUIRY} element={withSuspense(<AddEnquiry />)} />
+            <Route path={ROUTES.ADD_NOTE} element={withSuspense(<AddNote />)} />
+            <Route path={ROUTE_ALIASES.ADD_NOTE_LOWER} element={<Navigate to={ROUTES.ADD_NOTE} replace />} />
             <Route path="/addTransaction" element={withSuspense(<AddTransaction />)} />
             <Route path="/addTransactionOld" element={withSuspense(<AddTransactionOld />)} />
             <Route path="/addTransaction1" element={withSuspense(<AddTransaction1 />)} />
             <Route path="/addTransaction1Old" element={withSuspense(<AddTransaction1Old />)} />
             <Route path="/addPayment" element={withSuspense(<AddPayment />)} />
-            <Route path="/addRecievable" element={withSuspense(<AddRecievable />)} />
-            <Route path="/addPayable" element={withSuspense(<AddPayable />)} />
-            <Route path="/allTransaction" element={withSuspense(<AllTransaction />)} />
-            <Route path="/allTransaction1" element={withSuspense(<AllTransaction1 />)} />
+            <Route path={ROUTES.ADD_RECEIVABLE} element={withSuspense(<AddRecievable />)} />
+            <Route path={ROUTES.ADD_PAYABLE} element={withSuspense(<AddPayable />)} />
+            <Route path={ROUTES.ALL_TRANSACTION} element={withSuspense(<AllTransaction />)} />
+            <Route path={ROUTES.ALL_TRANSACTION_1} element={withSuspense(<AllTransaction1 />)} />
             <Route path="/allTransactionOld" element={withSuspense(<AllTransactionOld />)} />
-            <Route path="/allTransaction2" element={withSuspense(<AllTransaction2 />)} />
+            <Route path={ROUTES.ALL_TRANSACTION_2} element={withSuspense(<AllTransaction2 />)} />
             <Route path="/allTransaction3" element={withSuspense(<AllTransaction3 />)} />
             <Route path="/allTransaction4D" element={withSuspense(<AllTransaction4D />)} />
             <Route path="/customerReport" element={withSuspense(<CustomerReport />)} />
             <Route path="/taskReport" element={withSuspense(<TaskReport />)} />
             <Route path="/userReport" element={withSuspense(<UserReport />)} />
             <Route path="/itemReport" element={withSuspense(<ItemReport />)} />
-            <Route path="/paymentReport" element={withSuspense(<PaymentReport />)} />
-            <Route path="/priorityReport" element={withSuspense(<PriorityReport />)} />
-            <Route path="/allBills" element={withSuspense(<AllBills />)} />
-            <Route path="/vendorBills" element={withSuspense(<VendorBills />)} />
-            <Route path="/AllVendors" element={withSuspense(<AllVendors />)} />
+            <Route path={ROUTES.PAYMENT_REPORT} element={withSuspense(<PaymentReport />)} />
+            <Route path={ROUTES.PRIORITY_REPORT} element={withSuspense(<PriorityReport />)} />
+            <Route path={ROUTES.ALL_BILLS} element={withSuspense(<AllBills />)} />
+            <Route path={ROUTES.VENDOR_BILLS} element={withSuspense(<VendorBills />)} />
+            <Route path={ROUTES.ALL_VENDORS} element={withSuspense(<AllVendors />)} />
             <Route path="/SendMessage" element={withSuspense(<SendMessage />)} />
             <Route path="/SendMessageAll" element={withSuspense(<SendMessageAll />)} />
             <Route path="/WhatsAppLogin" element={withSuspense(<WhatsAppLogin />)} />
             <Route path="/WhatsAppAdminPanel" element={withSuspense(<WhatsAppAdminPanel />)} />
             <Route path="/WhatsAppSession" element={withSuspense(<WhatsAppSession />)} />
-            <Route path="/whatsapp-cloud" element={withSuspense(<WhatsAppCloudDashboard />)} />
-            <Route path="/PendingTasks" element={withSuspense(<PendingTasks />)} />
+            <Route path={ROUTES.WHATSAPP_CLOUD} element={withSuspense(<WhatsAppCloudDashboard />)} />
+            <Route path={ROUTES.PENDING_TASKS} element={withSuspense(<PendingTasks />)} />
             <Route path="/AllAttandance" element={withSuspense(<AllAttandance />)} />
             <Route path="/CashLedger" element={withSuspense(<CashLedger />)} />
             <Route path="/addVendor" element={withSuspense(<Vendor />)} />
             <Route path="/migrate-orders" element={withSuspense(<MigrateOrders />)} />
             <Route path="/Followups" element={withSuspense(<PaymentFollowup />)} />
-            <Route path="/attendance-report" element={withSuspense(<AttendanceReport />)} />
+            <Route path={ROUTES.ATTENDANCE_REPORT} element={withSuspense(<AttendanceReport />)} />
             <Route path="/customerMobile" element={withSuspense(<SearchMobile />)} />
             <Route path="/addUsertask" element={withSuspense(<AddUsertask />)} />
-            <Route path="/calllogs" element={withSuspense(<CallLogs />)} />
-            <Route path="/flow-builder" element={withSuspense(<FlowBuilderPage />)} />
-            <Route path="/order-kanban" element={withSuspense(<OrderKanban />)} />
-            <Route path="/customer-360" element={withSuspense(<CustomerDetails />)} />
-            <Route path="/customer-360/:id" element={withSuspense(<CustomerDetails />)} />
+            <Route path={ROUTES.CALL_LOGS} element={withSuspense(<CallLogs />)} />
+            <Route path={ROUTES.FLOW_BUILDER} element={withSuspense(<FlowBuilderPage />)} />
+            <Route path={ROUTES.ORDER_KANBAN} element={withSuspense(<OrderKanban />)} />
+            <Route path={ROUTES.CUSTOMER_360} element={withSuspense(<CustomerDetails />)} />
+            <Route path={`${ROUTES.CUSTOMER_360}/:id`} element={withSuspense(<CustomerDetails />)} />
             <Route path="/editCustomer/:id" element={withSuspense(<EditCustomer />)} />
             <Route path="/editTask/:id" element={withSuspense(<EditTask />)} />
             <Route path="/editItem/:id" element={withSuspense(<EditItem />)} />
             <Route path="/editUser/:id" element={withSuspense(<EditUser />)} />
             <Route path="/editPayment/:id" element={withSuspense(<EditPayment />)} />
             <Route path="/editPriority/:id" element={withSuspense(<EditPriority />)} />
-            <Route path="/alltranscation1" element={<Navigate to="/allTransaction1" replace />} />
+            <Route path={ROUTE_ALIASES.ALL_TRANSACTION_1_TYPO} element={<Navigate to={ROUTES.ALL_TRANSACTION_1} replace />} />
             <Route path="*" element={<div className="p-8">404 Not Found</div>} />
           </Route>
         </Routes>
