@@ -230,6 +230,13 @@ export default function AddOrder1() {
 
       setCreatedOrder(orderRes.data.result || null);
 
+const driveFile = orderRes.data?.driveFile;
+if (driveFile?.status === "created") {
+  toast.success("Order added and Drive file created");
+} else if (driveFile?.status === "failed") {
+  toast.error(`Order saved, but Drive file failed: ${driveFile?.error || "Unknown error"}`);
+}
+
       // ✅ Enquiry flow
       if (isEnquiryOnly) {
         toast.success("Enquiry saved");
@@ -305,7 +312,7 @@ export default function AddOrder1() {
       }
     } catch (error) {
       console.error("Error during submit:", error);
-      toast.error("Something went wrong");
+      toast.error(error?.response?.data?.message || "Something went wrong");
     }
   };
 
