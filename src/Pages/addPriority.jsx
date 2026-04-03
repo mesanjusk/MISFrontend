@@ -10,23 +10,18 @@ export default function AddPriority() {
   async function submit(e) {
     e.preventDefault();
     try {
-      await axios
-        .post('/priority/addPriority', {
-          Priority_name,
-        })
-        .then((res) => {
-          if (res.data == 'exist') {
-            alert('Priority already exists');
-          } else if (res.data == 'notexist') {
-            alert('Priority added successfully');
-            navigate('/home');
-          }
-        })
-        .catch((error) => {
-          alert('wrong details');
-          console.log(error);
-        });
+      const res = await axios.post('/priority/addPriority', {
+        Priority_name,
+      });
+
+      if (res.data === 'exist') {
+        alert('Priority already exists');
+      } else if (res.data === 'notexist') {
+        alert('Priority added successfully');
+        navigate('/home');
+      }
     } catch (error) {
+      alert('wrong details');
       console.log(error);
     }
   }

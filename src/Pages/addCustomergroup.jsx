@@ -10,23 +10,18 @@ export default function AddCustGroup() {
   async function submit(e) {
     e.preventDefault();
     try {
-      await axios
-        .post('/customergroup/addCustomergroup', {
-          Customer_group,
-        })
-        .then((res) => {
-          if (res.data == 'exist') {
-            alert('Group already exists');
-          } else if (res.data == 'notexist') {
-            alert('Group added successfully');
-            navigate('/home');
-          }
-        })
-        .catch((error) => {
-          alert('wrong details');
-          console.log(error);
-        });
+      const res = await axios.post('/customergroup/addCustomergroup', {
+        Customer_group,
+      });
+
+      if (res.data === 'exist') {
+        alert('Group already exists');
+      } else if (res.data === 'notexist') {
+        alert('Group added successfully');
+        navigate('/home');
+      }
     } catch (error) {
+      alert('wrong details');
       console.log(error);
     }
   }

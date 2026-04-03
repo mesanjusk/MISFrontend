@@ -12,12 +12,16 @@ import {
 
 export default function SimpleEntityCreateForm({
   title,
+  description,
   label,
   value,
   placeholder,
   onChange,
   onSubmit,
   submitLabel,
+  children,
+  secondaryActionLabel,
+  onSecondaryAction,
 }) {
   return (
     <Box
@@ -39,22 +43,32 @@ export default function SimpleEntityCreateForm({
                   {title}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Create and organize master data without changing existing workflows.
+                  {description}
                 </Typography>
               </Box>
 
-              <TextField
-                autoFocus
-                fullWidth
-                label={label}
-                value={value}
-                placeholder={placeholder}
-                onChange={(event) => onChange(event.target.value)}
-              />
+              {label ? (
+                <TextField
+                  autoFocus
+                  fullWidth
+                  label={label}
+                  value={value}
+                  placeholder={placeholder}
+                  onChange={(event) => onChange(event.target.value)}
+                />
+              ) : null}
+
+              {children}
 
               <Button type="submit" variant="contained" size="large" fullWidth>
                 {submitLabel}
               </Button>
+
+              {onSecondaryAction ? (
+                <Button type="button" variant="outlined" color="inherit" onClick={onSecondaryAction} fullWidth>
+                  {secondaryActionLabel}
+                </Button>
+              ) : null}
             </Stack>
           </CardContent>
         </Card>
@@ -65,15 +79,26 @@ export default function SimpleEntityCreateForm({
 
 SimpleEntityCreateForm.propTypes = {
   title: PropTypes.string.isRequired,
-  label: PropTypes.string.isRequired,
-  value: PropTypes.string.isRequired,
+  description: PropTypes.string,
+  label: PropTypes.string,
+  value: PropTypes.string,
   placeholder: PropTypes.string,
-  onChange: PropTypes.func.isRequired,
+  onChange: PropTypes.func,
   onSubmit: PropTypes.func.isRequired,
   submitLabel: PropTypes.string,
+  children: PropTypes.node,
+  secondaryActionLabel: PropTypes.string,
+  onSecondaryAction: PropTypes.func,
 };
 
 SimpleEntityCreateForm.defaultProps = {
+  description: 'Create and organize master data without changing existing workflows.',
+  label: '',
+  value: '',
   placeholder: '',
+  onChange: undefined,
   submitLabel: 'Submit',
+  children: null,
+  secondaryActionLabel: 'Cancel',
+  onSecondaryAction: undefined,
 };
