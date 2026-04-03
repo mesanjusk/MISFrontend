@@ -1,5 +1,7 @@
-import ImageMessage from './ImageMessage';
+/* eslint-disable react/prop-types */
+import { Typography } from '@mui/material';
 import FileMessage from './FileMessage';
+import ImageMessage from './ImageMessage';
 
 const getTextFromMessage = (msg) => {
   if (typeof msg?.body === 'string' && msg.body.trim()) return msg.body;
@@ -15,31 +17,31 @@ export default function MessageRenderer({ message, type }) {
 
   if (safeType === 'image') {
     return (
-      <div className="space-y-2">
+      <>
         <ImageMessage message={message} />
-        {text ? <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{text}</p> : null}
-      </div>
+        {text ? <Typography variant="body2" sx={{ mt: 1, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{text}</Typography> : null}
+      </>
     );
   }
 
   if (safeType === 'document') {
     return (
-      <div className="space-y-2">
+      <>
         <FileMessage message={message} />
-        {text ? <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{text}</p> : null}
-      </div>
+        {text ? <Typography variant="body2" sx={{ mt: 1, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{text}</Typography> : null}
+      </>
     );
   }
 
   if (safeType === 'video') {
     const mediaUrl = message?.mediaUrl || message?.video?.link || message?.url;
-    return mediaUrl ? <video controls className="max-h-80 w-full rounded-xl bg-black"><source src={mediaUrl} /></video> : <p className="text-sm italic opacity-80">Video unavailable</p>;
+    return mediaUrl ? <video controls style={{ maxHeight: 320, width: '100%', borderRadius: 12, backgroundColor: '#000' }}><source src={mediaUrl} /></video> : <Typography variant="body2" sx={{ fontStyle: 'italic', opacity: 0.8 }}>Video unavailable</Typography>;
   }
 
   if (safeType === 'audio') {
     const mediaUrl = message?.mediaUrl || message?.audio?.link || message?.url;
-    return mediaUrl ? <audio controls className="w-full"><source src={mediaUrl} /></audio> : <p className="text-sm italic opacity-80">Audio unavailable</p>;
+    return mediaUrl ? <audio controls style={{ width: '100%' }}><source src={mediaUrl} /></audio> : <Typography variant="body2" sx={{ fontStyle: 'italic', opacity: 0.8 }}>Audio unavailable</Typography>;
   }
 
-  return <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{text || 'Unsupported message payload'}</p>;
+  return <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{text || 'Unsupported message payload'}</Typography>;
 }

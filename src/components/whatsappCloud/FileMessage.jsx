@@ -1,3 +1,8 @@
+/* eslint-disable react/prop-types */
+import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
+import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
+import { Button, Paper, Stack, Typography } from '@mui/material';
+
 const getFileUrl = (message) => message?.mediaUrl || message?.url || message?.link || message?.document?.link || message?.media?.url || '';
 
 const getFilename = (message) => message?.filename || message?.fileName || message?.document?.filename || message?.document?.name || 'Attachment';
@@ -6,16 +11,27 @@ export default function FileMessage({ message }) {
   const url = getFileUrl(message);
   const name = getFilename(message);
 
-  if (!url) return <p className="text-sm italic opacity-80">Document unavailable</p>;
+  if (!url) return <Typography variant="body2" sx={{ fontStyle: 'italic', opacity: 0.75 }}>Document unavailable</Typography>;
 
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white/80 p-3 text-gray-900">
-      <span className="text-lg">📎</span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{name}</p>
-        <p className="text-xs text-gray-500">Tap to download</p>
-      </div>
-      <a href={url} download className="rounded-md bg-blue-600 px-2.5 py-1 text-xs font-semibold text-white">Download</a>
-    </div>
+    <Paper variant="outlined" sx={{ p: 1.25, borderRadius: 2, bgcolor: 'background.paper' }}>
+      <Stack direction="row" spacing={1.2} alignItems="center">
+        <DescriptionRoundedIcon color="action" fontSize="small" />
+        <Stack sx={{ minWidth: 0, flex: 1 }}>
+          <Typography variant="body2" fontWeight={600} noWrap>{name}</Typography>
+          <Typography variant="caption" color="text.secondary">Tap to download</Typography>
+        </Stack>
+        <Button
+          component="a"
+          href={url}
+          download
+          size="small"
+          variant="contained"
+          endIcon={<DownloadRoundedIcon fontSize="small" />}
+        >
+          Download
+        </Button>
+      </Stack>
+    </Paper>
   );
 }

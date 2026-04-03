@@ -1,4 +1,9 @@
+/* eslint-disable react/prop-types */
 import { useRef } from 'react';
+import AttachFileRoundedIcon from '@mui/icons-material/AttachFileRounded';
+import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
+import VideocamRoundedIcon from '@mui/icons-material/VideocamRounded';
+import { IconButton, Tooltip } from '@mui/material';
 
 const ACCEPTED = {
   image: 'image/*',
@@ -32,38 +37,11 @@ export default function AttachmentUpload({ disabled, onSelectFile }) {
   };
 
   return (
-    <div className="relative">
-      <input ref={inputRef} type="file" onChange={onFileChange} className="hidden" />
-
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => openPicker('image')}
-          disabled={disabled}
-          className="rounded-lg px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
-          title="Upload image"
-        >
-          🖼️
-        </button>
-        <button
-          type="button"
-          onClick={() => openPicker('video')}
-          disabled={disabled}
-          className="rounded-lg px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
-          title="Upload video"
-        >
-          🎬
-        </button>
-        <button
-          type="button"
-          onClick={() => openPicker('document')}
-          disabled={disabled}
-          className="rounded-lg px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
-          title="Upload document"
-        >
-          📎
-        </button>
-      </div>
-    </div>
+    <>
+      <input ref={inputRef} type="file" onChange={onFileChange} hidden />
+      <Tooltip title="Upload image"><span><IconButton size="small" onClick={() => openPicker('image')} disabled={disabled}><ImageRoundedIcon fontSize="small" /></IconButton></span></Tooltip>
+      <Tooltip title="Upload video"><span><IconButton size="small" onClick={() => openPicker('video')} disabled={disabled}><VideocamRoundedIcon fontSize="small" /></IconButton></span></Tooltip>
+      <Tooltip title="Upload document"><span><IconButton size="small" onClick={() => openPicker('document')} disabled={disabled}><AttachFileRoundedIcon fontSize="small" /></IconButton></span></Tooltip>
+    </>
   );
 }

@@ -1,4 +1,7 @@
+/* eslint-disable react/prop-types */
 import { useState } from 'react';
+import SendRoundedIcon from '@mui/icons-material/SendRounded';
+import { Button, Stack } from '@mui/material';
 import { toast } from '../../Components';
 import { buildTemplatePayload, whatsappCloudService } from '../../services/whatsappCloudService';
 import { parseApiError } from '../../utils/parseApiError';
@@ -48,20 +51,21 @@ export default function TemplateMessageComposer({
   };
 
   return (
-    <div className={className}>
+    <Stack spacing={1.5} className={className}>
       <TemplateSelector
         selectedTemplate={template}
         onTemplateChange={setTemplate}
         disabled={disabled || isSending}
       />
-      <button
+      <Button
         type="button"
         onClick={handleSendTemplate}
         disabled={disabled || isSending || !template}
-        className="rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+        variant="contained"
+        startIcon={<SendRoundedIcon fontSize="small" />}
       >
         {isSending ? 'Sending...' : buttonLabel}
-      </button>
-    </div>
+      </Button>
+    </Stack>
   );
 }

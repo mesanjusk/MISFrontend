@@ -1,5 +1,8 @@
+/* eslint-disable react/prop-types */
 import { useMemo, useState } from 'react';
-import Modal from '../common/Modal';
+import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
+import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
+import { Button, Dialog, DialogContent, DialogTitle, Stack, Typography } from '@mui/material';
 
 const deriveImageUrl = (message) => message?.mediaUrl || message?.url || message?.link || message?.image?.link || message?.media?.url || '';
 
@@ -8,52 +11,45 @@ export default function ImageMessage({ message }) {
   const imageUrl = useMemo(() => deriveImageUrl(message), [message]);
 
   if (!imageUrl) {
-    return <p className="text-sm italic opacity-80">Image unavailable</p>;
+    return <Typography variant="body2" sx={{ fontStyle: 'italic', opacity: 0.75 }}>Image unavailable</Typography>;
   }
 
   return (
     <>
-      <img
-        src={imageUrl}
-        alt="Shared media"
-        loading="lazy"
-        onClick={() => setIsOpen(true)}
-        className="max-h-72 max-w-xs cursor-pointer rounded-lg object-cover shadow"
-      />
+      <Stack spacing={1}>
+        <img
+          src={imageUrl}
+          alt="Shared media"
+          loading="lazy"
+          onClick={() => setIsOpen(true)}
+          style={{ maxHeight: 280, maxWidth: 280, cursor: 'pointer', borderRadius: 12, objectFit: 'cover' }}
+        />
+        <Stack direction="row" spacing={1}>
+          <Button component="a" href={imageUrl} download size="small" variant="outlined" startIcon={<DownloadRoundedIcon fontSize="small" />}>
+            Download
+          </Button>
+          <Button component="a" href={imageUrl} target="_blank" rel="noreferrer" size="small" startIcon={<OpenInNewRoundedIcon fontSize="small" />}>
+            Open
+          </Button>
+        </Stack>
+      </Stack>
 
-      <div className="mt-2 flex gap-2">
-        <a
-          href={imageUrl}
-          download
-          className="rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700"
-        >
-          Download
-        </a>
-        <a
-          href={imageUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700"
-        >
-          Open
-        </a>
-      </div>
-
-      {isOpen ? (
-        <Modal onClose={() => setIsOpen(false)} title="Image Preview">
-          <div className="space-y-3">
-            <img src={imageUrl} alt="Full preview" className="max-h-[70vh] w-full rounded-lg object-contain" />
-            <div className="flex justify-end gap-2">
-              <a href={imageUrl} download className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white">
+      <Dialog open={isOpen} onClose={() => setIsOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Image Preview</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2}>
+            <img src={imageUrl} alt="Full preview" style={{ maxHeight: '70vh', width: '100%', objectFit: 'contain', borderRadius: 12 }} />
+            <Stack direction="row" spacing={1} justifyContent="flex-end">
+              <Button component="a" href={imageUrl} download variant="contained" startIcon={<DownloadRoundedIcon fontSize="small" />}>
                 Download
-              </a>
-              <a href={imageUrl} target="_blank" rel="noreferrer" className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700">
+              </Button>
+              <Button component="a" href={imageUrl} target="_blank" rel="noreferrer" variant="outlined" startIcon={<OpenInNewRoundedIcon fontSize="small" />}>
                 Open in new tab
-              </a>
-            </div>
-          </div>
-        </Modal>
-      ) : null}
+              </Button>
+            </Stack>
+          </Stack>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

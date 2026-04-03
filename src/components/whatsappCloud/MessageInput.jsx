@@ -1,4 +1,17 @@
+/* eslint-disable react/prop-types */
 import { useEffect, useState } from 'react';
+import SendRoundedIcon from '@mui/icons-material/SendRounded';
+import {
+  Alert,
+  Box,
+  CircularProgress,
+  IconButton,
+  InputAdornment,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
 import AttachmentUpload from './AttachmentUpload';
 import TemplateMessageComposer from './TemplateMessageComposer';
 
@@ -15,7 +28,6 @@ export default function MessageInput({
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedType, setSelectedType] = useState('document');
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
-
   const [imagePreviewUrl, setImagePreviewUrl] = useState('');
 
   useEffect(() => {
@@ -72,84 +84,76 @@ export default function MessageInput({
   };
 
   return (
-    <div className="sticky bottom-0 border-t border-gray-200 bg-white p-3">
+    <Paper
+      square
+      elevation={0}
+      sx={{ borderTop: (theme) => `1px solid ${theme.palette.divider}`, p: 1.25, position: 'sticky', bottom: 0, zIndex: 3 }}
+    >
       {canSendTemplateOnly ? (
         <>
-          <p className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+          <Alert severity="warning" sx={{ mb: 1.2 }}>
             You are outside the 24-hour window. Only template messages can be sent.
-          </p>
-          <TemplateMessageComposer
-            recipient={recipient}
-            className="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-3"
-          />
+          </Alert>
+          <TemplateMessageComposer recipient={recipient} />
         </>
       ) : null}
 
       {selectedFile ? (
-        <div className="mb-2 rounded-xl border border-gray-200 bg-gray-50 p-2 shadow-sm">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-gray-800">{selectedFile.name}</p>
-              <p className="text-[11px] text-gray-500">{selectedType.toUpperCase()} · {(selectedFile.size / 1024).toFixed(0)} KB</p>
-            </div>
-            <button
-              type="button"
-              className="rounded-md px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
-              onClick={() => setSelectedFile(null)}
-            >
-              Remove
-            </button>
-          </div>
+        <Paper variant="outlined" sx={{ mb: 1.2, p: 1.25, borderRadius: 2 }}>
+          <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
+            <Stack sx={{ minWidth: 0, flex: 1 }}>
+              <Typography noWrap variant="body2" fontWeight={700}>{selectedFile.name}</Typography>
+              <Typography variant="caption" color="text.secondary">{selectedType.toUpperCase()} · {(selectedFile.size / 1024).toFixed(0)} KB</Typography>
+            </Stack>
+            <IconButton size="small" color="error" onClick={() => setSelectedFile(null)}>✕</IconButton>
+          </Stack>
 
           {imagePreviewUrl ? (
-            <img src={imagePreviewUrl} alt="Image preview" className="mt-2 max-h-40 rounded-lg object-cover" />
+            <Box component="img" src={imagePreviewUrl} alt="Image preview" sx={{ mt: 1, maxHeight: 180, borderRadius: 1.5, objectFit: 'cover' }} />
           ) : null}
 
-          <div className="mt-2 flex justify-end">
-            <button
-              type="button"
-              onClick={submitAttachment}
-              disabled={disabled || isUploadingAttachment}
-              className="rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isUploadingAttachment ? 'Uploading...' : 'Send Attachment'}
-            </button>
-          </div>
-        </div>
+          <Stack direction="row" justifyContent="flex-end" sx={{ mt: 1 }}>
+            <IconButton onClick={submitAttachment} disabled={disabled || isUploadingAttachment} color="primary">
+              {isUploadingAttachment ? <CircularProgress size={18} /> : <SendRoundedIcon fontSize="small" />}
+            </IconButton>
+          </Stack>
+        </Paper>
       ) : null}
 
-      <div className="flex items-end gap-2 rounded-2xl border border-gray-200 bg-gray-50 p-2 shadow-sm">
-        {!canSendTemplateOnly ? (
-          <AttachmentUpload
-            disabled={disabled}
-            onSelectFile={(file, type) => {
-              setSelectedFile(file);
-              setSelectedType(type || 'document');
-            }}
-          />
-        ) : null}
-
-        <textarea
-          rows={1}
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder={disabled ? 'Text input disabled outside 24h window' : 'Type a message'}
-          className="max-h-28 min-h-[40px] flex-1 resize-y border-0 bg-transparent px-2 py-1 text-sm text-gray-900 outline-none"
-          disabled={disabled}
-          title={disabled ? 'Free-form messages are not allowed outside 24 hours' : undefined}
-        />
-
-        <button
-          type="button"
-          onClick={submit}
-          disabled={disabled || !value.trim()}
-          title={disabled ? 'Free-form messages are not allowed outside 24 hours' : undefined}
-          className="rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Send
-        </button>
-      </div>
-    </div>
+      <TextField
+        fullWidth
+        multiline
+        maxRows={4}
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        onKeyDown={onKeyDown}
+        placeholder={disabled ? 'Text input disabled outside 24h window' : 'Type a message'}
+        disabled={disabled}
+        size="small"
+        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 6, bgcolor: 'grey.100', pr: 0.5 } }}
+        InputProps={{
+          startAdornment: !canSendTemplateOnly ? (
+            <InputAdornment position="start">
+              <Stack direction="row" spacing={0}>
+                <AttachmentUpload
+                  disabled={disabled}
+                  onSelectFile={(file, type) => {
+                    setSelectedFile(file);
+                    setSelectedType(type || 'document');
+                  }}
+                />
+              </Stack>
+            </InputAdornment>
+          ) : null,
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton onClick={submit} disabled={disabled || !value.trim()} color="primary">
+                <SendRoundedIcon fontSize="small" />
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
+      />
+    </Paper>
   );
 }

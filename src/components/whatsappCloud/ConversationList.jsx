@@ -1,3 +1,21 @@
+/* eslint-disable react/prop-types */
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import SyncRoundedIcon from '@mui/icons-material/SyncRounded';
+import {
+  Avatar,
+  Badge,
+  Box,
+  IconButton,
+  InputAdornment,
+  List,
+  ListItemButton,
+  ListItemText,
+  Stack,
+  TextField,
+  Tooltip,
+  Typography,
+} from '@mui/material';
+
 const getInitials = (value) => {
   const source = String(value || '').trim();
   if (!source) return 'NA';
@@ -45,65 +63,78 @@ export default function ConversationList({
   onSelectConversation,
   search,
   onSearch,
+  onRefresh,
 }) {
   return (
-    <div className="flex h-full min-h-0 flex-col bg-white">
-      <div className="border-b border-gray-200 p-4">
-        <h3 className="text-lg font-semibold text-gray-900">Conversations</h3>
-        <input
+    <Stack sx={{ height: '100%', minHeight: 0, bgcolor: 'background.paper' }}>
+      <Stack spacing={1.5} sx={{ p: 2, borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between">
+          <Typography variant="h6" fontSize={18} fontWeight={700}>Chats</Typography>
+          <Tooltip title="Refresh conversations">
+            <span>
+              <IconButton size="small" onClick={onRefresh}><SyncRoundedIcon fontSize="small" /></IconButton>
+            </span>
+          </Tooltip>
+        </Stack>
+        <TextField
           value={search}
+          size="small"
           onChange={(event) => onSearch(event.target.value)}
           placeholder="Search name or number"
-          className="mt-3 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800 outline-none transition focus:border-green-500 focus:bg-white"
+          InputProps={{
+            startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment>,
+          }}
         />
-      </div>
+      </Stack>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <Box sx={{ minHeight: 0, flex: 1, overflowY: 'auto' }}>
         {conversations.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-gray-500">No conversations found.</p>
+          <Typography sx={{ px: 3, py: 8 }} align="center" color="text.secondary" variant="body2">
+            No conversations found.
+          </Typography>
         ) : (
-          conversations.map((conversation) => {
-            const isActive = activeConversationId === conversation.id;
-            const hasUnread = conversation.unreadCount > 0;
+          <List disablePadding>
+            {conversations.map((conversation) => {
+              const isActive = activeConversationId === conversation.id;
+              const hasUnread = conversation.unreadCount > 0;
 
-            return (
-              <button
-                key={conversation.id}
-                type="button"
-                onClick={() => onSelectConversation(conversation.id)}
-                className={`flex w-full items-start gap-3 border-b border-gray-100 px-4 py-3 text-left transition hover:bg-gray-50 ${
-                  isActive ? 'bg-green-50' : hasUnread ? 'bg-emerald-50/40' : 'bg-white'
-                }`}
-              >
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-green-100 text-sm font-semibold text-green-700">
-                  {getInitials(conversation.displayName || conversation.contact)}
-                </div>
+              return (
+                <ListItemButton
+                  key={conversation.id}
+                  selected={isActive}
+                  onClick={() => onSelectConversation(conversation.id)}
+                  sx={{ py: 1.25, px: 2, alignItems: 'flex-start' }}
+                >
+                  <Badge
+                    color="success"
+                    badgeContent={hasUnread ? conversation.unreadCount : 0}
+                    overlap="circular"
+                  >
+                    <Avatar sx={{ bgcolor: '#16a34a', width: 42, height: 42, fontSize: 14 }}>
+                      {getInitials(conversation.displayName || conversation.contact)}
+                    </Avatar>
+                  </Badge>
 
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-sm font-semibold text-gray-900">
-                      {conversation.displayName}
-                    </p>
-                    <span className="shrink-0 text-xs text-gray-500">
-                      {formatConversationTime(conversation.lastTimestamp)}
-                    </span>
-                  </div>
-
-                  <p className={`mt-1 truncate text-xs ${hasUnread ? 'font-semibold text-gray-800' : 'text-gray-600'}`}>
-                    {mediaTypeIcon(conversation.lastMessageType)} {conversation.lastMessage}
-                  </p>
-                </div>
-
-                {hasUnread ? (
-                  <span className="mt-0.5 inline-flex min-w-5 items-center justify-center rounded-full bg-green-600 px-1.5 py-0.5 text-[11px] font-semibold text-white">
-                    {conversation.unreadCount}
-                  </span>
-                ) : null}
-              </button>
-            );
-          })
+                  <ListItemText
+                    sx={{ ml: 1.5, my: 0 }}
+                    primary={
+                      <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+                        <Typography noWrap variant="subtitle2" fontWeight={700}>{conversation.displayName}</Typography>
+                        <Typography variant="caption" color="text.secondary">{formatConversationTime(conversation.lastTimestamp)}</Typography>
+                      </Stack>
+                    }
+                    secondary={
+                      <Typography noWrap variant="body2" color={hasUnread ? 'text.primary' : 'text.secondary'} fontWeight={hasUnread ? 600 : 400}>
+                        {mediaTypeIcon(conversation.lastMessageType)} {conversation.lastMessage || 'No message'}
+                      </Typography>
+                    }
+                  />
+                </ListItemButton>
+              );
+            })}
+          </List>
         )}
-      </div>
-    </div>
+      </Box>
+    </Stack>
   );
 }

@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import { Avatar, Box, Divider, Stack, Typography } from '@mui/material';
 import { toast } from '../../Components';
+import { whatsappCloudService } from '../../services/whatsappCloudService';
 import { parseApiError } from '../../utils/parseApiError';
 import { isOutside24hWindow } from '../../utils/whatsappWindow';
-import { whatsappCloudService } from '../../services/whatsappCloudService';
-import ConversationList from './ConversationList';
 import ChatHeader from './ChatHeader';
 import ChatWindow from './ChatWindow';
+import ConversationList from './ConversationList';
 import EmptyState from './EmptyState';
 import LoadingSkeleton from './LoadingSkeleton';
+import WhatsAppLayout from './WhatsAppLayout';
 
 const SOCKET_URL =
   import.meta.env.VITE_SOCKET_URL ||
@@ -173,6 +176,7 @@ export default function MessagesPanel() {
       if (!existing.lastTimestamp || new Date(timestamp) >= new Date(existing.lastTimestamp)) {
         existing.lastTimestamp = timestamp;
         existing.lastMessage = getMessageText(message);
+        existing.lastMessageType = message?.messageType || message?.type;
       }
 
       if (isUnreadMessage(message)) existing.unreadCount += 1;
@@ -337,80 +341,62 @@ export default function MessagesPanel() {
     [loadMessages]
   );
 
-  const rightPanel = activeConversation ? (
-    <div className="hidden h-full min-h-0 flex-col bg-white p-5 xl:flex">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-xl font-semibold text-green-700">
-        {getInitials(activeConversation.displayName || activeConversation.contact)}
-      </div>
-
-      <p className="mt-3 text-center text-sm font-semibold text-gray-900">
-        {activeConversation.displayName}
-      </p>
-      <p className="text-center text-xs text-gray-500">
-        {activeConversation.contact}
-      </p>
-
-      <div className="mt-6 space-y-3 text-sm text-gray-700">
-        <p>
-          <span className="font-medium">Phone:</span> {activeConversation.contact}
-        </p>
-        <p>
-          <span className="font-medium">24h Window:</span>{' '}
-          {conversationWindowOpen ? 'Active' : 'Expired'}
-        </p>
-      </div>
-    </div>
+  const detailsPanel = activeConversation ? (
+    <Stack spacing={2} sx={{ p: 2 }}>
+      <Stack alignItems="center" spacing={1}>
+        <Avatar sx={{ width: 64, height: 64, bgcolor: '#16a34a' }}>
+          {getInitials(activeConversation.displayName || activeConversation.contact)}
+        </Avatar>
+        <Typography variant="subtitle1" fontWeight={700} align="center">{activeConversation.displayName}</Typography>
+        <Typography variant="caption" color="text.secondary" align="center">{activeConversation.contact}</Typography>
+      </Stack>
+      <Divider />
+      <Stack direction="row" spacing={1} alignItems="center">
+        <InfoOutlinedIcon fontSize="small" color="action" />
+        <Typography variant="body2" color="text.secondary">24h window: {conversationWindowOpen ? 'Active' : 'Expired'}</Typography>
+      </Stack>
+    </Stack>
   ) : null;
 
-  const renderChatArea = () => {
-    if (!activeConversation) {
-      return (
-        <EmptyState
-          title="Select a conversation"
-          description="Choose a chat from the left panel to start messaging."
-        />
-      );
-    }
+  const chatArea = activeConversation ? (
+    <Stack sx={{ height: '100%', minHeight: 0 }}>
+      <ChatHeader
+        conversation={activeConversation}
+        isLoading={isLoading}
+        onRefresh={loadMessages}
+        windowOpen={conversationWindowOpen}
+        onBack={() => setShowConversationList(true)}
+      />
 
-    return (
-      <div className="flex h-full min-h-0 flex-col">
-        <ChatHeader
-          conversation={activeConversation}
-          isLoading={isLoading}
-          onRefresh={loadMessages}
-          windowOpen={conversationWindowOpen}
-          onBack={() => setShowConversationList(true)}
-        />
-
-        <ChatWindow
-          messages={activeMessages}
-          getMessageIdentity={getMessageIdentity}
-          getMessageDirection={getMessageDirection}
-          getTimestampRaw={getTimestampRaw}
-          scrollRef={messagesContainerRef}
-          canSend={Boolean(activeConversation) && !isSending && conversationWindowOpen}
-          canSendTemplateOnly={is24hExpired}
-          recipient={activeConversation?.contact || ''}
-          onSend={handleSend}
-          onSendAttachment={handleSendAttachment}
-          onRetry={handleRetry}
-        />
-      </div>
-    );
-  };
+      <ChatWindow
+        messages={activeMessages}
+        getMessageIdentity={getMessageIdentity}
+        getMessageDirection={getMessageDirection}
+        getTimestampRaw={getTimestampRaw}
+        scrollRef={messagesContainerRef}
+        canSend={Boolean(activeConversation) && !isSending && conversationWindowOpen}
+        canSendTemplateOnly={is24hExpired}
+        recipient={activeConversation?.contact || ''}
+        onSend={handleSend}
+        onSendAttachment={handleSendAttachment}
+        onRetry={handleRetry}
+      />
+    </Stack>
+  ) : (
+    <EmptyState
+      title="Select a conversation"
+      description="Choose a chat from the left panel to start messaging."
+    />
+  );
 
   if (isLoading && !messages.length) {
-    return (
-      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <LoadingSkeleton lines={8} />
-      </section>
-    );
+    return <LoadingSkeleton lines={8} />;
   }
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-      <div className="grid h-[calc(100vh-13rem)] min-h-[580px] grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)_280px]">
-        <aside className={`${showConversationList ? 'block' : 'hidden'} border-r border-gray-200 lg:block`}>
+    <WhatsAppLayout
+      sidebar={(
+        <Box sx={{ display: { xs: showConversationList ? 'block' : 'none', lg: 'block' }, height: '100%' }}>
           <ConversationList
             conversations={filteredConversations}
             activeConversationId={activeConversationId}
@@ -418,17 +404,18 @@ export default function MessagesPanel() {
               setActiveConversationId(id);
               setShowConversationList(false);
             }}
+            onRefresh={loadMessages}
             search={search}
             onSearch={setSearch}
           />
-        </aside>
-
-        <main className={`${showConversationList ? 'hidden' : 'block'} min-h-0 lg:block`}>
-          {renderChatArea()}
-        </main>
-
-        {rightPanel}
-      </div>
-    </section>
+        </Box>
+      )}
+      main={(
+        <Box sx={{ display: { xs: showConversationList ? 'none' : 'block', lg: 'block' }, height: '100%', minHeight: 0 }}>
+          {chatArea}
+        </Box>
+      )}
+      details={detailsPanel}
+    />
   );
 }
