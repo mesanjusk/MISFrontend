@@ -2,6 +2,7 @@ import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import SyncRoundedIcon from '@mui/icons-material/SyncRounded';
 import PropTypes from 'prop-types';
 import {
+  Autocomplete,
   Avatar,
   Badge,
   Box,
@@ -59,8 +60,11 @@ const mediaTypeIcon = (type) => {
 
 export default function ConversationList({
   conversations,
+  customerOptions,
+  customerLoadError,
   activeConversationId,
   onSelectConversation,
+  onSelectCustomer,
   search,
   onSearch,
   onRefresh,
@@ -84,6 +88,47 @@ export default function ConversationList({
           InputProps={{
             startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment>,
           }}
+        />
+
+        <Autocomplete
+          size="small"
+          options={customerOptions}
+          onChange={(_, option) => {
+            if (option) onSelectCustomer(option);
+          }}
+          filterOptions={(options, state) => {
+            const query = state.inputValue.trim().toLowerCase();
+            if (!query) return options.slice(0, 40);
+
+            return options.filter((option) =>
+              `${option.name} ${option.mobile} ${option.mobileDisplay}`
+                .toLowerCase()
+                .includes(query)
+            );
+          }}
+          getOptionLabel={(option) => `${option.name} ${option.mobileDisplay}`.trim()}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              placeholder="Start new chat (search customer or mobile)"
+              helperText={customerLoadError || 'Select a customer to open chat instantly'}
+              error={Boolean(customerLoadError)}
+              InputProps={{
+                ...params.InputProps,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          )}
+          renderOption={(props, option) => (
+            <Box component="li" {...props} key={option.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+              <Typography variant="body2" fontWeight={700}>{option.name}</Typography>
+              <Typography variant="caption" color="text.secondary">{option.mobileDisplay || option.mobile}</Typography>
+            </Box>
+          )}
         />
       </Stack>
 
@@ -124,9 +169,14 @@ export default function ConversationList({
                       </Stack>
                     }
                     secondary={
-                      <Typography noWrap variant="body2" color={hasUnread ? 'text.primary' : 'text.secondary'} fontWeight={hasUnread ? 600 : 400}>
-                        {mediaTypeIcon(conversation.lastMessageType)} {conversation.lastMessage || 'No message'}
-                      </Typography>
+                      <Stack spacing={0.25}>
+                        <Typography noWrap variant="caption" color="text.secondary">
+                          {conversation.secondaryLabel || conversation.contact}
+                        </Typography>
+                        <Typography noWrap variant="body2" color={hasUnread ? 'text.primary' : 'text.secondary'} fontWeight={hasUnread ? 600 : 400}>
+                          {mediaTypeIcon(conversation.lastMessageType)} {conversation.lastMessage || 'No message'}
+                        </Typography>
+                      </Stack>
                     }
                   />
                 </ListItemButton>
@@ -141,8 +191,11 @@ export default function ConversationList({
 
 ConversationList.propTypes = {
   conversations: PropTypes.arrayOf(PropTypes.object),
+  customerOptions: PropTypes.arrayOf(PropTypes.object),
+  customerLoadError: PropTypes.string,
   activeConversationId: PropTypes.string,
   onSelectConversation: PropTypes.func.isRequired,
+  onSelectCustomer: PropTypes.func.isRequired,
   search: PropTypes.string,
   onSearch: PropTypes.func.isRequired,
   onRefresh: PropTypes.func,
@@ -150,6 +203,8 @@ ConversationList.propTypes = {
 
 ConversationList.defaultProps = {
   conversations: [],
+  customerOptions: [],
+  customerLoadError: '',
   activeConversationId: '',
   search: '',
   onRefresh: undefined,
