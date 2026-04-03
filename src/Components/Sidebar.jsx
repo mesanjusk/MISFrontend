@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -226,3 +227,9 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
     </>
   );
 }
+
+Sidebar.propTypes = {
+  desktopCollapsed: PropTypes.bool.isRequired,
+  mobileOpen: PropTypes.bool.isRequired,
+  onCloseMobile: PropTypes.func.isRequired,
+};

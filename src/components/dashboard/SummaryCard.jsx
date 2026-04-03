@@ -1,28 +1,47 @@
-import React from "react";
+import PropTypes from 'prop-types';
+import { alpha } from '@mui/material/styles';
+import { Card, Stack, Typography } from '@mui/material';
 
 const variantStyles = {
-  primary: "bg-indigo-50 text-indigo-700 ring-indigo-100",
-  success: "bg-emerald-50 text-emerald-700 ring-emerald-100",
-  warning: "bg-amber-50 text-amber-700 ring-amber-100",
-  danger: "bg-rose-50 text-rose-700 ring-rose-100",
+  primary: (theme) => ({ bg: alpha(theme.palette.primary.main, 0.12), color: theme.palette.primary.main }),
+  success: (theme) => ({ bg: alpha(theme.palette.success.main, 0.12), color: theme.palette.success.main }),
+  warning: (theme) => ({ bg: alpha(theme.palette.warning.main, 0.12), color: theme.palette.warning.main }),
+  danger: (theme) => ({ bg: alpha(theme.palette.error.main, 0.12), color: theme.palette.error.main }),
 };
 
-export default function SummaryCard({ title, value, icon: Icon, variant = "primary" }) {
-  const badgeClass = variantStyles[variant] || variantStyles.primary;
-
+export default function SummaryCard({ title, value, icon: Icon, variant = 'primary' }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between">
+    <Card sx={{ p: 2.25 }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</p>
-          <p className="mt-2 text-3xl font-semibold text-slate-900">{value}</p>
+          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.6 }}>
+            {title}
+          </Typography>
+          <Typography variant="h4" sx={{ mt: 1 }}>
+            {value}
+          </Typography>
         </div>
-        {Icon && (
-          <span className={`inline-flex h-11 w-11 items-center justify-center rounded-full text-xl ring-4 ${badgeClass}`}>
-            <Icon className="h-5 w-5" />
-          </span>
-        )}
-      </div>
-    </div>
+        {Icon ? (
+          <Stack
+            alignItems="center"
+            justifyContent="center"
+            sx={(theme) => {
+              const v = variantStyles[variant] || variantStyles.primary;
+              const { bg, color } = v(theme);
+              return { bgcolor: bg, color, width: 44, height: 44, borderRadius: '50%' };
+            }}
+          >
+            <Icon fontSize="small" />
+          </Stack>
+        ) : null}
+      </Stack>
+    </Card>
   );
 }
+
+SummaryCard.propTypes = {
+  title: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  icon: PropTypes.elementType,
+  variant: PropTypes.oneOf(['primary', 'success', 'warning', 'danger']),
+};

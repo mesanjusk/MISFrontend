@@ -1,14 +1,19 @@
-import PropTypes from "prop-types";
+import PropTypes from 'prop-types';
+import { Stack, Typography } from '@mui/material';
 
 export default function SectionHeader({ title, subtitle, action }) {
   return (
-    <div className="mb-3 flex items-start justify-between gap-3">
+    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2} sx={{ mb: 2 }}>
       <div>
-        <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
-        {subtitle ? <p className="mt-1 text-xs text-slate-500">{subtitle}</p> : null}
+        <Typography variant="subtitle1">{title}</Typography>
+        {subtitle ? (
+          <Typography variant="caption" color="text.secondary">
+            {subtitle}
+          </Typography>
+        ) : null}
       </div>
-      {action ? <div className="text-xs text-indigo-600">{action}</div> : null}
-    </div>
+      {action ? <div>{action}</div> : null}
+    </Stack>
   );
 }
 

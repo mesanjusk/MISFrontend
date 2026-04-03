@@ -1,35 +1,58 @@
-import React, { useEffect, useState } from "react";
-import { HiOutlineClipboardList, HiOutlineOfficeBuilding, HiOutlineExclamationCircle, HiOutlineCash, HiOutlineCreditCard } from "react-icons/hi";
-import axios from "../apiClient";
-import { LoadingSpinner } from "../Components";
-import SectionHeader from "../components/common/SectionHeader";
-import SummaryCard from "../components/dashboard/SummaryCard";
-import RoleWidget from "../components/dashboard/RoleWidget";
-import QuickActions from "../components/dashboard/QuickActions";
-import CrmSidebarPanel from "../components/dashboard/CrmSidebarPanel";
-import AllAttandance from "./AllAttandance";
-import UserTask from "./userTask";
-import { useDashboardData } from "../hooks/useDashboardData";
-import { useUserRole } from "../hooks/useUserRole";
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  Grid,
+  LinearProgress,
+  Stack,
+  Typography,
+} from '@mui/material';
+import AssignmentRoundedIcon from '@mui/icons-material/AssignmentRounded';
+import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded';
+import PriorityHighRoundedIcon from '@mui/icons-material/PriorityHighRounded';
+import CurrencyRupeeRoundedIcon from '@mui/icons-material/CurrencyRupeeRounded';
+import CreditCardRoundedIcon from '@mui/icons-material/CreditCardRounded';
+import axios from '../apiClient';
+import { LoadingSpinner } from '../Components';
+import SectionHeader from '../components/common/SectionHeader';
+import SummaryCard from '../components/dashboard/SummaryCard';
+import RoleWidget from '../components/dashboard/RoleWidget';
+import QuickActions from '../components/dashboard/QuickActions';
+import CrmSidebarPanel from '../components/dashboard/CrmSidebarPanel';
+import AllAttandance from './AllAttandance';
+import UserTask from './userTask';
+import { useDashboardData } from '../hooks/useDashboardData';
+import { useUserRole } from '../hooks/useUserRole';
 
 const toId = (order) => order?.Order_uuid || order?._id || order?.Order_id;
 
 function OrderList({ items, emptyLabel }) {
+  if (!items?.length) {
+    return (
+      <Typography variant="body2" color="text.secondary">
+        {emptyLabel}
+      </Typography>
+    );
+  }
+
   return (
-    <div className="space-y-2">
-      {items?.length === 0 && <p className="text-xs text-slate-500">{emptyLabel}</p>}
-      {(items || []).map((order) => (
-        <div key={toId(order)} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-slate-900">{order?.Customer_name || "Unknown"}</p>
-              <p className="text-xs text-slate-500">#{order?.Order_Number || "-"}</p>
-            </div>
-            <span className="text-[11px] font-semibold text-indigo-700">{order?.highestStatusTask?.Task || "Other"}</span>
-          </div>
-        </div>
+    <Stack spacing={1.25}>
+      {items.map((order) => (
+        <Card key={toId(order)} sx={{ p: 1.5 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
+            <Box>
+              <Typography variant="body2" fontWeight={600}>{order?.Customer_name || 'Unknown'}</Typography>
+              <Typography variant="caption" color="text.secondary">#{order?.Order_Number || '-'}</Typography>
+            </Box>
+            <Typography variant="caption" color="primary.main" fontWeight={700}>
+              {order?.highestStatusTask?.Task || 'Other'}
+            </Typography>
+          </Stack>
+        </Card>
       ))}
-    </div>
+    </Stack>
   );
 }
 
@@ -49,10 +72,10 @@ export default function Dashboard() {
     const fetchSummary = async () => {
       try {
         setSummaryLoading(true);
-        const res = await axios.get("/dashboard/summary");
+        const res = await axios.get('/dashboard/summary');
         if (!mounted) return;
         setSummaryApi(res?.data?.result || res?.data?.data || {});
-      } catch (error) {
+      } catch {
         if (!mounted) return;
         setSummaryApi({});
       } finally {
@@ -61,73 +84,105 @@ export default function Dashboard() {
     };
 
     fetchSummary();
-
     return () => {
       mounted = false;
     };
   }, []);
 
-  const summaryCards = [
-    { title: "Today Orders", value: summaryApi?.todayOrders ?? 0, icon: HiOutlineClipboardList, variant: "primary" },
-    { title: "Pending Orders", value: summaryApi?.pendingOrders ?? data?.summary?.activeOrders ?? 0, icon: HiOutlineOfficeBuilding, variant: "warning" },
-    { title: "Urgent Orders", value: summaryApi?.urgentOrders ?? 0, icon: HiOutlineExclamationCircle, variant: "danger" },
-    { title: "Revenue Today", value: summaryApi?.revenueToday ?? 0, icon: HiOutlineCash, variant: "success" },
-    { title: "Pending Payments", value: summaryApi?.pendingPayments ?? 0, icon: HiOutlineCreditCard, variant: "warning" },
-  ];
+  const summaryCards = useMemo(
+    () => [
+      { title: 'Today Orders', value: summaryApi?.todayOrders ?? 0, icon: AssignmentRoundedIcon, variant: 'primary' },
+      {
+        title: 'Pending Orders',
+        value: summaryApi?.pendingOrders ?? data?.summary?.activeOrders ?? 0,
+        icon: BusinessRoundedIcon,
+        variant: 'warning',
+      },
+      { title: 'Urgent Orders', value: summaryApi?.urgentOrders ?? 0, icon: PriorityHighRoundedIcon, variant: 'danger' },
+      { title: 'Revenue Today', value: summaryApi?.revenueToday ?? 0, icon: CurrencyRupeeRoundedIcon, variant: 'success' },
+      { title: 'Pending Payments', value: summaryApi?.pendingPayments ?? 0, icon: CreditCardRoundedIcon, variant: 'warning' },
+    ],
+    [data?.summary?.activeOrders, summaryApi],
+  );
 
   const loading = data?.isOrdersLoading || data?.isTasksLoading;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {(loading || summaryLoading) && <div className="fixed top-0 left-0 right-0 h-1 bg-indigo-500 animate-pulse z-[60]" />}
-      <div className="mx-auto max-w-[1800px] px-3 py-4">
-        {data?.loadError ? <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{data.loadError}</div> : null}
+    <Stack spacing={2.5}>
+      {(loading || summaryLoading) ? <LinearProgress /> : null}
+      {data?.loadError ? <Alert severity="error">{data.loadError}</Alert> : null}
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-              {summaryCards.map((card) => <SummaryCard key={card.title} {...card} />)}
-            </div>
+      <Grid container spacing={2.5}>
+        <Grid item xs={12} xl={9}>
+          <Stack spacing={2.5}>
+            <Grid container spacing={2}>
+              {summaryCards.map((card) => (
+                <Grid key={card.title} item xs={12} sm={6} xl={3}>
+                  <SummaryCard {...card} />
+                </Grid>
+              ))}
+            </Grid>
 
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-              <RoleWidget role={roleInfo?.role} userName={roleInfo?.userName} />
-              {roleInfo?.isAdmin ? <QuickActions /> : null}
-              <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <SectionHeader title="Today" />
-                <p className="text-sm text-slate-700">Smart workflow summary is live.</p>
-                <p className="text-xs text-slate-500">Tap refresh below for latest updates.</p>
-              </div>
-            </div>
+            <Grid container spacing={2}>
+              <Grid item xs={12} lg={4}>
+                <RoleWidget role={roleInfo?.role} userName={roleInfo?.userName} />
+              </Grid>
+              {roleInfo?.isAdmin ? (
+                <Grid item xs={12} lg={4}>
+                  <QuickActions />
+                </Grid>
+              ) : null}
+              <Grid item xs={12} lg={roleInfo?.isAdmin ? 4 : 8}>
+                <Card sx={{ p: 2.25, height: '100%' }}>
+                  <SectionHeader title="Today" />
+                  <Typography variant="body2">Smart workflow summary is live.</Typography>
+                  <Typography variant="caption" color="text.secondary">Tap refresh below for latest updates.</Typography>
+                </Card>
+              </Grid>
+            </Grid>
 
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-              <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <SectionHeader title="My Pending Orders" />
-                {loading ? <div className="py-10 text-center"><LoadingSpinner /></div> : <OrderList items={data?.myPendingOrders} emptyLabel="No pending orders assigned." />}
-              </div>
+            <Grid container spacing={2}>
+              <Grid item xs={12} lg={8}>
+                <Card sx={{ p: 2.25 }}>
+                  <SectionHeader title="My Pending Orders" />
+                  {loading ? (
+                    <Stack alignItems="center" py={4}>
+                      <LoadingSpinner />
+                    </Stack>
+                  ) : (
+                    <OrderList items={data?.myPendingOrders} emptyLabel="No pending orders assigned." />
+                  )}
+                </Card>
+              </Grid>
 
-              <div className="space-y-3">
-                {roleInfo?.isAdmin ? (
-                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <SectionHeader title="Today Attendance" />
-                    <div className="-mx-4"><AllAttandance /></div>
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <SectionHeader title="My Task Flow" />
-                    <UserTask />
-                  </div>
-                )}
+              <Grid item xs={12} lg={4}>
+                <Stack spacing={2}>
+                  {roleInfo?.isAdmin ? (
+                    <Card sx={{ p: 2.25 }}>
+                      <SectionHeader title="Today Attendance" />
+                      <AllAttandance />
+                    </Card>
+                  ) : (
+                    <Card sx={{ p: 2.25 }}>
+                      <SectionHeader title="My Task Flow" />
+                      <UserTask />
+                    </Card>
+                  )}
 
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <SectionHeader title="Recent Updates" action={<button onClick={data?.refresh}>Refresh</button>} />
-                  <OrderList items={data?.recentOrders} emptyLabel="No recent orders." />
-                </div>
-              </div>
-            </div>
-          </div>
+                  <Card sx={{ p: 2.25 }}>
+                    <SectionHeader title="Recent Updates" action={<Button size="small" onClick={data?.refresh}>Refresh</Button>} />
+                    <OrderList items={data?.recentOrders} emptyLabel="No recent orders." />
+                  </Card>
+                </Stack>
+              </Grid>
+            </Grid>
+          </Stack>
+        </Grid>
+
+        <Grid item xs={12} xl={3}>
           <CrmSidebarPanel />
-        </div>
-      </div>
-    </div>
+        </Grid>
+      </Grid>
+    </Stack>
   );
 }

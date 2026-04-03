@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import {
@@ -107,3 +108,9 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
     </AppBar>
   );
 }
+
+TopNavbar.propTypes = {
+  onToggleSidebar: PropTypes.func.isRequired,
+  onToggleDesktopCollapse: PropTypes.func.isRequired,
+  desktopCollapsed: PropTypes.bool.isRequired,
+};
