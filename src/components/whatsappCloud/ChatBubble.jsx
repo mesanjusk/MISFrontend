@@ -1,3 +1,8 @@
+import PropTypes from 'prop-types';
+import DoneAllRoundedIcon from '@mui/icons-material/DoneAllRounded';
+import DoneRoundedIcon from '@mui/icons-material/DoneRounded';
+import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
+import { Button, Chip, Stack, Typography } from '@mui/material';
 import MessageRenderer from './MessageRenderer';
 
 const getStatusLabel = (status) => (status ? String(status).toLowerCase() : 'sent');
@@ -18,25 +23,65 @@ const getMessageType = (message) => {
   return 'text';
 };
 
+const statusIcon = (status) => {
+  if (status === 'read' || status === 'seen') return <DoneAllRoundedIcon sx={{ fontSize: 14 }} />;
+  if (status === 'failed' || status === 'error' || status === 'undelivered') return <ErrorOutlineRoundedIcon sx={{ fontSize: 14 }} />;
+  return <DoneRoundedIcon sx={{ fontSize: 14 }} />;
+};
+
 export default function ChatBubble({ message, isOutgoing, timestamp, onRetry }) {
   const status = getStatusLabel(message?.status);
   const canRetry = isOutgoing && ['failed', 'error', 'undelivered'].includes(status);
   const messageType = getMessageType(message);
 
   return (
-    <div className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
-      <article className={`max-w-[88%] rounded-2xl px-3 py-2 shadow-sm sm:max-w-[70%] ${isOutgoing ? 'rounded-br-md bg-green-600 text-white' : 'rounded-bl-md bg-white text-gray-900'}`}>
+    <Stack alignItems={isOutgoing ? 'flex-end' : 'flex-start'}>
+      <Stack
+        spacing={1}
+        sx={{
+          maxWidth: { xs: '92%', sm: '75%' },
+          px: 1.5,
+          py: 1,
+          borderRadius: 2,
+          borderBottomRightRadius: isOutgoing ? 6 : 16,
+          borderBottomLeftRadius: isOutgoing ? 16 : 6,
+          bgcolor: isOutgoing ? '#DCF8C6' : 'background.paper',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.14)',
+        }}
+      >
         <MessageRenderer message={message} type={messageType} isOutgoing={isOutgoing} />
 
-        <div className={`mt-2 flex items-center justify-end gap-2 text-[11px] ${isOutgoing ? 'text-green-100' : 'text-gray-500'}`}>
-          <span>{formatMessageTime(timestamp)}</span>
-          <span className="capitalize">{status}</span>
-        </div>
+        <Stack direction="row" justifyContent="flex-end" alignItems="center" spacing={0.5}>
+          <Typography variant="caption" color="text.secondary">{formatMessageTime(timestamp)}</Typography>
+          <Chip
+            size="small"
+            icon={statusIcon(status)}
+            label={status}
+            sx={{ height: 18, fontSize: 10, textTransform: 'capitalize', '& .MuiChip-icon': { mr: 0 } }}
+          />
+        </Stack>
 
         {canRetry ? (
-          <button type="button" onClick={() => onRetry?.(message)} className="mt-2 rounded-md bg-white/95 px-2 py-1 text-xs font-semibold text-red-600">Retry</button>
+          <Button variant="outlined" color="error" size="small" onClick={() => onRetry?.(message)}>
+            Retry
+          </Button>
         ) : null}
-      </article>
-    </div>
+      </Stack>
+    </Stack>
   );
 }
+
+
+ChatBubble.propTypes = {
+  message: PropTypes.object,
+  isOutgoing: PropTypes.bool,
+  timestamp: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.instanceOf(Date)]),
+  onRetry: PropTypes.func,
+};
+
+ChatBubble.defaultProps = {
+  message: null,
+  isOutgoing: false,
+  timestamp: '',
+  onRetry: undefined,
+};

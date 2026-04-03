@@ -1,7 +1,21 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Divider,
+  InputAdornment,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
 import { fetchWhatsAppStatus } from '../services/whatsappService';
-import { parseApiError } from '../utils/parseApiError';
 import LoadingSkeleton from '../components/whatsappCloud/LoadingSkeleton';
+import { parseApiError } from '../utils/parseApiError';
 
 const MessagesPanel = lazy(() => import('../components/whatsappCloud/MessagesPanel'));
 const SendMessagePanel = lazy(() => import('../components/whatsappCloud/SendMessagePanel'));
@@ -33,7 +47,6 @@ export default function WhatsAppCloudDashboard() {
   const [connectionStatus, setConnectionStatus] = useState('Checking...');
   const [statusError, setStatusError] = useState('');
   const [lastCheckedAt, setLastCheckedAt] = useState(null);
-
   const [statusTick, setStatusTick] = useState(0);
 
   useEffect(() => {
@@ -73,71 +86,96 @@ export default function WhatsAppCloudDashboard() {
   }, [statusTick]);
 
   const renderSection = useMemo(() => {
-    if (activeTab === 'inbox') return <MessagesPanel />;
+    if (activeTab === 'inbox') return <MessagesPanel search={search} />;
     if (activeTab === 'templates') return <SendMessagePanel />;
     if (activeTab === 'campaigns') return <BulkSender />;
     if (activeTab === 'autoReply') return <AutoReplyManagementPanel />;
     if (activeTab === 'analytics') return <AnalyticsDashboard />;
-    return <section className="rounded-xl border border-gray-200 bg-white p-6 text-sm text-gray-600 shadow-sm">Settings panel is ready for configuration controls.</section>;
-  }, [activeTab]);
+    return <Alert severity="info">Settings panel is ready for configuration controls.</Alert>;
+  }, [activeTab, search]);
 
-  const connectionChipClass = connectionState === 'connected'
-    ? 'bg-emerald-50 text-emerald-700'
+  const connectionChipColor = connectionState === 'connected'
+    ? 'success'
     : connectionState === 'loading'
-      ? 'bg-amber-50 text-amber-700'
-      : 'bg-red-50 text-red-700';
+      ? 'warning'
+      : 'error';
 
   return (
-    <div className="flex min-h-[calc(100vh-5rem)] rounded-2xl border border-gray-200 bg-[#f8fafc] shadow-sm">
-      <aside className="hidden w-64 border-r border-gray-200 bg-white p-4 md:block">
-        <h1 className="text-lg font-bold text-gray-900">WhatsApp Cloud CRM</h1>
-        <p className="mt-1 text-xs text-gray-500">BSP-style workspace</p>
-        <nav className="mt-6 space-y-1" aria-label="WhatsApp cloud sections">
+    <Box sx={{ display: 'flex', minHeight: 'calc(100vh - 5rem)', borderRadius: 3, border: (theme) => `1px solid ${theme.palette.divider}`, bgcolor: '#f5f7fb', overflow: 'hidden' }}>
+      <Box sx={{ width: 260, borderRight: (theme) => `1px solid ${theme.palette.divider}`, bgcolor: 'background.paper', p: 2, display: { xs: 'none', md: 'block' } }}>
+        <Typography variant="h6" fontWeight={700}>Cloud Inbox</Typography>
+        <Typography variant="caption" color="text.secondary">WhatsApp workspace</Typography>
+        <Stack spacing={0.75} sx={{ mt: 2.5 }}>
           {navItems.map((item) => (
-            <button
+            <Button
               key={item.key}
-              type="button"
+              variant={activeTab === item.key ? 'contained' : 'text'}
+              color={activeTab === item.key ? 'success' : 'inherit'}
               onClick={() => setActiveTab(item.key)}
-              className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition ${activeTab === item.key ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+              sx={{ justifyContent: 'flex-start', textTransform: 'none', fontWeight: 600 }}
             >
               {item.label}
-            </button>
+            </Button>
           ))}
-        </nav>
-      </aside>
+        </Stack>
+      </Box>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3">
-          <div className="flex min-w-[240px] flex-1 items-center gap-2">
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search conversations, templates, campaigns"
-              className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm"
+      <Stack sx={{ minWidth: 0, flex: 1 }}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1.5}
+          alignItems={{ xs: 'stretch', sm: 'center' }}
+          justifyContent="space-between"
+          sx={{ px: 2, py: 1.5, bgcolor: 'background.paper' }}
+        >
+          <TextField
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search conversations, templates, campaigns"
+            size="small"
+            sx={{ minWidth: { xs: '100%', sm: 340 } }}
+            InputProps={{
+              startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment>,
+            }}
+          />
+
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+            <Chip
+              color={connectionChipColor}
+              label={
+                connectionState === 'loading' ? (
+                  <Stack direction="row" alignItems="center" spacing={0.75}><CircularProgress size={12} color="inherit" /><span>WhatsApp {connectionStatus}</span></Stack>
+                ) : `WhatsApp ${connectionStatus}`
+              }
             />
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${connectionChipClass}`}>WhatsApp {connectionStatus}</span>
-              <p className="mt-1 text-[11px] text-gray-500">{lastCheckedAt ? `Last checked ${lastCheckedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'Checking status...'}</p>
-              {statusError ? <p className="mt-1 text-[11px] text-red-500">{statusError}</p> : null}
-              {statusError ? <button type="button" onClick={() => setStatusTick((prev) => prev + 1)} className="mt-1 text-[11px] font-semibold text-blue-600">Retry now</button> : null}
-            </div>
-            <button type="button" className="rounded-full bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white">Profile</button>
-          </div>
-          <div className="flex w-full gap-2 overflow-x-auto md:hidden">
-            {navItems.map((item) => (
-              <button key={item.key} type="button" onClick={() => setActiveTab(item.key)} className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium ${activeTab === item.key ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>{item.label}</button>
-            ))}
-          </div>
-        </header>
+            <Typography variant="caption" color="text.secondary">
+              {lastCheckedAt ? `Last checked ${lastCheckedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'Checking status...'}
+            </Typography>
+            {statusError ? (
+              <Button size="small" startIcon={<RefreshRoundedIcon fontSize="small" />} onClick={() => setStatusTick((prev) => prev + 1)}>
+                Retry
+              </Button>
+            ) : null}
+          </Stack>
 
-        <main className="min-h-0 flex-1 overflow-auto p-3 md:p-5">
+          <Stack direction="row" spacing={1} sx={{ display: { xs: 'flex', md: 'none' }, overflowX: 'auto', pb: 0.25 }}>
+            {navItems.map((item) => (
+              <Button key={item.key} size="small" variant={activeTab === item.key ? 'contained' : 'outlined'} onClick={() => setActiveTab(item.key)} sx={{ whiteSpace: 'nowrap', textTransform: 'none' }}>
+                {item.label}
+              </Button>
+            ))}
+          </Stack>
+        </Stack>
+
+        {statusError ? <Alert severity="error" sx={{ mx: 2, mt: 1 }}>{statusError}</Alert> : null}
+        <Divider />
+
+        <Box sx={{ minHeight: 0, flex: 1, p: { xs: 1, md: 2 }, overflow: 'auto' }}>
           <Suspense fallback={<LoadingSkeleton lines={8} />}>
             {renderSection}
           </Suspense>
-        </main>
-      </div>
-    </div>
+        </Box>
+      </Stack>
+    </Box>
   );
 }

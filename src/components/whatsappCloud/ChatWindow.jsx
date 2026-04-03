@@ -1,6 +1,8 @@
+import { Box, Chip } from '@mui/material';
 import ChatBubble from './ChatBubble';
 import EmptyState from './EmptyState';
 import MessageInput from './MessageInput';
+import PropTypes from 'prop-types';
 
 const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 
@@ -39,10 +41,17 @@ export default function ChatWindow({
   let lastDateLabel = null;
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[#efeae2]">
-      <div
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, bgcolor: '#F0F2F5' }}>
+      <Box
         ref={scrollRef}
-        className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.04)_1px,transparent_0)] bg-[size:24px_24px] p-4"
+        sx={{
+          minHeight: 0,
+          flex: 1,
+          overflowY: 'auto',
+          p: 1.5,
+          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.03) 1px, transparent 0)',
+          backgroundSize: '24px 24px',
+        }}
       >
         {messages.length === 0 ? (
           <EmptyState title="No messages yet" description="Start the conversation by sending a message." />
@@ -58,13 +67,11 @@ export default function ChatWindow({
           const isOutgoing = direction === 'outgoing';
 
           return (
-            <div key={getMessageIdentity(message)} className="space-y-2">
+            <Box key={getMessageIdentity(message)} sx={{ mb: 1.25 }}>
               {showDateSeparator ? (
-                <div className="flex justify-center">
-                  <span className="rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium text-gray-600 shadow-sm">
-                    {dateLabel}
-                  </span>
-                </div>
+                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
+                  <Chip label={dateLabel} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.95)' }} />
+                </Box>
               ) : null}
 
               <ChatBubble
@@ -73,10 +80,10 @@ export default function ChatWindow({
                 timestamp={timestamp}
                 onRetry={onRetry}
               />
-            </div>
+            </Box>
           );
         })}
-      </div>
+      </Box>
 
       <MessageInput
         disabled={!canSend}
@@ -85,6 +92,30 @@ export default function ChatWindow({
         onSend={onSend}
         onSendAttachment={onSendAttachment}
       />
-    </div>
+    </Box>
   );
 }
+
+ChatWindow.propTypes = {
+  messages: PropTypes.arrayOf(PropTypes.object),
+  getMessageIdentity: PropTypes.func.isRequired,
+  getMessageDirection: PropTypes.func.isRequired,
+  getTimestampRaw: PropTypes.func.isRequired,
+  scrollRef: PropTypes.shape({ current: PropTypes.any }),
+  canSend: PropTypes.bool,
+  canSendTemplateOnly: PropTypes.bool,
+  recipient: PropTypes.string,
+  onSend: PropTypes.func.isRequired,
+  onSendAttachment: PropTypes.func,
+  onRetry: PropTypes.func,
+};
+
+ChatWindow.defaultProps = {
+  messages: [],
+  scrollRef: { current: null },
+  canSend: true,
+  canSendTemplateOnly: false,
+  recipient: '',
+  onSendAttachment: undefined,
+  onRetry: undefined,
+};
