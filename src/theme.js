@@ -1,8 +1,8 @@
 import { alpha, createTheme } from '@mui/material/styles';
 
-const WHATSAPP_PRIMARY = '#1f8f5a';
-const WHATSAPP_DARK = '#146c43';
-const WHATSAPP_LIGHT = '#43b581';
+const WHATSAPP_PRIMARY = '#157347';
+const WHATSAPP_DARK = '#0f5132';
+const WHATSAPP_LIGHT = '#38a169';
 const EMERALD_SECONDARY = '#0f766e';
 
 const baseShadows = [
@@ -21,16 +21,18 @@ const shared = {
   shadows: baseShadows,
   typography: {
     fontFamily: ['Inter', 'Roboto', 'Segoe UI', 'Arial', 'sans-serif'].join(','),
-    h1: { fontSize: '2.25rem', fontWeight: 700, letterSpacing: '-0.02em' },
-    h2: { fontSize: '1.875rem', fontWeight: 700, letterSpacing: '-0.02em' },
-    h3: { fontSize: '1.5rem', fontWeight: 700 },
-    h4: { fontSize: '1.25rem', fontWeight: 700 },
-    h5: { fontSize: '1.1rem', fontWeight: 600 },
-    h6: { fontSize: '1rem', fontWeight: 600 },
-    subtitle1: { fontSize: '0.95rem', fontWeight: 600 },
-    body1: { fontSize: '0.95rem', lineHeight: 1.55 },
-    body2: { fontSize: '0.875rem', lineHeight: 1.45 },
-    button: { textTransform: 'none', fontWeight: 600, letterSpacing: '0.01em' },
+    h1: { fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 },
+    h2: { fontSize: '1.625rem', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 },
+    h3: { fontSize: '1.35rem', fontWeight: 700, lineHeight: 1.25 },
+    h4: { fontSize: '1.125rem', fontWeight: 700, lineHeight: 1.3 },
+    h5: { fontSize: '1rem', fontWeight: 650, lineHeight: 1.35 },
+    h6: { fontSize: '0.925rem', fontWeight: 650, lineHeight: 1.4 },
+    subtitle1: { fontSize: '0.9rem', fontWeight: 600 },
+    subtitle2: { fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.02em' },
+    body1: { fontSize: '0.875rem', lineHeight: 1.45 },
+    body2: { fontSize: '0.8125rem', lineHeight: 1.4 },
+    caption: { fontSize: '0.75rem', lineHeight: 1.35 },
+    button: { textTransform: 'none', fontWeight: 600, letterSpacing: '0.01em', fontSize: '0.8125rem' },
   },
 };
 
@@ -39,6 +41,7 @@ const getComponentOverrides = (theme) => ({
     styleOverrides: {
       body: {
         background: `linear-gradient(180deg, ${alpha(theme.palette.primary.light, 0.08)} 0%, ${theme.palette.background.default} 35%)`,
+        color: theme.palette.text.primary,
       },
       '#root': {
         minHeight: '100vh',
@@ -48,11 +51,13 @@ const getComponentOverrides = (theme) => ({
   MuiButton: {
     defaultProps: {
       disableElevation: true,
+      size: 'small',
     },
     styleOverrides: {
       root: {
-        borderRadius: theme.shape.borderRadius,
-        paddingInline: 16,
+        borderRadius: theme.shape.borderRadius - 4,
+        paddingInline: 12,
+        paddingBlock: 6,
       },
       containedPrimary: {
         backgroundImage: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
@@ -62,7 +67,7 @@ const getComponentOverrides = (theme) => ({
   MuiCard: {
     styleOverrides: {
       root: {
-        borderRadius: theme.shape.borderRadius + 4,
+        borderRadius: theme.shape.borderRadius,
         border: `1px solid ${theme.palette.divider}`,
         boxShadow: theme.shadows[2],
       },
@@ -76,13 +81,14 @@ const getComponentOverrides = (theme) => ({
     },
   },
   MuiTextField: {
-    defaultProps: { variant: 'outlined', size: 'small' },
+    defaultProps: { variant: 'outlined', size: 'small', margin: 'dense' },
   },
   MuiOutlinedInput: {
     styleOverrides: {
       root: {
         borderRadius: theme.shape.borderRadius,
         backgroundColor: alpha(theme.palette.background.paper, 0.88),
+        minHeight: 38,
       },
     },
   },
@@ -94,13 +100,23 @@ const getComponentOverrides = (theme) => ({
     },
   },
   MuiTableCell: {
+    defaultProps: { size: 'small' },
     styleOverrides: {
       head: {
         fontWeight: 700,
         color: theme.palette.text.secondary,
         backgroundColor: alpha(theme.palette.primary.main, 0.07),
+        paddingTop: 8,
+        paddingBottom: 8,
+      },
+      body: {
+        paddingTop: 8,
+        paddingBottom: 8,
       },
     },
+  },
+  MuiTable: {
+    defaultProps: { size: 'small' },
   },
   MuiDrawer: {
     styleOverrides: {
@@ -118,10 +134,18 @@ const getComponentOverrides = (theme) => ({
       },
     },
   },
+  MuiToolbar: {
+    styleOverrides: {
+      root: {
+        minHeight: 56,
+      },
+    },
+  },
   MuiChip: {
     styleOverrides: {
       root: {
         borderRadius: 999,
+        height: 24,
       },
     },
   },
@@ -144,6 +168,25 @@ const getComponentOverrides = (theme) => ({
   MuiSelect: {
     defaultProps: {
       size: 'small',
+    },
+  },
+  MuiInputLabel: {
+    defaultProps: {
+      size: 'small',
+    },
+  },
+  MuiFormControl: {
+    defaultProps: {
+      margin: 'dense',
+      size: 'small',
+      fullWidth: true,
+    },
+  },
+  MuiListItemButton: {
+    styleOverrides: {
+      root: {
+        borderRadius: 10,
+      },
     },
   },
   MuiSnackbarContent: {
@@ -170,9 +213,9 @@ export const lightTheme = (() => {
     palette: {
       mode: 'light',
       ...basePalette,
-      background: { default: '#f4f8f6', paper: '#ffffff' },
+      background: { default: '#f3f7f5', paper: '#ffffff' },
       text: { primary: '#0f172a', secondary: '#475569' },
-      divider: '#dbe5dd',
+      divider: '#d9e6df',
     },
   });
 

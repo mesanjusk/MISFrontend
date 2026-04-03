@@ -7,9 +7,11 @@ import {
   Box,
   Chip,
   IconButton,
+  InputAdornment,
   Menu,
   MenuItem,
   Stack,
+  TextField,
   Toolbar,
   Typography,
 } from '@mui/material';
@@ -17,6 +19,7 @@ import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import MenuOpenRoundedIcon from '@mui/icons-material/MenuOpenRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import { useAuth } from '../context/AuthContext';
 
 export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, desktopCollapsed }) {
@@ -48,10 +51,10 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
       position="sticky"
       color="inherit"
       sx={{
-        backgroundColor: 'rgba(255,255,255,0.94)',
+        backgroundColor: 'rgba(255,255,255,0.95)',
       }}
     >
-      <Toolbar sx={{ minHeight: { xs: 64, md: 72 }, px: { xs: 1.5, md: 2.5 }, gap: 1 }}>
+      <Toolbar sx={{ minHeight: { xs: 58, md: 62 }, px: { xs: 1, md: 2 }, gap: 1 }}>
         <IconButton onClick={onToggleSidebar} sx={{ display: { md: 'none' } }}>
           <MenuRoundedIcon />
         </IconButton>
@@ -59,16 +62,29 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
           {desktopCollapsed ? <MenuRoundedIcon /> : <MenuOpenRoundedIcon />}
         </IconButton>
 
-        <Stack sx={{ flexGrow: 1, minWidth: 0 }}>
+        <Stack sx={{ minWidth: 0, pr: 1 }}>
           <Typography variant="subtitle1" noWrap>
-            Management Workspace
+            CRM Operations Hub
           </Typography>
           <Typography variant="caption" color="text.secondary" noWrap>
-            Track operations, CRM, WhatsApp and financial workflows
+            Orders, follow-ups, WhatsApp, finance and team workflow
           </Typography>
         </Stack>
 
-        <Stack direction="row" spacing={1} sx={{ display: { xs: 'none', lg: 'flex' } }}>
+        <TextField
+          size="small"
+          placeholder="Search records, customer, order..."
+          sx={{ display: { xs: 'none', lg: 'flex' }, minWidth: 280, maxWidth: 360, ml: 'auto' }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchRoundedIcon fontSize="small" />
+              </InputAdornment>
+            ),
+          }}
+        />
+
+        <Stack direction="row" spacing={0.75} sx={{ display: { xs: 'none', xl: 'flex' } }}>
           {tabs.map((tab) => (
             <Chip
               key={tab.path}
@@ -88,7 +104,7 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
         </IconButton>
 
         <IconButton onClick={(event) => setMenuAnchor(event.currentTarget)}>
-          <Avatar sx={{ bgcolor: 'primary.main', width: 34, height: 34 }}>
+          <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32 }}>
             {userName ? userName.slice(0, 2).toUpperCase() : 'NA'}
           </Avatar>
         </IconButton>

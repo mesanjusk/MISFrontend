@@ -7,8 +7,8 @@ import TopNavbar from '../Components/TopNavbar';
 import Footer from '../Components/Footer';
 import FloatingButtons from '../Components/FloatingButtons';
 
-const DRAWER_WIDTH = 280;
-const DRAWER_COLLAPSED = 84;
+const DRAWER_WIDTH = 266;
+const DRAWER_COLLAPSED = 76;
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -51,8 +51,8 @@ export default function Layout() {
           desktopCollapsed={desktopCollapsed}
         />
 
-        <Box component="main" sx={{ px: { xs: 2, md: 3 }, py: 3, pb: { xs: 11, md: 4 } }}>
-          <Box sx={{ maxWidth: 1600, mx: 'auto' }}><Outlet /></Box>
+        <Box component="main" sx={{ px: { xs: 1, md: 2 }, py: 1.5, pb: { xs: 10, md: 2 } }}>
+          <Box sx={{ maxWidth: 1640, mx: 'auto' }}><Outlet /></Box>
         </Box>
 
         <FloatingButtons buttonsList={buttonsList} />
@@ -63,9 +63,10 @@ export default function Layout() {
         color="primary"
         aria-label="open actions"
         onClick={() => setMobileOpen(true)}
-        sx={{ position: 'fixed', left: 16, bottom: 80, display: { xs: 'flex', md: 'none' }, zIndex: 1199 }}
+        size="small"
+        sx={{ position: 'fixed', left: 14, bottom: 76, display: { xs: 'flex', md: 'none' }, zIndex: 1199 }}
       >
-        <AddIcon />
+        <AddIcon fontSize="small" />
       </Fab>
     </Box>
   );

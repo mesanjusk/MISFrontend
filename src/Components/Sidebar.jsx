@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Avatar,
   Box,
@@ -19,14 +19,16 @@ import {
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
+import FiberManualRecordRoundedIcon from '@mui/icons-material/FiberManualRecordRounded';
 import { useAuth } from '../context/AuthContext';
 import { ROUTE_ALIASES, ROUTES } from '../constants/routes';
 
-const DRAWER_WIDTH = 280;
-const DRAWER_COLLAPSED = 84;
+const DRAWER_WIDTH = 266;
+const DRAWER_COLLAPSED = 76;
 
 export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile }) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { userGroup, clearAuth } = useAuth();
   const [openGroup, setOpenGroup] = useState('Order');
 
@@ -122,19 +124,19 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
       sx={{
         height: '100%',
         color: 'common.white',
-        background: 'linear-gradient(180deg, #0f5132 0%, #115e59 52%, #1f2937 100%)',
+        background: 'linear-gradient(180deg, #0f5132 0%, #0f766e 64%, #1f2937 100%)',
       }}
     >
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ p: 2 }}>
-        <Stack direction="row" spacing={1.25} alignItems="center">
-          <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.16)', color: 'common.white' }}>S</Avatar>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ p: 1.5 }}>
+        <Stack direction="row" spacing={1.25} alignItems="center" minWidth={0}>
+          <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.18)', color: 'common.white', width: 36, height: 36 }}>M</Avatar>
           {!desktopCollapsed && (
-            <Box>
-              <Typography variant="subtitle1" fontWeight={700}>
-                SANJU SK
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="subtitle2" fontWeight={700} noWrap>
+                MIS CRM
               </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.86 }}>
-                WhatsApp Business MIS
+              <Typography variant="caption" sx={{ opacity: 0.86 }} noWrap>
+                Operations Command Center
               </Typography>
             </Box>
           )}
@@ -142,7 +144,7 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
       </Stack>
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.24)' }} />
 
-      <List sx={{ py: 1.5, px: 1.25, overflowY: 'auto', flexGrow: 1 }}>
+      <List sx={{ py: 1, px: 1, overflowY: 'auto', flexGrow: 1 }}>
         {menuGroups
           .filter((g) => g.items.length)
           .map((group) => {
@@ -153,14 +155,14 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
                   <ListItemButton
                     onClick={() => setOpenGroup((prev) => (prev === group.group ? null : group.group))}
                     sx={{
-                      borderRadius: 2,
-                      '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
+                      minHeight: 36,
+                      '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' },
                     }}
                   >
-                    <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>
+                    <ListItemIcon sx={{ minWidth: 32, color: 'inherit' }}>
                       <FolderRoundedIcon fontSize="small" />
                     </ListItemIcon>
-                    {!desktopCollapsed && <ListItemText primary={group.group} />}
+                    {!desktopCollapsed && <ListItemText primary={group.group} primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }} />}
                     {!desktopCollapsed && (
                       <ExpandMoreRoundedIcon
                         sx={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.2s' }}
@@ -172,18 +174,30 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
                 {!desktopCollapsed && (
                   <Collapse in={expanded} timeout="auto" unmountOnExit>
                     <List disablePadding>
-                      {group.items.map((item) => (
-                        <ListItemButton
-                          key={item.label}
-                          sx={{ pl: 5, borderRadius: 2, '&.Mui-selected, &:hover': { bgcolor: 'rgba(255,255,255,0.16)' } }}
-                          onClick={() => {
-                            navigate(item.path);
-                            onCloseMobile();
-                          }}
-                        >
-                          <ListItemText primary={item.label} primaryTypographyProps={{ variant: 'body2' }} />
-                        </ListItemButton>
-                      ))}
+                      {group.items.map((item) => {
+                        const selected = pathname.startsWith(item.path);
+
+                        return (
+                          <ListItemButton
+                            key={item.label}
+                            selected={selected}
+                            sx={{
+                              pl: 3.25,
+                              minHeight: 34,
+                              '&.Mui-selected, &:hover': { bgcolor: 'rgba(255,255,255,0.18)' },
+                            }}
+                            onClick={() => {
+                              navigate(item.path);
+                              onCloseMobile();
+                            }}
+                          >
+                            <ListItemIcon sx={{ minWidth: 20, color: 'inherit' }}>
+                              <FiberManualRecordRoundedIcon sx={{ fontSize: 8 }} />
+                            </ListItemIcon>
+                            <ListItemText primary={item.label} primaryTypographyProps={{ variant: 'caption', fontSize: 12.5 }} />
+                          </ListItemButton>
+                        );
+                      })}
                     </List>
                   </Collapse>
                 )}
@@ -192,7 +206,7 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
           })}
       </List>
 
-      <Box sx={{ p: 1.5 }}>
+      <Box sx={{ p: 1 }}>
         <Button
           fullWidth
           color="inherit"

@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import {
-  Alert,
   Box,
-  Card,
+  Chip,
   Grid,
   LinearProgress,
   Stack,
@@ -15,40 +14,33 @@ import PriorityHighRoundedIcon from '@mui/icons-material/PriorityHighRounded';
 import CurrencyRupeeRoundedIcon from '@mui/icons-material/CurrencyRupeeRounded';
 import CreditCardRoundedIcon from '@mui/icons-material/CreditCardRounded';
 import axios from '../apiClient';
-import { LoadingSpinner } from '../Components';
-import SectionHeader from '../components/common/SectionHeader';
 import SummaryCard from '../components/dashboard/SummaryCard';
 import RoleWidget from '../components/dashboard/RoleWidget';
 import AllAttandance from './AllAttandance';
 import UserTask from './userTask';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useUserRole } from '../hooks/useUserRole';
+import { EmptyState, ErrorState, LoadingState, PageContainer, SectionCard } from '../components/ui';
 
 const toId = (order) => order?.Order_uuid || order?._id || order?.Order_id;
 
 function OrderList({ items, emptyLabel }) {
   if (!items?.length) {
-    return (
-      <Typography variant="body2" color="text.secondary">
-        {emptyLabel}
-      </Typography>
-    );
+    return <EmptyState title={emptyLabel} />;
   }
 
   return (
-    <Stack spacing={1.25}>
+    <Stack spacing={1}>
       {items.map((order) => (
-        <Card key={toId(order)} sx={{ p: 1.5 }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
+        <Box key={toId(order)} sx={{ p: 1.25, border: (theme) => `1px solid ${theme.palette.divider}`, borderRadius: 2, bgcolor: 'background.paper' }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
             <Box>
               <Typography variant="body2" fontWeight={600}>{order?.Customer_name || 'Unknown'}</Typography>
               <Typography variant="caption" color="text.secondary">#{order?.Order_Number || '-'}</Typography>
             </Box>
-            <Typography variant="caption" color="primary.main" fontWeight={700}>
-              {order?.highestStatusTask?.Task || 'Other'}
-            </Typography>
+            <Chip label={order?.highestStatusTask?.Task || 'Other'} color="primary" variant="outlined" />
           </Stack>
-        </Card>
+        </Box>
       ))}
     </Stack>
   );
@@ -106,66 +98,50 @@ export default function Dashboard() {
   const loading = data?.isOrdersLoading || data?.isTasksLoading;
 
   return (
-    <Stack spacing={2.5}>
+    <PageContainer title="Business Dashboard" subtitle="High-density operations overview for CRM, team and financial execution.">
       {(loading || summaryLoading) ? <LinearProgress /> : null}
-      {data?.loadError ? <Alert severity="error">{data.loadError}</Alert> : null}
+      {data?.loadError ? <ErrorState message={data.loadError} /> : null}
 
-      <Grid container spacing={2.5}>
-        <Grid item xs={12}>
-          <Stack spacing={2.5}>
-            <Grid container spacing={2}>
-              {summaryCards.map((card) => (
-                <Grid key={card.title} item xs={12} sm={6} xl={3}>
-                  <SummaryCard {...card} />
-                </Grid>
-              ))}
-            </Grid>
+      <Grid container spacing={1.5}>
+        {summaryCards.map((card) => (
+          <Grid key={card.title} item xs={12} sm={6} xl={3}>
+            <SummaryCard {...card} />
+          </Grid>
+        ))}
+      </Grid>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12} md={5} lg={4}>
-                <RoleWidget role={roleInfo?.role} userName={roleInfo?.userName} />
-              </Grid>
-              <Grid item xs={12} md={7} lg={8}>
-                <Card sx={{ p: 2.25, height: '100%' }}>
-                  <SectionHeader title="Today" />
-                  <Typography variant="body2">Smart workflow summary is live.</Typography>
-                  <Typography variant="caption" color="text.secondary">Tap refresh from navigation for latest updates.</Typography>
-                </Card>
-              </Grid>
-            </Grid>
-
-            <Grid container spacing={2}>
-              <Grid item xs={12} lg={8}>
-                <Card sx={{ p: 2.25, height: '100%' }}>
-                  <SectionHeader title="My Pending Orders" />
-                  {loading ? (
-                    <Stack alignItems="center" py={4}>
-                      <LoadingSpinner />
-                    </Stack>
-                  ) : (
-                    <OrderList items={data?.myPendingOrders} emptyLabel="No pending orders assigned." />
-                  )}
-                </Card>
-              </Grid>
-
-              <Grid item xs={12} lg={4}>
-                {roleInfo?.isAdmin ? (
-                  <Card sx={{ p: 2.25, height: '100%' }}>
-                    <SectionHeader title="Today Attendance" />
-                    <AllAttandance />
-                  </Card>
-                ) : (
-                  <Card sx={{ p: 2.25, height: '100%' }}>
-                    <SectionHeader title="My Task Flow" />
-                    <UserTask />
-                  </Card>
-                )}
-              </Grid>
-            </Grid>
-          </Stack>
+      <Grid container spacing={1.5} sx={{ mt: 0.5 }}>
+        <Grid item xs={12} md={4}>
+          <RoleWidget role={roleInfo?.role} userName={roleInfo?.userName} />
+        </Grid>
+        <Grid item xs={12} md={8}>
+          <SectionCard title="Today Focus" subtitle="Execution and workload highlights">
+            <Typography variant="body2">Smart workflow summary is live.</Typography>
+            <Typography variant="caption" color="text.secondary">Use the action menu and reports tabs for rapid drill-down.</Typography>
+          </SectionCard>
         </Grid>
       </Grid>
-    </Stack>
+
+      <Grid container spacing={1.5} sx={{ mt: 0.5 }}>
+        <Grid item xs={12} lg={8}>
+          <SectionCard title="My Pending Orders" subtitle="Priority pipeline requiring action">
+            {loading ? <LoadingState label="Loading pending orders" /> : <OrderList items={data?.myPendingOrders} emptyLabel="No pending orders assigned." />}
+          </SectionCard>
+        </Grid>
+
+        <Grid item xs={12} lg={4}>
+          {roleInfo?.isAdmin ? (
+            <SectionCard title="Today Attendance" subtitle="Live team availability overview">
+              <AllAttandance />
+            </SectionCard>
+          ) : (
+            <SectionCard title="My Task Flow" subtitle="Assigned activity and updates">
+              <UserTask />
+            </SectionCard>
+          )}
+        </Grid>
+      </Grid>
+    </PageContainer>
   );
 }
 
