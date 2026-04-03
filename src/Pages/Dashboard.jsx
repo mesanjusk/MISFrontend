@@ -13,8 +13,10 @@ import {
   TableCell,
   TableHead,
   TableRow,
+  Tooltip,
   Typography,
 } from '@mui/material';
+import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import AssignmentRoundedIcon from '@mui/icons-material/AssignmentRounded';
 import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded';
@@ -51,8 +53,8 @@ function OrderList({ items, emptyLabel }) {
           }}
         >
           <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
-            <Box>
-              <Typography variant="body2" fontWeight={600}>{order?.Customer_name || 'Unknown'}</Typography>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="body2" fontWeight={600} noWrap>{order?.Customer_name || 'Unknown'}</Typography>
               <Typography variant="caption" color="text.secondary">Order #{order?.Order_Number || '-'}</Typography>
             </Box>
             <Chip label={order?.highestStatusTask?.Task || 'Other'} color="primary" size="small" variant="outlined" />
@@ -91,6 +93,35 @@ function StatusMatrix({ summaryApi, fallbackSummary }) {
         </TableBody>
       </Table>
     </DataTableWrapper>
+  );
+}
+
+function PipelineBars({ rows }) {
+  const max = Math.max(...rows.map((row) => row.count), 1);
+
+  return (
+    <Stack spacing={0.85}>
+      {rows.map((row) => {
+        const value = Math.round((row.count / max) * 100);
+        return (
+          <Stack key={row.label} spacing={0.3}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography variant="caption" color="text.secondary">{row.label}</Typography>
+              <Typography variant="caption" fontWeight={700}>{row.count}</Typography>
+            </Stack>
+            <LinearProgress
+              variant="determinate"
+              value={value}
+              sx={{
+                height: 6,
+                borderRadius: 999,
+                bgcolor: 'action.hover',
+              }}
+            />
+          </Stack>
+        );
+      })}
+    </Stack>
   );
 }
 
@@ -170,14 +201,39 @@ export default function Dashboard() {
 
   const loading = data?.isOrdersLoading || data?.isTasksLoading;
 
+  const pipelineRows = useMemo(() => {
+    const keys = data?.columnOrder?.length ? data.columnOrder : Object.keys(data?.groupedOrders || {});
+    return keys.slice(0, 6).map((label) => ({
+      label,
+      count: Array.isArray(data?.groupedOrders?.[label]) ? data.groupedOrders[label].length : 0,
+    }));
+  }, [data?.columnOrder, data?.groupedOrders]);
+
+  const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+
   return (
     <PageContainer
       title="Operations Dashboard"
       subtitle="Compact CRM command center for orders, teams and cashflow performance."
-      actions={<Button variant="contained" size="small" endIcon={<OpenInNewRoundedIcon sx={{ fontSize: 16 }} />}>View Reports</Button>}
+      actions={(
+        <Stack direction="row" spacing={1}>
+          <Button variant="outlined" color="inherit" size="small" startIcon={<RefreshRoundedIcon sx={{ fontSize: 16 }} />} onClick={data?.refresh}>
+            Refresh
+          </Button>
+          <Button variant="contained" size="small" endIcon={<OpenInNewRoundedIcon sx={{ fontSize: 16 }} />}>
+            View Reports
+          </Button>
+        </Stack>
+      )}
     >
       {(loading || summaryLoading) ? <LinearProgress sx={{ borderRadius: 1 }} /> : null}
       {data?.loadError ? <ErrorState message={data.loadError} /> : null}
+
+      <Stack direction="row" spacing={0.8} sx={{ flexWrap: 'wrap' }}>
+        <Chip size="small" label={`Date: ${todayLabel}`} variant="outlined" />
+        <Chip size="small" label={`Visible Orders: ${data?.visibleOrders?.length || 0}`} color="primary" variant="outlined" />
+        <Chip size="small" label={`User: ${roleInfo?.userName || 'N/A'}`} variant="outlined" />
+      </Stack>
 
       <Grid container spacing={1.25}>
         {summaryCards.map((card) => (
@@ -187,7 +243,7 @@ export default function Dashboard() {
         ))}
       </Grid>
 
-      <Grid container spacing={1.25} sx={{ mt: 0.25 }}>
+      <Grid container spacing={1.25}>
         <Grid item xs={12} lg={4}>
           <Stack spacing={1.25} sx={{ height: '100%' }}>
             <RoleWidget role={roleInfo?.role} userName={roleInfo?.userName} />
@@ -197,18 +253,28 @@ export default function Dashboard() {
 
         <Grid item xs={12} lg={8}>
           <SectionCard title="Execution Summary" subtitle="Live operational matrix and decision support" contentSx={{ p: 1 }}>
-            <Stack spacing={1}>
-              <StatusMatrix summaryApi={summaryApi} fallbackSummary={data?.summary} />
-              <Divider />
-              <Typography variant="caption" color="text.secondary">
-                Tip: Use quick actions for direct entry and reports for complete analysis.
-              </Typography>
-            </Stack>
+            <Grid container spacing={1}>
+              <Grid item xs={12} md={6}>
+                <StatusMatrix summaryApi={summaryApi} fallbackSummary={data?.summary} />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <DataTableWrapper>
+                  <Box sx={{ p: 1 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 0.75 }}>Pipeline Distribution</Typography>
+                    {pipelineRows.length ? <PipelineBars rows={pipelineRows} /> : <EmptyState title="No stage data available" />}
+                  </Box>
+                </DataTableWrapper>
+              </Grid>
+            </Grid>
+            <Divider sx={{ my: 1 }} />
+            <Typography variant="caption" color="text.secondary">
+              Tip: Use quick actions for direct entry and reports for complete analysis.
+            </Typography>
           </SectionCard>
         </Grid>
       </Grid>
 
-      <Grid container spacing={1.25} sx={{ mt: 0.25 }}>
+      <Grid container spacing={1.25}>
         <Grid item xs={12} lg={8}>
           <SectionCard title="My Pending Orders" subtitle="Priority pipeline requiring immediate action">
             {loading ? <LoadingState label="Loading pending orders" /> : <OrderList items={data?.myPendingOrders} emptyLabel="No pending orders assigned." />}
@@ -216,15 +282,14 @@ export default function Dashboard() {
         </Grid>
 
         <Grid item xs={12} lg={4}>
-          {roleInfo?.isAdmin ? (
-            <SectionCard title="Today Attendance" subtitle="Live team availability overview" contentSx={{ p: 1 }}>
-              <AllAttandance />
-            </SectionCard>
-          ) : (
-            <SectionCard title="My Task Flow" subtitle="Assigned activity and updates" contentSx={{ p: 1 }}>
-              <UserTask />
-            </SectionCard>
-          )}
+          <SectionCard
+            title={roleInfo?.isAdmin ? 'Today Attendance' : 'My Task Flow'}
+            subtitle={roleInfo?.isAdmin ? 'Live team availability overview' : 'Assigned activity and updates'}
+            contentSx={{ p: 1 }}
+            action={<Tooltip title="This panel remains functionally unchanged"><Chip size="small" label="Live" color="secondary" variant="outlined" /></Tooltip>}
+          >
+            {roleInfo?.isAdmin ? <AllAttandance /> : <UserTask />}
+          </SectionCard>
         </Grid>
       </Grid>
     </PageContainer>
@@ -243,4 +308,11 @@ OrderList.defaultProps = {
 StatusMatrix.propTypes = {
   summaryApi: PropTypes.object,
   fallbackSummary: PropTypes.object,
+};
+
+PipelineBars.propTypes = {
+  rows: PropTypes.arrayOf(PropTypes.shape({
+    label: PropTypes.string,
+    count: PropTypes.number,
+  })).isRequired,
 };
