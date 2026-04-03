@@ -6,7 +6,7 @@ import {
   DialogActions,
   IconButton,
 } from '@mui/material';
-import { FiX } from 'react-icons/fi';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 
 export default function Modal({
   isOpen,
@@ -25,7 +25,7 @@ export default function Modal({
             onClick={onClose}
             sx={{ position: 'absolute', right: 8, top: 8 }}
           >
-            <FiX />
+            <CloseRoundedIcon fontSize="small" />
           </IconButton>
         </DialogTitle>
       )}

@@ -1,88 +1,96 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { lazy, Suspense, useEffect } from "react";
-import "./apiClient.js";
-import Layout from "./Pages/Layout";
-import { initVersionChecker } from "./utils/versionChecker";
-import { ToastContainer } from "./Components";
-import { ROUTE_ALIASES, ROUTES } from "./constants/routes";
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { Box, CircularProgress, Stack, Typography } from '@mui/material';
+import './apiClient.js';
+import Layout from './Pages/Layout';
+import { initVersionChecker } from './utils/versionChecker';
+import { ToastContainer } from './Components';
+import { ROUTE_ALIASES, ROUTES } from './constants/routes';
 
-const Login = lazy(() => import("./Pages/login"));
-const Register = lazy(() => import("./Pages/Register"));
-const Planner = lazy(() => import("./Pages/Planner"));
-const Review = lazy(() => import("./Pages/Review"));
-const Team = lazy(() => import("./Pages/Team"));
-const Dashboard = lazy(() => import("./Pages/Dashboard"));
-const AddCustomer = lazy(() => import("./Pages/addCustomer"));
-const AddCustGroup = lazy(() => import("./Pages/addCustomergroup"));
-const AddUser = lazy(() => import("./Pages/addUser"));
-const AddUserGroup = lazy(() => import("./Pages/addUsergroup"));
-const AddItem = lazy(() => import("./Pages/addItem"));
-const AddItemGroup = lazy(() => import("./Pages/addItemgroup"));
-const AddTask = lazy(() => import("./Pages/addTask"));
-const AddTaskGroup = lazy(() => import("./Pages/addTaskgroup"));
-const AddPriority = lazy(() => import("./Pages/addPriority"));
-const AddOrder = lazy(() => import("./Pages/addOrder"));
-const AddOrder1 = lazy(() => import("./Pages/addOrder1"));
-const AllOrderTableView = lazy(() => import("./Reports/AllOrderTableView"));
-const AllOrder = lazy(() => import("./Reports/allOrder"));
-const AllOrderMobile = lazy(() => import("./Reports/allOrderMobile"));
-const AllDelivery = lazy(() => import("./Reports/allDelivery"));
-const OrderUpdate = lazy(() => import("./Pages/OrderUpdate"));
-const UpdateDelivery = lazy(() => import("./Pages/updateDelivery"));
-const AddEnquiry = lazy(() => import("./Pages/addEnquiry"));
-const AddPayment = lazy(() => import("./Pages/addPayment"));
-const AddTransaction = lazy(() => import("./Pages/AddTransaction"));
-const AddTransaction1 = lazy(() => import("./Pages/addTransaction1"));
-const AddRecievable = lazy(() => import("./Pages/addRecievable"));
-const AddPayable = lazy(() => import("./Pages/addPayable"));
-const AllTransaction = lazy(() => import("./Reports/allTransaction"));
-const AllTransaction1 = lazy(() => import("./Reports/allTransaction1"));
-const AllTransaction2 = lazy(() => import("./Reports/allTransaction2"));
-const AllTransaction3 = lazy(() => import("./Reports/allTransaction3"));
-const AllTransaction4D = lazy(() => import("./Reports/allTransaction4D"));
-const CustomerReport = lazy(() => import("./Reports/customerReport"));
-const TaskReport = lazy(() => import("./Reports/taskReport"));
-const UserReport = lazy(() => import("./Reports/userReport"));
-const ItemReport = lazy(() => import("./Reports/itemReport"));
-const PaymentReport = lazy(() => import("./Reports/paymentReport"));
-const PriorityReport = lazy(() => import("./Reports/priorityReport"));
-const AllBills = lazy(() => import("./Reports/allBills"));
-const VendorBills = lazy(() => import("./Reports/vendorBills"));
-const AllVendors = lazy(() => import("./Reports/AllVendors"));
-const EditCustomer = lazy(() => import("./Reports/editCustomer"));
-const EditTask = lazy(() => import("./Reports/editTask"));
-const EditItem = lazy(() => import("./Reports/editItem"));
-const EditUser = lazy(() => import("./Reports/editUser"));
-const EditPayment = lazy(() => import("./Reports/editPayment"));
-const EditPriority = lazy(() => import("./Reports/editPriority"));
-const SendMessage = lazy(() => import("./Pages/SendMessage"));
-const SendMessageAll = lazy(() => import("./Pages/SendMessageAll"));
-const WhatsAppLogin = lazy(() => import("./Pages/WhatsAppLogin"));
-const WhatsAppSession = lazy(() => import("./Pages/WhatsAppSession"));
-const WhatsAppAdminPanel = lazy(() => import("./Pages/WhatsAppAdminPanel"));
-const WhatsAppCloudDashboard = lazy(() => import("./Pages/WhatsAppCloudDashboard"));
-const PendingTasks = lazy(() => import("./Pages/PendingTasks"));
-const AllAttandance = lazy(() => import("./Pages/AllAttandance"));
-const CashLedger = lazy(() => import("./Pages/CashLedger"));
-const Vendor = lazy(() => import("./Pages/vendor"));
-const MigrateOrders = lazy(() => import("./Pages/MigrateOrders"));
-const PaymentFollowup = lazy(() => import("./Pages/PaymentFollowup"));
-const AttendanceReport = lazy(() => import("./Pages/AttendanceReport"));
-const SearchMobile = lazy(() => import("./Pages/searchMobile"));
-const AddUsertask = lazy(() => import("./Pages/addUsertask"));
-const AddNote = lazy(() => import("./Pages/addNote"));
-const CallLogs = lazy(() => import("./Pages/callLogs"));
-const AdminHome = lazy(() => import("./Pages/adminHome"));
-const VendorHome = lazy(() => import("./Pages/vendorHome"));
-const AllTransactionOld = lazy(() => import("./Reports/allTransactionOld"));
-const AddTransactionOld = lazy(() => import("./Pages/addTransactionOld.jsx"));
-const AddTransaction1Old = lazy(() => import("./Pages/addTransaction1Old.jsx"));
-const FlowBuilderPage = lazy(() => import("./Pages/FlowBuilderPage"));
-const OrderKanban = lazy(() => import("./Pages/OrderKanban"));
-const CustomerDetails = lazy(() => import("./Pages/CustomerDetails"));
+const Login = lazy(() => import('./Pages/login'));
+const Register = lazy(() => import('./Pages/Register'));
+const Planner = lazy(() => import('./Pages/Planner'));
+const Review = lazy(() => import('./Pages/Review'));
+const Team = lazy(() => import('./Pages/Team'));
+const Dashboard = lazy(() => import('./Pages/Dashboard'));
+const AddCustomer = lazy(() => import('./Pages/addCustomer'));
+const AddCustGroup = lazy(() => import('./Pages/addCustomergroup'));
+const AddUser = lazy(() => import('./Pages/addUser'));
+const AddUserGroup = lazy(() => import('./Pages/addUsergroup'));
+const AddItem = lazy(() => import('./Pages/addItem'));
+const AddItemGroup = lazy(() => import('./Pages/addItemgroup'));
+const AddTask = lazy(() => import('./Pages/addTask'));
+const AddTaskGroup = lazy(() => import('./Pages/addTaskgroup'));
+const AddPriority = lazy(() => import('./Pages/addPriority'));
+const AddOrder = lazy(() => import('./Pages/addOrder'));
+const AddOrder1 = lazy(() => import('./Pages/addOrder1'));
+const AllOrderTableView = lazy(() => import('./Reports/AllOrderTableView'));
+const AllOrder = lazy(() => import('./Reports/allOrder'));
+const AllOrderMobile = lazy(() => import('./Reports/allOrderMobile'));
+const AllDelivery = lazy(() => import('./Reports/allDelivery'));
+const OrderUpdate = lazy(() => import('./Pages/OrderUpdate'));
+const UpdateDelivery = lazy(() => import('./Pages/updateDelivery'));
+const AddEnquiry = lazy(() => import('./Pages/addEnquiry'));
+const AddPayment = lazy(() => import('./Pages/addPayment'));
+const AddTransaction = lazy(() => import('./Pages/AddTransaction'));
+const AddTransaction1 = lazy(() => import('./Pages/addTransaction1'));
+const AddRecievable = lazy(() => import('./Pages/addRecievable'));
+const AddPayable = lazy(() => import('./Pages/addPayable'));
+const AllTransaction = lazy(() => import('./Reports/allTransaction'));
+const AllTransaction1 = lazy(() => import('./Reports/allTransaction1'));
+const AllTransaction2 = lazy(() => import('./Reports/allTransaction2'));
+const AllTransaction3 = lazy(() => import('./Reports/allTransaction3'));
+const AllTransaction4D = lazy(() => import('./Reports/allTransaction4D'));
+const CustomerReport = lazy(() => import('./Reports/customerReport'));
+const TaskReport = lazy(() => import('./Reports/taskReport'));
+const UserReport = lazy(() => import('./Reports/userReport'));
+const ItemReport = lazy(() => import('./Reports/itemReport'));
+const PaymentReport = lazy(() => import('./Reports/paymentReport'));
+const PriorityReport = lazy(() => import('./Reports/priorityReport'));
+const AllBills = lazy(() => import('./Reports/allBills'));
+const VendorBills = lazy(() => import('./Reports/vendorBills'));
+const AllVendors = lazy(() => import('./Reports/AllVendors'));
+const EditCustomer = lazy(() => import('./Reports/editCustomer'));
+const EditTask = lazy(() => import('./Reports/editTask'));
+const EditItem = lazy(() => import('./Reports/editItem'));
+const EditUser = lazy(() => import('./Reports/editUser'));
+const EditPayment = lazy(() => import('./Reports/editPayment'));
+const EditPriority = lazy(() => import('./Reports/editPriority'));
+const SendMessage = lazy(() => import('./Pages/SendMessage'));
+const SendMessageAll = lazy(() => import('./Pages/SendMessageAll'));
+const WhatsAppLogin = lazy(() => import('./Pages/WhatsAppLogin'));
+const WhatsAppSession = lazy(() => import('./Pages/WhatsAppSession'));
+const WhatsAppAdminPanel = lazy(() => import('./Pages/WhatsAppAdminPanel'));
+const WhatsAppCloudDashboard = lazy(() => import('./Pages/WhatsAppCloudDashboard'));
+const PendingTasks = lazy(() => import('./Pages/PendingTasks'));
+const AllAttandance = lazy(() => import('./Pages/AllAttandance'));
+const CashLedger = lazy(() => import('./Pages/CashLedger'));
+const Vendor = lazy(() => import('./Pages/vendor'));
+const MigrateOrders = lazy(() => import('./Pages/MigrateOrders'));
+const PaymentFollowup = lazy(() => import('./Pages/PaymentFollowup'));
+const AttendanceReport = lazy(() => import('./Pages/AttendanceReport'));
+const SearchMobile = lazy(() => import('./Pages/searchMobile'));
+const AddUsertask = lazy(() => import('./Pages/addUsertask'));
+const AddNote = lazy(() => import('./Pages/addNote'));
+const CallLogs = lazy(() => import('./Pages/callLogs'));
+const AdminHome = lazy(() => import('./Pages/adminHome'));
+const VendorHome = lazy(() => import('./Pages/vendorHome'));
+const AllTransactionOld = lazy(() => import('./Reports/allTransactionOld'));
+const AddTransactionOld = lazy(() => import('./Pages/addTransactionOld.jsx'));
+const AddTransaction1Old = lazy(() => import('./Pages/addTransaction1Old.jsx'));
+const FlowBuilderPage = lazy(() => import('./Pages/FlowBuilderPage'));
+const OrderKanban = lazy(() => import('./Pages/OrderKanban'));
+const CustomerDetails = lazy(() => import('./Pages/CustomerDetails'));
 
 function RouteLoader() {
-  return <div className="p-4 text-sm text-slate-600">Loading...</div>;
+  return (
+    <Stack alignItems="center" justifyContent="center" minHeight="50vh" spacing={2}>
+      <CircularProgress size={32} />
+      <Typography variant="body2" color="text.secondary">
+        Loading page...
+      </Typography>
+    </Stack>
+  );
 }
 
 function withSuspense(element) {
@@ -100,7 +108,7 @@ function App() {
   return (
     <Router>
       <ToastContainer />
-      <div className="min-h-screen bg-background text-gray-900">
+      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', color: 'text.primary' }}>
         <Routes>
           <Route path={ROUTES.ROOT} element={withSuspense(<Login />)} />
           <Route path={ROUTES.LOGIN} element={withSuspense(<Login />)} />
@@ -194,10 +202,18 @@ function App() {
             <Route path={ROUTE_ALIASES.ADD_PAYABLE_TYPO} element={<Navigate to={ROUTES.ADD_PAYABLE} replace />} />
             <Route path={ROUTE_ALIASES.ALL_TRANSACTION_2_LOWER} element={<Navigate to={ROUTES.ALL_TRANSACTION_2} replace />} />
             <Route path={ROUTE_ALIASES.ALL_TRANSACTION_1_TYPO} element={<Navigate to={ROUTES.ALL_TRANSACTION_1} replace />} />
-            <Route path="*" element={<div className="p-8">404 Not Found</div>} />
+            <Route
+              path="*"
+              element={
+                <Stack alignItems="center" justifyContent="center" minHeight="50vh" spacing={1}>
+                  <Typography variant="h5">404</Typography>
+                  <Typography color="text.secondary">Page not found</Typography>
+                </Stack>
+              }
+            />
           </Route>
         </Routes>
-      </div>
+      </Box>
     </Router>
   );
 }

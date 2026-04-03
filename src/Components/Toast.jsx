@@ -1,32 +1,49 @@
+import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Toaster, toast } from 'react-hot-toast';
+import { Alert, Snackbar } from '@mui/material';
 
-export function ToastContainer({ position = 'top-right', toastOptions }) {
+const listeners = new Set();
+
+function emit(payload) {
+  listeners.forEach((listener) => listener(payload));
+}
+
+export function toast(message, variant = 'info') {
+  emit({ message, variant });
+}
+
+toast.success = (message) => emit({ message, variant: 'success' });
+toast.error = (message) => emit({ message, variant: 'error' });
+
+export function ToastContainer({ autoHideDuration = 3500 }) {
+  const [toastState, setToastState] = useState({ open: false, message: '', variant: 'info' });
+
+  useEffect(() => {
+    const handler = (payload) => setToastState({ open: true, ...payload });
+    listeners.add(handler);
+    return () => listeners.delete(handler);
+  }, []);
+
   return (
-    <Toaster
-      position={position}
-      toastOptions={{
-        style: {
-          background: '#F4F6F8',
-          color: '#212121',
-          borderRadius: '0.75rem',
-        },
-        success: {
-          iconTheme: { primary: '#1E88E5', secondary: '#F4F6F8' },
-        },
-        error: {
-          iconTheme: { primary: '#E53935', secondary: '#F4F6F8' },
-        },
-        ...toastOptions,
-      }}
-    />
+    <Snackbar
+      open={toastState.open}
+      autoHideDuration={autoHideDuration}
+      onClose={() => setToastState((prev) => ({ ...prev, open: false }))}
+      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+    >
+      <Alert
+        elevation={6}
+        variant="filled"
+        severity={toastState.variant}
+        onClose={() => setToastState((prev) => ({ ...prev, open: false }))}
+        sx={{ width: '100%' }}
+      >
+        {toastState.message}
+      </Alert>
+    </Snackbar>
   );
 }
 
 ToastContainer.propTypes = {
-  position: PropTypes.string,
-  toastOptions: PropTypes.object,
+  autoHideDuration: PropTypes.number,
 };
-
-// eslint-disable-next-line react-refresh/only-export-components
-export { toast };

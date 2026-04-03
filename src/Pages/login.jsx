@@ -1,19 +1,33 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CircularProgress,
+  InputAdornment,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
+import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
+import LockRoundedIcon from '@mui/icons-material/LockRounded';
+import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
 import axios from '../apiClient.js';
-import { Card, InputField, Button, MobileContainer } from '../Components';
-import { FiUser, FiLock, FiLogIn } from 'react-icons/fi';
+import { MobileContainer, toast } from '../Components';
 import { useAuth } from '../context/AuthContext';
 import { setStoredToken } from '../utils/authStorage';
 
-const BACKEND_BASE =
-  import.meta.env.VITE_API_SERVER || 'https://misbackend-e078.onrender.com';
+const BACKEND_BASE = import.meta.env.VITE_API_SERVER || 'https://misbackend-e078.onrender.com';
 
 export default function Login() {
   const navigate = useNavigate();
   const [User_name, setUser_Name] = useState('');
   const [Password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorText, setErrorText] = useState('');
   const { setAuthData, userName, userGroup } = useAuth();
 
   useEffect(() => {
@@ -29,10 +43,7 @@ export default function Login() {
       const connected = !!statusRes?.data?.connected;
 
       if (!connected) {
-        const returnTo =
-          userGroupValue === 'Vendor'
-            ? `${window.location.origin}/vendorHome`
-            : `${window.location.origin}/home`;
+        const returnTo = userGroupValue === 'Vendor' ? `${window.location.origin}/vendorHome` : `${window.location.origin}/home`;
 
         window.location.href = `${BACKEND_BASE}/api/google-drive/connect?returnTo=${encodeURIComponent(returnTo)}`;
         return;
@@ -50,6 +61,7 @@ export default function Login() {
   async function submit(e) {
     e.preventDefault();
     setLoading(true);
+    setErrorText('');
 
     try {
       const response = await axios.post('/user/login', {
@@ -60,19 +72,19 @@ export default function Login() {
       const data = response.data;
 
       if (data.status === 'notexist') {
-        alert('User has not signed up');
+        setErrorText('User has not signed up.');
         setLoading(false);
         return;
       }
 
       if (data.status === 'invalid') {
-        alert('Invalid credentials. Please check your username and password.');
+        setErrorText('Invalid credentials. Please check username and password.');
         setLoading(false);
         return;
       }
 
       if (!data.token) {
-        alert('Login successful but token not received from server.');
+        setErrorText('Login succeeded but token was not received from the server.');
         console.error('Token missing in response:', data);
         setLoading(false);
         return;
@@ -86,57 +98,69 @@ export default function Login() {
         mobileNumber: data.userMobile || data.userMob || '',
       });
 
+      toast.success('Login successful. Redirecting...');
       await checkGoogleDriveAndRedirect(data.userGroup);
     } catch (error) {
       console.error('Login error:', error);
-      alert('An error occurred during login. Please try again.');
+      setErrorText('An error occurred during login. Please try again.');
+    } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-background">
-      <MobileContainer>
-        <Card>
-          <h1 className="text-xl font-semibold mb-4 text-center flex items-center justify-center">
-            <FiUser className="mr-2" />
-            Login
-          </h1>
+    <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', px: 2 }}>
+      <MobileContainer maxWidth="sm">
+        <Card sx={{ maxWidth: 460, mx: 'auto' }}>
+          <CardContent sx={{ p: { xs: 3, md: 4 } }}>
+            <Stack spacing={3} component="form" onSubmit={submit}>
+              <Box>
+                <Typography variant="h5" fontWeight={700} gutterBottom>
+                  Welcome back
+                </Typography>
+                <Typography color="text.secondary">Sign in to access your MIS dashboard.</Typography>
+              </Box>
 
-          <form onSubmit={submit}>
-            <InputField
-              label="User Name"
-              autoComplete="off"
-              value={User_name}
-              onChange={(e) => setUser_Name(e.target.value)}
-              placeholder="User Name"
-              icon={FiUser}
-              required
-            />
+              {errorText && <Alert severity="error">{errorText}</Alert>}
 
-            <InputField
-              label="Password"
-              type="password"
-              autoComplete="off"
-              value={Password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              icon={FiLock}
-              required
-            />
+              <TextField
+                label="User Name"
+                autoComplete="username"
+                value={User_name}
+                onChange={(e) => setUser_Name(e.target.value)}
+                required
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <PersonRoundedIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
 
-            <Button
-              type="submit"
-              className="mt-2"
-              rightIcon={FiLogIn}
-              fullWidth
-              disabled={loading}
-            >
-              {loading ? 'Please wait...' : 'Submit'}
-            </Button>
-          </form>
+              <TextField
+                label="Password"
+                type="password"
+                autoComplete="current-password"
+                value={Password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockRoundedIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <Button type="submit" variant="contained" fullWidth disabled={loading} endIcon={loading ? <CircularProgress size={18} color="inherit" /> : <LoginRoundedIcon />}>
+                {loading ? 'Please wait...' : 'Sign In'}
+              </Button>
+            </Stack>
+          </CardContent>
         </Card>
       </MobileContainer>
-    </div>
+    </Box>
   );
 }

@@ -1,104 +1,109 @@
-import { useEffect, useState } from "react";
-import { useNavigate, NavLink } from "react-router-dom";
-import { LoadingSpinner } from "../Components";
-import { useAuth } from "../context/AuthContext";
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, NavLink } from 'react-router-dom';
+import {
+  AppBar,
+  Avatar,
+  Box,
+  Chip,
+  IconButton,
+  Menu,
+  MenuItem,
+  Stack,
+  Toolbar,
+  Typography,
+} from '@mui/material';
+import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
+import MenuOpenRoundedIcon from '@mui/icons-material/MenuOpenRounded';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
+import { useAuth } from '../context/AuthContext';
 
-export default function TopNavbar({ onToggleSidebar }) {
-  const [isLoading, setIsLoading] = useState(true);
+export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, desktopCollapsed }) {
   const navigate = useNavigate();
   const { userName, userGroup, clearAuth } = useAuth();
+  const [menuAnchor, setMenuAnchor] = useState(null);
 
-  // Desktop tabs (same as footer)
-  const tabs = [
-    { label: "Report", path: "/allOrder", icon: "📄" },
-    { label: "Delivered", path: "/allDelivery", icon: "🚚" },
-    { label: "Vendor", path: "/AllVendors", icon: "🏭" },
-    { label: "Bills", path: "/allBills", icon: "🧾" },
-  ];
+  const tabs = useMemo(
+    () => [
+      { label: 'Report', path: '/allOrder' },
+      { label: 'Delivered', path: '/allDelivery' },
+      { label: 'Vendor', path: '/AllVendors' },
+      { label: 'Bills', path: '/allBills' },
+    ],
+    [],
+  );
 
   useEffect(() => {
-    if (!userName) navigate("/login");
-    const t = setTimeout(() => setIsLoading(false), 800);
-    return () => clearTimeout(t);
+    if (!userName) navigate('/login');
   }, [navigate, userName]);
 
   const handleLogout = () => {
-    if (!window.confirm("Logout?")) return;
     clearAuth();
-    navigate("/");
+    navigate('/');
   };
 
   return (
-    <>
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-6 shadow-sm">
-        {/* Left: menu button + brand area */}
-        <div className="flex items-center gap-3">
-          {/* Sidebar toggle (mobile only) */}
-          <button
-            onClick={onToggleSidebar}
-            className="md:hidden p-2 rounded-lg bg-slate-100 hover:bg-slate-200"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-              className="h-5 w-5"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
-          </button>
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            {/* put logo/title here if needed */}
-          </div>
-        </div>
+    <AppBar position="sticky" color="inherit">
+      <Toolbar sx={{ minHeight: { xs: 64, md: 72 }, px: { xs: 1.5, md: 2.5 }, gap: 1 }}>
+        <IconButton onClick={onToggleSidebar} sx={{ display: { md: 'none' } }}>
+          <MenuRoundedIcon />
+        </IconButton>
+        <IconButton onClick={onToggleDesktopCollapse} sx={{ display: { xs: 'none', md: 'inline-flex' } }}>
+          {desktopCollapsed ? <MenuRoundedIcon /> : <MenuOpenRoundedIcon />}
+        </IconButton>
 
-        {/* Center: Desktop-only tabs (moved up from footer) */}
-        <nav className="hidden md:flex items-center gap-3">
-          {tabs.map((t) => (
-            <NavLink
-              key={t.path}
-              to={t.path}
-              className={({ isActive }) =>
-                `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition
-                 ${isActive
-                   ? "bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200"
-                   : "text-slate-700 hover:bg-slate-100"}`
-              }
-            >
-              <span className="text-base leading-none">{t.icon}</span>
-              <span>{t.label}</span>
-            </NavLink>
+        <Stack sx={{ flexGrow: 1, minWidth: 0 }}>
+          <Typography variant="subtitle1" noWrap>
+            Management Workspace
+          </Typography>
+          <Typography variant="caption" color="text.secondary" noWrap>
+            Track operations, CRM, WhatsApp and financial workflows
+          </Typography>
+        </Stack>
+
+        <Stack direction="row" spacing={1} sx={{ display: { xs: 'none', lg: 'flex' } }}>
+          {tabs.map((tab) => (
+            <Chip
+              key={tab.path}
+              clickable
+              label={<NavLink style={{ textDecoration: 'none', color: 'inherit' }} to={tab.path}>{tab.label}</NavLink>}
+              variant="outlined"
+            />
           ))}
-        </nav>
+        </Stack>
 
-        {/* Right: actions */}
-        <div className="flex items-center gap-4">
-          <button className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-              className="h-5 w-5 text-slate-700"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          </button>
+        <IconButton>
+          <NotificationsNoneRoundedIcon />
+        </IconButton>
 
-          <div className="relative group">
-            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-700 to-indigo-800 text-white grid place-items-center text-sm font-semibold cursor-pointer">
-              {userName ? userName.slice(0, 2).toUpperCase() : "NA"}
-            </div>
-            <div className="hidden group-hover:block absolute right-0 top-10 w-48 bg-white text-slate-800 rounded-lg shadow-lg border border-slate-200">
-              <div className="px-4 py-3 text-sm">
-                <div className="font-semibold">{userName}</div>
-                <div className="text-xs text-slate-500">{userGroup}</div>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2 border-t border-slate-100"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                  className="h-4 w-4"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+        <IconButton onClick={(event) => setMenuAnchor(event.currentTarget)}>
+          <Avatar sx={{ bgcolor: 'primary.main', width: 34, height: 34 }}>
+            {userName ? userName.slice(0, 2).toUpperCase() : 'NA'}
+          </Avatar>
+        </IconButton>
 
-      {isLoading && (
-        <div className="fixed inset-0 bg-white/80 z-50 flex items-center justify-center">
-          <LoadingSpinner size={48} className="text-blue-500" />
-        </div>
-      )}
-    </>
+        <Menu
+          anchorEl={menuAnchor}
+          open={Boolean(menuAnchor)}
+          onClose={() => setMenuAnchor(null)}
+          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        >
+          <Box sx={{ px: 2, py: 1 }}>
+            <Typography variant="subtitle2">{userName || 'Guest'}</Typography>
+            <Typography variant="caption" color="text.secondary">{userGroup || 'Unknown role'}</Typography>
+          </Box>
+          <MenuItem
+            onClick={() => {
+              setMenuAnchor(null);
+              handleLogout();
+            }}
+          >
+            <LogoutRoundedIcon fontSize="small" sx={{ mr: 1 }} />
+            Logout
+          </MenuItem>
+        </Menu>
+      </Toolbar>
+    </AppBar>
   );
 }

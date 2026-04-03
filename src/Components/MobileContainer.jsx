@@ -1,14 +1,15 @@
 import PropTypes from 'prop-types';
+import Container from '@mui/material/Container';
 
-export default function MobileContainer({ className = '', children, ...props }) {
+export default function MobileContainer({ children, maxWidth = 'sm', ...props }) {
   return (
-    <div className={`w-full max-w-md mx-auto px-4 ${className}`} {...props}>
+    <Container maxWidth={maxWidth} sx={{ py: { xs: 2, md: 4 } }} {...props}>
       {children}
-    </div>
+    </Container>
   );
 }
 
 MobileContainer.propTypes = {
-  className: PropTypes.string,
+  maxWidth: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
   children: PropTypes.node.isRequired,
 };
