@@ -1,17 +1,23 @@
 import { alpha, createTheme } from '@mui/material/styles';
 
+const WHATSAPP_PRIMARY = '#1f8f5a';
+const WHATSAPP_DARK = '#146c43';
+const WHATSAPP_LIGHT = '#43b581';
+const EMERALD_SECONDARY = '#0f766e';
+
 const baseShadows = [
   'none',
   '0 1px 2px rgba(15, 23, 42, 0.04)',
   '0 2px 8px rgba(15, 23, 42, 0.06)',
-  '0 8px 24px rgba(15, 23, 42, 0.08)',
-  '0 14px 36px rgba(15, 23, 42, 0.10)',
-  '0 20px 48px rgba(15, 23, 42, 0.12)',
-  ...Array(19).fill('0 20px 48px rgba(15, 23, 42, 0.12)'),
+  '0 10px 24px rgba(15, 23, 42, 0.08)',
+  '0 18px 40px rgba(15, 23, 42, 0.10)',
+  '0 24px 56px rgba(15, 23, 42, 0.12)',
+  ...Array(19).fill('0 24px 56px rgba(15, 23, 42, 0.12)'),
 ];
 
 const shared = {
   shape: { borderRadius: 14 },
+  spacing: 8,
   shadows: baseShadows,
   typography: {
     fontFamily: ['Inter', 'Roboto', 'Segoe UI', 'Arial', 'sans-serif'].join(','),
@@ -32,7 +38,7 @@ const getComponentOverrides = (theme) => ({
   MuiCssBaseline: {
     styleOverrides: {
       body: {
-        backgroundColor: theme.palette.background.default,
+        background: `linear-gradient(180deg, ${alpha(theme.palette.primary.light, 0.08)} 0%, ${theme.palette.background.default} 35%)`,
       },
       '#root': {
         minHeight: '100vh',
@@ -62,6 +68,13 @@ const getComponentOverrides = (theme) => ({
       },
     },
   },
+  MuiPaper: {
+    styleOverrides: {
+      rounded: {
+        borderRadius: theme.shape.borderRadius,
+      },
+    },
+  },
   MuiTextField: {
     defaultProps: { variant: 'outlined', size: 'small' },
   },
@@ -69,7 +82,7 @@ const getComponentOverrides = (theme) => ({
     styleOverrides: {
       root: {
         borderRadius: theme.shape.borderRadius,
-        backgroundColor: alpha(theme.palette.background.paper, 0.8),
+        backgroundColor: alpha(theme.palette.background.paper, 0.88),
       },
     },
   },
@@ -85,7 +98,7 @@ const getComponentOverrides = (theme) => ({
       head: {
         fontWeight: 700,
         color: theme.palette.text.secondary,
-        backgroundColor: alpha(theme.palette.primary.main, 0.04),
+        backgroundColor: alpha(theme.palette.primary.main, 0.07),
       },
     },
   },
@@ -101,6 +114,7 @@ const getComponentOverrides = (theme) => ({
       root: {
         boxShadow: 'none',
         borderBottom: `1px solid ${theme.palette.divider}`,
+        backdropFilter: 'blur(6px)',
       },
     },
   },
@@ -141,18 +155,24 @@ const getComponentOverrides = (theme) => ({
   },
 });
 
+const basePalette = {
+  primary: { main: WHATSAPP_PRIMARY, dark: WHATSAPP_DARK, light: WHATSAPP_LIGHT, contrastText: '#ffffff' },
+  secondary: { main: EMERALD_SECONDARY, dark: '#115e59', light: '#2dd4bf' },
+  success: { main: '#16a34a' },
+  warning: { main: '#d97706' },
+  error: { main: '#dc2626' },
+  info: { main: '#0284c7' },
+};
+
 export const lightTheme = (() => {
   const theme = createTheme({
     ...shared,
     palette: {
       mode: 'light',
-      primary: { main: '#2563eb', dark: '#1d4ed8', light: '#60a5fa' },
-      secondary: { main: '#7c3aed', dark: '#6d28d9', light: '#a78bfa' },
-      background: { default: '#f4f7fb', paper: '#ffffff' },
-      success: { main: '#0f766e' },
-      warning: { main: '#d97706' },
-      error: { main: '#dc2626' },
-      divider: '#e2e8f0',
+      ...basePalette,
+      background: { default: '#f4f8f6', paper: '#ffffff' },
+      text: { primary: '#0f172a', secondary: '#475569' },
+      divider: '#dbe5dd',
     },
   });
 
@@ -160,11 +180,20 @@ export const lightTheme = (() => {
   return theme;
 })();
 
-export const darkTheme = createTheme({
-  ...shared,
-  palette: {
-    mode: 'dark',
-    primary: { main: '#60a5fa' },
-    secondary: { main: '#a78bfa' },
-  },
-});
+export const darkTheme = (() => {
+  const theme = createTheme({
+    ...shared,
+    palette: {
+      mode: 'dark',
+      ...basePalette,
+      background: { default: '#0b1411', paper: '#111b17' },
+      text: { primary: '#e2e8f0', secondary: '#94a3b8' },
+      divider: '#1f3b33',
+    },
+  });
+
+  theme.components = getComponentOverrides(theme);
+  return theme;
+})();
+
+export const getAppTheme = (mode = 'light') => (mode === 'dark' ? darkTheme : lightTheme);

@@ -44,7 +44,13 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
   };
 
   return (
-    <AppBar position="sticky" color="inherit">
+    <AppBar
+      position="sticky"
+      color="inherit"
+      sx={{
+        backgroundColor: 'rgba(255,255,255,0.94)',
+      }}
+    >
       <Toolbar sx={{ minHeight: { xs: 64, md: 72 }, px: { xs: 1.5, md: 2.5 }, gap: 1 }}>
         <IconButton onClick={onToggleSidebar} sx={{ display: { md: 'none' } }}>
           <MenuRoundedIcon />
@@ -67,7 +73,11 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
             <Chip
               key={tab.path}
               clickable
-              label={<NavLink style={{ textDecoration: 'none', color: 'inherit' }} to={tab.path}>{tab.label}</NavLink>}
+              label={
+                <NavLink style={{ textDecoration: 'none', color: 'inherit', fontWeight: 600 }} to={tab.path}>
+                  {tab.label}
+                </NavLink>
+              }
               variant="outlined"
             />
           ))}
@@ -92,7 +102,9 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
         >
           <Box sx={{ px: 2, py: 1 }}>
             <Typography variant="subtitle2">{userName || 'Guest'}</Typography>
-            <Typography variant="caption" color="text.secondary">{userGroup || 'Unknown role'}</Typography>
+            <Typography variant="caption" color="text.secondary">
+              {userGroup || 'Unknown role'}
+            </Typography>
           </Box>
           <MenuItem
             onClick={() => {

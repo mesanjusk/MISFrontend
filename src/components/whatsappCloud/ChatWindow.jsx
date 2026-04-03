@@ -41,7 +41,15 @@ export default function ChatWindow({
   let lastDateLabel = null;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, bgcolor: '#F0F2F5' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        minHeight: 0,
+        bgcolor: 'rgba(231, 245, 239, 0.6)',
+      }}
+    >
       <Box
         ref={scrollRef}
         sx={{
@@ -49,7 +57,7 @@ export default function ChatWindow({
           flex: 1,
           overflowY: 'auto',
           p: 1.5,
-          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.03) 1px, transparent 0)',
+          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(17,94,89,0.10) 1px, transparent 0)',
           backgroundSize: '24px 24px',
         }}
       >
@@ -70,7 +78,7 @@ export default function ChatWindow({
             <Box key={getMessageIdentity(message)} sx={{ mb: 1.25 }}>
               {showDateSeparator ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
-                  <Chip label={dateLabel} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.95)' }} />
+                  <Chip label={dateLabel} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.95)', border: '1px solid rgba(20,108,67,0.2)' }} />
                 </Box>
               ) : null}
 

@@ -118,19 +118,29 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
   };
 
   const drawerContent = (
-    <Stack sx={{ height: '100%', bgcolor: 'primary.dark', color: 'primary.contrastText' }}>
+    <Stack
+      sx={{
+        height: '100%',
+        color: 'common.white',
+        background: 'linear-gradient(180deg, #0f5132 0%, #115e59 52%, #1f2937 100%)',
+      }}
+    >
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ p: 2 }}>
         <Stack direction="row" spacing={1.25} alignItems="center">
-          <Avatar sx={{ bgcolor: 'secondary.main' }}>S</Avatar>
+          <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.16)', color: 'common.white' }}>S</Avatar>
           {!desktopCollapsed && (
             <Box>
-              <Typography variant="subtitle1" fontWeight={700}>SANJU SK</Typography>
-              <Typography variant="caption" sx={{ opacity: 0.8 }}>Admin Dashboard</Typography>
+              <Typography variant="subtitle1" fontWeight={700}>
+                SANJU SK
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.86 }}>
+                WhatsApp Business MIS
+              </Typography>
             </Box>
           )}
         </Stack>
       </Stack>
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.2)' }} />
+      <Divider sx={{ borderColor: 'rgba(255,255,255,0.24)' }} />
 
       <List sx={{ py: 1.5, px: 1.25, overflowY: 'auto', flexGrow: 1 }}>
         {menuGroups
@@ -142,7 +152,10 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
                 <Tooltip title={desktopCollapsed ? group.group : ''} placement="right">
                   <ListItemButton
                     onClick={() => setOpenGroup((prev) => (prev === group.group ? null : group.group))}
-                    sx={{ borderRadius: 2 }}
+                    sx={{
+                      borderRadius: 2,
+                      '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
+                    }}
                   >
                     <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>
                       <FolderRoundedIcon fontSize="small" />
@@ -162,16 +175,13 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
                       {group.items.map((item) => (
                         <ListItemButton
                           key={item.label}
-                          sx={{ pl: 5, borderRadius: 2 }}
+                          sx={{ pl: 5, borderRadius: 2, '&.Mui-selected, &:hover': { bgcolor: 'rgba(255,255,255,0.16)' } }}
                           onClick={() => {
                             navigate(item.path);
                             onCloseMobile();
                           }}
                         >
-                          <ListItemText
-                            primary={item.label}
-                            primaryTypographyProps={{ variant: 'body2' }}
-                          />
+                          <ListItemText primary={item.label} primaryTypographyProps={{ variant: 'body2' }} />
                         </ListItemButton>
                       ))}
                     </List>
@@ -189,7 +199,7 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
           variant="outlined"
           startIcon={<LogoutRoundedIcon />}
           onClick={handleLogout}
-          sx={{ borderColor: 'rgba(255,255,255,0.35)' }}
+          sx={{ borderColor: 'rgba(255,255,255,0.4)' }}
         >
           {!desktopCollapsed ? 'Logout' : ''}
         </Button>

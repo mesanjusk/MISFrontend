@@ -52,7 +52,7 @@ export default function Layout() {
         />
 
         <Box component="main" sx={{ px: { xs: 2, md: 3 }, py: 3, pb: { xs: 11, md: 4 } }}>
-          <Outlet />
+          <Box sx={{ maxWidth: 1600, mx: 'auto' }}><Outlet /></Box>
         </Box>
 
         <FloatingButtons buttonsList={buttonsList} />

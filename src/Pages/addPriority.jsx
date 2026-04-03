@@ -1,56 +1,45 @@
-import React, {useState} from 'react';
-import { useNavigate } from "react-router-dom";
-import axios from '../apiClient.js'
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from '../apiClient.js';
+import SimpleEntityCreateForm from '../components/forms/SimpleEntityCreateForm';
 
 export default function AddPriority() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
+  const [Priority_name, setPriority_Name] = useState('');
 
-    const [Priority_name,setPriority_Name]=useState('')
-
-    async function submit(e){
-        e.preventDefault();
-        try{
-            await axios.post("/priority/addPriority",{
-                Priority_name
-            })
-            .then(res=>{
-                if(res.data=="exist"){
-                    alert("Priority already exists")
-                }
-                else if(res.data=="notexist"){
-                    alert("Priority added successfully")
-                    navigate("/home")
-                }
-            })
-            .catch(e=>{
-                alert("wrong details")
-                console.log(e);
-            })
-        }
-        catch(e){
-            console.log(e);
-
-        }
+  async function submit(e) {
+    e.preventDefault();
+    try {
+      await axios
+        .post('/priority/addPriority', {
+          Priority_name,
+        })
+        .then((res) => {
+          if (res.data == 'exist') {
+            alert('Priority already exists');
+          } else if (res.data == 'notexist') {
+            alert('Priority added successfully');
+            navigate('/home');
+          }
+        })
+        .catch((error) => {
+          alert('wrong details');
+          console.log(error);
+        });
+    } catch (error) {
+      console.log(error);
     }
+  }
 
-
-    return (
-        <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
-           
-            <div className="bg-white p-3 rounded w-90">
-            <h2>Add Priority</h2>
-
-            <form action="POST">
-                <div className="mb-3">
-                    <label htmlFor="Priorityname"><strong>Priority Name</strong></label>
-                <input type="Priorityname" autoComplete="off" onChange={(e) => { setPriority_Name(e.target.value) }} placeholder="Priority Name" className="form-control rounded-0" />
-                </div>              
-                
-                <button type="submit" onClick={submit} className="btn btn-success w-100 rounded-0"> Submit </button>
-
-            </form>
-            </div>
-        </div>
-    );
+  return (
+    <SimpleEntityCreateForm
+      title="Add Priority"
+      label="Priority Name"
+      value={Priority_name}
+      placeholder="Priority Name"
+      onChange={setPriority_Name}
+      onSubmit={submit}
+      submitLabel="Submit"
+    />
+  );
 }
-
