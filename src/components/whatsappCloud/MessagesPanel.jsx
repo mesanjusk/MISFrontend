@@ -115,6 +115,15 @@ const isUnreadMessage = (message) => {
   return getMessageDirection(message) === 'incoming' && !['read', 'seen'].includes(status);
 };
 
+const toConversationFromContact = ({ contact, displayName, secondaryLabel }) => ({
+  id: normalizeConversationKey(contact),
+  contact,
+  displayName: displayName || formatPhoneForDisplay(contact) || contact,
+  secondaryLabel: secondaryLabel || formatPhoneForDisplay(contact) || contact,
+  customerName: displayName || '',
+  customerMobile: contact,
+});
+
 export default function MessagesPanel({ search: externalSearch }) {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -356,15 +365,15 @@ export default function MessagesPanel({ search: externalSearch }) {
   }, [conversations, search]);
 
   useEffect(() => {
-    if (!filteredConversations.length) {
+    if (!conversations.length) {
       setActiveConversationId('');
       return;
     }
 
-    if (!filteredConversations.some((item) => item.id === activeConversationId)) {
-      setActiveConversationId(filteredConversations[0].id);
+    if (!conversations.some((item) => item.id === activeConversationId)) {
+      setActiveConversationId(conversations[0].id);
     }
-  }, [filteredConversations, activeConversationId]);
+  }, [conversations, activeConversationId]);
 
   useEffect(() => {
     if (!activeConversationId) return;
@@ -373,8 +382,8 @@ export default function MessagesPanel({ search: externalSearch }) {
 
   const activeConversation = useMemo(() => {
     if (!activeConversationId) return null;
-    return filteredConversations.find((item) => item.id === activeConversationId) || null;
-  }, [filteredConversations, activeConversationId]);
+    return conversations.find((item) => item.id === activeConversationId) || null;
+  }, [conversations, activeConversationId]);
 
   const activeMessages = useMemo(
     () =>
@@ -565,19 +574,26 @@ export default function MessagesPanel({ search: externalSearch }) {
             }}
             search={search}
             onSearch={setSearch}
-            onSelectCustomer={(option) => {
-              const contact = option?.mobile || '';
-              const id = normalizeConversationKey(contact);
+            onSelectCustomer={(value) => {
+              const selectedOption = typeof value === 'string'
+                ? {
+                    name: value.trim(),
+                    mobile: value.trim(),
+                    mobileDisplay: value.trim(),
+                  }
+                : value;
+
+              const contact = selectedOption?.mobile || '';
+              const conversation = toConversationFromContact({
+                contact,
+                displayName: selectedOption?.name,
+                secondaryLabel: selectedOption?.mobileDisplay,
+              });
+
+              const id = conversation.id;
               if (!id) return;
 
-              setDraftConversation({
-                id,
-                contact,
-                displayName: option?.name || formatPhoneForDisplay(contact),
-                secondaryLabel: option?.mobileDisplay || formatPhoneForDisplay(contact),
-                customerName: option?.name || '',
-                customerMobile: contact,
-              });
+              setDraftConversation(conversation);
 
               markConversationAsRead(id);
               setActiveConversationId(id);

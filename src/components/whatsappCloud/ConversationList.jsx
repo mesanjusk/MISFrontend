@@ -92,19 +92,38 @@ export default function ConversationList({
 
         <Autocomplete
           size="small"
+          freeSolo
           options={customerOptions}
-          onChange={(_, option) => {
-            if (option) onSelectCustomer(option);
+          onChange={(_, value) => {
+            if (typeof value === 'string') {
+              onSelectCustomer(value);
+              return;
+            }
+
+            if (value) onSelectCustomer(value);
           }}
           filterOptions={(options, state) => {
             const query = state.inputValue.trim().toLowerCase();
             if (!query) return options.slice(0, 40);
 
-            return options.filter((option) =>
+            const filtered = options.filter((option) =>
               `${option.name} ${option.mobile} ${option.mobileDisplay}`
                 .toLowerCase()
                 .includes(query)
             );
+
+            if (!filtered.length) {
+              return [
+                {
+                  id: `manual-${query}`,
+                  name: state.inputValue.trim(),
+                  mobile: state.inputValue.trim(),
+                  mobileDisplay: state.inputValue.trim(),
+                },
+              ];
+            }
+
+            return filtered;
           }}
           getOptionLabel={(option) => `${option.name} ${option.mobileDisplay}`.trim()}
           renderInput={(params) => (
