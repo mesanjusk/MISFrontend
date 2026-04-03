@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import PropTypes from 'prop-types';
 import {
   Alert,
   Box,
-  Button,
   Card,
   Grid,
   LinearProgress,
@@ -19,8 +19,6 @@ import { LoadingSpinner } from '../Components';
 import SectionHeader from '../components/common/SectionHeader';
 import SummaryCard from '../components/dashboard/SummaryCard';
 import RoleWidget from '../components/dashboard/RoleWidget';
-import QuickActions from '../components/dashboard/QuickActions';
-import CrmSidebarPanel from '../components/dashboard/CrmSidebarPanel';
 import AllAttandance from './AllAttandance';
 import UserTask from './userTask';
 import { useDashboardData } from '../hooks/useDashboardData';
@@ -113,7 +111,7 @@ export default function Dashboard() {
       {data?.loadError ? <Alert severity="error">{data.loadError}</Alert> : null}
 
       <Grid container spacing={2.5}>
-        <Grid item xs={12} xl={9}>
+        <Grid item xs={12}>
           <Stack spacing={2.5}>
             <Grid container spacing={2}>
               {summaryCards.map((card) => (
@@ -124,26 +122,21 @@ export default function Dashboard() {
             </Grid>
 
             <Grid container spacing={2}>
-              <Grid item xs={12} lg={4}>
+              <Grid item xs={12} md={5} lg={4}>
                 <RoleWidget role={roleInfo?.role} userName={roleInfo?.userName} />
               </Grid>
-              {roleInfo?.isAdmin ? (
-                <Grid item xs={12} lg={4}>
-                  <QuickActions />
-                </Grid>
-              ) : null}
-              <Grid item xs={12} lg={roleInfo?.isAdmin ? 4 : 8}>
+              <Grid item xs={12} md={7} lg={8}>
                 <Card sx={{ p: 2.25, height: '100%' }}>
                   <SectionHeader title="Today" />
                   <Typography variant="body2">Smart workflow summary is live.</Typography>
-                  <Typography variant="caption" color="text.secondary">Tap refresh below for latest updates.</Typography>
+                  <Typography variant="caption" color="text.secondary">Tap refresh from navigation for latest updates.</Typography>
                 </Card>
               </Grid>
             </Grid>
 
             <Grid container spacing={2}>
               <Grid item xs={12} lg={8}>
-                <Card sx={{ p: 2.25 }}>
+                <Card sx={{ p: 2.25, height: '100%' }}>
                   <SectionHeader title="My Pending Orders" />
                   {loading ? (
                     <Stack alignItems="center" py={4}>
@@ -156,33 +149,31 @@ export default function Dashboard() {
               </Grid>
 
               <Grid item xs={12} lg={4}>
-                <Stack spacing={2}>
-                  {roleInfo?.isAdmin ? (
-                    <Card sx={{ p: 2.25 }}>
-                      <SectionHeader title="Today Attendance" />
-                      <AllAttandance />
-                    </Card>
-                  ) : (
-                    <Card sx={{ p: 2.25 }}>
-                      <SectionHeader title="My Task Flow" />
-                      <UserTask />
-                    </Card>
-                  )}
-
-                  <Card sx={{ p: 2.25 }}>
-                    <SectionHeader title="Recent Updates" action={<Button size="small" onClick={data?.refresh}>Refresh</Button>} />
-                    <OrderList items={data?.recentOrders} emptyLabel="No recent orders." />
+                {roleInfo?.isAdmin ? (
+                  <Card sx={{ p: 2.25, height: '100%' }}>
+                    <SectionHeader title="Today Attendance" />
+                    <AllAttandance />
                   </Card>
-                </Stack>
+                ) : (
+                  <Card sx={{ p: 2.25, height: '100%' }}>
+                    <SectionHeader title="My Task Flow" />
+                    <UserTask />
+                  </Card>
+                )}
               </Grid>
             </Grid>
           </Stack>
-        </Grid>
-
-        <Grid item xs={12} xl={3}>
-          <CrmSidebarPanel />
         </Grid>
       </Grid>
     </Stack>
   );
 }
+
+OrderList.propTypes = {
+  items: PropTypes.arrayOf(PropTypes.object),
+  emptyLabel: PropTypes.string.isRequired,
+};
+
+OrderList.defaultProps = {
+  items: [],
+};

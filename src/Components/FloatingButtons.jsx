@@ -9,15 +9,48 @@ export default function FloatingButtons({ buttonsList = [] }) {
     <SpeedDial
       ariaLabel="quick actions"
       icon={<SpeedDialIcon openIcon={<AddCircleOutlineRoundedIcon />} />}
-      sx={{ position: 'fixed', bottom: { xs: 78, md: 28 }, right: 24, zIndex: 1150 }}
-      FabProps={{ color: 'primary' }}
+      direction="up"
+      FabProps={{
+        color: 'primary',
+        sx: {
+          boxShadow: (theme) => theme.shadows[8],
+          '&:hover': {
+            boxShadow: (theme) => theme.shadows[10],
+          },
+        },
+      }}
+      sx={{ position: 'fixed', bottom: { xs: 78, md: 28 }, right: { xs: 16, md: 24 }, zIndex: 1250 }}
     >
       {buttonsList.map((button) => (
         <SpeedDialAction
           key={button.label}
           icon={<AddCircleOutlineRoundedIcon fontSize="small" />}
           tooltipTitle={button.label}
+          tooltipOpen
           onClick={button.onClick}
+          FabProps={{
+            sx: {
+              bgcolor: 'background.paper',
+              color: 'text.primary',
+              '&:hover': { bgcolor: 'grey.100' },
+            },
+          }}
+          slotProps={{
+            tooltip: {
+              sx: {
+                bgcolor: 'rgba(15, 23, 42, 0.94)',
+                color: '#fff',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                px: 1.25,
+                py: 0.5,
+                borderRadius: 1,
+                boxShadow: 6,
+                maxWidth: 'none',
+                whiteSpace: 'nowrap',
+              },
+            },
+          }}
         />
       ))}
     </SpeedDial>
