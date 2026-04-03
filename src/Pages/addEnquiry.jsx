@@ -1,113 +1,115 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from 'react-router-dom';
+import { Box, Button, Grid, MenuItem, TextField } from '@mui/material';
 import axios from '../apiClient.js';
+import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../components/ui';
 
 export default function AddCategory() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
-    const [Customer_name, setCustomer_Name] = useState('');
-    const [Remark, setRemark] = useState('');
-     const [userGroup, setUserGroup] = useState("");
-    const [customerOptions, setCustomerOptions] = useState([]);
+  const [Customer_name, setCustomer_Name] = useState('');
+  const [Remark, setRemark] = useState('');
+  const [userGroup, setUserGroup] = useState('');
+  const [customerOptions, setCustomerOptions] = useState([]);
 
-    useEffect(() => {
-        axios.get("/customer/GetCustomersList")
-            .then(res => {
-                if (res.data.success) {
-                    const options = res.data.result.map(item => item.Customer_name);
-                    setCustomerOptions(options);
-                }
-            })
-            .catch(err => {
-                console.error("Error fetching customer options:", err);
-            });
-    }, []);
-
- useEffect(() => {
-            const group = localStorage.getItem("User_group");
-            setUserGroup(group);
-          }, []);
-
-    function addCustomer() {
-        navigate("/addCustomer");
-    }
-
-    async function submit(e) {
-        e.preventDefault();
-
-        try {
-        
-            if (!Customer_name) {
-                alert('Customer Name is required.');
-                return;
-            }
-
-            const response = await axios.post("/enquiry/addEnquiry", {
-                Customer_name,
-                Remark,
-                
-            });
-
-            if (response.data.success) {
-                alert(response.data.message);
-                navigate("/allOrder");  
-            } else {
-                alert("Failed to add Enquiry");
-            }
-        } catch (e) {
-            console.log("Error adding Enquiry:", e);
+  useEffect(() => {
+    axios.get('/customer/GetCustomersList')
+      .then((res) => {
+        if (res.data.success) {
+          const options = res.data.result.map((item) => item.Customer_name);
+          setCustomerOptions(options);
         }
+      })
+      .catch((err) => {
+        console.error('Error fetching customer options:', err);
+      });
+  }, []);
+
+  useEffect(() => {
+    const group = localStorage.getItem('User_group');
+    setUserGroup(group);
+  }, []);
+
+  function addCustomer() {
+    navigate('/addCustomer');
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+
+    try {
+      if (!Customer_name) {
+        alert('Customer Name is required.');
+        return;
+      }
+
+      const response = await axios.post('/enquiry/addEnquiry', {
+        Customer_name,
+        Remark,
+      });
+
+      if (response.data.success) {
+        alert(response.data.message);
+        navigate('/allOrder');
+      } else {
+        alert('Failed to add Enquiry');
+      }
+    } catch (err) {
+      console.log('Error adding Enquiry:', err);
     }
+  }
 
-    const closeModal = () => {
-        if (userGroup === "Office User") {
-            navigate("/home");
-        } else if (userGroup === "Admin User") {
-            navigate("/home");
-        }
-    };
+  const closeModal = () => {
+    if (userGroup === 'Office User') {
+      navigate('/home');
+    } else if (userGroup === 'Admin User') {
+      navigate('/home');
+    }
+  };
 
-    return (
-        <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
-            <div className="bg-white p-3 rounded w-90">
-                <h2>Add Enquiry</h2>
+  return (
+    <PageContainer title="Add Enquiry" subtitle="Capture a new customer enquiry with compact CRM form flow.">
+      <SectionCard>
+        <Box component="form" onSubmit={submit}>
+          <Grid container spacing={1.25}>
+            <Grid item xs={12} md={6}>
+              <FormSection title="Customer">
+                <TextField
+                  label="Customer Name"
+                  select
+                  value={Customer_name}
+                  onChange={(e) => setCustomer_Name(e.target.value)}
+                >
+                  <MenuItem value="">Select Customer</MenuItem>
+                  {customerOptions.map((option) => (
+                    <MenuItem key={option} value={option}>{option}</MenuItem>
+                  ))}
+                </TextField>
 
-                <form onSubmit={submit}>
-                    <div className="mb-3">
-                        <label htmlFor="name"><strong>Customer Name</strong></label>
-                        <select
-                            className="form-control rounded-0"
-                            onChange={(e) => setCustomer_Name(e.target.value)}
-                            value={Customer_name}
-                        >
-                            <option value="">Select Customer</option>
-                            {customerOptions.map((option, index) => (
-                                <option key={index} value={option}>{option}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <button onClick={addCustomer} type="button" className="btn btn-primary mb-3">
-                        Add Customer
-                    </button>
-                    <div className="mb-3">
-                        <label htmlFor="remark"><strong>Order Details</strong></label>
-                        <input
-                            type="text"
-                            autoComplete="off"
-                            onChange={(e) => setRemark(e.target.value)}
-                            value={Remark}
-                            placeholder="Remarks"
-                            className="form-control rounded-0"
-                        />
-                    </div>
+                <Button variant="outlined" onClick={addCustomer}>Add Customer</Button>
+              </FormSection>
+            </Grid>
 
+            <Grid item xs={12} md={6}>
+              <FormSection title="Enquiry Details">
+                <TextField
+                  label="Order Details"
+                  autoComplete="off"
+                  onChange={(e) => setRemark(e.target.value)}
+                  value={Remark}
+                  placeholder="Remarks"
+                  multiline
+                  minRows={4}
+                />
+              </FormSection>
+            </Grid>
+          </Grid>
 
-                    <button type="submit" className="w-100 h-10 bg-blue-500 text-white shadow-lg flex items-center justify-center">
-                        Submit
-                    </button>
-                    <button type="button" className="w-100 h-10 bg-red-500 text-white shadow-lg flex items-center justify-center" onClick={closeModal}>Close</button>
-                </form>
-            </div>
-        </div>
-    );
+          <Box sx={{ mt: 1.5 }}>
+            <ActionButtonGroup primaryLabel="Submit" onCancel={closeModal} cancelLabel="Close" />
+          </Box>
+        </Box>
+      </SectionCard>
+    </PageContainer>
+  );
 }
