@@ -1,9 +1,29 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { HiOutlineSearch, HiOutlineTag, HiOutlineUserCircle } from "react-icons/hi";
-import normalizeWhatsAppNumber from "../../utils/normalizeNumber";
-import { fetchCustomers, fetchMessagesByNumber } from "../../services/whatsappService";
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  Chip,
+  CircularProgress,
+  Divider,
+  IconButton,
+  InputAdornment,
+  List,
+  ListItemButton,
+  ListItemText,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
+import SellRoundedIcon from '@mui/icons-material/SellRounded';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import normalizeWhatsAppNumber from '../../utils/normalizeNumber';
+import { fetchCustomers, fetchMessagesByNumber } from '../../services/whatsappService';
 
-const FILTERS = ["all", "hot", "warm", "cold"];
+const FILTERS = ['all', 'hot', 'warm', 'cold'];
 
 const toMillis = (value) => {
   const date = new Date(value || Date.now());
@@ -12,15 +32,15 @@ const toMillis = (value) => {
 
 const getStatusByLastActivity = (timestamp) => {
   const ageHours = Math.abs(Date.now() - timestamp) / (1000 * 60 * 60);
-  if (ageHours <= 24) return "hot";
-  if (ageHours <= 72) return "warm";
-  return "cold";
+  if (ageHours <= 24) return 'hot';
+  if (ageHours <= 72) return 'warm';
+  return 'cold';
 };
 
 const formatRelativeTime = (timestamp) => {
   const diffMs = Math.max(0, Date.now() - timestamp);
   const mins = Math.floor(diffMs / (1000 * 60));
-  if (mins < 1) return "just now";
+  if (mins < 1) return 'just now';
   if (mins < 60) return `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
@@ -28,27 +48,13 @@ const formatRelativeTime = (timestamp) => {
   return `${days}d ago`;
 };
 
-function StatusPill({ status }) {
-  const palette = {
-    hot: "bg-rose-100 text-rose-700",
-    warm: "bg-amber-100 text-amber-700",
-    cold: "bg-slate-100 text-slate-600",
-  };
-
-  return (
-    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${palette[status] || palette.cold}`}>
-      {status}
-    </span>
-  );
-}
-
 export default function CrmSidebarPanel() {
   const [contacts, setContacts] = useState([]);
   const [tagsByContact, setTagsByContact] = useState({});
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [selectedId, setSelectedId] = useState("");
-  const [newTag, setNewTag] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [selectedId, setSelectedId] = useState('');
+  const [newTag, setNewTag] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
   const [isContactsLoading, setIsContactsLoading] = useState(true);
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -64,18 +70,18 @@ export default function CrmSidebarPanel() {
           const updatedAt = toMillis(contact?.UpdatedAt || contact?.CreatedAt || Date.now());
           return {
             id: contact?._id || contact?.Customer_uuid || contact?.Mobile_number,
-            name: contact?.Customer_name || "Unknown",
-            company: contact?.Customer_group || "No Group",
-            mobile: normalizeWhatsAppNumber(contact?.Mobile_number || ""),
+            name: contact?.Customer_name || 'Unknown',
+            company: contact?.Customer_group || 'No Group',
+            mobile: normalizeWhatsAppNumber(contact?.Mobile_number || ''),
             lastSeenAt: updatedAt,
             status: getStatusByLastActivity(updatedAt),
           };
         });
 
         setContacts(normalizedContacts);
-        setSelectedId((prev) => prev || normalizedContacts[0]?.id || "");
+        setSelectedId((prev) => prev || normalizedContacts[0]?.id || '');
       } catch (error) {
-        console.error("Failed to load CRM contacts", error);
+        console.error('Failed to load CRM contacts', error);
         setContacts([]);
       } finally {
         setIsContactsLoading(false);
@@ -90,7 +96,7 @@ export default function CrmSidebarPanel() {
 
     return contacts.filter((contact) => {
       const localTags = tagsByContact[contact.id] || [];
-      const matchesFilter = activeFilter === "all" || contact.status === activeFilter;
+      const matchesFilter = activeFilter === 'all' || contact.status === activeFilter;
       const matchesSearch =
         !query ||
         contact.name.toLowerCase().includes(query) ||
@@ -102,11 +108,7 @@ export default function CrmSidebarPanel() {
     });
   }, [activeFilter, contacts, searchTerm, tagsByContact]);
 
-  const activeContact = useMemo(() => {
-    const fromFiltered = filteredContacts.find((contact) => contact.id === selectedId);
-    if (fromFiltered) return fromFiltered;
-    return filteredContacts[0] || null;
-  }, [filteredContacts, selectedId]);
+  const activeContact = useMemo(() => filteredContacts.find((contact) => contact.id === selectedId) || filteredContacts[0] || null, [filteredContacts, selectedId]);
 
   useEffect(() => {
     const loadChatHistory = async () => {
@@ -120,20 +122,20 @@ export default function CrmSidebarPanel() {
         const response = await fetchMessagesByNumber(activeContact.mobile);
         const messages = response?.data?.messages || [];
         const mappedMessages = messages.map((item, index) => {
-          const fromMe = typeof item?.fromMe === "boolean" ? item.fromMe : item?.fromMe === "true" || item?.from === "me";
+          const fromMe = typeof item?.fromMe === 'boolean' ? item.fromMe : item?.fromMe === 'true' || item?.from === 'me';
           const timestamp = toMillis(item?.timestamp || item?.time || item?.createdAt);
 
           return {
             id: `${activeContact.id}-${index}`,
-            sender: fromMe ? "agent" : "contact",
-            text: item?.message || item?.text || "",
-            time: new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            sender: fromMe ? 'agent' : 'contact',
+            text: item?.message || item?.text || '',
+            time: new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           };
         });
 
         setChatHistory(mappedMessages.slice(-25));
       } catch (error) {
-        console.error("Failed to load CRM chat history", error);
+        console.error('Failed to load CRM chat history', error);
         setChatHistory([]);
       } finally {
         setIsChatLoading(false);
@@ -148,27 +150,19 @@ export default function CrmSidebarPanel() {
   const addTag = (event) => {
     event.preventDefault();
     const tagValue = newTag.trim();
-
     if (!tagValue || !activeContact) return;
 
     setTagsByContact((prev) => {
       const currentTags = prev[activeContact.id] || [];
-      if (currentTags.some((tag) => tag.toLowerCase() === tagValue.toLowerCase())) {
-        return prev;
-      }
-
-      return {
-        ...prev,
-        [activeContact.id]: [...currentTags, tagValue],
-      };
+      if (currentTags.some((tag) => tag.toLowerCase() === tagValue.toLowerCase())) return prev;
+      return { ...prev, [activeContact.id]: [...currentTags, tagValue] };
     });
 
-    setNewTag("");
+    setNewTag('');
   };
 
   const removeTag = (tag) => {
     if (!activeContact) return;
-
     setTagsByContact((prev) => ({
       ...prev,
       [activeContact.id]: (prev[activeContact.id] || []).filter((currentTag) => currentTag !== tag),
@@ -176,118 +170,115 @@ export default function CrmSidebarPanel() {
   };
 
   return (
-    <aside className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-4">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-slate-900">CRM</h2>
-        <span className="text-xs text-slate-500">{filteredContacts.length} contacts</span>
-      </div>
+    <Card sx={{ p: 2.25, position: { lg: 'sticky' }, top: { lg: 88 } }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5}>
+        <Typography variant="subtitle1">CRM</Typography>
+        <Chip size="small" label={`${filteredContacts.length} contacts`} />
+      </Stack>
 
-      <label className="relative mb-3 block">
-        <HiOutlineSearch className="pointer-events-none absolute left-2 top-2.5 text-slate-400" />
-        <input
-          value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
-          placeholder="Search contacts"
-          className="w-full rounded-lg border border-slate-200 py-2 pl-8 pr-2 text-sm outline-none focus:border-indigo-300"
-        />
-      </label>
+      <TextField
+        value={searchTerm}
+        onChange={(event) => setSearchTerm(event.target.value)}
+        placeholder="Search contacts"
+        fullWidth
+        InputProps={{ startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment> }}
+      />
 
-      <div className="mb-3 flex flex-wrap gap-1">
+      <Stack direction="row" spacing={0.75} mt={1.5} flexWrap="wrap">
         {FILTERS.map((filter) => (
-          <button
+          <Chip
             key={filter}
-            type="button"
+            label={filter}
             onClick={() => setActiveFilter(filter)}
-            className={`rounded-full px-2 py-1 text-xs font-medium capitalize ${
-              activeFilter === filter ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-600"
-            }`}
-          >
-            {filter}
-          </button>
+            color={activeFilter === filter ? 'primary' : 'default'}
+            variant={activeFilter === filter ? 'filled' : 'outlined'}
+            sx={{ textTransform: 'capitalize' }}
+          />
         ))}
-      </div>
+      </Stack>
 
-      <div className="mb-4 max-h-64 space-y-2 overflow-y-auto pr-1">
-        {isContactsLoading && <p className="text-xs text-slate-500">Loading contacts…</p>}
-        {!isContactsLoading && filteredContacts.length === 0 && <p className="text-xs text-slate-500">No contacts match this search.</p>}
+      <List sx={{ maxHeight: 260, overflowY: 'auto', mt: 1 }}>
+        {isContactsLoading && <Stack alignItems="center" py={2}><CircularProgress size={20} /></Stack>}
+        {!isContactsLoading && filteredContacts.length === 0 && <Typography variant="caption" color="text.secondary">No contacts match this search.</Typography>}
         {filteredContacts.map((contact) => (
-          <button
+          <ListItemButton
             key={contact.id}
-            type="button"
+            selected={activeContact?.id === contact.id}
             onClick={() => setSelectedId(contact.id)}
-            className={`w-full rounded-lg border p-2 text-left transition ${
-              activeContact?.id === contact.id ? "border-indigo-300 bg-indigo-50" : "border-slate-200 hover:border-slate-300"
-            }`}
+            sx={{ borderRadius: 2, mb: 0.5, alignItems: 'flex-start' }}
           >
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <p className="text-xs font-semibold text-slate-900">{contact.name}</p>
-              <StatusPill status={contact.status} />
-            </div>
-            <p className="text-[11px] text-slate-500">{contact.company}</p>
-            <p className="mt-1 text-[11px] text-slate-500">+{contact.mobile || "No number"}</p>
-          </button>
+            <ListItemText
+              primary={contact.name}
+              secondary={`${contact.company} • +${contact.mobile || 'No number'}`}
+              primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }}
+              secondaryTypographyProps={{ variant: 'caption' }}
+            />
+            <Chip size="small" label={contact.status} />
+          </ListItemButton>
         ))}
-      </div>
+      </List>
+
+      <Divider sx={{ my: 1.5 }} />
 
       {activeContact ? (
-        <div className="space-y-3 border-t border-slate-200 pt-3">
-          <div className="flex items-center gap-2">
-            <HiOutlineUserCircle className="text-xl text-slate-400" />
-            <div>
-              <p className="text-sm font-semibold text-slate-900">{activeContact.name}</p>
-              <p className="text-xs text-slate-500">Last active {formatRelativeTime(activeContact.lastSeenAt)}</p>
-            </div>
-          </div>
+        <Stack spacing={1.5}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <PersonRoundedIcon color="disabled" />
+            <Box>
+              <Typography variant="body2" fontWeight={600}>{activeContact.name}</Typography>
+              <Typography variant="caption" color="text.secondary">Last active {formatRelativeTime(activeContact.lastSeenAt)}</Typography>
+            </Box>
+          </Stack>
 
-          <div>
-            <p className="mb-1 text-xs font-semibold text-slate-700">Tags</p>
-            <div className="mb-2 flex flex-wrap gap-1">
+          <Box>
+            <Typography variant="caption" color="text.secondary">Tags</Typography>
+            <Stack direction="row" spacing={0.5} mt={0.75} flexWrap="wrap">
               {activeContactTags.map((tag) => (
-                <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-[11px] text-slate-700">
-                  <HiOutlineTag />
-                  {tag}
-                  <button type="button" onClick={() => removeTag(tag)} className="text-slate-400 hover:text-rose-500">
-                    ×
-                  </button>
-                </span>
+                <Chip
+                  key={tag}
+                  size="small"
+                  icon={<SellRoundedIcon fontSize="small" />}
+                  label={tag}
+                  onDelete={() => removeTag(tag)}
+                  deleteIcon={<CloseRoundedIcon fontSize="small" />}
+                />
               ))}
-              {activeContactTags.length === 0 && <p className="text-[11px] text-slate-400">No tags yet.</p>}
-            </div>
-            <form onSubmit={addTag} className="flex gap-1">
-              <input
-                value={newTag}
-                onChange={(event) => setNewTag(event.target.value)}
-                placeholder="Add tag"
-                className="min-w-0 flex-1 rounded-md border border-slate-200 px-2 py-1 text-xs outline-none focus:border-indigo-300"
-              />
-              <button type="submit" className="rounded-md bg-indigo-600 px-2 py-1 text-xs font-medium text-white">
-                Add
-              </button>
-            </form>
-          </div>
+              {activeContactTags.length === 0 && <Typography variant="caption" color="text.secondary">No tags yet.</Typography>}
+            </Stack>
 
-          <div>
-            <p className="mb-1 text-xs font-semibold text-slate-700">Chat History</p>
-            <div className="max-h-44 space-y-2 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2">
-              {isChatLoading && <p className="text-xs text-slate-500">Loading chat…</p>}
-              {!isChatLoading && chatHistory.length === 0 && <p className="text-xs text-slate-500">No chat history found.</p>}
+            <Stack component="form" onSubmit={addTag} direction="row" spacing={1} mt={1}>
+              <TextField size="small" value={newTag} onChange={(event) => setNewTag(event.target.value)} placeholder="Add tag" fullWidth />
+              <Button type="submit" variant="contained">Add</Button>
+            </Stack>
+          </Box>
+
+          <Box>
+            <Typography variant="caption" color="text.secondary">Chat History</Typography>
+            <Stack spacing={1} sx={{ maxHeight: 180, overflowY: 'auto', mt: 1 }}>
+              {isChatLoading && <CircularProgress size={18} />}
+              {!isChatLoading && chatHistory.length === 0 && <Alert severity="info">No chat history found.</Alert>}
               {chatHistory.map((item) => (
-                <div
+                <Box
                   key={item.id}
-                  className={`max-w-[90%] rounded-md px-2 py-1 text-xs ${
-                    item.sender === "agent" ? "ml-auto bg-indigo-600 text-white" : "bg-white text-slate-700"
-                  }`}
+                  sx={{
+                    p: 1,
+                    borderRadius: 1.5,
+                    maxWidth: '92%',
+                    alignSelf: item.sender === 'agent' ? 'flex-end' : 'flex-start',
+                    bgcolor: item.sender === 'agent' ? 'primary.main' : 'grey.100',
+                    color: item.sender === 'agent' ? 'primary.contrastText' : 'text.primary',
+                  }}
                 >
-                  <p>{item.text}</p>
-                  <p className={`mt-1 text-[10px] ${item.sender === "agent" ? "text-indigo-200" : "text-slate-400"}`}>{item.time}</p>
-                </div>
+                  <Typography variant="caption">{item.text}</Typography>
+                  <Typography variant="caption" display="block" sx={{ opacity: 0.75, mt: 0.3 }}>{item.time}</Typography>
+                </Box>
               ))}
-            </div>
-          </div>
-        </div>
+            </Stack>
+          </Box>
+        </Stack>
       ) : (
-        <p className="text-xs text-slate-500">Choose a contact to see details.</p>
+        <Typography variant="caption" color="text.secondary">Choose a contact to see details.</Typography>
       )}
-    </aside>
+    </Card>
   );
 }

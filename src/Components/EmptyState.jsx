@@ -1,16 +1,22 @@
 import PropTypes from 'prop-types';
+import { Paper, Stack, Typography } from '@mui/material';
+import InboxRoundedIcon from '@mui/icons-material/InboxRounded';
 
-export default function EmptyState({ message, className = '', children }) {
+export default function EmptyState({ message, children }) {
   return (
-    <div className={`text-center text-gray-500 py-4 ${className}`}>
-      <p>{message}</p>
-      {children}
-    </div>
+    <Paper variant="outlined" sx={{ p: 4, borderStyle: 'dashed' }}>
+      <Stack alignItems="center" spacing={1.5}>
+        <InboxRoundedIcon color="disabled" />
+        <Typography color="text.secondary" textAlign="center">
+          {message}
+        </Typography>
+        {children}
+      </Stack>
+    </Paper>
   );
 }
 
 EmptyState.propTypes = {
   message: PropTypes.node.isRequired,
-  className: PropTypes.string,
   children: PropTypes.node,
 };

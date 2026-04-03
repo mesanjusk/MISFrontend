@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material';
 
 export default function ConfirmModal({
   isOpen,
@@ -8,31 +9,24 @@ export default function ConfirmModal({
   onCancel,
   confirmText = 'Yes',
   cancelText = 'Cancel',
-  confirmButtonClassName = 'btn btn-danger',
-  cancelButtonClassName = 'btn btn-secondary',
-  overlayClassName = '',
-  modalClassName = '',
-  actionsClassName = '',
   children,
 }) {
-  if (!isOpen) return null;
-
   return (
-    <div className={`modal-overlay ${overlayClassName}`} role="dialog" aria-modal="true">
-      <div className={`modal-content ${modalClassName}`}>
-        {title && <h4>{title}</h4>}
-        {message && <div className="mb-4">{message}</div>}
+    <Dialog open={isOpen} onClose={onCancel} maxWidth="xs" fullWidth>
+      {title && <DialogTitle>{title}</DialogTitle>}
+      <DialogContent>
+        {message && <Typography color="text.secondary">{message}</Typography>}
         {children}
-        <div className={`modal-actions ${actionsClassName}`}>
-          <button onClick={onConfirm} className={confirmButtonClassName} type="button">
-            {confirmText}
-          </button>
-          <button onClick={onCancel} className={cancelButtonClassName} type="button">
-            {cancelText}
-          </button>
-        </div>
-      </div>
-    </div>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onCancel} color="inherit">
+          {cancelText}
+        </Button>
+        <Button onClick={onConfirm} color="error" variant="contained">
+          {confirmText}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
@@ -44,10 +38,5 @@ ConfirmModal.propTypes = {
   onCancel: PropTypes.func.isRequired,
   confirmText: PropTypes.string,
   cancelText: PropTypes.string,
-  confirmButtonClassName: PropTypes.string,
-  cancelButtonClassName: PropTypes.string,
-  overlayClassName: PropTypes.string,
-  modalClassName: PropTypes.string,
-  actionsClassName: PropTypes.string,
   children: PropTypes.node,
 };

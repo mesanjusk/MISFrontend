@@ -1,26 +1,31 @@
-import React from "react";
-import Avatar from "../common/Avatar";
-import { ROLE_TYPES } from "../../constants/roles";
+import PropTypes from 'prop-types';
+import { Avatar, Card, Stack, Typography } from '@mui/material';
+import { ROLE_TYPES } from '../../constants/roles';
 
 const roleCopy = {
-  [ROLE_TYPES.ADMIN]: "Full operational control including cancellations and workflow oversight.",
-  [ROLE_TYPES.OFFICE]: "Focus on your assigned orders and keep them moving today.",
-  default: "Stay on top of your tasks and keep work flowing.",
+  [ROLE_TYPES.ADMIN]: 'Full operational control including cancellations and workflow oversight.',
+  [ROLE_TYPES.OFFICE]: 'Focus on your assigned orders and keep them moving today.',
+  default: 'Stay on top of your tasks and keep work flowing.',
 };
 
 export default function RoleWidget({ role, userName }) {
   const subtitle = roleCopy[role] || roleCopy.default;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center gap-3">
-        <Avatar label={userName || "User"} />
+    <Card sx={{ p: 2.25 }}>
+      <Stack direction="row" spacing={1.5} alignItems="center">
+        <Avatar sx={{ bgcolor: 'primary.main' }}>{(userName || 'U').slice(0, 1)}</Avatar>
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">Current Role</p>
-          <p className="text-lg font-semibold text-slate-900">{role}</p>
-          <p className="text-sm text-slate-600">{subtitle}</p>
+          <Typography variant="caption" color="text.secondary">Current Role</Typography>
+          <Typography variant="subtitle1">{role || 'User'}</Typography>
+          <Typography variant="body2" color="text.secondary">{subtitle}</Typography>
         </div>
-      </div>
-    </div>
+      </Stack>
+    </Card>
   );
 }
+
+RoleWidget.propTypes = {
+  role: PropTypes.string,
+  userName: PropTypes.string,
+};

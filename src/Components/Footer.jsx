@@ -1,32 +1,34 @@
-import { NavLink } from "react-router-dom";
+import { useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
+import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
+import LocalShippingRoundedIcon from '@mui/icons-material/LocalShippingRounded';
+import ApartmentRoundedIcon from '@mui/icons-material/ApartmentRounded';
+import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 
 export default function Footer() {
-  const tabs = [
-    { label: "Report", path: "/allOrder", icon: "📄" },
-    { label: "Delivered", path: "/allDelivery", icon: "🚚" },
-    { label: "Vendor", path: "/AllVendors", icon: "🏭" },
-    { label: "Bills", path: "/allBills", icon: "🧾" },
-  ];
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  const tabs = useMemo(
+    () => [
+      { label: 'Report', path: '/allOrder', icon: <DescriptionRoundedIcon /> },
+      { label: 'Delivered', path: '/allDelivery', icon: <LocalShippingRoundedIcon /> },
+      { label: 'Vendor', path: '/AllVendors', icon: <ApartmentRoundedIcon /> },
+      { label: 'Bills', path: '/allBills', icon: <ReceiptLongRoundedIcon /> },
+    ],
+    [],
+  );
+
+  const active = tabs.find((tab) => pathname.startsWith(tab.path))?.path ?? false;
 
   return (
-    // Hide on desktop, show on mobile/tablet
-    <footer className="fixed bottom-0 right-0 left-0 z-40 bg-gradient-to-r from-blue-700 to-indigo-800 text-white shadow-lg md:hidden">
-      <div className="max-w-screen-xl mx-auto flex justify-around py-2">
-        {tabs.map((t) => (
-          <NavLink
-            key={t.path}
-            to={t.path}
-            className={({ isActive }) =>
-              `flex flex-col items-center text-xs font-medium transition ${
-                isActive ? "text-yellow-300 scale-105" : "text-white hover:text-yellow-200"
-              }`
-            }
-          >
-            <span className="text-lg mb-1">{t.icon}</span>
-            {t.label}
-          </NavLink>
+    <Paper sx={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1100, display: { xs: 'block', md: 'none' } }} elevation={8}>
+      <BottomNavigation value={active} onChange={(_, next) => next && navigate(next)} showLabels>
+        {tabs.map((tab) => (
+          <BottomNavigationAction key={tab.path} value={tab.path} label={tab.label} icon={tab.icon} />
         ))}
-      </div>
-    </footer>
+      </BottomNavigation>
+    </Paper>
   );
 }
