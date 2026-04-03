@@ -95,7 +95,6 @@ export function useDashboardData({ role, userName, isAdmin }) {
     [activeOrders, normalizedRole, normalizedUser]
   );
 
-  const recentOrders = useMemo(() => filteredOrders.slice(0, 8), [filteredOrders]);
 
   return {
     orderList,
@@ -113,7 +112,6 @@ export function useDashboardData({ role, userName, isAdmin }) {
     visibleOrders,
     activeOrders,
     myPendingOrders,
-    recentOrders,
     summary,
   };
 }
