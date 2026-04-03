@@ -38,7 +38,7 @@ export default function ChatHeader({ conversation, isLoading, onRefresh, windowO
         </Avatar>
         <Stack sx={{ minWidth: 0 }}>
           <Typography variant="subtitle2" noWrap fontWeight={700}>{conversation?.displayName || 'Select a conversation'}</Typography>
-          <Typography variant="caption" noWrap color="text.secondary">{conversation?.contact || 'No contact selected'}</Typography>
+          <Typography variant="caption" noWrap color="text.secondary">{conversation?.secondaryLabel || conversation?.contact || 'No contact selected'}</Typography>
           {conversation ? (
             <Chip
               size="small"
@@ -65,6 +65,7 @@ ChatHeader.propTypes = {
   conversation: PropTypes.shape({
     displayName: PropTypes.string,
     contact: PropTypes.string,
+    secondaryLabel: PropTypes.string,
   }),
   isLoading: PropTypes.bool,
   onRefresh: PropTypes.func,

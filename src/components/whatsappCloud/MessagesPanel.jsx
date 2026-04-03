@@ -4,9 +4,16 @@ import { io } from 'socket.io-client';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { Avatar, Box, Divider, Stack, Typography } from '@mui/material';
 import { toast } from '../../Components';
+import { fetchCustomers } from '../../services/customerService';
 import { whatsappCloudService } from '../../services/whatsappCloudService';
 import { parseApiError } from '../../utils/parseApiError';
 import { isOutside24hWindow } from '../../utils/whatsappWindow';
+import {
+  buildCustomerPhoneLookup,
+  findCustomerByPhone,
+  formatPhoneForDisplay,
+  getCustomerDisplayName,
+} from '../../utils/customerDirectory';
 import ChatHeader from './ChatHeader';
 import ChatWindow from './ChatWindow';
 import ConversationList from './ConversationList';
@@ -108,16 +115,14 @@ const isUnreadMessage = (message) => {
   return getMessageDirection(message) === 'incoming' && !['read', 'seen'].includes(status);
 };
 
-const getInitials = (value) => {
-  const parts = String(value || '')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-
-  if (!parts.length) return 'NA';
-  if (parts.length > 1) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-  return parts[0].slice(0, 2).toUpperCase();
-};
+const toConversationFromContact = ({ contact, displayName, secondaryLabel }) => ({
+  id: normalizeConversationKey(contact),
+  contact,
+  displayName: displayName || formatPhoneForDisplay(contact) || contact,
+  secondaryLabel: secondaryLabel || formatPhoneForDisplay(contact) || contact,
+  customerName: displayName || '',
+  customerMobile: contact,
+});
 
 export default function MessagesPanel({ search: externalSearch }) {
   const [messages, setMessages] = useState([]);
@@ -127,6 +132,9 @@ export default function MessagesPanel({ search: externalSearch }) {
   const [activeConversationId, setActiveConversationId] = useState('');
   const [readCutoffByConversation, setReadCutoffByConversation] = useState({});
   const [showConversationList, setShowConversationList] = useState(true);
+  const [customers, setCustomers] = useState([]);
+  const [customerError, setCustomerError] = useState('');
+  const [draftConversation, setDraftConversation] = useState(null);
   const messagesContainerRef = useRef(null);
   const activeConversationIdRef = useRef('');
 
@@ -184,9 +192,25 @@ export default function MessagesPanel({ search: externalSearch }) {
     setSearch(externalSearch || '');
   }, [externalSearch]);
 
+
+  const loadCustomers = useCallback(async () => {
+    try {
+      setCustomerError('');
+      const response = await fetchCustomers();
+      if (response?.data?.success) {
+        setCustomers(response.data.result || []);
+      }
+    } catch (error) {
+      const errorMessage = parseApiError(error, 'Unable to load customers list.');
+      setCustomerError(errorMessage);
+      toast.error(errorMessage);
+    }
+  }, []);
+
   useEffect(() => {
     loadMessages();
-  }, [loadMessages]);
+    loadCustomers();
+  }, [loadMessages, loadCustomers]);
 
   useEffect(() => {
     if (!SOCKET_URL || typeof io !== 'function') return undefined;
@@ -214,6 +238,27 @@ export default function MessagesPanel({ search: externalSearch }) {
       ),
     [messages]
   );
+
+
+  const customerLookup = useMemo(() => buildCustomerPhoneLookup(customers), [customers]);
+
+  const customerOptions = useMemo(() =>
+    customers
+      .map((customer) => {
+        const customerName = getCustomerDisplayName(customer);
+        const mobileNumber =
+          customer?.Mobile_number || customer?.Mobile || customer?.mobile || customer?.phone || '';
+
+        if (!customerName && !mobileNumber) return null;
+
+        return {
+          id: String(customer?.Customer_uuid || customer?._id || `${customerName}-${mobileNumber}`),
+          name: customerName || formatPhoneForDisplay(mobileNumber),
+          mobile: mobileNumber,
+          mobileDisplay: formatPhoneForDisplay(mobileNumber),
+        };
+      })
+      .filter(Boolean), [customers]);
 
   const markConversationAsRead = useCallback(
     (conversationId) => {
@@ -243,10 +288,15 @@ export default function MessagesPanel({ search: externalSearch }) {
       const conversationId = normalizeConversationKey(contact);
       if (!conversationId) return;
 
+      const matchedCustomer = findCustomerByPhone(customerLookup, contact);
+      const customerName = getCustomerDisplayName(matchedCustomer);
       const existing = map.get(conversationId) || {
         id: conversationId,
         contact,
-        displayName: message?.profileName || message?.name || contact,
+        displayName: customerName || message?.profileName || message?.name || contact,
+        secondaryLabel: formatPhoneForDisplay(contact),
+        customerName,
+        customerMobile: matchedCustomer?.Mobile_number || matchedCustomer?.Mobile || matchedCustomer?.mobile || '',
         lastMessage: '',
         lastTimestamp: null,
         lastUserMessageAt: null,
@@ -283,10 +333,25 @@ export default function MessagesPanel({ search: externalSearch }) {
       map.get(activeConversationId).unreadCount = 0;
     }
 
-    return [...map.values()].sort(
+    const conversationRows = [...map.values()];
+
+    if (draftConversation?.id) {
+      const alreadyExists = conversationRows.some((item) => item.id === draftConversation.id);
+      if (!alreadyExists) {
+        conversationRows.unshift({
+          ...draftConversation,
+          lastMessage: draftConversation.lastMessage || 'Start conversation',
+          lastTimestamp: draftConversation.lastTimestamp || new Date().toISOString(),
+          unreadCount: 0,
+          lastUserMessageAt: null,
+        });
+      }
+    }
+
+    return conversationRows.sort(
       (a, b) => parseTimestampMs(b.lastTimestamp) - parseTimestampMs(a.lastTimestamp)
     );
-  }, [activeConversationId, orderedMessages, readCutoffByConversation]);
+  }, [activeConversationId, customerLookup, draftConversation, orderedMessages, readCutoffByConversation]);
 
   const filteredConversations = useMemo(() => {
     const searchValue = search.trim().toLowerCase();
@@ -300,25 +365,25 @@ export default function MessagesPanel({ search: externalSearch }) {
   }, [conversations, search]);
 
   useEffect(() => {
-    if (!filteredConversations.length) {
+    if (!conversations.length) {
       setActiveConversationId('');
       return;
     }
 
-    if (!filteredConversations.some((item) => item.id === activeConversationId)) {
-      setActiveConversationId(filteredConversations[0].id);
+    if (!conversations.some((item) => item.id === activeConversationId)) {
+      setActiveConversationId(conversations[0].id);
     }
-  }, [filteredConversations, activeConversationId]);
+  }, [conversations, activeConversationId]);
 
   useEffect(() => {
     if (!activeConversationId) return;
     markConversationAsRead(activeConversationId);
   }, [activeConversationId, markConversationAsRead]);
 
-  const activeConversation = useMemo(
-    () => filteredConversations.find((item) => item.id === activeConversationId) || null,
-    [filteredConversations, activeConversationId]
-  );
+  const activeConversation = useMemo(() => {
+    if (!activeConversationId) return null;
+    return conversations.find((item) => item.id === activeConversationId) || null;
+  }, [conversations, activeConversationId]);
 
   const activeMessages = useMemo(
     () =>
@@ -441,10 +506,10 @@ export default function MessagesPanel({ search: externalSearch }) {
     <Stack spacing={2} sx={{ p: 2 }}>
       <Stack alignItems="center" spacing={1}>
         <Avatar sx={{ width: 64, height: 64, bgcolor: '#16a34a' }}>
-          {getInitials(activeConversation.displayName || activeConversation.contact)}
+          {(activeConversation.displayName || activeConversation.contact || 'NA').slice(0, 2).toUpperCase()}
         </Avatar>
         <Typography variant="subtitle1" fontWeight={700} align="center">{activeConversation.displayName}</Typography>
-        <Typography variant="caption" color="text.secondary" align="center">{activeConversation.contact}</Typography>
+        <Typography variant="caption" color="text.secondary" align="center">{activeConversation.secondaryLabel || activeConversation.contact}</Typography>
       </Stack>
       <Divider />
       <Stack direction="row" spacing={1} alignItems="center">
@@ -494,6 +559,8 @@ export default function MessagesPanel({ search: externalSearch }) {
       sidebar={(
         <Box sx={{ display: { xs: showConversationList ? 'block' : 'none', lg: 'block' }, height: '100%' }}>
           <ConversationList
+            customerOptions={customerOptions}
+            customerLoadError={customerError}
             conversations={filteredConversations}
             activeConversationId={activeConversationId}
             onSelectConversation={(id) => {
@@ -501,9 +568,37 @@ export default function MessagesPanel({ search: externalSearch }) {
               setActiveConversationId(id);
               setShowConversationList(false);
             }}
-            onRefresh={loadMessages}
+            onRefresh={() => {
+              loadMessages();
+              loadCustomers();
+            }}
             search={search}
             onSearch={setSearch}
+            onSelectCustomer={(value) => {
+              const selectedOption = typeof value === 'string'
+                ? {
+                    name: value.trim(),
+                    mobile: value.trim(),
+                    mobileDisplay: value.trim(),
+                  }
+                : value;
+
+              const contact = selectedOption?.mobile || '';
+              const conversation = toConversationFromContact({
+                contact,
+                displayName: selectedOption?.name,
+                secondaryLabel: selectedOption?.mobileDisplay,
+              });
+
+              const id = conversation.id;
+              if (!id) return;
+
+              setDraftConversation(conversation);
+
+              markConversationAsRead(id);
+              setActiveConversationId(id);
+              setShowConversationList(false);
+            }}
           />
         </Box>
       )}
