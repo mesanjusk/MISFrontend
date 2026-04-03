@@ -62,9 +62,32 @@ const normalizeConversationKey = (value) => {
   return digits || source.toLowerCase();
 };
 
+const parseTimestampMs = (value) => {
+  if (value == null || value === '') return 0;
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value < 1e12 ? value * 1000 : value;
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return 0;
+
+    const numericValue = Number(trimmed);
+    if (Number.isFinite(numericValue)) {
+      return numericValue < 1e12 ? numericValue * 1000 : numericValue;
+    }
+
+    const parsedText = Date.parse(trimmed);
+    return Number.isNaN(parsedText) ? 0 : parsedText;
+  }
+
+  const parsed = Date.parse(String(value));
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
 const getMessageTimestampMs = (message) => {
-  const parsed = new Date(getTimestampRaw(message) ?? 0).getTime();
-  return Number.isFinite(parsed) ? parsed : 0;
+  return parseTimestampMs(getTimestampRaw(message));
 };
 
 const normalizeMessages = (payload) => {
@@ -187,7 +210,7 @@ export default function MessagesPanel({ search: externalSearch }) {
   const orderedMessages = useMemo(
     () =>
       [...messages].sort(
-        (a, b) => new Date(getTimestampRaw(a) ?? 0) - new Date(getTimestampRaw(b) ?? 0)
+        (a, b) => getMessageTimestampMs(a) - getMessageTimestampMs(b)
       ),
     [messages]
   );
@@ -231,21 +254,22 @@ export default function MessagesPanel({ search: externalSearch }) {
       };
 
       const timestamp = getTimestampRaw(message);
+      const timestampMs = getMessageTimestampMs(message);
 
-      if (!existing.lastTimestamp || new Date(timestamp) >= new Date(existing.lastTimestamp)) {
+      if (!existing.lastTimestamp || timestampMs >= parseTimestampMs(existing.lastTimestamp)) {
         existing.lastTimestamp = timestamp;
         existing.lastMessage = getMessageText(message);
         existing.lastMessageType = message?.messageType || message?.type;
       }
 
       const readCutoffTs = readCutoffByConversation[conversationId] ?? 0;
-      if (isUnreadMessage(message) && getMessageTimestampMs(message) > readCutoffTs) {
+      if (isUnreadMessage(message) && timestampMs > readCutoffTs) {
         existing.unreadCount += 1;
       }
 
       if (getMessageDirection(message) === 'incoming') {
-        const currentTs = new Date(timestamp ?? 0).getTime();
-        const previousTs = new Date(existing.lastUserMessageAt ?? 0).getTime();
+        const currentTs = timestampMs;
+        const previousTs = parseTimestampMs(existing.lastUserMessageAt);
 
         if (!existing.lastUserMessageAt || currentTs >= previousTs) {
           existing.lastUserMessageAt = timestamp;
@@ -260,7 +284,7 @@ export default function MessagesPanel({ search: externalSearch }) {
     }
 
     return [...map.values()].sort(
-      (a, b) => new Date(b.lastTimestamp ?? 0) - new Date(a.lastTimestamp ?? 0)
+      (a, b) => parseTimestampMs(b.lastTimestamp) - parseTimestampMs(a.lastTimestamp)
     );
   }, [activeConversationId, orderedMessages, readCutoffByConversation]);
 
