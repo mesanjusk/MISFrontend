@@ -54,6 +54,42 @@ const getContactForMessage = (message) =>
     ? String(message?.to ?? message?.recipient ?? 'Unknown')
     : String(message?.from ?? message?.sender ?? 'Unknown');
 
+const normalizeConversationKey = (value) => {
+  const source = String(value ?? '').trim();
+  if (!source) return '';
+
+  const digits = source.replace(/\D/g, '');
+  return digits || source.toLowerCase();
+};
+
+const parseTimestampMs = (value) => {
+  if (value == null || value === '') return 0;
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value < 1e12 ? value * 1000 : value;
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return 0;
+
+    const numericValue = Number(trimmed);
+    if (Number.isFinite(numericValue)) {
+      return numericValue < 1e12 ? numericValue * 1000 : numericValue;
+    }
+
+    const parsedText = Date.parse(trimmed);
+    return Number.isNaN(parsedText) ? 0 : parsedText;
+  }
+
+  const parsed = Date.parse(String(value));
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+const getMessageTimestampMs = (message) => {
+  return parseTimestampMs(getTimestampRaw(message));
+};
+
 const normalizeMessages = (payload) => {
   const list = [
     payload,
@@ -89,12 +125,31 @@ export default function MessagesPanel({ search: externalSearch }) {
   const [isSending, setIsSending] = useState(false);
   const [search, setSearch] = useState(externalSearch || '');
   const [activeConversationId, setActiveConversationId] = useState('');
+  const [readCutoffByConversation, setReadCutoffByConversation] = useState({});
   const [showConversationList, setShowConversationList] = useState(true);
   const messagesContainerRef = useRef(null);
+  const activeConversationIdRef = useRef('');
+
+  useEffect(() => {
+    activeConversationIdRef.current = activeConversationId;
+  }, [activeConversationId]);
 
   const appendMessage = useCallback((incomingMessage) => {
     const message = normalizeIncomingMessage(incomingMessage);
     if (!message) return;
+
+    const messageConversationId = normalizeConversationKey(getContactForMessage(message));
+    if (
+      getMessageDirection(message) === 'incoming' &&
+      messageConversationId &&
+      messageConversationId === activeConversationIdRef.current
+    ) {
+      const incomingTs = getMessageTimestampMs(message) || Date.now();
+      setReadCutoffByConversation((prev) => ({
+        ...prev,
+        [messageConversationId]: Math.max(prev[messageConversationId] ?? 0, incomingTs),
+      }));
+    }
 
     setMessages((prev) => {
       const nextId = getMessageIdentity(message);
@@ -155,9 +210,29 @@ export default function MessagesPanel({ search: externalSearch }) {
   const orderedMessages = useMemo(
     () =>
       [...messages].sort(
-        (a, b) => new Date(getTimestampRaw(a) ?? 0) - new Date(getTimestampRaw(b) ?? 0)
+        (a, b) => getMessageTimestampMs(a) - getMessageTimestampMs(b)
       ),
     [messages]
+  );
+
+  const markConversationAsRead = useCallback(
+    (conversationId) => {
+      if (!conversationId) return;
+
+      const latestConversationMessageMs = orderedMessages.reduce((latest, message) => {
+        const messageConversationId = normalizeConversationKey(getContactForMessage(message));
+        if (messageConversationId !== conversationId) return latest;
+        return Math.max(latest, getMessageTimestampMs(message));
+      }, 0);
+
+      const readAt = Math.max(Date.now(), latestConversationMessageMs);
+
+      setReadCutoffByConversation((prev) => ({
+        ...prev,
+        [conversationId]: Math.max(prev[conversationId] ?? 0, readAt),
+      }));
+    },
+    [orderedMessages]
   );
 
   const conversations = useMemo(() => {
@@ -165,9 +240,11 @@ export default function MessagesPanel({ search: externalSearch }) {
 
     orderedMessages.forEach((message) => {
       const contact = getContactForMessage(message);
+      const conversationId = normalizeConversationKey(contact);
+      if (!conversationId) return;
 
-      const existing = map.get(contact) || {
-        id: contact,
+      const existing = map.get(conversationId) || {
+        id: conversationId,
         contact,
         displayName: message?.profileName || message?.name || contact,
         lastMessage: '',
@@ -177,31 +254,39 @@ export default function MessagesPanel({ search: externalSearch }) {
       };
 
       const timestamp = getTimestampRaw(message);
+      const timestampMs = getMessageTimestampMs(message);
 
-      if (!existing.lastTimestamp || new Date(timestamp) >= new Date(existing.lastTimestamp)) {
+      if (!existing.lastTimestamp || timestampMs >= parseTimestampMs(existing.lastTimestamp)) {
         existing.lastTimestamp = timestamp;
         existing.lastMessage = getMessageText(message);
         existing.lastMessageType = message?.messageType || message?.type;
       }
 
-      if (isUnreadMessage(message)) existing.unreadCount += 1;
+      const readCutoffTs = readCutoffByConversation[conversationId] ?? 0;
+      if (isUnreadMessage(message) && timestampMs > readCutoffTs) {
+        existing.unreadCount += 1;
+      }
 
       if (getMessageDirection(message) === 'incoming') {
-        const currentTs = new Date(timestamp ?? 0).getTime();
-        const previousTs = new Date(existing.lastUserMessageAt ?? 0).getTime();
+        const currentTs = timestampMs;
+        const previousTs = parseTimestampMs(existing.lastUserMessageAt);
 
         if (!existing.lastUserMessageAt || currentTs >= previousTs) {
           existing.lastUserMessageAt = timestamp;
         }
       }
 
-      map.set(contact, existing);
+      map.set(conversationId, existing);
     });
 
+    if (activeConversationId && map.has(activeConversationId)) {
+      map.get(activeConversationId).unreadCount = 0;
+    }
+
     return [...map.values()].sort(
-      (a, b) => new Date(b.lastTimestamp ?? 0) - new Date(a.lastTimestamp ?? 0)
+      (a, b) => parseTimestampMs(b.lastTimestamp) - parseTimestampMs(a.lastTimestamp)
     );
-  }, [orderedMessages]);
+  }, [activeConversationId, orderedMessages, readCutoffByConversation]);
 
   const filteredConversations = useMemo(() => {
     const searchValue = search.trim().toLowerCase();
@@ -225,6 +310,11 @@ export default function MessagesPanel({ search: externalSearch }) {
     }
   }, [filteredConversations, activeConversationId]);
 
+  useEffect(() => {
+    if (!activeConversationId) return;
+    markConversationAsRead(activeConversationId);
+  }, [activeConversationId, markConversationAsRead]);
+
   const activeConversation = useMemo(
     () => filteredConversations.find((item) => item.id === activeConversationId) || null,
     [filteredConversations, activeConversationId]
@@ -235,7 +325,8 @@ export default function MessagesPanel({ search: externalSearch }) {
       !activeConversation?.contact
         ? []
         : orderedMessages.filter(
-            (message) => getContactForMessage(message) === activeConversation.contact
+            (message) =>
+              normalizeConversationKey(getContactForMessage(message)) === activeConversation.id
           ),
     [orderedMessages, activeConversation]
   );
@@ -406,6 +497,7 @@ export default function MessagesPanel({ search: externalSearch }) {
             conversations={filteredConversations}
             activeConversationId={activeConversationId}
             onSelectConversation={(id) => {
+              markConversationAsRead(id);
               setActiveConversationId(id);
               setShowConversationList(false);
             }}
