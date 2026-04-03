@@ -1,38 +1,38 @@
 import { alpha, createTheme } from '@mui/material/styles';
 
-const WHATSAPP_PRIMARY = '#157347';
-const WHATSAPP_DARK = '#0f5132';
-const WHATSAPP_LIGHT = '#38a169';
-const EMERALD_SECONDARY = '#0f766e';
+const ZOHO_BLUE = '#2563eb';
+const ZOHO_BLUE_DARK = '#1d4ed8';
+const ZOHO_BLUE_LIGHT = '#60a5fa';
+const TEAL_SECONDARY = '#0f766e';
 
 const baseShadows = [
   'none',
   '0 1px 2px rgba(15, 23, 42, 0.04)',
   '0 2px 8px rgba(15, 23, 42, 0.06)',
-  '0 10px 24px rgba(15, 23, 42, 0.08)',
-  '0 18px 40px rgba(15, 23, 42, 0.10)',
-  '0 24px 56px rgba(15, 23, 42, 0.12)',
-  ...Array(19).fill('0 24px 56px rgba(15, 23, 42, 0.12)'),
+  '0 8px 20px rgba(15, 23, 42, 0.07)',
+  '0 14px 30px rgba(15, 23, 42, 0.08)',
+  '0 20px 48px rgba(15, 23, 42, 0.10)',
+  ...Array(19).fill('0 20px 48px rgba(15, 23, 42, 0.10)'),
 ];
 
 const shared = {
-  shape: { borderRadius: 14 },
+  shape: { borderRadius: 12 },
   spacing: 8,
   shadows: baseShadows,
   typography: {
     fontFamily: ['Inter', 'Roboto', 'Segoe UI', 'Arial', 'sans-serif'].join(','),
-    h1: { fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 },
-    h2: { fontSize: '1.625rem', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 },
-    h3: { fontSize: '1.35rem', fontWeight: 700, lineHeight: 1.25 },
-    h4: { fontSize: '1.125rem', fontWeight: 700, lineHeight: 1.3 },
-    h5: { fontSize: '1rem', fontWeight: 650, lineHeight: 1.35 },
-    h6: { fontSize: '0.925rem', fontWeight: 650, lineHeight: 1.4 },
-    subtitle1: { fontSize: '0.9rem', fontWeight: 600 },
-    subtitle2: { fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.02em' },
-    body1: { fontSize: '0.875rem', lineHeight: 1.45 },
-    body2: { fontSize: '0.8125rem', lineHeight: 1.4 },
-    caption: { fontSize: '0.75rem', lineHeight: 1.35 },
-    button: { textTransform: 'none', fontWeight: 600, letterSpacing: '0.01em', fontSize: '0.8125rem' },
+    h1: { fontSize: '1.9rem', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 },
+    h2: { fontSize: '1.55rem', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 },
+    h3: { fontSize: '1.25rem', fontWeight: 700, lineHeight: 1.25 },
+    h4: { fontSize: '1.05rem', fontWeight: 700, lineHeight: 1.3 },
+    h5: { fontSize: '0.98rem', fontWeight: 650, lineHeight: 1.35 },
+    h6: { fontSize: '0.9rem', fontWeight: 650, lineHeight: 1.35 },
+    subtitle1: { fontSize: '0.86rem', fontWeight: 600 },
+    subtitle2: { fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.02em' },
+    body1: { fontSize: '0.84rem', lineHeight: 1.42 },
+    body2: { fontSize: '0.79rem', lineHeight: 1.4 },
+    caption: { fontSize: '0.72rem', lineHeight: 1.35 },
+    button: { textTransform: 'none', fontWeight: 600, letterSpacing: '0.01em', fontSize: '0.8rem' },
   },
 };
 
@@ -40,7 +40,7 @@ const getComponentOverrides = (theme) => ({
   MuiCssBaseline: {
     styleOverrides: {
       body: {
-        background: `linear-gradient(180deg, ${alpha(theme.palette.primary.light, 0.08)} 0%, ${theme.palette.background.default} 35%)`,
+        backgroundColor: theme.palette.background.default,
         color: theme.palette.text.primary,
       },
       '#root': {
@@ -55,28 +55,28 @@ const getComponentOverrides = (theme) => ({
     },
     styleOverrides: {
       root: {
-        borderRadius: theme.shape.borderRadius - 4,
+        borderRadius: 8,
         paddingInline: 12,
         paddingBlock: 6,
       },
       containedPrimary: {
-        backgroundImage: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+        backgroundColor: theme.palette.primary.main,
       },
     },
   },
   MuiCard: {
     styleOverrides: {
       root: {
-        borderRadius: theme.shape.borderRadius,
+        borderRadius: 10,
         border: `1px solid ${theme.palette.divider}`,
-        boxShadow: theme.shadows[2],
+        boxShadow: theme.shadows[1],
       },
     },
   },
   MuiPaper: {
     styleOverrides: {
       rounded: {
-        borderRadius: theme.shape.borderRadius,
+        borderRadius: 10,
       },
     },
   },
@@ -86,16 +86,16 @@ const getComponentOverrides = (theme) => ({
   MuiOutlinedInput: {
     styleOverrides: {
       root: {
-        borderRadius: theme.shape.borderRadius,
-        backgroundColor: alpha(theme.palette.background.paper, 0.88),
-        minHeight: 38,
+        borderRadius: 8,
+        backgroundColor: theme.palette.background.paper,
+        minHeight: 36,
       },
     },
   },
   MuiDialog: {
     styleOverrides: {
       paper: {
-        borderRadius: theme.shape.borderRadius + 6,
+        borderRadius: 14,
       },
     },
   },
@@ -105,13 +105,13 @@ const getComponentOverrides = (theme) => ({
       head: {
         fontWeight: 700,
         color: theme.palette.text.secondary,
-        backgroundColor: alpha(theme.palette.primary.main, 0.07),
-        paddingTop: 8,
-        paddingBottom: 8,
+        backgroundColor: alpha(theme.palette.primary.main, 0.05),
+        paddingTop: 7,
+        paddingBottom: 7,
       },
       body: {
-        paddingTop: 8,
-        paddingBottom: 8,
+        paddingTop: 7,
+        paddingBottom: 7,
       },
     },
   },
@@ -130,14 +130,14 @@ const getComponentOverrides = (theme) => ({
       root: {
         boxShadow: 'none',
         borderBottom: `1px solid ${theme.palette.divider}`,
-        backdropFilter: 'blur(6px)',
+        backgroundColor: alpha(theme.palette.background.paper, 0.94),
       },
     },
   },
   MuiToolbar: {
     styleOverrides: {
       root: {
-        minHeight: 56,
+        minHeight: 54,
       },
     },
   },
@@ -145,7 +145,7 @@ const getComponentOverrides = (theme) => ({
     styleOverrides: {
       root: {
         borderRadius: 999,
-        height: 24,
+        height: 22,
       },
     },
   },
@@ -160,7 +160,7 @@ const getComponentOverrides = (theme) => ({
   MuiMenu: {
     styleOverrides: {
       paper: {
-        borderRadius: theme.shape.borderRadius,
+        borderRadius: 10,
         border: `1px solid ${theme.palette.divider}`,
       },
     },
@@ -185,22 +185,22 @@ const getComponentOverrides = (theme) => ({
   MuiListItemButton: {
     styleOverrides: {
       root: {
-        borderRadius: 10,
+        borderRadius: 8,
       },
     },
   },
   MuiSnackbarContent: {
     styleOverrides: {
       root: {
-        borderRadius: theme.shape.borderRadius,
+        borderRadius: 10,
       },
     },
   },
 });
 
 const basePalette = {
-  primary: { main: WHATSAPP_PRIMARY, dark: WHATSAPP_DARK, light: WHATSAPP_LIGHT, contrastText: '#ffffff' },
-  secondary: { main: EMERALD_SECONDARY, dark: '#115e59', light: '#2dd4bf' },
+  primary: { main: ZOHO_BLUE, dark: ZOHO_BLUE_DARK, light: ZOHO_BLUE_LIGHT, contrastText: '#ffffff' },
+  secondary: { main: TEAL_SECONDARY, dark: '#115e59', light: '#14b8a6' },
   success: { main: '#16a34a' },
   warning: { main: '#d97706' },
   error: { main: '#dc2626' },
@@ -213,9 +213,9 @@ export const lightTheme = (() => {
     palette: {
       mode: 'light',
       ...basePalette,
-      background: { default: '#f3f7f5', paper: '#ffffff' },
-      text: { primary: '#0f172a', secondary: '#475569' },
-      divider: '#d9e6df',
+      background: { default: '#f7f8fc', paper: '#ffffff' },
+      text: { primary: '#111827', secondary: '#4b5563' },
+      divider: '#e5e7eb',
     },
   });
 
@@ -229,9 +229,9 @@ export const darkTheme = (() => {
     palette: {
       mode: 'dark',
       ...basePalette,
-      background: { default: '#0b1411', paper: '#111b17' },
-      text: { primary: '#e2e8f0', secondary: '#94a3b8' },
-      divider: '#1f3b33',
+      background: { default: '#0f172a', paper: '#111827' },
+      text: { primary: '#e5e7eb', secondary: '#9ca3af' },
+      divider: '#1f2937',
     },
   });
 

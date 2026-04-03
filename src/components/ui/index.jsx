@@ -3,20 +3,37 @@ import { Alert, Box, Button, Card, CardContent, CardHeader, CircularProgress, Pa
 
 export function PageContainer({ title, subtitle, actions, children }) {
   return (
-    <Stack spacing={1.5}>
+    <Stack
+      spacing={1.5}
+      sx={{
+        px: { xs: 1, sm: 1.25 },
+        pb: 1,
+      }}
+    >
       {(title || subtitle || actions) ? (
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          justifyContent="space-between"
-          alignItems={{ xs: 'flex-start', md: 'center' }}
-          spacing={1}
+        <Card
+          elevation={0}
+          sx={{
+            borderRadius: 2,
+            border: (theme) => `1px solid ${theme.palette.divider}`,
+            bgcolor: 'background.paper',
+          }}
         >
-          <Box>
-            {title ? <Typography variant="h5">{title}</Typography> : null}
-            {subtitle ? <Typography variant="body2" color="text.secondary">{subtitle}</Typography> : null}
-          </Box>
-          {actions ? <Stack direction="row" spacing={1}>{actions}</Stack> : null}
-        </Stack>
+          <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              justifyContent="space-between"
+              alignItems={{ xs: 'flex-start', md: 'center' }}
+              spacing={1}
+            >
+              <Box>
+                {title ? <Typography variant="h5">{title}</Typography> : null}
+                {subtitle ? <Typography variant="body2" color="text.secondary">{subtitle}</Typography> : null}
+              </Box>
+              {actions ? <Stack direction="row" spacing={1}>{actions}</Stack> : null}
+            </Stack>
+          </CardContent>
+        </Card>
       ) : null}
       {children}
     </Stack>
@@ -25,16 +42,16 @@ export function PageContainer({ title, subtitle, actions, children }) {
 
 export function SectionCard({ title, subtitle, action, children, contentSx }) {
   return (
-    <Card>
+    <Card elevation={0}>
       {(title || subtitle || action) ? (
         <CardHeader
-          sx={{ py: 1.25, px: 1.5 }}
+          sx={{ py: 1, px: 1.5 }}
           title={title ? <Typography variant="subtitle1">{title}</Typography> : null}
           subheader={subtitle ? <Typography variant="caption">{subtitle}</Typography> : null}
           action={action}
         />
       ) : null}
-      <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 }, ...contentSx }}>{children}</CardContent>
+      <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 }, ...contentSx }}>{children}</CardContent>
     </Card>
   );
 }
@@ -95,7 +112,7 @@ export function LoadingState({ label = 'Loading...' }) {
 
 export function EmptyState({ title = 'No data available', description }) {
   return (
-    <Stack alignItems="center" spacing={0.5} py={4}>
+    <Stack alignItems="center" spacing={0.5} py={3}>
       <Typography variant="subtitle2">{title}</Typography>
       {description ? <Typography variant="caption" color="text.secondary">{description}</Typography> : null}
     </Stack>

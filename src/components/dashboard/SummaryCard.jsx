@@ -1,26 +1,26 @@
 import PropTypes from 'prop-types';
 import { alpha } from '@mui/material/styles';
-import { Card, Stack, Typography } from '@mui/material';
+import { Card, Divider, Stack, Typography } from '@mui/material';
 
 const variantStyles = {
-  primary: (theme) => ({ bg: alpha(theme.palette.primary.main, 0.12), color: theme.palette.primary.main }),
-  success: (theme) => ({ bg: alpha(theme.palette.success.main, 0.12), color: theme.palette.success.main }),
-  warning: (theme) => ({ bg: alpha(theme.palette.warning.main, 0.12), color: theme.palette.warning.main }),
-  danger: (theme) => ({ bg: alpha(theme.palette.error.main, 0.12), color: theme.palette.error.main }),
+  primary: (theme) => ({ bg: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main }),
+  success: (theme) => ({ bg: alpha(theme.palette.success.main, 0.1), color: theme.palette.success.main }),
+  warning: (theme) => ({ bg: alpha(theme.palette.warning.main, 0.1), color: theme.palette.warning.main }),
+  danger: (theme) => ({ bg: alpha(theme.palette.error.main, 0.1), color: theme.palette.error.main }),
 };
 
-export default function SummaryCard({ title, value, icon: Icon, variant = 'primary' }) {
+export default function SummaryCard({ title, value, icon: Icon, variant = 'primary', trend }) {
   return (
-    <Card sx={{ p: 2.25 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
-        <div>
-          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.6 }}>
+    <Card elevation={0} sx={{ p: 1.25, height: '100%' }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1.25}>
+        <Stack spacing={0.4}>
+          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
             {title}
           </Typography>
-          <Typography variant="h4" sx={{ mt: 1 }}>
+          <Typography variant="h4" sx={{ lineHeight: 1.1 }}>
             {value}
           </Typography>
-        </div>
+        </Stack>
         {Icon ? (
           <Stack
             alignItems="center"
@@ -28,13 +28,19 @@ export default function SummaryCard({ title, value, icon: Icon, variant = 'prima
             sx={(theme) => {
               const v = variantStyles[variant] || variantStyles.primary;
               const { bg, color } = v(theme);
-              return { bgcolor: bg, color, width: 44, height: 44, borderRadius: '50%' };
+              return { bgcolor: bg, color, width: 36, height: 36, borderRadius: 1.5 };
             }}
           >
-            <Icon fontSize="small" />
+            <Icon sx={{ fontSize: 20 }} />
           </Stack>
         ) : null}
       </Stack>
+      {trend ? (
+        <>
+          <Divider sx={{ my: 0.8 }} />
+          <Typography variant="caption" color="text.secondary">{trend}</Typography>
+        </>
+      ) : null}
     </Card>
   );
 }
@@ -44,4 +50,5 @@ SummaryCard.propTypes = {
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   icon: PropTypes.elementType,
   variant: PropTypes.oneOf(['primary', 'success', 'warning', 'danger']),
+  trend: PropTypes.string,
 };
