@@ -1,6 +1,6 @@
-/* eslint-disable react/prop-types */
 import ChatBubbleOutlineRoundedIcon from '@mui/icons-material/ChatBubbleOutlineRounded';
 import { Box, Stack, Typography } from '@mui/material';
+import PropTypes from 'prop-types';
 
 export default function EmptyState({ title = 'No data', description = '' }) {
   return (
@@ -29,3 +29,13 @@ export default function EmptyState({ title = 'No data', description = '' }) {
     </Stack>
   );
 }
+
+EmptyState.propTypes = {
+  title: PropTypes.string,
+  description: PropTypes.string,
+};
+
+EmptyState.defaultProps = {
+  title: 'No data',
+  description: '',
+};

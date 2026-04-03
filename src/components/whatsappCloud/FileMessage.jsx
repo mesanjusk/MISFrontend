@@ -1,7 +1,7 @@
-/* eslint-disable react/prop-types */
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import { Button, Paper, Stack, Typography } from '@mui/material';
+import PropTypes from 'prop-types';
 
 const getFileUrl = (message) => message?.mediaUrl || message?.url || message?.link || message?.document?.link || message?.media?.url || '';
 
@@ -35,3 +35,11 @@ export default function FileMessage({ message }) {
     </Paper>
   );
 }
+
+FileMessage.propTypes = {
+  message: PropTypes.object,
+};
+
+FileMessage.defaultProps = {
+  message: null,
+};

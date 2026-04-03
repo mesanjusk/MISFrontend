@@ -1,6 +1,6 @@
-/* eslint-disable react/prop-types */
 import { useEffect, useState } from 'react';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
+import PropTypes from 'prop-types';
 import {
   Alert,
   Box,
@@ -157,3 +157,18 @@ export default function MessageInput({
     </Paper>
   );
 }
+
+MessageInput.propTypes = {
+  disabled: PropTypes.bool,
+  onSend: PropTypes.func.isRequired,
+  onSendAttachment: PropTypes.func,
+  canSendTemplateOnly: PropTypes.bool,
+  recipient: PropTypes.string,
+};
+
+MessageInput.defaultProps = {
+  disabled: false,
+  onSendAttachment: undefined,
+  canSendTemplateOnly: false,
+  recipient: '',
+};

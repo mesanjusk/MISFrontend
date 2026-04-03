@@ -1,8 +1,8 @@
-/* eslint-disable react/prop-types */
 import { useMemo, useState } from 'react';
 import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import { Button, Dialog, DialogContent, DialogTitle, Stack, Typography } from '@mui/material';
+import PropTypes from 'prop-types';
 
 const deriveImageUrl = (message) => message?.mediaUrl || message?.url || message?.link || message?.image?.link || message?.media?.url || '';
 
@@ -53,3 +53,11 @@ export default function ImageMessage({ message }) {
     </>
   );
 }
+
+ImageMessage.propTypes = {
+  message: PropTypes.object,
+};
+
+ImageMessage.defaultProps = {
+  message: null,
+};

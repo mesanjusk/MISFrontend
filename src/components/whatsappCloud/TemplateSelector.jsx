@@ -1,6 +1,6 @@
-/* eslint-disable react/prop-types */
 import { useMemo } from 'react';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
+import PropTypes from 'prop-types';
 import {
   Alert,
   Box,
@@ -150,3 +150,19 @@ export default function TemplateSelector({ selectedTemplate, onTemplateChange, d
     </Card>
   );
 }
+
+TemplateSelector.propTypes = {
+  selectedTemplate: PropTypes.shape({
+    name: PropTypes.string,
+    language: PropTypes.string,
+    body: PropTypes.string,
+    parameters: PropTypes.arrayOf(PropTypes.string),
+  }),
+  onTemplateChange: PropTypes.func.isRequired,
+  disabled: PropTypes.bool,
+};
+
+TemplateSelector.defaultProps = {
+  selectedTemplate: null,
+  disabled: false,
+};

@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { useState } from 'react';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import { Button, Stack } from '@mui/material';
@@ -6,6 +5,7 @@ import { toast } from '../../Components';
 import { buildTemplatePayload, whatsappCloudService } from '../../services/whatsappCloudService';
 import { parseApiError } from '../../utils/parseApiError';
 import TemplateSelector from './TemplateSelector';
+import PropTypes from 'prop-types';
 
 export default function TemplateMessageComposer({
   recipient,
@@ -69,3 +69,19 @@ export default function TemplateMessageComposer({
     </Stack>
   );
 }
+
+TemplateMessageComposer.propTypes = {
+  recipient: PropTypes.string,
+  className: PropTypes.string,
+  buttonLabel: PropTypes.string,
+  disabled: PropTypes.bool,
+  onSent: PropTypes.func,
+};
+
+TemplateMessageComposer.defaultProps = {
+  recipient: '',
+  className: '',
+  buttonLabel: 'Send Template Message',
+  disabled: false,
+  onSent: undefined,
+};

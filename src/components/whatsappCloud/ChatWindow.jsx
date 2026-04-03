@@ -1,8 +1,8 @@
-/* eslint-disable react/prop-types */
 import { Box, Chip } from '@mui/material';
 import ChatBubble from './ChatBubble';
 import EmptyState from './EmptyState';
 import MessageInput from './MessageInput';
+import PropTypes from 'prop-types';
 
 const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 
@@ -95,3 +95,27 @@ export default function ChatWindow({
     </Box>
   );
 }
+
+ChatWindow.propTypes = {
+  messages: PropTypes.arrayOf(PropTypes.object),
+  getMessageIdentity: PropTypes.func.isRequired,
+  getMessageDirection: PropTypes.func.isRequired,
+  getTimestampRaw: PropTypes.func.isRequired,
+  scrollRef: PropTypes.shape({ current: PropTypes.any }),
+  canSend: PropTypes.bool,
+  canSendTemplateOnly: PropTypes.bool,
+  recipient: PropTypes.string,
+  onSend: PropTypes.func.isRequired,
+  onSendAttachment: PropTypes.func,
+  onRetry: PropTypes.func,
+};
+
+ChatWindow.defaultProps = {
+  messages: [],
+  scrollRef: { current: null },
+  canSend: true,
+  canSendTemplateOnly: false,
+  recipient: '',
+  onSendAttachment: undefined,
+  onRetry: undefined,
+};

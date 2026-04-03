@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import { Box, Skeleton, Stack } from '@mui/material';
+import PropTypes from 'prop-types';
 
 export default function LoadingSkeleton({ lines = 6 }) {
   return (
@@ -11,3 +11,11 @@ export default function LoadingSkeleton({ lines = 6 }) {
     </Stack>
   );
 }
+
+LoadingSkeleton.propTypes = {
+  lines: PropTypes.number,
+};
+
+LoadingSkeleton.defaultProps = {
+  lines: 6,
+};

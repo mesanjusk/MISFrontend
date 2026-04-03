@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import { useRef } from 'react';
+import PropTypes from 'prop-types';
 import AttachFileRoundedIcon from '@mui/icons-material/AttachFileRounded';
 import ImageRoundedIcon from '@mui/icons-material/ImageRounded';
 import VideocamRoundedIcon from '@mui/icons-material/VideocamRounded';
@@ -45,3 +45,13 @@ export default function AttachmentUpload({ disabled, onSelectFile }) {
     </>
   );
 }
+
+AttachmentUpload.propTypes = {
+  disabled: PropTypes.bool,
+  onSelectFile: PropTypes.func,
+};
+
+AttachmentUpload.defaultProps = {
+  disabled: false,
+  onSelectFile: undefined,
+};

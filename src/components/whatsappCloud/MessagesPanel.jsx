@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import { io } from 'socket.io-client';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { Avatar, Box, Divider, Stack, Typography } from '@mui/material';
@@ -82,11 +83,11 @@ const getInitials = (value) => {
   return parts[0].slice(0, 2).toUpperCase();
 };
 
-export default function MessagesPanel() {
+export default function MessagesPanel({ search: externalSearch }) {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(externalSearch || '');
   const [activeConversationId, setActiveConversationId] = useState('');
   const [showConversationList, setShowConversationList] = useState(true);
   const messagesContainerRef = useRef(null);
@@ -123,6 +124,10 @@ export default function MessagesPanel() {
       setIsLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    setSearch(externalSearch || '');
+  }, [externalSearch]);
 
   useEffect(() => {
     loadMessages();
@@ -419,3 +424,11 @@ export default function MessagesPanel() {
     />
   );
 }
+
+MessagesPanel.propTypes = {
+  search: PropTypes.string,
+};
+
+MessagesPanel.defaultProps = {
+  search: '',
+};

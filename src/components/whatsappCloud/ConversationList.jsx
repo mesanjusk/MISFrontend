@@ -1,6 +1,6 @@
-/* eslint-disable react/prop-types */
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import SyncRoundedIcon from '@mui/icons-material/SyncRounded';
+import PropTypes from 'prop-types';
 import {
   Avatar,
   Badge,
@@ -138,3 +138,19 @@ export default function ConversationList({
     </Stack>
   );
 }
+
+ConversationList.propTypes = {
+  conversations: PropTypes.arrayOf(PropTypes.object),
+  activeConversationId: PropTypes.string,
+  onSelectConversation: PropTypes.func.isRequired,
+  search: PropTypes.string,
+  onSearch: PropTypes.func.isRequired,
+  onRefresh: PropTypes.func,
+};
+
+ConversationList.defaultProps = {
+  conversations: [],
+  activeConversationId: '',
+  search: '',
+  onRefresh: undefined,
+};

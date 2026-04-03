@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import { Box, Paper } from '@mui/material';
+import PropTypes from 'prop-types';
 
 export default function WhatsAppLayout({ sidebar, main, details }) {
   return (
@@ -27,3 +27,13 @@ export default function WhatsAppLayout({ sidebar, main, details }) {
     </Paper>
   );
 }
+
+WhatsAppLayout.propTypes = {
+  sidebar: PropTypes.node.isRequired,
+  main: PropTypes.node.isRequired,
+  details: PropTypes.node,
+};
+
+WhatsAppLayout.defaultProps = {
+  details: null,
+};

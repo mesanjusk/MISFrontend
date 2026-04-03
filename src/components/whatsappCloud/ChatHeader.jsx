@@ -1,7 +1,7 @@
-/* eslint-disable react/prop-types */
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import { Avatar, Chip, IconButton, Stack, Tooltip, Typography } from '@mui/material';
+import PropTypes from 'prop-types';
 
 const getInitials = (value) => {
   const source = String(value || '').trim();
@@ -60,3 +60,22 @@ export default function ChatHeader({ conversation, isLoading, onRefresh, windowO
     </Stack>
   );
 }
+
+ChatHeader.propTypes = {
+  conversation: PropTypes.shape({
+    displayName: PropTypes.string,
+    contact: PropTypes.string,
+  }),
+  isLoading: PropTypes.bool,
+  onRefresh: PropTypes.func,
+  windowOpen: PropTypes.bool,
+  onBack: PropTypes.func,
+};
+
+ChatHeader.defaultProps = {
+  conversation: null,
+  isLoading: false,
+  onRefresh: undefined,
+  windowOpen: false,
+  onBack: undefined,
+};

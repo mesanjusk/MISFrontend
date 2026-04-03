@@ -1,7 +1,7 @@
-/* eslint-disable react/prop-types */
 import { Typography } from '@mui/material';
 import FileMessage from './FileMessage';
 import ImageMessage from './ImageMessage';
+import PropTypes from 'prop-types';
 
 const getTextFromMessage = (msg) => {
   if (typeof msg?.body === 'string' && msg.body.trim()) return msg.body;
@@ -45,3 +45,13 @@ export default function MessageRenderer({ message, type }) {
 
   return <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{text || 'Unsupported message payload'}</Typography>;
 }
+
+MessageRenderer.propTypes = {
+  message: PropTypes.object,
+  type: PropTypes.string,
+};
+
+MessageRenderer.defaultProps = {
+  message: null,
+  type: 'text',
+};

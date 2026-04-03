@@ -1,4 +1,4 @@
-/* eslint-disable react/prop-types */
+import PropTypes from 'prop-types';
 import DoneAllRoundedIcon from '@mui/icons-material/DoneAllRounded';
 import DoneRoundedIcon from '@mui/icons-material/DoneRounded';
 import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
@@ -70,3 +70,18 @@ export default function ChatBubble({ message, isOutgoing, timestamp, onRetry }) 
     </Stack>
   );
 }
+
+
+ChatBubble.propTypes = {
+  message: PropTypes.object,
+  isOutgoing: PropTypes.bool,
+  timestamp: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.instanceOf(Date)]),
+  onRetry: PropTypes.func,
+};
+
+ChatBubble.defaultProps = {
+  message: null,
+  isOutgoing: false,
+  timestamp: '',
+  onRetry: undefined,
+};
