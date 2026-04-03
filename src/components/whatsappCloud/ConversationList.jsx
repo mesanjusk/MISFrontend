@@ -170,11 +170,11 @@ export default function ConversationList({
                   sx={{ py: 1.25, px: 2, alignItems: 'flex-start' }}
                 >
                   <Badge
-                    color="success"
+                    color="primary"
                     badgeContent={hasUnread ? conversation.unreadCount : 0}
                     overlap="circular"
                   >
-                    <Avatar sx={{ bgcolor: '#16a34a', width: 42, height: 42, fontSize: 14 }}>
+                    <Avatar sx={{ bgcolor: 'primary.main', width: 42, height: 42, fontSize: 14 }}>
                       {getInitials(conversation.displayName || conversation.contact)}
                     </Avatar>
                   </Badge>
