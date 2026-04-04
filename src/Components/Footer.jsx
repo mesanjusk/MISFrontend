@@ -6,6 +6,7 @@ import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import TaskRoundedIcon from '@mui/icons-material/TaskRounded';
 import ChatRoundedIcon from '@mui/icons-material/ChatRounded';
+import { ROUTES } from '../constants/routes';
 
 export default function Footer() {
   const navigate = useNavigate();
@@ -13,11 +14,11 @@ export default function Footer() {
 
   const tabs = useMemo(
     () => [
-      { label: 'Home', path: '/home', icon: <DashboardRoundedIcon fontSize="small" /> },
+      { label: 'Home', path: ROUTES.HOME, icon: <DashboardRoundedIcon fontSize="small" /> },
       { label: 'Orders', path: '/allOrder', icon: <DescriptionRoundedIcon fontSize="small" /> },
-      { label: 'Tasks', path: '/PendingTask', icon: <TaskRoundedIcon fontSize="small" /> },
-      { label: 'Bills', path: '/allBills', icon: <ReceiptLongRoundedIcon fontSize="small" /> },
-      { label: 'Chat', path: '/whatsapp-cloud', icon: <ChatRoundedIcon fontSize="small" /> },
+      { label: 'Tasks', path: ROUTES.PENDING_TASKS, icon: <TaskRoundedIcon fontSize="small" /> },
+      { label: 'Bills', path: ROUTES.ALL_BILLS, icon: <ReceiptLongRoundedIcon fontSize="small" /> },
+      { label: 'Chat', path: ROUTES.WHATSAPP_CLOUD, icon: <ChatRoundedIcon fontSize="small" /> },
     ],
     [],
   );

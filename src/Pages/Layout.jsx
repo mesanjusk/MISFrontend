@@ -11,6 +11,7 @@ import TopNavbar from '../Components/TopNavbar';
 import Footer from '../Components/Footer';
 import FloatingButtons from '../Components/FloatingButtons';
 import RightUtilityRail from '../components/layout/RightUtilityRail';
+import { ROUTES } from '../constants/routes';
 
 const DRAWER_WIDTH = 258;
 const DRAWER_COLLAPSED = 70;
@@ -23,7 +24,7 @@ export default function Layout() {
 
   const buttonsList = useMemo(
     () => [
-      { onClick: () => navigate('/addOrder1'), label: 'Order' },
+      { onClick: () => navigate(ROUTES.ADD_ORDER_V2), label: 'Order' },
       { onClick: () => navigate('/addTransaction'), label: 'Receipt' },
       { onClick: () => navigate('/addTransaction1'), label: 'Payment' },
       { onClick: () => navigate('/Followups'), label: 'Followups' },
@@ -35,9 +36,9 @@ export default function Layout() {
   const utilityActions = useMemo(
     () => [
       { label: 'Refresh', onClick: () => window.location.reload(), icon: <RefreshRoundedIcon fontSize="small" /> },
-      { label: 'Tasks', onClick: () => navigate('/PendingTask'), icon: <TaskRoundedIcon fontSize="small" /> },
-      { label: 'WhatsApp', onClick: () => navigate('/whatsapp-cloud'), icon: <ChatRoundedIcon fontSize="small" /> },
-      { label: 'Transactions', onClick: () => navigate('/allTransaction'), icon: <ReceiptLongRoundedIcon fontSize="small" /> },
+      { label: 'Tasks', onClick: () => navigate(ROUTES.PENDING_TASKS), icon: <TaskRoundedIcon fontSize="small" /> },
+      { label: 'WhatsApp', onClick: () => navigate(ROUTES.WHATSAPP_CLOUD), icon: <ChatRoundedIcon fontSize="small" /> },
+      { label: 'Transactions', onClick: () => navigate(ROUTES.ALL_TRANSACTION), icon: <ReceiptLongRoundedIcon fontSize="small" /> },
     ],
     [navigate],
   );

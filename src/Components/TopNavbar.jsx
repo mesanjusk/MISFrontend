@@ -24,6 +24,7 @@ import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneR
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
 import { useAuth } from '../context/AuthContext';
+import { ROUTES } from '../constants/routes';
 
 const titleFromPath = (pathname = '/home') => {
   const segment = pathname.split('/').filter(Boolean).at(-1) || 'home';
@@ -40,19 +41,19 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
     () => [
       { label: 'Orders', path: '/allOrder' },
       { label: 'Deliveries', path: '/allDelivery' },
-      { label: 'Vendors', path: '/AllVendors' },
-      { label: 'Bills', path: '/allBills' },
+      { label: 'Vendors', path: ROUTES.ALL_VENDORS },
+      { label: 'Bills', path: ROUTES.ALL_BILLS },
     ],
     [],
   );
 
   useEffect(() => {
-    if (!userName) navigate('/login');
+    if (!userName) navigate(ROUTES.LOGIN);
   }, [navigate, userName]);
 
   const handleLogout = () => {
     clearAuth();
-    navigate('/');
+    navigate(ROUTES.ROOT);
   };
 
   return (
