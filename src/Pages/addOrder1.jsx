@@ -174,6 +174,7 @@ export default function AddOrder1({ closeModal }) {
     }
     navigate("/home");
   };
+  const isEmbeddedFlow = typeof closeModal === "function";
   const handleSaveDateCheckboxChange = () => {
     setIsDateChecked((prev) => !prev);
     setSaveDate(new Date().toISOString().split("T")[0]);
@@ -250,7 +251,8 @@ if (driveFile?.status === "created") {
       // ✅ Enquiry flow
       if (isEnquiryOnly) {
         toast.success("Enquiry saved");
-        closeAddOrder();
+        if (isEmbeddedFlow) closeAddOrder();
+        else navigate("/home");
         return;
       }
 
@@ -320,7 +322,7 @@ if (driveFile?.status === "created") {
           toast.error("Transaction failed");
         }
       }
-      closeAddOrder();
+      if (isEmbeddedFlow) closeAddOrder();
     } catch (error) {
       console.error("Error during submit:", error);
       toast.error(error?.response?.data?.message || "Something went wrong");

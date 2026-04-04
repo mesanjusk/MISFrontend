@@ -103,6 +103,7 @@ export default function AddTransaction1({ onClose }) {
   const addCustomer = () => navigate("/addCustomer");
 
   const closeModal = () => (onClose ? onClose() : navigate("/home"));
+  const isEmbeddedFlow = typeof onClose === "function";
 
   const submit = async (e) => {
     e.preventDefault();
@@ -165,7 +166,7 @@ export default function AddTransaction1({ onClose }) {
           }
         ]);
         setShowInvoiceModal(true);
-        closeModal();
+        if (isEmbeddedFlow) closeModal();
       } else {
         toast.error("Failed to save transaction");
       }
