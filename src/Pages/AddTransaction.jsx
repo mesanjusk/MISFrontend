@@ -16,7 +16,6 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
   const [Customer_name, setCustomer_Name] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
   const [isDateChecked, setIsDateChecked] = useState(false);
-  const [userGroup, setUserGroup] = useState('');
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,7 +40,6 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
       navigate("/login");
     }
     const currentUserGroup = localStorage.getItem("User_group") || '';
-    setUserGroup(currentUserGroup);
     setIsAdminUser(currentUserGroup === "Admin User");
   }, [location.state, navigate]);
 
@@ -106,9 +104,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
   };
 
   const closeModal = () => {
-    if (userGroup === "Office User" || userGroup === "Admin User") {
-      onClose ? onClose() : navigate("/home");
-    }
+    onClose ? onClose() : navigate("/home");
   };
 
   const submit = async (e) => {
@@ -162,6 +158,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
           await sendWhatsApp(Customer?.Mobile_number, message);
         }
         onSuccess?.();
+        closeModal();
       } else {
         toast.error("Failed to save transaction");
       }
@@ -391,29 +388,39 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
               </Button>
             )}
 
-            <Button
-              type="submit"
-              className="mt-2"
-              fullWidth
-              disabled={
-                loading ||
-                !Amount ||
-                isNaN(Amount) ||
-                Amount <= 0 ||
-                !customers ||
-                !group
-              }
-            >
-              {loading ? (
-                <>
-                  <LoadingSpinner size={16} className="mr-2" /> Saving....
-                </>
-              ) : editMode ? (
-                "Update"
-              ) : (
-                "Submit"
-              )}
-            </Button>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <Button
+                type="button"
+                onClick={closeModal}
+                className="!bg-white !text-gray-700 !border !border-gray-300 hover:!bg-gray-50"
+                fullWidth
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                fullWidth
+                disabled={
+                  loading ||
+                  !Amount ||
+                  isNaN(Amount) ||
+                  Amount <= 0 ||
+                  !customers ||
+                  !group
+                }
+              >
+                {loading ? (
+                  <>
+                    <LoadingSpinner size={16} className="mr-2" /> Saving....
+                  </>
+                ) : editMode ? (
+                  "Update"
+                ) : (
+                  "Submit"
+                )}
+              </Button>
+            </div>
           </form>
         </div>
       </div>

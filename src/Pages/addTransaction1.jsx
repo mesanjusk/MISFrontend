@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import PropTypes from 'prop-types';
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from '../apiClient.js';
 import toast, { Toaster } from "react-hot-toast";
@@ -11,7 +12,7 @@ import {
   sendTemplateWithTextFallback,
 } from "../utils/whatsapp.js";
 
-export default function AddTransaction1() {
+export default function AddTransaction1({ onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -101,7 +102,7 @@ export default function AddTransaction1() {
 
   const addCustomer = () => navigate("/addCustomer");
 
-  const closeModal = () => navigate("/home");
+  const closeModal = () => (onClose ? onClose() : navigate("/home"));
 
   const submit = async (e) => {
     e.preventDefault();
@@ -164,6 +165,7 @@ export default function AddTransaction1() {
           }
         ]);
         setShowInvoiceModal(true);
+        closeModal();
       } else {
         toast.error("Failed to save transaction");
       }
@@ -368,26 +370,36 @@ export default function AddTransaction1() {
               <label className="text-gray-700">Send WhatsApp after saving</label>
             </div>
 
-            <button
-              type="submit"
-              className="w-full bg-[#25d366] hover:bg-[#128c7e] text-white font-medium py-2 rounded-lg transition"
-              disabled={
-                loading ||
-                !Amount ||
-                isNaN(Amount) ||
-                Number(Amount) <= 0 ||
-                !CreditCustomer ||
-                !DebitCustomer
-              }
-            >
-              {loading ? (
-                <>
-                  <LoadingSpinner size={16} className="mr-2" /> Saving...
-                </>
-              ) : (
-                "Submit"
-              )}
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={closeModal}
+                disabled={loading}
+                className="w-full border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium py-2 rounded-lg transition disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="w-full bg-[#25d366] hover:bg-[#128c7e] text-white font-medium py-2 rounded-lg transition"
+                disabled={
+                  loading ||
+                  !Amount ||
+                  isNaN(Amount) ||
+                  Number(Amount) <= 0 ||
+                  !CreditCustomer ||
+                  !DebitCustomer
+                }
+              >
+                {loading ? (
+                  <>
+                    <LoadingSpinner size={16} className="mr-2" /> Saving...
+                  </>
+                ) : (
+                  "Submit"
+                )}
+              </button>
+            </div>
 
             {isTransactionSaved && (
               <button
@@ -405,3 +417,7 @@ export default function AddTransaction1() {
     </>
   );
 }
+
+AddTransaction1.propTypes = {
+  onClose: PropTypes.func,
+};
