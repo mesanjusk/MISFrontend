@@ -69,6 +69,9 @@ export const whatsappCloudService = {
   sendTemplateMessage: (payload) =>
     apiClient.post('/api/whatsapp/send-template', payload),
 
+  sendFlowMessage: (payload) =>
+    apiClient.post('/api/whatsapp/send-flow', payload),
+
   sendMediaMessage: (payload) => {
     const isFormData =
       typeof FormData !== 'undefined' && payload instanceof FormData;

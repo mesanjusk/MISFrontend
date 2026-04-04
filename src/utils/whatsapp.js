@@ -73,3 +73,26 @@ export const sendTemplateWithTextFallback = async ({
     });
   }
 };
+
+export const sendWhatsAppFlow = async ({
+  axiosInstance,
+  phone,
+  flowId,
+  flowToken = '',
+  flowCta = 'Open Form',
+  screen = '',
+  data = {},
+  mode = 'published',
+}) => {
+  const cleanPhone = normalizeWhatsAppPhone(phone);
+
+  return axiosInstance.post('/api/whatsapp/send-flow', {
+    to: cleanPhone,
+    flowId,
+    flowToken,
+    flowCta,
+    screen,
+    data,
+    mode,
+  });
+};
