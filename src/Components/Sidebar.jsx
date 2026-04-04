@@ -23,8 +23,8 @@ import FiberManualRecordRoundedIcon from '@mui/icons-material/FiberManualRecordR
 import { useAuth } from '../context/AuthContext';
 import { ROUTE_ALIASES, ROUTES } from '../constants/routes';
 
-const DRAWER_WIDTH = 266;
-const DRAWER_COLLAPSED = 76;
+const DRAWER_WIDTH = 258;
+const DRAWER_COLLAPSED = 70;
 
 export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile }) {
   const navigate = useNavigate();
@@ -101,14 +101,8 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
           { label: 'Outstanding', path: ROUTES.ALL_TRANSACTION_2 },
         ],
       },
-      {
-        group: 'WhatsApp',
-        items: [{ label: 'Cloud API Dashboard', path: ROUTES.WHATSAPP_CLOUD }],
-      },
-      {
-        group: 'Admin',
-        items: userGroup === 'Admin User' ? [{ label: 'Call Logs', path: ROUTES.CALL_LOGS }] : [],
-      },
+      { group: 'WhatsApp', items: [{ label: 'Cloud API Dashboard', path: ROUTES.WHATSAPP_CLOUD }] },
+      { group: 'Admin', items: userGroup === 'Admin User' ? [{ label: 'Call Logs', path: ROUTES.CALL_LOGS }] : [] },
     ],
     [userGroup],
   );
@@ -120,90 +114,79 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
   };
 
   const drawerContent = (
-    <Stack
-      sx={{
-        height: '100%',
-        color: 'common.white',
-        background: 'linear-gradient(180deg, #0f5132 0%, #0f766e 64%, #1f2937 100%)',
-      }}
-    >
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ p: 1.5 }}>
-        <Stack direction="row" spacing={1.25} alignItems="center" minWidth={0}>
-          <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.18)', color: 'common.white', width: 36, height: 36 }}>M</Avatar>
+    <Stack sx={{ height: '100%', bgcolor: 'background.paper' }}>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 1, py: 1.1 }}>
+        <Stack direction="row" spacing={1} alignItems="center" minWidth={0}>
+          <Avatar sx={{ bgcolor: 'primary.light', color: 'primary.dark', width: 34, height: 34 }}>M</Avatar>
           {!desktopCollapsed && (
             <Box sx={{ minWidth: 0 }}>
-              <Typography variant="subtitle2" fontWeight={700} noWrap>
-                MIS CRM
-              </Typography>
-              <Typography variant="caption" sx={{ opacity: 0.86 }} noWrap>
-                Operations Command Center
-              </Typography>
+              <Typography variant="subtitle2" fontWeight={700} noWrap>MIS CRM</Typography>
+              <Typography variant="caption" color="text.secondary" noWrap>Compact operations panel</Typography>
             </Box>
           )}
         </Stack>
       </Stack>
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.24)' }} />
+      <Divider />
 
-      <List sx={{ py: 1, px: 1, overflowY: 'auto', flexGrow: 1 }}>
-        {menuGroups
-          .filter((g) => g.items.length)
-          .map((group) => {
-            const expanded = openGroup === group.group && !desktopCollapsed;
-            return (
-              <Box key={group.group} sx={{ mb: 0.5 }}>
-                <Tooltip title={desktopCollapsed ? group.group : ''} placement="right">
-                  <ListItemButton
-                    onClick={() => setOpenGroup((prev) => (prev === group.group ? null : group.group))}
-                    sx={{
-                      minHeight: 36,
-                      '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' },
-                    }}
-                  >
-                    <ListItemIcon sx={{ minWidth: 32, color: 'inherit' }}>
-                      <FolderRoundedIcon fontSize="small" />
-                    </ListItemIcon>
-                    {!desktopCollapsed && <ListItemText primary={group.group} primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }} />}
-                    {!desktopCollapsed && (
-                      <ExpandMoreRoundedIcon
-                        sx={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.2s' }}
-                      />
-                    )}
-                  </ListItemButton>
-                </Tooltip>
+      <List sx={{ py: 0.75, px: 0.75, overflowY: 'auto', flexGrow: 1 }}>
+        {menuGroups.filter((g) => g.items.length).map((group) => {
+          const expanded = openGroup === group.group && !desktopCollapsed;
+          const selectedGroup = group.items.some((item) => pathname.startsWith(item.path));
 
-                {!desktopCollapsed && (
-                  <Collapse in={expanded} timeout="auto" unmountOnExit>
-                    <List disablePadding>
-                      {group.items.map((item) => {
-                        const selected = pathname.startsWith(item.path);
+          return (
+            <Box key={group.group} sx={{ mb: 0.45 }}>
+              <Tooltip title={desktopCollapsed ? group.group : ''} placement="right">
+                <ListItemButton
+                  selected={selectedGroup}
+                  onClick={() => {
+                    if (desktopCollapsed) {
+                      navigate(group.items[0].path);
+                      onCloseMobile();
+                      return;
+                    }
+                    setOpenGroup((prev) => (prev === group.group ? null : group.group));
+                  }}
+                  sx={{
+                    minHeight: 34,
+                    '&.Mui-selected': { bgcolor: 'action.selected' },
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 30, color: 'primary.dark' }}>
+                    <FolderRoundedIcon fontSize="small" />
+                  </ListItemIcon>
+                  {!desktopCollapsed && <ListItemText primary={group.group} primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }} />}
+                  {!desktopCollapsed && <ExpandMoreRoundedIcon sx={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.2s' }} />}
+                </ListItemButton>
+              </Tooltip>
 
-                        return (
-                          <ListItemButton
-                            key={item.label}
-                            selected={selected}
-                            sx={{
-                              pl: 3.25,
-                              minHeight: 34,
-                              '&.Mui-selected, &:hover': { bgcolor: 'rgba(255,255,255,0.18)' },
-                            }}
-                            onClick={() => {
-                              navigate(item.path);
-                              onCloseMobile();
-                            }}
-                          >
-                            <ListItemIcon sx={{ minWidth: 20, color: 'inherit' }}>
-                              <FiberManualRecordRoundedIcon sx={{ fontSize: 8 }} />
-                            </ListItemIcon>
-                            <ListItemText primary={item.label} primaryTypographyProps={{ variant: 'caption', fontSize: 12.5 }} />
-                          </ListItemButton>
-                        );
-                      })}
-                    </List>
-                  </Collapse>
-                )}
-              </Box>
-            );
-          })}
+              {!desktopCollapsed && (
+                <Collapse in={expanded} timeout="auto" unmountOnExit>
+                  <List disablePadding>
+                    {group.items.map((item) => {
+                      const selected = pathname.startsWith(item.path);
+                      return (
+                        <ListItemButton
+                          key={item.label}
+                          selected={selected}
+                          sx={{ pl: 3, minHeight: 30, '&.Mui-selected': { bgcolor: 'action.selected' } }}
+                          onClick={() => {
+                            navigate(item.path);
+                            onCloseMobile();
+                          }}
+                        >
+                          <ListItemIcon sx={{ minWidth: 18, color: 'text.secondary' }}>
+                            <FiberManualRecordRoundedIcon sx={{ fontSize: 7 }} />
+                          </ListItemIcon>
+                          <ListItemText primary={item.label} primaryTypographyProps={{ variant: 'caption', fontSize: 12 }} />
+                        </ListItemButton>
+                      );
+                    })}
+                  </List>
+                </Collapse>
+              )}
+            </Box>
+          );
+        })}
       </List>
 
       <Box sx={{ p: 1 }}>
@@ -211,9 +194,8 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
           fullWidth
           color="inherit"
           variant="outlined"
-          startIcon={<LogoutRoundedIcon />}
+          startIcon={<LogoutRoundedIcon fontSize="small" />}
           onClick={handleLogout}
-          sx={{ borderColor: 'rgba(255,255,255,0.4)' }}
         >
           {!desktopCollapsed ? 'Logout' : ''}
         </Button>
