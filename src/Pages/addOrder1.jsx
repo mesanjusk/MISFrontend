@@ -43,7 +43,7 @@ import PaymentsIcon from "@mui/icons-material/Payments";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import SendIcon from "@mui/icons-material/Send";
 
-export default function AddOrder1() {
+export default function AddOrder1({ closeModal }) {
   const navigate = useNavigate();
   const location = useLocation();
   const previewRef = useRef();
@@ -81,6 +81,7 @@ export default function AddOrder1() {
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [isDateChecked, setIsDateChecked] = useState(false);
   const [saveDate, setSaveDate] = useState(new Date().toISOString().split("T")[0]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // ✅ Add Customer modal state
   const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -166,6 +167,14 @@ export default function AddOrder1() {
 
   const handleCustomer = () => setShowCustomerModal(true);
   const exitModal = () => setShowCustomerModal(false);
+  const closeAddOrder = () => {
+    if (typeof closeModal === "function") {
+      closeModal();
+      return;
+    }
+    navigate("/home");
+  };
+  const isEmbeddedFlow = typeof closeModal === "function";
   const handleSaveDateCheckboxChange = () => {
     setIsDateChecked((prev) => !prev);
     setSaveDate(new Date().toISOString().split("T")[0]);
@@ -196,6 +205,8 @@ export default function AddOrder1() {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
     try {
       const customer = customerOptions.find(
@@ -240,7 +251,8 @@ if (driveFile?.status === "created") {
       // ✅ Enquiry flow
       if (isEnquiryOnly) {
         toast.success("Enquiry saved");
-        navigate("/home");
+        if (isEmbeddedFlow) closeAddOrder();
+        else navigate("/home");
         return;
       }
 
@@ -310,9 +322,12 @@ if (driveFile?.status === "created") {
           toast.error("Transaction failed");
         }
       }
+      if (isEmbeddedFlow) closeAddOrder();
     } catch (error) {
       console.error("Error during submit:", error);
       toast.error(error?.response?.data?.message || "Something went wrong");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -396,8 +411,8 @@ if (driveFile?.status === "created") {
             <IconButton
               edge="start"
               color="inherit"
-              onClick={() => navigate("/home")}
-              aria-label="close"
+              onClick={closeAddOrder}
+              aria-label="back"
             >
               <CloseIcon />
             </IconButton>
@@ -413,6 +428,15 @@ if (driveFile?.status === "created") {
             >
               New Customer
             </Button>
+            <IconButton
+              edge="end"
+              color="inherit"
+              onClick={closeAddOrder}
+              aria-label="close"
+              sx={{ ml: 1 }}
+            >
+              <CloseIcon />
+            </IconButton>
           </Toolbar>
         </AppBar>
 
@@ -651,21 +675,46 @@ if (driveFile?.status === "created") {
                   <Divider />
 
                   <Stack spacing={1}>
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      size="large"
-                      disabled={!canSubmit || optionsLoading}
-                      startIcon={<SendIcon />}
-                      sx={{
-                        borderRadius: 2,
-                        py: 1.2,
-                        textTransform: "none",
-                        fontWeight: 800,
-                      }}
-                    >
-                      {isEnquiryOnly ? "Save Enquiry" : "Submit Order"}
-                    </Button>
+                    <Stack direction="row" spacing={1.25}>
+                      <Button
+                        type="button"
+                        variant="outlined"
+                        size="large"
+                        onClick={closeAddOrder}
+                        disabled={isSubmitting}
+                        sx={{
+                          borderRadius: 2,
+                          py: 1.2,
+                          textTransform: "none",
+                          fontWeight: 700,
+                          flex: 1,
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        size="large"
+                        disabled={!canSubmit || optionsLoading || isSubmitting}
+                        startIcon={<SendIcon />}
+                        sx={{
+                          borderRadius: 2,
+                          py: 1.2,
+                          textTransform: "none",
+                          fontWeight: 800,
+                          flex: 1,
+                        }}
+                      >
+                        {isSubmitting
+                          ? isEnquiryOnly
+                            ? "Saving Enquiry..."
+                            : "Submitting..."
+                          : isEnquiryOnly
+                          ? "Save Enquiry"
+                          : "Submit Order"}
+                      </Button>
+                    </Stack>
 
                     {isAdminUser && !isEnquiryOnly && (
                       <>
