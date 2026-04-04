@@ -23,6 +23,7 @@ import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded';
 import PriorityHighRoundedIcon from '@mui/icons-material/PriorityHighRounded';
 import CurrencyRupeeRoundedIcon from '@mui/icons-material/CurrencyRupeeRounded';
 import CreditCardRoundedIcon from '@mui/icons-material/CreditCardRounded';
+import Inventory2RoundedIcon from '@mui/icons-material/Inventory2Rounded';
 import axios from '../apiClient';
 import SummaryCard from '../components/dashboard/SummaryCard';
 import RoleWidget from '../components/dashboard/RoleWidget';
@@ -195,8 +196,15 @@ export default function Dashboard() {
         variant: 'warning',
         trend: 'Collections pending confirmation',
       },
+      {
+        title: 'Visible Orders',
+        value: data?.visibleOrders?.length ?? 0,
+        icon: Inventory2RoundedIcon,
+        variant: 'primary',
+        trend: 'Based on role access and assignment',
+      },
     ],
-    [data?.summary?.activeOrders, summaryApi],
+    [data?.summary?.activeOrders, data?.visibleOrders?.length, summaryApi],
   );
 
   const loading = data?.isOrdersLoading || data?.isTasksLoading;

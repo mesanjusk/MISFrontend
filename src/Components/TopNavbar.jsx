@@ -1,10 +1,12 @@
 import PropTypes from 'prop-types';
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, NavLink } from 'react-router-dom';
+import { useNavigate, NavLink, useLocation } from 'react-router-dom';
 import {
   AppBar,
   Avatar,
+  Badge,
   Box,
+  Breadcrumbs,
   Chip,
   IconButton,
   InputAdornment,
@@ -20,18 +22,25 @@ import MenuOpenRoundedIcon from '@mui/icons-material/MenuOpenRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
 import { useAuth } from '../context/AuthContext';
+
+const titleFromPath = (pathname = '/home') => {
+  const segment = pathname.split('/').filter(Boolean).at(-1) || 'home';
+  return segment.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+};
 
 export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, desktopCollapsed }) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { userName, userGroup, clearAuth } = useAuth();
   const [menuAnchor, setMenuAnchor] = useState(null);
 
   const tabs = useMemo(
     () => [
-      { label: 'Report', path: '/allOrder' },
-      { label: 'Delivered', path: '/allDelivery' },
-      { label: 'Vendor', path: '/AllVendors' },
+      { label: 'Orders', path: '/allOrder' },
+      { label: 'Deliveries', path: '/allDelivery' },
+      { label: 'Vendors', path: '/AllVendors' },
       { label: 'Bills', path: '/allBills' },
     ],
     [],
@@ -47,34 +56,29 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
   };
 
   return (
-    <AppBar
-      position="sticky"
-      color="inherit"
-      sx={{
-        backgroundColor: 'rgba(255,255,255,0.95)',
-      }}
-    >
-      <Toolbar sx={{ minHeight: { xs: 58, md: 62 }, px: { xs: 1, md: 2 }, gap: 1 }}>
+    <AppBar position="sticky" color="inherit">
+      <Toolbar sx={{ minHeight: { xs: 54, md: 56 }, px: { xs: 1, md: 1.5 }, gap: 0.75 }}>
         <IconButton onClick={onToggleSidebar} sx={{ display: { md: 'none' } }}>
-          <MenuRoundedIcon />
+          <MenuRoundedIcon fontSize="small" />
         </IconButton>
         <IconButton onClick={onToggleDesktopCollapse} sx={{ display: { xs: 'none', md: 'inline-flex' } }}>
-          {desktopCollapsed ? <MenuRoundedIcon /> : <MenuOpenRoundedIcon />}
+          {desktopCollapsed ? <MenuRoundedIcon fontSize="small" /> : <MenuOpenRoundedIcon fontSize="small" />}
         </IconButton>
 
-        <Stack sx={{ minWidth: 0, pr: 1 }}>
+        <Stack sx={{ minWidth: 0, pr: 1, maxWidth: 350 }}>
           <Typography variant="subtitle1" noWrap>
-            CRM Operations Hub
+            MIS CRM
           </Typography>
-          <Typography variant="caption" color="text.secondary" noWrap>
-            Orders, follow-ups, WhatsApp, finance and team workflow
-          </Typography>
+          <Breadcrumbs separator={<NavigateNextRoundedIcon sx={{ fontSize: 14 }} />} sx={{ '& .MuiBreadcrumbs-ol': { flexWrap: 'nowrap' } }}>
+            <Typography variant="caption" color="text.secondary">Workspace</Typography>
+            <Typography variant="caption" color="text.primary" noWrap>{titleFromPath(pathname)}</Typography>
+          </Breadcrumbs>
         </Stack>
 
         <TextField
           size="small"
-          placeholder="Search records, customer, order..."
-          sx={{ display: { xs: 'none', lg: 'flex' }, minWidth: 280, maxWidth: 360, ml: 'auto' }}
+          placeholder="Search customer, order, payment..."
+          sx={{ display: { xs: 'none', lg: 'flex' }, minWidth: 250, maxWidth: 340, ml: 'auto' }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -84,27 +88,26 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
           }}
         />
 
-        <Stack direction="row" spacing={0.75} sx={{ display: { xs: 'none', xl: 'flex' } }}>
+        <Stack direction="row" spacing={0.6} sx={{ display: { xs: 'none', xl: 'flex' } }}>
           {tabs.map((tab) => (
             <Chip
               key={tab.path}
               clickable
-              label={
-                <NavLink style={{ textDecoration: 'none', color: 'inherit', fontWeight: 600 }} to={tab.path}>
-                  {tab.label}
-                </NavLink>
-              }
+              size="small"
+              label={<NavLink style={{ textDecoration: 'none', color: 'inherit', fontWeight: 600 }} to={tab.path}>{tab.label}</NavLink>}
               variant="outlined"
             />
           ))}
         </Stack>
 
-        <IconButton>
-          <NotificationsNoneRoundedIcon />
+        <IconButton aria-label="notifications">
+          <Badge color="primary" variant="dot">
+            <NotificationsNoneRoundedIcon fontSize="small" />
+          </Badge>
         </IconButton>
 
         <IconButton onClick={(event) => setMenuAnchor(event.currentTarget)}>
-          <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32 }}>
+          <Avatar sx={{ bgcolor: 'primary.main', width: 30, height: 30, fontSize: 12 }}>
             {userName ? userName.slice(0, 2).toUpperCase() : 'NA'}
           </Avatar>
         </IconButton>
@@ -118,9 +121,7 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
         >
           <Box sx={{ px: 2, py: 1 }}>
             <Typography variant="subtitle2">{userName || 'Guest'}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              {userGroup || 'Unknown role'}
-            </Typography>
+            <Typography variant="caption" color="text.secondary">{userGroup || 'Unknown role'}</Typography>
           </Box>
           <MenuItem
             onClick={() => {
