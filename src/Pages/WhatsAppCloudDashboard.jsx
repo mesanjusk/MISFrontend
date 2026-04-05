@@ -114,12 +114,12 @@ export default function WhatsAppCloudDashboard() {
       <SectionCard
         contentSx={{
           p: 0,
-          height: { xs: 'calc(100dvh - 7.9rem)', md: 'calc(100dvh - 7.1rem)' },
+          height: { xs: 'calc(100dvh - 8.3rem)', md: 'calc(100dvh - 7.4rem)' },
           minHeight: { xs: 500, md: 600 },
         }}
       >
-        <Box sx={{ display: 'flex', height: '100%', minHeight: 0, bgcolor: '#f4f7f8', overflow: 'hidden', borderRadius: 2 }}>
-          <Box sx={{ width: 228, borderRight: (theme) => `1px solid ${theme.palette.divider}`, bgcolor: 'background.paper', p: 1.5, display: { xs: 'none', md: 'block' } }}>
+        <Box sx={{ display: 'flex', height: '100%', minHeight: 0, bgcolor: '#f4f7f8', overflow: 'hidden', borderRadius: 1.5 }}>
+          <Box sx={{ width: 216, borderRight: (theme) => `1px solid ${theme.palette.divider}`, bgcolor: 'background.paper', p: 1.5, display: { xs: 'none', md: 'block' } }}>
             <Typography variant="subtitle1" fontWeight={700}>Cloud Inbox</Typography>
             <Typography variant="caption" color="text.secondary">WhatsApp workspace</Typography>
             <Tabs
