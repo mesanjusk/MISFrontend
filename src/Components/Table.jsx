@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import PropTypes from "prop-types";
+import React, { useMemo } from 'react';
+import PropTypes from 'prop-types';
 import {
   Table as MuiTable,
   TableBody,
@@ -8,7 +8,7 @@ import {
   TableHead,
   TableRow,
   Paper,
-} from "@mui/material";
+} from '@mui/material';
 
 function Table({ columns = [], data = [] }) {
   const headerCells = useMemo(
@@ -33,8 +33,8 @@ function Table({ columns = [], data = [] }) {
   );
 
   return (
-    <TableContainer component={Paper}>
-      <MuiTable size="small">
+    <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, maxWidth: '100%' }}>
+      <MuiTable size="small" stickyHeader>
         <TableHead>
           <TableRow>{headerCells}</TableRow>
         </TableHead>

@@ -2,27 +2,44 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 import { Box, Fab, useMediaQuery } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
+import TaskRoundedIcon from '@mui/icons-material/TaskRounded';
+import ChatRoundedIcon from '@mui/icons-material/ChatRounded';
+import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import Sidebar from '../Components/Sidebar';
 import TopNavbar from '../Components/TopNavbar';
 import Footer from '../Components/Footer';
 import FloatingButtons from '../Components/FloatingButtons';
+import RightUtilityRail from '../components/layout/RightUtilityRail';
+import { ROUTES } from '../constants/routes';
 
-const DRAWER_WIDTH = 266;
-const DRAWER_COLLAPSED = 76;
+const DRAWER_WIDTH = 258;
+const DRAWER_COLLAPSED = 72;
+const NAVBAR_HEIGHT = 56;
 
 export default function Layout() {
   const navigate = useNavigate();
   const isDesktop = useMediaQuery((theme) => theme.breakpoints.up('md'));
-  const [desktopCollapsed, setDesktopCollapsed] = useState(false);
+  const [desktopCollapsed, setDesktopCollapsed] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const buttonsList = useMemo(
     () => [
-      { onClick: () => navigate('/addOrder1'), label: 'Order' },
+      { onClick: () => navigate(ROUTES.ADD_ORDER_V2), label: 'Order' },
       { onClick: () => navigate('/addTransaction'), label: 'Receipt' },
       { onClick: () => navigate('/addTransaction1'), label: 'Payment' },
       { onClick: () => navigate('/Followups'), label: 'Followups' },
       { onClick: () => navigate('/addUsertask'), label: 'Task' },
+    ],
+    [navigate],
+  );
+
+  const utilityActions = useMemo(
+    () => [
+      { label: 'Refresh', onClick: () => window.location.reload(), icon: <RefreshRoundedIcon fontSize="small" /> },
+      { label: 'Tasks', onClick: () => navigate(ROUTES.PENDING_TASKS), icon: <TaskRoundedIcon fontSize="small" /> },
+      { label: 'WhatsApp', onClick: () => navigate(ROUTES.WHATSAPP_CLOUD), icon: <ChatRoundedIcon fontSize="small" /> },
+      { label: 'Transactions', onClick: () => navigate(ROUTES.ALL_TRANSACTION), icon: <ReceiptLongRoundedIcon fontSize="small" /> },
     ],
     [navigate],
   );
@@ -43,28 +60,33 @@ export default function Layout() {
           minWidth: 0,
           ml: { md: `${sidebarWidth}px` },
           transition: (theme) => theme.transitions.create('margin-left'),
+          pr: { lg: 6 },
         }}
       >
-        <TopNavbar
-          onToggleSidebar={() => setMobileOpen((prev) => !prev)}
-          onToggleDesktopCollapse={() => setDesktopCollapsed((prev) => !prev)}
-          desktopCollapsed={desktopCollapsed}
-        />
+        <Box sx={{ position: 'fixed', top: 0, left: { xs: 0, md: `${sidebarWidth}px` }, right: 0, zIndex: 1200, transition: (theme) => theme.transitions.create(['left']) }}>
+          <TopNavbar
+            onToggleSidebar={() => setMobileOpen((prev) => !prev)}
+            onToggleDesktopCollapse={() => setDesktopCollapsed((prev) => !prev)}
+            desktopCollapsed={desktopCollapsed}
+          />
+        </Box>
 
-        <Box component="main" sx={{ px: { xs: 1, md: 2 }, py: 1.5, pb: { xs: 10, md: 2 } }}>
-          <Box sx={{ maxWidth: 1640, mx: 'auto' }}><Outlet /></Box>
+        <Box component="main" sx={{ px: { xs: 0.5, md: 1 }, pt: `${NAVBAR_HEIGHT + 8}px`, py: 1, pb: { xs: 8.5, md: 1.5 }, minHeight: '100vh' }}>
+          <Box sx={{ maxWidth: 1640, mx: 'auto', minHeight: `calc(100vh - ${NAVBAR_HEIGHT + 24}px)` }}><Outlet /></Box>
         </Box>
 
         <FloatingButtons buttonsList={buttonsList} />
         <Footer />
       </Box>
 
+      <RightUtilityRail actions={utilityActions} />
+
       <Fab
         color="primary"
-        aria-label="open actions"
+        aria-label="open menu"
         onClick={() => setMobileOpen(true)}
         size="small"
-        sx={{ position: 'fixed', left: 14, bottom: 76, display: { xs: 'flex', md: 'none' }, zIndex: 1199 }}
+        sx={{ position: 'fixed', left: 10, bottom: 70, display: { xs: 'flex', md: 'none' }, zIndex: 1199 }}
       >
         <AddIcon fontSize="small" />
       </Fab>

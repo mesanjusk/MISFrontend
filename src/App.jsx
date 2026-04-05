@@ -22,7 +22,6 @@ const AddItemGroup = lazy(() => import('./Pages/addItemgroup'));
 const AddTask = lazy(() => import('./Pages/addTask'));
 const AddTaskGroup = lazy(() => import('./Pages/addTaskgroup'));
 const AddPriority = lazy(() => import('./Pages/addPriority'));
-const AddOrder = lazy(() => import('./Pages/addOrder'));
 const AddOrder1 = lazy(() => import('./Pages/addOrder1'));
 const AllOrderTableView = lazy(() => import('./Reports/AllOrderTableView'));
 const AllOrder = lazy(() => import('./Reports/allOrder'));
@@ -75,9 +74,6 @@ const AddNote = lazy(() => import('./Pages/addNote'));
 const CallLogs = lazy(() => import('./Pages/callLogs'));
 const AdminHome = lazy(() => import('./Pages/adminHome'));
 const VendorHome = lazy(() => import('./Pages/vendorHome'));
-const AllTransactionOld = lazy(() => import('./Reports/allTransactionOld'));
-const AddTransactionOld = lazy(() => import('./Pages/addTransactionOld.jsx'));
-const AddTransaction1Old = lazy(() => import('./Pages/addTransaction1Old.jsx'));
 const FlowBuilderPage = lazy(() => import('./Pages/FlowBuilderPage'));
 const OrderKanban = lazy(() => import('./Pages/OrderKanban'));
 const CustomerDetails = lazy(() => import('./Pages/CustomerDetails'));
@@ -130,8 +126,8 @@ function App() {
             <Route path={ROUTES.ADD_TASK} element={withSuspense(<AddTask />)} />
             <Route path={ROUTES.ADD_TASK_GROUP} element={withSuspense(<AddTaskGroup />)} />
             <Route path="/addPriority" element={withSuspense(<AddPriority />)} />
-            <Route path={ROUTES.ADD_ORDER} element={withSuspense(<AddOrder />)} />
-            <Route path={ROUTES.ADD_ORDER_V2} element={withSuspense(<AddOrder1 />)} />
+            <Route path={ROUTES.ADD_ORDER} element={withSuspense(<AddOrder1 />)} />
+            <Route path={ROUTES.ADD_ORDER_V2} element={<Navigate to={ROUTES.ADD_ORDER} replace />} />
             <Route path="/allOrderT" element={withSuspense(<AllOrderTableView />)} />
             <Route path="/allOrder" element={withSuspense(<AllOrder />)} />
             <Route path="/allOrderM" element={withSuspense(<AllOrderMobile />)} />
@@ -142,15 +138,15 @@ function App() {
             <Route path={ROUTES.ADD_NOTE} element={withSuspense(<AddNote />)} />
             <Route path={ROUTE_ALIASES.ADD_NOTE_LOWER} element={<Navigate to={ROUTES.ADD_NOTE} replace />} />
             <Route path="/addTransaction" element={withSuspense(<AddTransaction />)} />
-            <Route path="/addTransactionOld" element={withSuspense(<AddTransactionOld />)} />
+            <Route path="/addTransactionOld" element={<Navigate to="/addTransaction1" replace />} />
             <Route path="/addTransaction1" element={withSuspense(<AddTransaction1 />)} />
-            <Route path="/addTransaction1Old" element={withSuspense(<AddTransaction1Old />)} />
+            <Route path="/addTransaction1Old" element={<Navigate to="/addTransaction1" replace />} />
             <Route path="/addPayment" element={withSuspense(<AddPayment />)} />
             <Route path={ROUTES.ADD_RECEIVABLE} element={withSuspense(<AddRecievable />)} />
             <Route path={ROUTES.ADD_PAYABLE} element={withSuspense(<AddPayable />)} />
             <Route path={ROUTES.ALL_TRANSACTION} element={withSuspense(<AllTransaction />)} />
             <Route path={ROUTES.ALL_TRANSACTION_1} element={withSuspense(<AllTransaction1 />)} />
-            <Route path="/allTransactionOld" element={withSuspense(<AllTransactionOld />)} />
+            <Route path="/allTransactionOld" element={<Navigate to={ROUTES.ALL_TRANSACTION} replace />} />
             <Route path={ROUTES.ALL_TRANSACTION_2} element={withSuspense(<AllTransaction2 />)} />
             <Route path="/allTransaction3" element={withSuspense(<AllTransaction3 />)} />
             <Route path="/allTransaction4D" element={withSuspense(<AllTransaction4D />)} />

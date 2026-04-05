@@ -71,9 +71,9 @@ export default function ConversationList({
 }) {
   return (
     <Stack sx={{ height: '100%', minHeight: 0, bgcolor: 'background.paper' }}>
-      <Stack spacing={1.5} sx={{ p: 2, borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}>
+      <Stack spacing={1} sx={{ p: 1.25, borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Typography variant="h6" fontSize={18} fontWeight={700}>Chats</Typography>
+          <Typography variant="subtitle1" fontWeight={700}>Chats</Typography>
           <Tooltip title="Refresh conversations">
             <span>
               <IconButton size="small" onClick={onRefresh}><SyncRoundedIcon fontSize="small" /></IconButton>
@@ -129,8 +129,8 @@ export default function ConversationList({
           renderInput={(params) => (
             <TextField
               {...params}
-              placeholder="Start new chat (search customer or mobile)"
-              helperText={customerLoadError || 'Select a customer to open chat instantly'}
+              placeholder="Start new chat (customer or mobile)"
+              helperText={customerLoadError || 'Select customer to open chat instantly'}
               error={Boolean(customerLoadError)}
               InputProps={{
                 ...params.InputProps,
@@ -167,20 +167,20 @@ export default function ConversationList({
                   key={conversation.id}
                   selected={isActive}
                   onClick={() => onSelectConversation(conversation.id)}
-                  sx={{ py: 1.25, px: 2, alignItems: 'flex-start' }}
+                  sx={{ py: 1, px: 1.25, alignItems: 'flex-start' }}
                 >
                   <Badge
                     color="primary"
                     badgeContent={hasUnread ? conversation.unreadCount : 0}
                     overlap="circular"
                   >
-                    <Avatar sx={{ bgcolor: 'primary.main', width: 42, height: 42, fontSize: 14 }}>
+                    <Avatar sx={{ bgcolor: 'primary.main', width: 38, height: 38, fontSize: 13 }}>
                       {getInitials(conversation.displayName || conversation.contact)}
                     </Avatar>
                   </Badge>
 
                   <ListItemText
-                    sx={{ ml: 1.5, my: 0 }}
+                    sx={{ ml: 1.2, my: 0, minWidth: 0 }}
                     primary={
                       <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
                         <Typography noWrap variant="subtitle2" fontWeight={700}>{conversation.displayName}</Typography>
