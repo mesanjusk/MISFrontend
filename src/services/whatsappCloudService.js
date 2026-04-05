@@ -63,105 +63,125 @@ const tryAutoReplyEndpoints = async (requestFactory) => {
   throw lastError;
 };
 
-export const whatsappCloudService = {
-  sendTextMessage: (payload) => apiClient.post('/api/whatsapp/send-text', payload),
+export const fetchWhatsAppStatus = () => apiClient.get('/api/whatsapp/status');
 
-  sendTemplateMessage: (payload) =>
-    apiClient.post('/api/whatsapp/send-template', payload),
+export const fetchWhatsAppMessages = () => apiClient.get('/api/whatsapp/messages');
 
-  sendFlowMessage: (payload) =>
-    apiClient.post('/api/whatsapp/send-flow', payload),
+export const fetchWhatsAppTemplates = () => apiClient.get('/api/whatsapp/templates');
 
-  sendMediaMessage: (payload) => {
-    const isFormData =
-      typeof FormData !== 'undefined' && payload instanceof FormData;
+export const sendWhatsAppTextMessage = (payload) =>
+  apiClient.post('/api/whatsapp/send-text', payload);
 
-    return apiClient.post(
-      '/api/whatsapp/send-media',
-      payload,
-      isFormData
-        ? {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-          }
-        : undefined
-    );
-  },
+export const sendWhatsAppTemplateMessage = (payload) =>
+  apiClient.post('/api/whatsapp/send-template', payload);
 
-  getMessages: () => apiClient.get('/api/whatsapp/messages'),
-  getTemplates: () => apiClient.get('/api/whatsapp/templates'),
+export const sendWhatsAppFlowMessage = (payload) =>
+  apiClient.post('/api/whatsapp/send-flow', payload);
 
-  getAutoReplyRules: () =>
-    tryAutoReplyEndpoints((endpoint) => apiClient.get(endpoint)),
+export const sendWhatsAppMediaMessage = (payload) => {
+  const isFormData =
+    typeof FormData !== 'undefined' && payload instanceof FormData;
 
-  createAutoReplyRule: (payload) =>
-    tryAutoReplyEndpoints((endpoint) =>
-      apiClient.post(endpoint, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-    ),
+  return apiClient.post(
+    '/api/whatsapp/send-media',
+    payload,
+    isFormData
+      ? {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      : undefined
+  );
+};
 
-  updateAutoReplyRule: (id, payload) =>
-    apiClient.put(`/api/whatsapp/auto-reply/${id}`, payload, {
+export const getAutoReplyRules = () =>
+  tryAutoReplyEndpoints((endpoint) => apiClient.get(endpoint));
+
+export const createAutoReplyRule = (payload) =>
+  tryAutoReplyEndpoints((endpoint) =>
+    apiClient.post(endpoint, payload, {
       headers: {
         'Content-Type': 'application/json',
       },
-    }),
+    })
+  );
 
-  deleteAutoReplyRule: (id) =>
-    apiClient.delete(`/api/whatsapp/auto-reply/${id}`),
+export const updateAutoReplyRule = (id, payload) =>
+  apiClient.put(`/api/whatsapp/auto-reply/${id}`, payload, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
 
-  toggleAutoReplyRule: (id) =>
-    apiClient.patch(`/api/whatsapp/auto-reply/${id}/toggle`),
+export const deleteAutoReplyRule = (id) =>
+  apiClient.delete(`/api/whatsapp/auto-reply/${id}`);
 
-  uploadToCloudinary: async ({ file, type, cloudName, uploadPreset }) => {
-    const resolvedCloudName =
-      cloudName || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dadcprflr';
-    const resolvedUploadPreset =
-      uploadPreset ||
-      import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET ||
-      'mern-images';
+export const toggleAutoReplyRule = (id) =>
+  apiClient.patch(`/api/whatsapp/auto-reply/${id}/toggle`);
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', resolvedUploadPreset);
+export const uploadToCloudinary = async ({ file, type, cloudName, uploadPreset }) => {
+  const resolvedCloudName =
+    cloudName || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dadcprflr';
+  const resolvedUploadPreset =
+    uploadPreset ||
+    import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET ||
+    'mern-images';
 
-    const resourceType = getCloudinaryResourceType({
-      type,
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', resolvedUploadPreset);
+
+  const resourceType = getCloudinaryResourceType({
+    type,
+    fileType: file?.type,
+  });
+
+  const endpoint = `https://api.cloudinary.com/v1_1/${resolvedCloudName}/${resourceType}/upload`;
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    body: formData,
+  });
+
+  let data = {};
+  try {
+    data = await response.json();
+  } catch (parseError) {
+    data = { error: { message: 'Invalid Cloudinary response payload' } };
+    console.error('Cloudinary response parse failed:', parseError);
+  }
+
+  if (!response.ok) {
+    console.error('Cloudinary upload failed:', {
+      status: response.status,
+      statusText: response.statusText,
+      endpoint,
+      resourceType,
       fileType: file?.type,
+      uploadPreset: resolvedUploadPreset,
+      response: data,
     });
+    throw new Error(data?.error?.message || 'Cloudinary upload failed.');
+  }
 
-    const endpoint = `https://api.cloudinary.com/v1_1/${resolvedCloudName}/${resourceType}/upload`;
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      body: formData,
-    });
-
-    let data = {};
-    try {
-      data = await response.json();
-    } catch (parseError) {
-      data = { error: { message: 'Invalid Cloudinary response payload' } };
-      console.error('Cloudinary response parse failed:', parseError);
-    }
-
-    if (!response.ok) {
-      console.error('Cloudinary upload failed:', {
-        status: response.status,
-        statusText: response.statusText,
-        endpoint,
-        resourceType,
-        fileType: file?.type,
-        uploadPreset: resolvedUploadPreset,
-        response: data,
-      });
-      throw new Error(data?.error?.message || 'Cloudinary upload failed.');
-    }
-
-    return data?.secure_url || '';
-  },
+  return data?.secure_url || '';
 };
+
+export const whatsappCloudService = {
+  sendTextMessage: sendWhatsAppTextMessage,
+  sendTemplateMessage: sendWhatsAppTemplateMessage,
+  sendFlowMessage: sendWhatsAppFlowMessage,
+  sendMediaMessage: sendWhatsAppMediaMessage,
+  getMessages: fetchWhatsAppMessages,
+  getTemplates: fetchWhatsAppTemplates,
+  getStatus: fetchWhatsAppStatus,
+  getAutoReplyRules,
+  createAutoReplyRule,
+  updateAutoReplyRule,
+  deleteAutoReplyRule,
+  toggleAutoReplyRule,
+  uploadToCloudinary,
+};
+
+export default whatsappCloudService;
