@@ -6,6 +6,7 @@ import {
   Avatar,
   Badge,
   Box,
+  Button,
   Breadcrumbs,
   Chip,
   IconButton,
@@ -21,6 +22,7 @@ import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import MenuOpenRoundedIcon from '@mui/icons-material/MenuOpenRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
+import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
 import { useAuth } from '../context/AuthContext';
@@ -100,6 +102,18 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
             />
           ))}
         </Stack>
+
+
+        <Button
+          variant="contained"
+          color="primary"
+          size="small"
+          startIcon={<HomeRoundedIcon sx={{ fontSize: 16 }} />}
+          onClick={() => navigate(ROUTES.HOME)}
+          sx={{ ml: { xs: 'auto', lg: 0 }, borderRadius: 2, display: { xs: 'none', sm: 'inline-flex' } }}
+        >
+          Home
+        </Button>
 
         <IconButton aria-label="notifications" sx={{ ml: { lg: 0.5, xl: 0 } }}>
           <Badge color="primary" variant="dot">

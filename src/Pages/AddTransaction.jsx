@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from '../apiClient.js';
 import { Button, InputField, ToastContainer, toast, LoadingSpinner } from "../Components";
 import { DEFAULT_TEMPLATE_LANGUAGE, WHATSAPP_TEMPLATES, buildPaymentReceivedParameters } from '../constants/whatsappTemplates';
+import { sendAdminAlertText } from '../utils/whatsapp';
 
 export default function AddTransaction({ editMode, existingData, onClose, onSuccess }) {
   const navigate = useNavigate();
@@ -214,6 +215,10 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
     const { data } = await axios.post('/api/whatsapp/send-template', payload);
 
     if (data?.success) {
+      await sendAdminAlertText({
+        axiosInstance: axios,
+        message: `Receipt alert: ${Customer_name || 'Customer'} | Amount: ₹${Amount || 0} | ${Description || 'Payment received'}`,
+      }).catch(() => null);
       toast.success("WhatsApp message sent ✅");
     } else {
       toast.error(data?.error || "Failed to send WhatsApp");

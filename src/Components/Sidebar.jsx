@@ -136,19 +136,19 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
   };
 
   const drawerContent = (
-    <Stack sx={{ height: '100%', bgcolor: 'background.paper' }}>
+    <Stack sx={{ height: '100%', bgcolor: '#0f172a', color: '#e2e8f0' }}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 1, py: 1.1 }}>
         <Stack direction="row" spacing={1} alignItems="center" minWidth={0}>
-          <Avatar sx={{ bgcolor: 'primary.light', color: 'primary.dark', width: 34, height: 34 }}>M</Avatar>
+          <Avatar sx={{ bgcolor: '#38bdf8', color: '#0f172a', width: 34, height: 34, fontWeight: 800 }}>M</Avatar>
           {!desktopCollapsed && (
             <Box sx={{ minWidth: 0 }}>
-              <Typography variant="subtitle2" fontWeight={700} noWrap>MIS Pro</Typography>
-              <Typography variant="caption" color="text.secondary" noWrap>Compact operations panel</Typography>
+              <Typography variant="subtitle2" fontWeight={700} noWrap color="#f8fafc">MIS Pro</Typography>
+              <Typography variant="caption" color="rgba(226,232,240,0.72)" noWrap>Compact operations panel</Typography>
             </Box>
           )}
         </Stack>
       </Stack>
-      <Divider />
+      <Divider sx={{ borderColor: 'rgba(148,163,184,0.18)' }} />
 
       <List sx={{ py: 0.75, px: 0.75, overflowY: 'auto', flexGrow: 1 }}>
         {menuGroups.filter((g) => g.items.length).map((group) => {
@@ -170,10 +170,10 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
                   }}
                   sx={{
                     minHeight: 34,
-                    '&.Mui-selected': { bgcolor: 'action.selected' },
+                    '&.Mui-selected': { bgcolor: 'rgba(56,189,248,0.18)', color: '#f8fafc' }, '&:hover': { bgcolor: 'rgba(56,189,248,0.10)' },
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: 30, color: selectedGroup ? 'primary.main' : 'text.secondary' }}>
+                  <ListItemIcon sx={{ minWidth: 30, color: selectedGroup ? '#38bdf8' : 'rgba(226,232,240,0.72)' }}>
                     {iconByGroup[group.group]}
                   </ListItemIcon>
                   {!desktopCollapsed && (
@@ -182,7 +182,7 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
                       primaryTypographyProps={{ variant: 'body2', fontWeight: 600, noWrap: true }}
                     />
                   )}
-                  {!desktopCollapsed && <ExpandMoreRoundedIcon sx={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.2s', color: 'text.secondary' }} />}
+                  {!desktopCollapsed && <ExpandMoreRoundedIcon sx={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.2s', color: 'rgba(226,232,240,0.72)' }} />}
                 </ListItemButton>
               </Tooltip>
 
@@ -195,13 +195,13 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
                         <ListItemButton
                           key={item.label}
                           selected={selected}
-                          sx={{ pl: 3, minHeight: 30, '&.Mui-selected': { bgcolor: 'action.selected' } }}
+                          sx={{ pl: 3, minHeight: 30, '&.Mui-selected': { bgcolor: 'rgba(56,189,248,0.18)', color: '#f8fafc' }, '&:hover': { bgcolor: 'rgba(56,189,248,0.10)' } }}
                           onClick={() => {
                             navigate(item.path);
                             onCloseMobile();
                           }}
                         >
-                          <ListItemIcon sx={{ minWidth: 18, color: 'text.secondary' }}>
+                          <ListItemIcon sx={{ minWidth: 18, color: 'rgba(226,232,240,0.72)' }}>
                             <FiberManualRecordRoundedIcon sx={{ fontSize: 7 }} />
                           </ListItemIcon>
                           <ListItemText

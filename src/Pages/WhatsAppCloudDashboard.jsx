@@ -118,10 +118,10 @@ export default function WhatsAppCloudDashboard() {
           minHeight: { xs: 500, md: 600 },
         }}
       >
-        <Box sx={{ display: 'flex', height: '100%', minHeight: 0, bgcolor: '#f4f7f8', overflow: 'hidden', borderRadius: 1.5 }}>
-          <Box sx={{ width: 216, borderRight: (theme) => `1px solid ${theme.palette.divider}`, bgcolor: 'background.paper', p: 1.5, display: { xs: 'none', md: 'block' } }}>
-            <Typography variant="subtitle1" fontWeight={700}>Cloud Inbox</Typography>
-            <Typography variant="caption" color="text.secondary">WhatsApp workspace</Typography>
+        <Box sx={{ display: 'flex', height: '100%', minHeight: 0, bgcolor: '#e8f5e9', overflow: 'hidden', borderRadius: 1.5 }}>
+          <Box sx={{ width: 216, borderRight: (theme) => `1px solid ${theme.palette.divider}`, bgcolor: '#0f5132', color: '#ecfdf5', p: 1.5, display: { xs: 'none', md: 'block' } }}>
+            <Typography variant="subtitle1" fontWeight={700} color="#ecfdf5">Cloud Inbox</Typography>
+            <Typography variant="caption" color="rgba(236,253,245,0.78)">WhatsApp workspace</Typography>
             <Tabs
               orientation="vertical"
               variant="scrollable"
@@ -159,8 +159,8 @@ export default function WhatsAppCloudDashboard() {
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     '&.Mui-selected': {
-                      bgcolor: 'success.main',
-                      color: 'success.contrastText',
+                      bgcolor: '#25d366',
+                      color: '#052e16',
                     },
                   }}
                 />
@@ -233,9 +233,9 @@ export default function WhatsAppCloudDashboard() {
                     mr: 0.75,
                   },
                   '& .MuiTab-root.Mui-selected': {
-                    color: 'success.contrastText',
-                    bgcolor: 'success.main',
-                    borderColor: 'success.main',
+                    color: '#052e16',
+                    bgcolor: '#25d366',
+                    borderColor: '#25d366',
                   },
                 }}
               >

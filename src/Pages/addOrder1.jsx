@@ -8,7 +8,8 @@ import InvoiceModal from "../Components/InvoiceModal";
 import { LoadingSpinner } from "../Components";
 import {
   extractPhoneNumber,
-  sendTemplateWithTextFallback,
+  normalizeWhatsAppPhone,
+  sendAdminAlertText,
 } from "../utils/whatsapp.js";
 import { DEFAULT_TEMPLATE_LANGUAGE, WHATSAPP_TEMPLATES, buildPaymentReceivedParameters } from '../constants/whatsappTemplates';
 /* ✅ MUI */
@@ -334,7 +335,7 @@ if (driveFile?.status === "created") {
 
   const sendWhatsApp = async (
     phone = mobileToSend,
-    message = whatsAppMessage,
+    _message = whatsAppMessage,
     customerData = null
   ) => {
     if (!phone) {
@@ -350,29 +351,39 @@ if (driveFile?.status === "created") {
         customerOptions.find((opt) => opt.Customer_name === Customer_name);
 
       const customerLabel = customer?.Customer_name || Customer_name || "Customer";
+      const cleanPhone = normalizeWhatsAppPhone(phone);
 
-      const { data } = await sendTemplateWithTextFallback({
-        axiosInstance: axios,
-        phone,
-        templateName: WHATSAPP_TEMPLATES.ORDER_CONFIRMATION,
+      const payload = {
+        to: cleanPhone,
+        template_name: WHATSAPP_TEMPLATES.ORDER_CONFIRMATION,
         language: DEFAULT_TEMPLATE_LANGUAGE,
-        bodyParameters: buildPaymentReceivedParameters({
-          customerName: customerLabel,
-          actionLabel: "order",
-          date: new Date().toLocaleDateString("en-IN"),
-          amount: String(Number(Amount || 0) || 0),
-          description: Remark || "Order placed",
-        }),
-        fallbackMessage: message,
-      });
+        components: [
+          {
+            type: "body",
+            parameters: buildPaymentReceivedParameters({
+              customerName: customerLabel,
+              actionLabel: "order",
+              date: new Date().toLocaleDateString("en-IN"),
+              amount: String(Number(Amount || 0) || 0),
+              description: Remark || "Order placed",
+            }).map((text) => ({ type: "text", text })),
+          },
+        ],
+      };
+
+      const { data } = await axios.post('/api/whatsapp/send-template', payload);
 
       if (data?.success) {
-        toast.success("WhatsApp message sent");
+        await sendAdminAlertText({
+          axiosInstance: axios,
+          message: `Order alert: ${customerLabel} | Amount: ₹${Number(Amount || 0) || 0} | ${Remark || 'Order placed'}`,
+        }).catch(() => null);
+        toast.success("WhatsApp template sent");
       } else {
-        toast.error(data?.error || "Failed to send WhatsApp message");
+        toast.error(data?.error || "Failed to send WhatsApp template");
       }
     } catch (error) {
-      toast.error(error?.response?.data?.error || "Failed to send WhatsApp message");
+      toast.error(error?.response?.data?.error || "Failed to send WhatsApp template");
     } finally {
       setIsSendingWhatsApp(false);
     }

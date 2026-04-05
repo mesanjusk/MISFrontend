@@ -1,8 +1,8 @@
 import { alpha, createTheme } from '@mui/material/styles';
 
-const PRIMARY_GREEN = '#5f8f6e';
-const PRIMARY_GREEN_DARK = '#466f53';
-const PRIMARY_GREEN_LIGHT = '#8eb39a';
+const PRIMARY_BLUE = '#38bdf8';
+const PRIMARY_BLUE_DARK = '#0f172a';
+const PRIMARY_BLUE_LIGHT = '#7dd3fc';
 
 const neutralPalette = {
   50: '#f8faf9',
@@ -53,7 +53,8 @@ const getComponentOverrides = (theme) => ({
       body: {
         backgroundColor: theme.palette.background.default,
         color: theme.palette.text.primary,
-        overflow: 'hidden',
+        overflowX: 'hidden',
+        overflowY: 'auto',
       },
       '#root': { minHeight: '100vh' },
       '*::-webkit-scrollbar': { width: 8, height: 8 },
@@ -154,7 +155,8 @@ const getComponentOverrides = (theme) => ({
     },
   },
   MuiTabs: { styleOverrides: { indicator: { height: 2.5, borderRadius: 4 } } },
-  MuiDialog: { styleOverrides: { paper: { borderRadius: 12, overflow: 'hidden' } } },
+  MuiDialog: { styleOverrides: { paper: { borderRadius: 12, overflowX: 'hidden',
+        overflowY: 'auto' } } },
   MuiChip: {
     styleOverrides: {
       root: {
@@ -162,7 +164,8 @@ const getComponentOverrides = (theme) => ({
         height: 22,
         maxWidth: '100%',
       },
-      label: { overflow: 'hidden', textOverflow: 'ellipsis' },
+      label: { overflowX: 'hidden',
+        overflowY: 'auto', textOverflow: 'ellipsis' },
     },
   },
   MuiTooltip: {
@@ -199,12 +202,12 @@ const getComponentOverrides = (theme) => ({
 });
 
 const basePalette = {
-  primary: { main: PRIMARY_GREEN, dark: PRIMARY_GREEN_DARK, light: PRIMARY_GREEN_LIGHT, contrastText: '#ffffff' },
+  primary: { main: PRIMARY_BLUE, dark: PRIMARY_BLUE_DARK, light: PRIMARY_BLUE_LIGHT, contrastText: '#ffffff' },
   secondary: { main: neutralPalette[600], light: neutralPalette[400], dark: neutralPalette[700] },
-  success: { main: '#4f8b5c' },
-  warning: { main: '#b0894b' },
-  error: { main: '#ba5e5e' },
-  info: { main: '#6f879a' },
+  success: { main: '#16a34a' },
+  warning: { main: '#f59e0b' },
+  error: { main: '#ef4444' },
+  info: { main: '#0ea5e9' },
 };
 
 export const lightTheme = (() => {
@@ -213,12 +216,12 @@ export const lightTheme = (() => {
     palette: {
       mode: 'light',
       ...basePalette,
-      background: { default: '#eef5fb', paper: '#ffffff' },
-      text: { primary: '#243447', secondary: '#526273' },
-      divider: '#d6e3f0',
+      background: { default: '#eaf6ff', paper: '#ffffff' },
+      text: { primary: '#0f172a', secondary: '#475569' },
+      divider: '#cfe3f2',
       action: {
-        hover: alpha(PRIMARY_GREEN, 0.08),
-        selected: alpha(PRIMARY_GREEN, 0.12),
+        hover: alpha(PRIMARY_BLUE, 0.08),
+        selected: alpha(PRIMARY_BLUE, 0.12),
       },
     },
   });

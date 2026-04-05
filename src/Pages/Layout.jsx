@@ -47,7 +47,7 @@ export default function Layout() {
   const sidebarWidth = isDesktop ? (desktopCollapsed ? DRAWER_COLLAPSED : DRAWER_WIDTH) : 0;
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', overflowX: 'hidden' }}>
       <Sidebar
         desktopCollapsed={desktopCollapsed}
         mobileOpen={mobileOpen}
@@ -61,6 +61,7 @@ export default function Layout() {
           ml: { md: `${sidebarWidth}px` },
           transition: (theme) => theme.transitions.create('margin-left'),
           pr: { lg: 6 },
+          minHeight: '100vh',
         }}
       >
         <Box sx={{ position: 'fixed', top: 0, left: { xs: 0, md: `${sidebarWidth}px` }, right: 0, zIndex: 1200, transition: (theme) => theme.transitions.create(['left']) }}>
@@ -71,7 +72,7 @@ export default function Layout() {
           />
         </Box>
 
-        <Box component="main" sx={{ px: { xs: 0.5, md: 1 }, pt: `${NAVBAR_HEIGHT + 8}px`, py: 1, pb: { xs: 8.5, md: 1.5 }, minHeight: '100vh' }}>
+        <Box component="main" sx={{ px: { xs: 0.5, md: 1 }, pt: `${NAVBAR_HEIGHT + 8}px`, py: 1, pb: { xs: 8.5, md: 1.5 }, minHeight: '100vh', overflow: 'visible' }}>
           <Box sx={{ maxWidth: 1640, mx: 'auto', minHeight: `calc(100vh - ${NAVBAR_HEIGHT + 24}px)` }}><Outlet /></Box>
         </Box>
 

@@ -96,3 +96,18 @@ export const sendWhatsAppFlow = async ({
     mode,
   });
 };
+
+
+export const ADMIN_ALERT_PHONE = '9372333633';
+
+export const sendAdminAlertText = async ({
+  axiosInstance,
+  message,
+  phone = ADMIN_ALERT_PHONE,
+}) => {
+  const cleanPhone = normalizeWhatsAppPhone(phone);
+  return axiosInstance.post('/api/whatsapp/send-admin-alert', {
+    to: cleanPhone,
+    body: String(message || '').trim(),
+  });
+};
