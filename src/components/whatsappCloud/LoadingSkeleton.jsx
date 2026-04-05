@@ -3,11 +3,11 @@ import PropTypes from 'prop-types';
 
 export default function LoadingSkeleton({ lines = 6 }) {
   return (
-    <Stack spacing={1.5} sx={{ p: 2 }}>
+    <Stack spacing={1} sx={{ p: { xs: 1, md: 1.25 }, height: '100%', minHeight: 0 }}>
       {Array.from({ length: lines }).map((_, index) => (
-        <Skeleton key={index} variant="rounded" height={52} />
+        <Skeleton key={index} variant="rounded" height={48} />
       ))}
-      <Box sx={{ height: 8 }} />
+      <Box sx={{ height: 4 }} />
     </Stack>
   );
 }
