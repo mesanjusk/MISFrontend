@@ -14,7 +14,8 @@ import RightUtilityRail from '../components/layout/RightUtilityRail';
 import { ROUTES } from '../constants/routes';
 
 const DRAWER_WIDTH = 258;
-const DRAWER_COLLAPSED = 70;
+const DRAWER_COLLAPSED = 72;
+const NAVBAR_HEIGHT = 56;
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -62,14 +63,16 @@ export default function Layout() {
           pr: { lg: 6 },
         }}
       >
-        <TopNavbar
-          onToggleSidebar={() => setMobileOpen((prev) => !prev)}
-          onToggleDesktopCollapse={() => setDesktopCollapsed((prev) => !prev)}
-          desktopCollapsed={desktopCollapsed}
-        />
+        <Box sx={{ position: 'fixed', top: 0, left: { xs: 0, md: `${sidebarWidth}px` }, right: 0, zIndex: 1200, transition: (theme) => theme.transitions.create(['left']) }}>
+          <TopNavbar
+            onToggleSidebar={() => setMobileOpen((prev) => !prev)}
+            onToggleDesktopCollapse={() => setDesktopCollapsed((prev) => !prev)}
+            desktopCollapsed={desktopCollapsed}
+          />
+        </Box>
 
-        <Box component="main" sx={{ px: { xs: 0.25, md: 1 }, py: 1, pb: { xs: 8.5, md: 1.5 } }}>
-          <Box sx={{ maxWidth: 1640, mx: 'auto' }}><Outlet /></Box>
+        <Box component="main" sx={{ px: { xs: 0.5, md: 1 }, pt: `${NAVBAR_HEIGHT + 8}px`, py: 1, pb: { xs: 8.5, md: 1.5 }, minHeight: '100vh' }}>
+          <Box sx={{ maxWidth: 1640, mx: 'auto', minHeight: `calc(100vh - ${NAVBAR_HEIGHT + 24}px)` }}><Outlet /></Box>
         </Box>
 
         <FloatingButtons buttonsList={buttonsList} />

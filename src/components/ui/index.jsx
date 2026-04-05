@@ -6,8 +6,9 @@ export function PageContainer({ title, subtitle, actions, children }) {
     <Stack
       spacing={1.5}
       sx={{
-        px: { xs: 1, sm: 1.25 },
-        pb: 1,
+        px: { xs: 0.25, sm: 0.5 },
+        pb: 0.75,
+        minWidth: 0,
       }}
     >
       {(title || subtitle || actions) ? (
@@ -19,18 +20,18 @@ export function PageContainer({ title, subtitle, actions, children }) {
             bgcolor: 'background.paper',
           }}
         >
-          <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+          <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
             <Stack
               direction={{ xs: 'column', md: 'row' }}
               justifyContent="space-between"
               alignItems={{ xs: 'flex-start', md: 'center' }}
               spacing={1}
             >
-              <Box>
-                {title ? <Typography variant="h5">{title}</Typography> : null}
+              <Box sx={{ minWidth: 0 }}>
+                {title ? <Typography variant="h5" noWrap>{title}</Typography> : null}
                 {subtitle ? <Typography variant="body2" color="text.secondary">{subtitle}</Typography> : null}
               </Box>
-              {actions ? <Stack direction="row" spacing={1}>{actions}</Stack> : null}
+              {actions ? <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>{actions}</Stack> : null}
             </Stack>
           </CardContent>
         </Card>
@@ -42,23 +43,23 @@ export function PageContainer({ title, subtitle, actions, children }) {
 
 export function SectionCard({ title, subtitle, action, children, contentSx }) {
   return (
-    <Card elevation={0}>
+    <Card elevation={0} sx={{ minWidth: 0 }}>
       {(title || subtitle || action) ? (
         <CardHeader
-          sx={{ py: 1, px: 1.5 }}
+          sx={{ py: 1, px: 1.25 }}
           title={title ? <Typography variant="subtitle1">{title}</Typography> : null}
           subheader={subtitle ? <Typography variant="caption">{subtitle}</Typography> : null}
           action={action}
         />
       ) : null}
-      <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 }, ...contentSx }}>{children}</CardContent>
+      <CardContent sx={{ p: 1, '&:last-child': { pb: 1 }, minWidth: 0, ...contentSx }}>{children}</CardContent>
     </Card>
   );
 }
 
 export function FormSection({ title, subtitle, children }) {
   return (
-    <Stack spacing={1}>
+    <Stack spacing={1} sx={{ minWidth: 0 }}>
       {(title || subtitle) ? (
         <Box>
           {title ? <Typography variant="subtitle2">{title}</Typography> : null}
@@ -83,14 +84,18 @@ export function ActionButtonGroup({ primaryLabel = 'Save', onCancel, cancelLabel
 
 export function FilterToolbar({ children }) {
   return (
-    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} sx={{ p: 1.25, borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}>
+    <Stack
+      direction={{ xs: 'column', md: 'row' }}
+      spacing={1}
+      sx={{ p: 1, borderBottom: (theme) => `1px solid ${theme.palette.divider}`, minWidth: 0 }}
+    >
       {children}
     </Stack>
   );
 }
 
 export function DataTableWrapper({ children }) {
-  return <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>{children}</Paper>;
+  return <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'auto', minWidth: 0 }}>{children}</Paper>;
 }
 
 export function StatusChip({ label, color = 'default' }) {

@@ -3,6 +3,7 @@ import MuiButton from '@mui/material/Button';
 
 const sizeMap = { sm: 'small', md: 'medium', lg: 'large' };
 const colorMap = { primary: 'primary', secondary: 'secondary', danger: 'error' };
+const variantMap = { primary: 'contained', secondary: 'outlined', danger: 'contained' };
 
 export default function Button({
   variant = 'primary',
@@ -16,7 +17,7 @@ export default function Button({
 }) {
   return (
     <MuiButton
-      variant="contained"
+      variant={variantMap[variant] || 'contained'}
       color={colorMap[variant] || 'primary'}
       size={sizeMap[size] || 'medium'}
       className={className}

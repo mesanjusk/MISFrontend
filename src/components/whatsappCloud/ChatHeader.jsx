@@ -20,8 +20,8 @@ export default function ChatHeader({ conversation, isLoading, onRefresh, windowO
       alignItems="center"
       justifyContent="space-between"
       sx={{
-        px: 2,
-        py: 1.2,
+        px: 1.5,
+        py: 1,
         borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
         bgcolor: 'background.paper',
         position: 'sticky',
@@ -33,7 +33,7 @@ export default function ChatHeader({ conversation, isLoading, onRefresh, windowO
         <IconButton onClick={onBack} sx={{ display: { lg: 'none' } }} size="small">
           <ArrowBackRoundedIcon fontSize="small" />
         </IconButton>
-        <Avatar sx={{ bgcolor: '#16a34a', width: 38, height: 38, fontSize: 13 }}>
+        <Avatar sx={{ bgcolor: '#16a34a', width: 34, height: 34, fontSize: 12 }}>
           {getInitials(conversation?.displayName || conversation?.contact)}
         </Avatar>
         <Stack sx={{ minWidth: 0 }}>

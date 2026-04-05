@@ -3,7 +3,7 @@ import Container from '@mui/material/Container';
 
 export default function MobileContainer({ children, maxWidth = 'sm', ...props }) {
   return (
-    <Container maxWidth={maxWidth} sx={{ py: { xs: 2, md: 4 } }} {...props}>
+    <Container maxWidth={maxWidth} sx={{ py: { xs: 1.5, md: 2.5 } }} {...props}>
       {children}
     </Container>
   );

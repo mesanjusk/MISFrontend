@@ -16,9 +16,9 @@ export default function Modal({
   actions,
 }) {
   return (
-    <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={isOpen} onClose={onClose} fullWidth maxWidth="md">
       {title && (
-        <DialogTitle sx={{ m: 0, p: 2 }}>
+        <DialogTitle sx={{ m: 0, p: 1.5 }}>
           {title}
           <IconButton
             aria-label="Close"
@@ -29,8 +29,8 @@ export default function Modal({
           </IconButton>
         </DialogTitle>
       )}
-      <DialogContent dividers>{children}</DialogContent>
-      {actions && <DialogActions>{actions}</DialogActions>}
+      <DialogContent dividers sx={{ p: 1.25 }}>{children}</DialogContent>
+      {actions && <DialogActions sx={{ px: 1.25, py: 1 }}>{actions}</DialogActions>}
     </Dialog>
   );
 }

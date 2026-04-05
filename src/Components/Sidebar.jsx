@@ -16,15 +16,37 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
+import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
+import GroupRoundedIcon from '@mui/icons-material/GroupRounded';
+import ShoppingBagRoundedIcon from '@mui/icons-material/ShoppingBagRounded';
+import SupportAgentRoundedIcon from '@mui/icons-material/SupportAgentRounded';
+import PaymentsRoundedIcon from '@mui/icons-material/PaymentsRounded';
+import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
+import ChatRoundedIcon from '@mui/icons-material/ChatRounded';
+import AdminPanelSettingsRoundedIcon from '@mui/icons-material/AdminPanelSettingsRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
-import FolderRoundedIcon from '@mui/icons-material/FolderRounded';
 import FiberManualRecordRoundedIcon from '@mui/icons-material/FiberManualRecordRounded';
 import { useAuth } from '../context/AuthContext';
 import { ROUTE_ALIASES, ROUTES } from '../constants/routes';
 
 const DRAWER_WIDTH = 258;
-const DRAWER_COLLAPSED = 70;
+const DRAWER_COLLAPSED = 72;
+
+const iconByGroup = {
+  Customer: <PersonOutlineRoundedIcon fontSize="small" />,
+  Item: <Inventory2OutlinedIcon fontSize="small" />,
+  Task: <TaskAltRoundedIcon fontSize="small" />,
+  User: <GroupRoundedIcon fontSize="small" />,
+  Order: <ShoppingBagRoundedIcon fontSize="small" />,
+  Enquiry: <SupportAgentRoundedIcon fontSize="small" />,
+  Account: <PaymentsRoundedIcon fontSize="small" />,
+  Transaction: <ReceiptLongRoundedIcon fontSize="small" />,
+  WhatsApp: <ChatRoundedIcon fontSize="small" />,
+  Admin: <AdminPanelSettingsRoundedIcon fontSize="small" />,
+};
 
 export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile }) {
   const navigate = useNavigate();
@@ -151,11 +173,16 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
                     '&.Mui-selected': { bgcolor: 'action.selected' },
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: 30, color: 'primary.dark' }}>
-                    <FolderRoundedIcon fontSize="small" />
+                  <ListItemIcon sx={{ minWidth: 30, color: selectedGroup ? 'primary.main' : 'text.secondary' }}>
+                    {iconByGroup[group.group]}
                   </ListItemIcon>
-                  {!desktopCollapsed && <ListItemText primary={group.group} primaryTypographyProps={{ variant: 'body2', fontWeight: 600 }} />}
-                  {!desktopCollapsed && <ExpandMoreRoundedIcon sx={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.2s' }} />}
+                  {!desktopCollapsed && (
+                    <ListItemText
+                      primary={group.group}
+                      primaryTypographyProps={{ variant: 'body2', fontWeight: 600, noWrap: true }}
+                    />
+                  )}
+                  {!desktopCollapsed && <ExpandMoreRoundedIcon sx={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.2s', color: 'text.secondary' }} />}
                 </ListItemButton>
               </Tooltip>
 
@@ -177,7 +204,10 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
                           <ListItemIcon sx={{ minWidth: 18, color: 'text.secondary' }}>
                             <FiberManualRecordRoundedIcon sx={{ fontSize: 7 }} />
                           </ListItemIcon>
-                          <ListItemText primary={item.label} primaryTypographyProps={{ variant: 'caption', fontSize: 12 }} />
+                          <ListItemText
+                            primary={item.label}
+                            primaryTypographyProps={{ variant: 'caption', fontSize: 12, noWrap: true }}
+                          />
                         </ListItemButton>
                       );
                     })}
