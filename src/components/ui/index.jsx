@@ -163,3 +163,4 @@ StatusChip.propTypes = { label: PropTypes.node, color: PropTypes.string };
 LoadingState.propTypes = { label: PropTypes.string };
 EmptyState.propTypes = { title: PropTypes.string, description: PropTypes.string };
 ErrorState.propTypes = { message: PropTypes.string.isRequired };
+export { default as LoadingSkeleton } from '../whatsappCloud/LoadingSkeleton';
