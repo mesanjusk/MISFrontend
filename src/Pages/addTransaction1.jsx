@@ -9,9 +9,13 @@ import { fetchCustomers } from "../services/customerService.js";
 import { addTransaction } from "../services/transactionService.js";
 import {
   extractPhoneNumber,
-  sendTemplateWithTextFallback,
+  normalizeWhatsAppPhone,
 } from "../utils/whatsapp.js";
-import { DEFAULT_TEMPLATE_LANGUAGE, WHATSAPP_TEMPLATES, buildPaymentReceivedParameters } from '../constants/whatsappTemplates';
+import {
+  DEFAULT_TEMPLATE_LANGUAGE,
+  WHATSAPP_TEMPLATES,
+  buildPaymentReceivedParameters,
+} from '../constants/whatsappTemplates';
 
 export default function AddTransaction1({ onClose }) {
   const navigate = useNavigate();
@@ -57,11 +61,11 @@ export default function AddTransaction1({ onClose }) {
   useEffect(() => {
     setOptionsLoading(true);
     fetchCustomers()
-      .then(res => {
+      .then((res) => {
         if (res.data.success) {
           setAllCustomerOptions(res.data.result);
           const accountOptions = res.data.result.filter(
-            item => item.Customer_group === "Bank and Account"
+            (item) => item.Customer_group === "Bank and Account"
           );
           setAccountCustomerOptions(accountOptions);
         }
@@ -73,8 +77,9 @@ export default function AddTransaction1({ onClose }) {
   const handleInputChange = (e) => {
     const value = e.target.value;
     setCustomer_Name(value);
+
     if (value) {
-      const filtered = allCustomerOptions.filter(option =>
+      const filtered = allCustomerOptions.filter((option) =>
         option.Customer_name.toLowerCase().includes(value.toLowerCase())
       );
       setFilteredOptions(filtered);
@@ -95,7 +100,7 @@ export default function AddTransaction1({ onClose }) {
   const handleFileChange = (e) => setSelectedImage(e.target.files[0]);
 
   const handleDateCheckboxChange = () => {
-    setIsDateChecked(prev => !prev);
+    setIsDateChecked((prev) => !prev);
     setTransaction_date('');
   };
 
@@ -112,21 +117,37 @@ export default function AddTransaction1({ onClose }) {
     if (!Amount || isNaN(Amount) || Number(Amount) <= 0) {
       return toast.error("Enter valid amount.");
     }
+
     if (!CreditCustomer || !DebitCustomer) {
       return toast.error("Select both Credit and Debit customer.");
     }
 
-    const creditCustomer = allCustomerOptions.find(c => c.Customer_uuid === CreditCustomer);
-    const debitCustomer = accountCustomerOptions.find(c => c.Customer_uuid === DebitCustomer);
+    const creditCustomer = allCustomerOptions.find(
+      (c) => c.Customer_uuid === CreditCustomer
+    );
+    const debitCustomer = accountCustomerOptions.find(
+      (c) => c.Customer_uuid === DebitCustomer
+    );
     const todayDate = new Date().toISOString().split("T")[0];
 
     if (!creditCustomer || !debitCustomer) {
       return toast.error("Selected customer or payment mode is invalid.");
     }
 
+    const finalTransactionDate =
+      isAdminUser && isDateChecked ? (Transaction_date || todayDate) : todayDate;
+
     const journal = [
-      { Account_id: debitCustomer.Customer_uuid, Type: 'Debit', Amount: Number(Amount) },
-      { Account_id: creditCustomer.Customer_uuid, Type: 'Credit', Amount: Number(Amount) }
+      {
+        Account_id: debitCustomer.Customer_uuid,
+        Type: 'Debit',
+        Amount: Number(Amount),
+      },
+      {
+        Account_id: creditCustomer.Customer_uuid,
+        Type: 'Credit',
+        Amount: Number(Amount),
+      },
     ];
 
     const formData = new FormData();
@@ -135,27 +156,29 @@ export default function AddTransaction1({ onClose }) {
     formData.append('Total_Debit', Number(Amount));
     formData.append('Payment_mode', debitCustomer.Customer_name);
     formData.append('Created_by', loggedInUser);
-    formData.append('Transaction_date', Transaction_date || todayDate);
+    formData.append('Transaction_date', finalTransactionDate);
     formData.append('Journal_entry', JSON.stringify(journal));
     if (selectedImage) formData.append('image', selectedImage);
 
     try {
       setLoading(true);
+
       const res = await addTransaction(formData, {
-        headers: { "Content-Type": "multipart/form-data" }
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
       if (res.data.success) {
         toast.success("Transaction saved.");
+
         const message = `Hello ${creditCustomer?.Customer_name || Customer_name}, your payment of ₹${Amount} has been recorded. Thank you!`;
         const phoneNumber = extractPhoneNumber(creditCustomer);
 
         setWhatsAppMessage(message);
-        setMobileToSend(phoneNumber);
+        setMobileToSend(phoneNumber || '');
         setIsTransactionSaved(true);
 
         if (sendWhatsAppAfterSave) {
-          await sendWhatsApp(phoneNumber, message, creditCustomer);
+          await sendWhatsApp(phoneNumber, creditCustomer);
         }
 
         setInvoiceItems([
@@ -163,11 +186,15 @@ export default function AddTransaction1({ onClose }) {
             Item: Description || 'Payment',
             Quantity: 1,
             Rate: Number(Amount),
-            Amount: Number(Amount)
-          }
+            Amount: Number(Amount),
+          },
         ]);
+
         setShowInvoiceModal(true);
-        if (isEmbeddedFlow) closeModal();
+
+        if (isEmbeddedFlow) {
+          closeModal();
+        }
       } else {
         toast.error("Failed to save transaction");
       }
@@ -180,7 +207,6 @@ export default function AddTransaction1({ onClose }) {
 
   const sendWhatsApp = async (
     phone = mobileToSend,
-    message = whatsAppMessage,
     customerData = null
   ) => {
     if (!phone) {
@@ -198,21 +224,40 @@ export default function AddTransaction1({ onClose }) {
       const customerLabel =
         selectedCustomer?.Customer_name || Customer_name || 'Customer';
 
-      const { data } = await sendTemplateWithTextFallback({
-        axiosInstance: axios,
-        phone,
-        templateName: 'payment',
-        bodyParameters: [customerLabel],
-        fallbackMessage: message,
-      });
+      const cleanPhone = normalizeWhatsAppPhone(phone);
+
+      const payload = {
+        to: cleanPhone,
+        template_name: WHATSAPP_TEMPLATES.PAYMENT_RECEIVED,
+        language: DEFAULT_TEMPLATE_LANGUAGE,
+        components: [
+          {
+            type: "body",
+            parameters: buildPaymentReceivedParameters({
+              customerName: customerLabel,
+              actionLabel: "payment",
+              date: new Date().toLocaleDateString("en-IN"),
+              amount: String(Amount || "0"),
+              description: Description || "Payment received",
+            }).map((text) => ({
+              type: "text",
+              text,
+            })),
+          },
+        ],
+      };
+
+      const { data } = await axios.post('/api/whatsapp/send-template', payload);
 
       if (data?.success) {
-        toast.success('WhatsApp message sent');
+        toast.success('WhatsApp template sent');
       } else {
-        toast.error(data?.error || 'Failed to send WhatsApp message');
+        toast.error(data?.error || 'Failed to send WhatsApp template');
       }
     } catch (error) {
-      toast.error(error?.response?.data?.error || 'Failed to send WhatsApp message');
+      toast.error(
+        error?.response?.data?.error || 'Failed to send WhatsApp template'
+      );
     } finally {
       setIsSendingWhatsApp(false);
     }
@@ -258,19 +303,17 @@ export default function AddTransaction1({ onClose }) {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
                   value={Customer_name}
                   onChange={handleInputChange}
-                  onFocus={() => {
-                    if (filteredOptions.length > 0) setShowOptions(true);
-                  }}
                 />
+
                 {showOptions && filteredOptions.length > 0 && (
-                  <ul className="absolute z-10 w-full bg-white border rounded-md max-h-40 overflow-y-auto">
-                    {filteredOptions.map((option, index) => (
+                  <ul className="absolute z-10 bg-white border w-full mt-1 rounded-md shadow max-h-52 overflow-auto">
+                    {filteredOptions.map((option) => (
                       <li
-                        key={index}
-                        className="p-2 hover:bg-gray-100 cursor-pointer"
+                        key={option.Customer_uuid}
+                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
                         onClick={() => handleOptionClick(option)}
                       >
-                        {option.Customer_name}
+                        {option.Customer_name} ({option.Mobile_number || option.mobile || option.phone || 'No mobile'})
                       </li>
                     ))}
                   </ul>
@@ -278,141 +321,108 @@ export default function AddTransaction1({ onClose }) {
               </div>
             )}
 
-            <button
-              onClick={addCustomer}
-              type="button"
-              className="bg-[#25D366] text-white w-8 h-8 rounded-full flex items-center justify-center"
+            <select
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              value={DebitCustomer}
+              onChange={(e) => setDebitCustomer(e.target.value)}
             >
-              +
-            </button>
+              <option value="">Select Payment Mode / Account</option>
+              {accountCustomerOptions.map((option) => (
+                <option key={option.Customer_uuid} value={option.Customer_uuid}>
+                  {option.Customer_name}
+                </option>
+              ))}
+            </select>
 
-            <div>
-              <label className="block font-medium text-gray-700 mb-1">Description</label>
-              <input
-                type="text"
-                value={Description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-                placeholder="Description"
-              />
-            </div>
+            <input
+              type="number"
+              placeholder="Amount"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              value={Amount}
+              onChange={handleAmountChange}
+            />
 
-            <div>
-              <label className="block font-medium text-gray-700 mb-1">Amount</label>
-              <input
-                type="number"
-                value={Amount}
-                onChange={handleAmountChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-                placeholder="Amount"
-              />
-            </div>
+            <input
+              type="text"
+              placeholder="Description"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              value={Description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
 
-            {optionsLoading ? (
-              <div className="flex justify-center items-center h-10">
-                <LoadingSpinner />
-              </div>
-            ) : (
-              <div>
-                <label className="block font-medium text-gray-700 mb-1">Payment Mode</label>
-                <select
-                  value={DebitCustomer}
-                  onChange={(e) => setDebitCustomer(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-                  required
-                >
-                  <option value="">Select Payment</option>
-                  {accountCustomerOptions.map((cust, i) => (
-                    <option key={i} value={cust.Customer_uuid}>
-                      {cust.Customer_name}
-                    </option>
-                  ))}
-                </select>
+            {isAdminUser && (
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={isDateChecked}
+                    onChange={handleDateCheckboxChange}
+                  />
+                  Change transaction date manually
+                </label>
+
+                {isDateChecked && (
+                  <InputField
+                    type="date"
+                    value={Transaction_date}
+                    onChange={(e) => setTransaction_date(e.target.value)}
+                  />
+                )}
               </div>
             )}
 
             <input
               type="file"
               accept="image/*"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2"
               onChange={handleFileChange}
-              className="w-full border border-gray-300 rounded-lg p-2"
             />
 
-            {isAdminUser && (
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={isDateChecked}
-                  onChange={handleDateCheckboxChange}
-                  className="h-4 w-4 text-[#25d366] border-gray-300 rounded"
-                />
-                <label className="text-gray-700">Save Date</label>
-              </div>
-            )}
-
-            {isAdminUser && isDateChecked && (
-              <div>
-                <label className="block font-medium text-gray-700 mb-1">Date</label>
-                <input
-                  type="date"
-                  value={Transaction_date}
-                  onChange={(e) => setTransaction_date(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-                />
-              </div>
-            )}
-
-            <div className="flex items-center space-x-2">
+            <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={sendWhatsAppAfterSave}
                 onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)}
-                className="h-4 w-4 text-[#25d366] border-gray-300 rounded"
               />
-              <label className="text-gray-700">Send WhatsApp after saving</label>
-            </div>
+              Send WhatsApp template after save
+            </label>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-wrap gap-3 pt-2">
+              <button
+                type="button"
+                onClick={addCustomer}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Add Customer
+              </button>
+
               <button
                 type="button"
                 onClick={closeModal}
-                disabled={loading}
-                className="w-full border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium py-2 rounded-lg transition disabled:opacity-60"
+                className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
               >
-                Cancel
+                Close
               </button>
+
               <button
                 type="submit"
-                className="w-full bg-[#25d366] hover:bg-[#128c7e] text-white font-medium py-2 rounded-lg transition"
-                disabled={
-                  loading ||
-                  !Amount ||
-                  isNaN(Amount) ||
-                  Number(Amount) <= 0 ||
-                  !CreditCustomer ||
-                  !DebitCustomer
-                }
+                disabled={loading || isSendingWhatsApp}
+                className="rounded-lg bg-[#25d366] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1ebe5d] disabled:opacity-60"
               >
-                {loading ? (
-                  <>
-                    <LoadingSpinner size={16} className="mr-2" /> Saving...
-                  </>
-                ) : (
-                  "Submit"
-                )}
+                {loading ? 'Saving...' : 'Save'}
               </button>
-            </div>
 
-            {isTransactionSaved && (
-              <button
-                type="button"
-                onClick={() => sendWhatsApp()}
-                disabled={isSendingWhatsApp}
-                className="w-full bg-[#075e54] hover:bg-[#064c44] text-white font-medium py-2 rounded-lg transition disabled:opacity-60"
-              >
-                {isSendingWhatsApp ? 'Sending WhatsApp...' : 'Send WhatsApp Receipt'}
-              </button>
-            )}
+              {isTransactionSaved && (
+                <button
+                  type="button"
+                  onClick={() => sendWhatsApp()}
+                  disabled={isSendingWhatsApp}
+                  className="rounded-lg bg-sky-600 px-5 py-2 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-60"
+                >
+                  {isSendingWhatsApp ? 'Sending...' : 'Send WhatsApp Template'}
+                </button>
+              )}
+            </div>
           </form>
         </div>
       </div>
