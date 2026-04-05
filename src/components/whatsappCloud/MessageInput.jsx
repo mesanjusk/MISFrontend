@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
+import MoodRoundedIcon from '@mui/icons-material/MoodRounded';
 import PropTypes from 'prop-types';
 import {
   Alert,
@@ -87,7 +88,14 @@ export default function MessageInput({
     <Paper
       square
       elevation={0}
-      sx={{ borderTop: (theme) => `1px solid ${theme.palette.divider}`, p: 1, position: 'sticky', bottom: 0, zIndex: 3 }}
+      sx={{
+        borderTop: '1px solid #d1d7db',
+        p: 1,
+        position: 'sticky',
+        bottom: 0,
+        zIndex: 3,
+        bgcolor: '#f0f2f5',
+      }}
     >
       {canSendTemplateOnly ? (
         <>
@@ -103,13 +111,20 @@ export default function MessageInput({
           <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
             <Stack sx={{ minWidth: 0, flex: 1 }}>
               <Typography noWrap variant="body2" fontWeight={700}>{selectedFile.name}</Typography>
-              <Typography variant="caption" color="text.secondary">{selectedType.toUpperCase()} · {(selectedFile.size / 1024).toFixed(0)} KB</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {selectedType.toUpperCase()} · {(selectedFile.size / 1024).toFixed(0)} KB
+              </Typography>
             </Stack>
             <IconButton size="small" color="error" onClick={() => setSelectedFile(null)}>✕</IconButton>
           </Stack>
 
           {imagePreviewUrl ? (
-            <Box component="img" src={imagePreviewUrl} alt="Image preview" sx={{ mt: 1, maxHeight: 180, borderRadius: 1.5, objectFit: 'cover' }} />
+            <Box
+              component="img"
+              src={imagePreviewUrl}
+              alt="Image preview"
+              sx={{ mt: 1, maxHeight: 180, borderRadius: 1.5, objectFit: 'cover' }}
+            />
           ) : null}
 
           <Stack direction="row" justifyContent="flex-end" sx={{ mt: 1 }}>
@@ -130,7 +145,13 @@ export default function MessageInput({
         placeholder={disabled ? 'Text input disabled outside 24h window' : 'Type a message'}
         disabled={disabled}
         size="small"
-        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 4, bgcolor: 'grey.100', pr: 0.5 } }}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 999,
+            bgcolor: '#ffffff',
+            pr: 0.5,
+          },
+        }}
         InputProps={{
           startAdornment: !canSendTemplateOnly ? (
             <InputAdornment position="start">
@@ -142,6 +163,9 @@ export default function MessageInput({
                     setSelectedType(type || 'document');
                   }}
                 />
+                <IconButton size="small" disabled={disabled}>
+                  <MoodRoundedIcon fontSize="small" />
+                </IconButton>
               </Stack>
             </InputAdornment>
           ) : null,

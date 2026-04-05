@@ -1,5 +1,6 @@
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import SyncRoundedIcon from '@mui/icons-material/SyncRounded';
+import DoneAllRoundedIcon from '@mui/icons-material/DoneAllRounded';
 import PropTypes from 'prop-types';
 import {
   Autocomplete,
@@ -20,12 +21,8 @@ import {
 const getInitials = (value) => {
   const source = String(value || '').trim();
   if (!source) return 'NA';
-
   const parts = source.split(/\s+/).filter(Boolean);
-  if (parts.length > 1) {
-    return `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase();
-  }
-
+  if (parts.length > 1) return `${parts[0][0] || ''}${parts[1][0] || ''}`.toUpperCase();
   return source.slice(0, 2).toUpperCase();
 };
 
@@ -70,23 +67,43 @@ export default function ConversationList({
   onRefresh,
 }) {
   return (
-    <Stack sx={{ height: '100%', minHeight: 0, bgcolor: 'background.paper' }}>
-      <Stack spacing={1} sx={{ p: 1.25, borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}>
+    <Stack sx={{ height: '100%', minHeight: 0, bgcolor: '#ffffff' }}>
+      <Stack
+        spacing={1}
+        sx={{
+          p: 1.1,
+          borderBottom: '1px solid #e9edef',
+          bgcolor: '#f0f2f5',
+        }}
+      >
         <Stack direction="row" alignItems="center" justifyContent="space-between">
           <Typography variant="subtitle1" fontWeight={700}>Chats</Typography>
           <Tooltip title="Refresh conversations">
             <span>
-              <IconButton size="small" onClick={onRefresh}><SyncRoundedIcon fontSize="small" /></IconButton>
+              <IconButton size="small" onClick={onRefresh}>
+                <SyncRoundedIcon fontSize="small" />
+              </IconButton>
             </span>
           </Tooltip>
         </Stack>
+
         <TextField
           value={search}
           size="small"
           onChange={(event) => onSearch(event.target.value)}
-          placeholder="Search name or number"
+          placeholder="Search or start new chat"
           InputProps={{
-            startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment>,
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchRoundedIcon fontSize="small" />
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 999,
+              bgcolor: '#ffffff',
+            },
           }}
         />
 
@@ -99,7 +116,6 @@ export default function ConversationList({
               onSelectCustomer(value);
               return;
             }
-
             if (value) onSelectCustomer(value);
           }}
           filterOptions={(options, state) => {
@@ -107,9 +123,7 @@ export default function ConversationList({
             if (!query) return options.slice(0, 40);
 
             const filtered = options.filter((option) =>
-              `${option.name} ${option.mobile} ${option.mobileDisplay}`
-                .toLowerCase()
-                .includes(query)
+              `${option.name} ${option.mobile} ${option.mobileDisplay}`.toLowerCase().includes(query)
             );
 
             if (!filtered.length) {
@@ -129,23 +143,28 @@ export default function ConversationList({
           renderInput={(params) => (
             <TextField
               {...params}
-              placeholder="Start new chat (customer or mobile)"
-              helperText={customerLoadError || 'Select customer to open chat instantly'}
+              placeholder="Select customer or mobile"
+              helperText={customerLoadError || 'Open chat directly from CRM customer list'}
               error={Boolean(customerLoadError)}
-              InputProps={{
-                ...params.InputProps,
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchRoundedIcon fontSize="small" />
-                  </InputAdornment>
-                ),
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 999,
+                  bgcolor: '#ffffff',
+                },
               }}
             />
           )}
           renderOption={(props, option) => (
-            <Box component="li" {...props} key={option.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+            <Box
+              component="li"
+              {...props}
+              key={option.id}
+              sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
+            >
               <Typography variant="body2" fontWeight={700}>{option.name}</Typography>
-              <Typography variant="caption" color="text.secondary">{option.mobileDisplay || option.mobile}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {option.mobileDisplay || option.mobile}
+              </Typography>
             </Box>
           )}
         />
@@ -167,14 +186,18 @@ export default function ConversationList({
                   key={conversation.id}
                   selected={isActive}
                   onClick={() => onSelectConversation(conversation.id)}
-                  sx={{ py: 1, px: 1.25, alignItems: 'flex-start' }}
+                  sx={{
+                    py: 1,
+                    px: 1.2,
+                    alignItems: 'flex-start',
+                    borderBottom: '1px solid #f0f2f5',
+                    bgcolor: isActive ? '#f0f2f5' : '#ffffff',
+                    '&.Mui-selected': { bgcolor: '#f0f2f5' },
+                    '&:hover': { bgcolor: '#f8fafb' },
+                  }}
                 >
-                  <Badge
-                    color="primary"
-                    badgeContent={hasUnread ? conversation.unreadCount : 0}
-                    overlap="circular"
-                  >
-                    <Avatar sx={{ bgcolor: 'primary.main', width: 38, height: 38, fontSize: 13 }}>
+                  <Badge color="success" badgeContent={hasUnread ? conversation.unreadCount : 0} overlap="circular">
+                    <Avatar sx={{ bgcolor: '#25d366', width: 40, height: 40, fontSize: 13 }}>
                       {getInitials(conversation.displayName || conversation.contact)}
                     </Avatar>
                   </Badge>
@@ -183,18 +206,36 @@ export default function ConversationList({
                     sx={{ ml: 1.2, my: 0, minWidth: 0 }}
                     primary={
                       <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
-                        <Typography noWrap variant="subtitle2" fontWeight={700}>{conversation.displayName}</Typography>
-                        <Typography variant="caption" color="text.secondary">{formatConversationTime(conversation.lastTimestamp)}</Typography>
+                        <Typography noWrap variant="subtitle2" fontWeight={700}>
+                          {conversation.displayName}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color={hasUnread ? 'success.main' : 'text.secondary'}
+                          sx={{ whiteSpace: 'nowrap' }}
+                        >
+                          {formatConversationTime(conversation.lastTimestamp)}
+                        </Typography>
                       </Stack>
                     }
                     secondary={
-                      <Stack spacing={0.25}>
+                      <Stack spacing={0.2}>
                         <Typography noWrap variant="caption" color="text.secondary">
                           {conversation.secondaryLabel || conversation.contact}
                         </Typography>
-                        <Typography noWrap variant="body2" color={hasUnread ? 'text.primary' : 'text.secondary'} fontWeight={hasUnread ? 600 : 400}>
-                          {mediaTypeIcon(conversation.lastMessageType)} {conversation.lastMessage || 'No message'}
-                        </Typography>
+                        <Stack direction="row" alignItems="center" spacing={0.6}>
+                          {!hasUnread ? (
+                            <DoneAllRoundedIcon sx={{ fontSize: 15, color: '#53bdeb' }} />
+                          ) : null}
+                          <Typography
+                            noWrap
+                            variant="body2"
+                            color={hasUnread ? 'text.primary' : 'text.secondary'}
+                            fontWeight={hasUnread ? 700 : 400}
+                          >
+                            {mediaTypeIcon(conversation.lastMessageType)} {conversation.lastMessage || 'No message'}
+                          </Typography>
+                        </Stack>
                       </Stack>
                     }
                   />

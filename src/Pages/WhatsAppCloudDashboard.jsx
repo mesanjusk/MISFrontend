@@ -1,6 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
-import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
-import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
@@ -14,10 +12,11 @@ import {
   Typography,
   useMediaQuery,
 } from '@mui/material';
-import { fetchWhatsAppStatus } from '../services/whatsappService';
-import LoadingSkeleton from '../components/whatsappCloud/LoadingSkeleton';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
+import { fetchWhatsAppStatus } from '../services/whatsappCloudService';
 import { parseApiError } from '../utils/parseApiError';
-import { ErrorState, FilterToolbar, SectionCard } from '../components/ui';
+import { ErrorState, FilterToolbar, LoadingSkeleton, SectionCard } from '../components/ui';
 
 const MessagesPanel = lazy(() => import('../components/whatsappCloud/MessagesPanel'));
 const SendMessagePanel = lazy(() => import('../components/whatsappCloud/SendMessagePanel'));
@@ -26,9 +25,9 @@ const AutoReplyManagementPanel = lazy(() => import('../components/whatsappCloud/
 const AnalyticsDashboard = lazy(() => import('../components/whatsappCloud/AnalyticsDashboard'));
 
 const navItems = [
-  { key: 'inbox', label: 'Inbox' },
+  { key: 'inbox', label: 'Chats' },
   { key: 'templates', label: 'Templates' },
-  { key: 'campaigns', label: 'Campaigns' },
+  { key: 'campaigns', label: 'Broadcast' },
   { key: 'autoReply', label: 'Auto Reply' },
   { key: 'analytics', label: 'Analytics' },
   { key: 'settings', label: 'Settings' },
@@ -97,31 +96,49 @@ export default function WhatsAppCloudDashboard() {
     return <Typography variant="body2">Settings panel is ready for configuration controls.</Typography>;
   }, [activeTab, search]);
 
-  const connectionChipColor = connectionState === 'connected'
-    ? 'success'
-    : connectionState === 'loading'
-      ? 'warning'
-      : 'error';
+  const connectionChipColor =
+    connectionState === 'connected'
+      ? 'success'
+      : connectionState === 'loading'
+        ? 'warning'
+        : 'error';
 
   return (
-    <Box
-      sx={{
-        px: { xs: 0.5, sm: 0.75, md: 1 },
-        pt: 0,
-        pb: { xs: 0.5, md: 0.75 },
-      }}
-    >
+    <Box sx={{ px: { xs: 0.5, md: 1 }, pb: { xs: 0.5, md: 0.75 } }}>
       <SectionCard
         contentSx={{
           p: 0,
           height: { xs: 'calc(100dvh - 8.3rem)', md: 'calc(100dvh - 7.4rem)' },
-          minHeight: { xs: 500, md: 600 },
+          minHeight: { xs: 520, md: 620 },
         }}
       >
-        <Box sx={{ display: 'flex', height: '100%', minHeight: 0, bgcolor: '#e8f5e9', overflow: 'hidden', borderRadius: 1.5 }}>
-          <Box sx={{ width: 216, borderRight: (theme) => `1px solid ${theme.palette.divider}`, bgcolor: '#0f5132', color: '#ecfdf5', p: 1.5, display: { xs: 'none', md: 'block' } }}>
-            <Typography variant="subtitle1" fontWeight={700} color="#ecfdf5">Cloud Inbox</Typography>
-            <Typography variant="caption" color="rgba(236,253,245,0.78)">WhatsApp workspace</Typography>
+        <Box
+          sx={{
+            display: 'flex',
+            height: '100%',
+            minHeight: 0,
+            overflow: 'hidden',
+            borderRadius: 1.5,
+            bgcolor: '#111b21',
+          }}
+        >
+          <Box
+            sx={{
+              width: 220,
+              borderRight: '1px solid rgba(255,255,255,0.08)',
+              bgcolor: '#111b21',
+              color: '#e9edef',
+              p: 1.5,
+              display: { xs: 'none', md: 'block' },
+            }}
+          >
+            <Typography variant="subtitle1" fontWeight={700} color="#e9edef">
+              WhatsApp
+            </Typography>
+            <Typography variant="caption" color="rgba(233,237,239,0.72)">
+              Web-style workspace
+            </Typography>
+
             <Tabs
               orientation="vertical"
               variant="scrollable"
@@ -129,9 +146,8 @@ export default function WhatsAppCloudDashboard() {
               onChange={(_, value) => setActiveTab(value)}
               sx={{
                 mt: 1.25,
-                minHeight: 0,
                 '& .MuiTabs-flexContainer': { gap: 0.75 },
-                '& .MuiTabs-indicator': { left: 0, width: 3, borderRadius: 4 },
+                '& .MuiTabs-indicator': { left: 0, width: 3, borderRadius: 4, bgcolor: '#25d366' },
               }}
             >
               {navItems.map((item) => (
@@ -151,16 +167,10 @@ export default function WhatsAppCloudDashboard() {
                     py: 0.9,
                     borderRadius: 1.5,
                     minHeight: 38,
-                    minWidth: 0,
-                    width: '100%',
-                    maxWidth: '100%',
-                    boxSizing: 'border-box',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
+                    color: '#cfd4d8',
                     '&.Mui-selected': {
-                      bgcolor: '#25d366',
-                      color: '#052e16',
+                      bgcolor: '#202c33',
+                      color: '#25d366',
                     },
                   }}
                 />
@@ -168,16 +178,20 @@ export default function WhatsAppCloudDashboard() {
             </Tabs>
           </Box>
 
-          <Stack sx={{ minWidth: 0, flex: 1 }}>
+          <Stack sx={{ minWidth: 0, flex: 1, bgcolor: '#f0f2f5' }}>
             <FilterToolbar>
               <TextField
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search conversations, templates, campaigns"
+                placeholder="Search or start new chat"
                 size="small"
-                sx={{ minWidth: { xs: '100%', sm: 300 }, flex: { md: 1 } }}
+                sx={{ minWidth: { xs: '100%', sm: 320 }, flex: { md: 1 } }}
                 InputProps={{
-                  startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment>,
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchRoundedIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
                 }}
               />
 
@@ -187,18 +201,29 @@ export default function WhatsAppCloudDashboard() {
                   size="small"
                   label={
                     connectionState === 'loading' ? (
-                      <Stack direction="row" alignItems="center" spacing={0.75}><CircularProgress size={12} color="inherit" /><span>WhatsApp {connectionStatus}</span></Stack>
+                      <Stack direction="row" alignItems="center" spacing={0.75}>
+                        <CircularProgress size={12} color="inherit" />
+                        <span>WhatsApp {connectionStatus}</span>
+                      </Stack>
                     ) : `WhatsApp ${connectionStatus}`
                   }
                 />
                 <Typography variant="caption" color="text.secondary">
-                  {lastCheckedAt ? `Last checked ${lastCheckedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'Checking status...'}
+                  {lastCheckedAt
+                    ? `Last checked ${lastCheckedAt.toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                      })}`
+                    : 'Checking status...'}
                 </Typography>
-                {statusError ? (
-                  <Button size="small" startIcon={<RefreshRoundedIcon fontSize="small" />} onClick={() => setStatusTick((prev) => prev + 1)}>
-                    Retry
-                  </Button>
-                ) : null}
+                <Button
+                  size="small"
+                  startIcon={<RefreshRoundedIcon fontSize="small" />}
+                  onClick={() => setStatusTick((prev) => prev + 1)}
+                >
+                  Refresh
+                </Button>
               </Stack>
 
               <Tabs
@@ -211,30 +236,22 @@ export default function WhatsAppCloudDashboard() {
                   display: { xs: 'flex', md: 'none' },
                   minHeight: 34,
                   mt: 0.25,
-                  '& .MuiTabs-scroller': { overflowY: 'hidden !important' },
-                  '& .MuiTabs-scrollButtons': { width: 26 },
-                  '& .MuiTabs-indicator': { height: 2, borderRadius: 2 },
+                  '& .MuiTabs-indicator': { height: 2, borderRadius: 2, bgcolor: '#25d366' },
                   '& .MuiTab-root': {
                     minHeight: 34,
                     px: 1.25,
                     py: 0.5,
                     minWidth: 'fit-content',
-                    maxWidth: 'none',
                     borderRadius: 999,
-                    border: (theme) => `1px solid ${theme.palette.divider}`,
+                    border: '1px solid #d1d7db',
                     textTransform: 'none',
                     fontWeight: 600,
-                    fontSize: 'clamp(0.72rem, 2.8vw, 0.82rem)',
-                    lineHeight: 1.2,
-                    boxSizing: 'border-box',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
+                    fontSize: '0.78rem',
                     mr: 0.75,
                   },
                   '& .MuiTab-root.Mui-selected': {
-                    color: '#052e16',
-                    bgcolor: '#25d366',
+                    color: '#0f172a',
+                    bgcolor: '#86efac',
                     borderColor: '#25d366',
                   },
                 }}
@@ -247,18 +264,7 @@ export default function WhatsAppCloudDashboard() {
 
             {statusError ? <ErrorState message={statusError} /> : null}
 
-            <Box
-              sx={{
-                minHeight: 0,
-                flex: 1,
-                p: { xs: 0.75, md: 1 },
-                pb: {
-                  xs: 'calc(5.25rem + env(safe-area-inset-bottom))',
-                  md: 1,
-                },
-                overflow: 'hidden',
-              }}
-            >
+            <Box sx={{ minHeight: 0, flex: 1, overflow: 'hidden' }}>
               <Suspense fallback={<LoadingSkeleton lines={isDesktop ? 9 : 7} />}>
                 {renderSection}
               </Suspense>

@@ -25,6 +25,9 @@ import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneR
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
+import ChatRoundedIcon from '@mui/icons-material/ChatRounded';
+import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
+import AssignmentRoundedIcon from '@mui/icons-material/AssignmentRounded';
 import { useAuth } from '../context/AuthContext';
 import { ROUTES } from '../constants/routes';
 
@@ -41,10 +44,10 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
 
   const tabs = useMemo(
     () => [
-      { label: 'Orders', path: '/allOrder' },
-      { label: 'Deliveries', path: '/allDelivery' },
-      { label: 'Vendors', path: ROUTES.ALL_VENDORS },
-      { label: 'Bills', path: ROUTES.ALL_BILLS },
+      { label: 'Home', path: ROUTES.HOME, icon: <HomeRoundedIcon sx={{ fontSize: 15 }} /> },
+      { label: 'Orders', path: '/allOrder', icon: <AssignmentRoundedIcon sx={{ fontSize: 15 }} /> },
+      { label: 'Transactions', path: ROUTES.ALL_TRANSACTION, icon: <ReceiptLongRoundedIcon sx={{ fontSize: 15 }} /> },
+      { label: 'WhatsApp', path: ROUTES.WHATSAPP_CLOUD, icon: <ChatRoundedIcon sx={{ fontSize: 15 }} /> },
     ],
     [],
   );
@@ -64,6 +67,7 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
         <IconButton onClick={onToggleSidebar} sx={{ display: { md: 'none' } }}>
           <MenuRoundedIcon fontSize="small" />
         </IconButton>
+
         <IconButton onClick={onToggleDesktopCollapse} sx={{ display: { xs: 'none', md: 'inline-flex' } }}>
           {desktopCollapsed ? <MenuRoundedIcon fontSize="small" /> : <MenuOpenRoundedIcon fontSize="small" />}
         </IconButton>
@@ -72,7 +76,10 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
           <Typography variant="subtitle1" noWrap>
             MIS Pro
           </Typography>
-          <Breadcrumbs separator={<NavigateNextRoundedIcon sx={{ fontSize: 14 }} />} sx={{ '& .MuiBreadcrumbs-ol': { flexWrap: 'nowrap' } }}>
+          <Breadcrumbs
+            separator={<NavigateNextRoundedIcon sx={{ fontSize: 14 }} />}
+            sx={{ '& .MuiBreadcrumbs-ol': { flexWrap: 'nowrap' } }}
+          >
             <Typography variant="caption" color="text.secondary">Workspace</Typography>
             <Typography variant="caption" color="text.primary" noWrap>{titleFromPath(pathname)}</Typography>
           </Breadcrumbs>
@@ -91,18 +98,26 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
           }}
         />
 
-        <Stack direction="row" spacing={0.6} sx={{ display: { xs: 'none', xl: 'flex' } }}>
+        <Stack direction="row" spacing={0.75} sx={{ display: { xs: 'none', xl: 'flex' } }}>
           {tabs.map((tab) => (
             <Chip
               key={tab.path}
               clickable
               size="small"
-              label={<NavLink style={{ textDecoration: 'none', color: 'inherit', fontWeight: 600 }} to={tab.path}>{tab.label}</NavLink>}
-              variant="outlined"
+              icon={tab.icon}
+              label={
+                <NavLink
+                  style={{ textDecoration: 'none', color: 'inherit', fontWeight: 700 }}
+                  to={tab.path}
+                >
+                  {tab.label}
+                </NavLink>
+              }
+              variant={pathname === tab.path ? 'filled' : 'outlined'}
+              color={pathname === tab.path ? 'primary' : 'default'}
             />
           ))}
         </Stack>
-
 
         <Button
           variant="contained"
@@ -110,7 +125,7 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
           size="small"
           startIcon={<HomeRoundedIcon sx={{ fontSize: 16 }} />}
           onClick={() => navigate(ROUTES.HOME)}
-          sx={{ ml: { xs: 'auto', lg: 0 }, borderRadius: 2, display: { xs: 'none', sm: 'inline-flex' } }}
+          sx={{ ml: { xs: 'auto', lg: 0 }, display: { xs: 'none', sm: 'inline-flex' } }}
         >
           Home
         </Button>
@@ -122,7 +137,7 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
         </IconButton>
 
         <IconButton onClick={(event) => setMenuAnchor(event.currentTarget)}>
-          <Avatar sx={{ bgcolor: 'primary.main', width: 30, height: 30, fontSize: 12 }}>
+          <Avatar sx={{ bgcolor: 'secondary.main', width: 30, height: 30, fontSize: 12 }}>
             {userName ? userName.slice(0, 2).toUpperCase() : 'NA'}
           </Avatar>
         </IconButton>

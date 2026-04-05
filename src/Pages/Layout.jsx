@@ -47,7 +47,14 @@ export default function Layout() {
   const sidebarWidth = isDesktop ? (desktopCollapsed ? DRAWER_COLLAPSED : DRAWER_WIDTH) : 0;
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', overflowX: 'hidden' }}>
+    <Box
+      sx={{
+        height: '100dvh',
+        bgcolor: 'background.default',
+        display: 'flex',
+        overflow: 'hidden',
+      }}
+    >
       <Sidebar
         desktopCollapsed={desktopCollapsed}
         mobileOpen={mobileOpen}
@@ -61,10 +68,22 @@ export default function Layout() {
           ml: { md: `${sidebarWidth}px` },
           transition: (theme) => theme.transitions.create('margin-left'),
           pr: { lg: 6 },
-          minHeight: '100vh',
+          height: '100dvh',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
         }}
       >
-        <Box sx={{ position: 'fixed', top: 0, left: { xs: 0, md: `${sidebarWidth}px` }, right: 0, zIndex: 1200, transition: (theme) => theme.transitions.create(['left']) }}>
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: { xs: 0, md: `${sidebarWidth}px` },
+            right: 0,
+            zIndex: 1200,
+            transition: (theme) => theme.transitions.create(['left']),
+          }}
+        >
           <TopNavbar
             onToggleSidebar={() => setMobileOpen((prev) => !prev)}
             onToggleDesktopCollapse={() => setDesktopCollapsed((prev) => !prev)}
@@ -72,12 +91,32 @@ export default function Layout() {
           />
         </Box>
 
-        <Box component="main" sx={{ px: { xs: 0.5, md: 1 }, pt: `${NAVBAR_HEIGHT + 8}px`, py: 1, pb: { xs: 8.5, md: 1.5 }, minHeight: '100vh', overflow: 'visible' }}>
-          <Box sx={{ maxWidth: 1640, mx: 'auto', minHeight: `calc(100vh - ${NAVBAR_HEIGHT + 24}px)` }}><Outlet /></Box>
+        <Box
+          component="main"
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            px: { xs: 0.5, md: 1 },
+            pt: `${NAVBAR_HEIGHT + 8}px`,
+            pb: { xs: 8.5, md: 1.5 },
+            scrollBehavior: 'smooth',
+          }}
+        >
+          <Box
+            sx={{
+              maxWidth: 1640,
+              mx: 'auto',
+              minHeight: `calc(100dvh - ${NAVBAR_HEIGHT + 24}px)`,
+            }}
+          >
+            <Outlet />
+          </Box>
+          <Footer />
         </Box>
 
         <FloatingButtons buttonsList={buttonsList} />
-        <Footer />
       </Box>
 
       <RightUtilityRail actions={utilityActions} />
@@ -87,7 +126,13 @@ export default function Layout() {
         aria-label="open menu"
         onClick={() => setMobileOpen(true)}
         size="small"
-        sx={{ position: 'fixed', left: 10, bottom: 70, display: { xs: 'flex', md: 'none' }, zIndex: 1199 }}
+        sx={{
+          position: 'fixed',
+          left: 10,
+          bottom: 70,
+          display: { xs: 'flex', md: 'none' },
+          zIndex: 1199,
+        }}
       >
         <AddIcon fontSize="small" />
       </Fab>

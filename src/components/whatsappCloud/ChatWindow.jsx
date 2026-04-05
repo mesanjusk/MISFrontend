@@ -47,18 +47,18 @@ export default function ChatWindow({
         flexDirection: 'column',
         height: '100%',
         minHeight: 0,
-        bgcolor: 'rgba(231, 245, 239, 0.5)',
+        bgcolor: '#efeae2',
       }}
     >
       <Box
         ref={scrollRef}
+        className="whatsapp-wallpaper"
         sx={{
-          minHeight: 0,
           flex: 1,
+          minHeight: 0,
           overflowY: 'auto',
-          p: 1.25,
-          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(17,94,89,0.10) 1px, transparent 0)',
-          backgroundSize: '22px 22px',
+          px: { xs: 1, md: 2 },
+          py: 1.25,
         }}
       >
         {messages.length === 0 ? (
@@ -78,7 +78,15 @@ export default function ChatWindow({
             <Box key={getMessageIdentity(message)} sx={{ mb: 1.25 }}>
               {showDateSeparator ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
-                  <Chip label={dateLabel} size="small" sx={{ bgcolor: 'rgba(255,255,255,0.95)', border: '1px solid rgba(20,108,67,0.2)' }} />
+                  <Chip
+                    label={dateLabel}
+                    size="small"
+                    sx={{
+                      bgcolor: '#e1f2fb',
+                      color: '#54656f',
+                      border: '1px solid #d1e8f5',
+                    }}
+                  />
                 </Box>
               ) : null}
 
