@@ -1,29 +1,29 @@
 import { alpha, createTheme } from '@mui/material/styles';
 
-const PRIMARY_GREEN = '#7aa77a';
-const PRIMARY_GREEN_DARK = '#5e8c61';
-const PRIMARY_GREEN_LIGHT = '#a8c9a8';
+const PRIMARY_GREEN = '#5f8f6e';
+const PRIMARY_GREEN_DARK = '#466f53';
+const PRIMARY_GREEN_LIGHT = '#8eb39a';
 
 const neutralPalette = {
-  50: '#f8faf8',
-  100: '#f1f5f1',
-  200: '#e6ece6',
-  300: '#d7e0d7',
-  400: '#b8c5b8',
-  500: '#96a796',
-  600: '#6b7b6b',
-  700: '#4a564a',
-  800: '#364036',
-  900: '#252c25',
+  50: '#f8faf9',
+  100: '#f1f4f2',
+  200: '#e3e9e5',
+  300: '#d2ddd6',
+  400: '#aebfb4',
+  500: '#879b8b',
+  600: '#627567',
+  700: '#4a5a4f',
+  800: '#354038',
+  900: '#222924',
 };
 
 const baseShadows = [
   'none',
-  '0 1px 2px rgba(37, 44, 37, 0.05)',
-  '0 3px 10px rgba(37, 44, 37, 0.07)',
-  '0 8px 20px rgba(37, 44, 37, 0.08)',
-  '0 12px 28px rgba(37, 44, 37, 0.09)',
-  ...Array(20).fill('0 16px 34px rgba(37, 44, 37, 0.1)'),
+  '0 1px 2px rgba(34, 41, 36, 0.06)',
+  '0 3px 10px rgba(34, 41, 36, 0.08)',
+  '0 10px 24px rgba(34, 41, 36, 0.1)',
+  '0 18px 36px rgba(34, 41, 36, 0.12)',
+  ...Array(20).fill('0 20px 42px rgba(34, 41, 36, 0.14)'),
 ];
 
 const shared = {
@@ -40,10 +40,10 @@ const shared = {
     h6: { fontSize: '0.86rem', fontWeight: 650, lineHeight: 1.35 },
     subtitle1: { fontSize: '0.82rem', fontWeight: 600 },
     subtitle2: { fontSize: '0.76rem', fontWeight: 600 },
-    body1: { fontSize: '0.82rem', lineHeight: 1.4 },
-    body2: { fontSize: '0.76rem', lineHeight: 1.4 },
+    body1: { fontSize: '0.82rem', lineHeight: 1.42 },
+    body2: { fontSize: '0.76rem', lineHeight: 1.42 },
     caption: { fontSize: '0.7rem', lineHeight: 1.35 },
-    button: { textTransform: 'none', fontWeight: 600, fontSize: '0.78rem' },
+    button: { textTransform: 'none', fontWeight: 600, fontSize: '0.78rem', letterSpacing: 0 },
   },
 };
 
@@ -53,8 +53,15 @@ const getComponentOverrides = (theme) => ({
       body: {
         backgroundColor: theme.palette.background.default,
         color: theme.palette.text.primary,
+        overflow: 'hidden',
       },
       '#root': { minHeight: '100vh' },
+      '*::-webkit-scrollbar': { width: 8, height: 8 },
+      '*::-webkit-scrollbar-thumb': {
+        background: alpha(theme.palette.primary.main, 0.35),
+        borderRadius: 8,
+      },
+      '*::-webkit-scrollbar-track': { background: alpha(theme.palette.primary.main, 0.08) },
     },
   },
   MuiAppBar: {
@@ -62,8 +69,8 @@ const getComponentOverrides = (theme) => ({
       root: {
         boxShadow: 'none',
         borderBottom: `1px solid ${theme.palette.divider}`,
-        backgroundColor: alpha(theme.palette.background.paper, 0.86),
-        backdropFilter: 'blur(10px)',
+        backgroundColor: alpha(theme.palette.background.paper, 0.88),
+        backdropFilter: 'blur(12px)',
       },
     },
   },
@@ -71,7 +78,7 @@ const getComponentOverrides = (theme) => ({
     styleOverrides: {
       paper: {
         borderRight: `1px solid ${theme.palette.divider}`,
-        backgroundColor: theme.palette.background.paper,
+        backgroundColor: alpha(theme.palette.background.paper, 0.96),
       },
     },
   },
@@ -85,15 +92,23 @@ const getComponentOverrides = (theme) => ({
     styleOverrides: {
       root: {
         borderRadius: 10,
-        border: `1px solid ${alpha(theme.palette.primary.main, 0.17)}`,
+        border: `1px solid ${alpha(theme.palette.primary.main, 0.15)}`,
         boxShadow: theme.shadows[1],
       },
+    },
+  },
+  MuiCardHeader: {
+    styleOverrides: {
+      root: { paddingTop: 10, paddingBottom: 10 },
+      title: { fontSize: theme.typography.subtitle1.fontSize, fontWeight: 650 },
+      subheader: { fontSize: theme.typography.caption.fontSize },
     },
   },
   MuiButton: {
     defaultProps: { disableElevation: true, size: 'small' },
     styleOverrides: {
-      root: { borderRadius: 8, minHeight: 32, paddingInline: 10, paddingBlock: 5 },
+      root: { borderRadius: 8, minHeight: 32, paddingInline: 10, paddingBlock: 5, whiteSpace: 'nowrap' },
+      outlined: { borderWidth: 1 },
     },
   },
   MuiIconButton: {
@@ -115,6 +130,14 @@ const getComponentOverrides = (theme) => ({
     },
   },
   MuiSelect: { defaultProps: { size: 'small' } },
+  MuiTableContainer: {
+    styleOverrides: {
+      root: {
+        borderRadius: 10,
+        border: `1px solid ${alpha(theme.palette.primary.main, 0.18)}`,
+      },
+    },
+  },
   MuiTable: { defaultProps: { size: 'small', stickyHeader: false } },
   MuiTableCell: {
     defaultProps: { size: 'small' },
@@ -125,18 +148,21 @@ const getComponentOverrides = (theme) => ({
         backgroundColor: alpha(theme.palette.primary.main, 0.07),
         paddingTop: 6,
         paddingBottom: 6,
+        whiteSpace: 'nowrap',
       },
-      body: { paddingTop: 6, paddingBottom: 6 },
+      body: { paddingTop: 6, paddingBottom: 6, verticalAlign: 'middle' },
     },
   },
   MuiTabs: { styleOverrides: { indicator: { height: 2.5, borderRadius: 4 } } },
-  MuiDialog: { styleOverrides: { paper: { borderRadius: 12 } } },
+  MuiDialog: { styleOverrides: { paper: { borderRadius: 12, overflow: 'hidden' } } },
   MuiChip: {
     styleOverrides: {
       root: {
         borderRadius: 999,
         height: 22,
+        maxWidth: '100%',
       },
+      label: { overflow: 'hidden', textOverflow: 'ellipsis' },
     },
   },
   MuiTooltip: {
@@ -166,6 +192,10 @@ const getComponentOverrides = (theme) => ({
   MuiToolbar: { styleOverrides: { root: { minHeight: 52 } } },
   MuiFormControl: { defaultProps: { margin: 'dense', size: 'small', fullWidth: true } },
   MuiInputLabel: { defaultProps: { size: 'small' } },
+  MuiContainer: {
+    defaultProps: { maxWidth: 'xl' },
+    styleOverrides: { root: { paddingLeft: 10, paddingRight: 10 } },
+  },
 });
 
 const basePalette = {
@@ -183,9 +213,9 @@ export const lightTheme = (() => {
     palette: {
       mode: 'light',
       ...basePalette,
-      background: { default: '#f4f6f4', paper: '#ffffff' },
+      background: { default: '#f3f5f3', paper: '#ffffff' },
       text: { primary: '#2b332b', secondary: '#5b665b' },
-      divider: '#dfe7df',
+      divider: '#dce4de',
       action: {
         hover: alpha(PRIMARY_GREEN, 0.08),
         selected: alpha(PRIMARY_GREEN, 0.12),

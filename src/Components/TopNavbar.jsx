@@ -57,7 +57,7 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
   };
 
   return (
-    <AppBar position="sticky" color="inherit">
+    <AppBar position="static" color="inherit" elevation={0}>
       <Toolbar sx={{ minHeight: { xs: 54, md: 56 }, px: { xs: 1, md: 1.5 }, gap: 0.75 }}>
         <IconButton onClick={onToggleSidebar} sx={{ display: { md: 'none' } }}>
           <MenuRoundedIcon fontSize="small" />
@@ -66,7 +66,7 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
           {desktopCollapsed ? <MenuRoundedIcon fontSize="small" /> : <MenuOpenRoundedIcon fontSize="small" />}
         </IconButton>
 
-        <Stack sx={{ minWidth: 0, pr: 1, maxWidth: 350 }}>
+        <Stack sx={{ minWidth: 0, pr: 1, maxWidth: { xs: 170, sm: 260, md: 340 } }}>
           <Typography variant="subtitle1" noWrap>
             MIS CRM
           </Typography>
@@ -79,7 +79,7 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
         <TextField
           size="small"
           placeholder="Search customer, order, payment..."
-          sx={{ display: { xs: 'none', lg: 'flex' }, minWidth: 250, maxWidth: 340, ml: 'auto' }}
+          sx={{ display: { xs: 'none', lg: 'flex' }, minWidth: 240, maxWidth: 340, ml: 'auto' }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -101,7 +101,7 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
           ))}
         </Stack>
 
-        <IconButton aria-label="notifications">
+        <IconButton aria-label="notifications" sx={{ ml: { lg: 0.5, xl: 0 } }}>
           <Badge color="primary" variant="dot">
             <NotificationsNoneRoundedIcon fontSize="small" />
           </Badge>

@@ -29,16 +29,18 @@ export default function Footer() {
     <Paper
       sx={{
         position: 'fixed',
-        left: 0,
-        right: 0,
-        bottom: 0,
+        left: 8,
+        right: 8,
+        bottom: 8,
         zIndex: 1100,
         display: { xs: 'block', md: 'none' },
-        borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+        border: (theme) => `1px solid ${theme.palette.divider}`,
+        borderRadius: 2,
+        overflow: 'hidden',
       }}
-      elevation={0}
+      elevation={1}
     >
-      <BottomNavigation value={active} onChange={(_, next) => next && navigate(next)} showLabels sx={{ minHeight: 57 }}>
+      <BottomNavigation value={active} onChange={(_, next) => next && navigate(next)} showLabels sx={{ minHeight: 58 }}>
         {tabs.map((tab) => (
           <BottomNavigationAction key={tab.path} value={tab.path} label={tab.label} icon={tab.icon} sx={{ minWidth: 0, px: 0.25 }} />
         ))}

@@ -47,7 +47,7 @@ export default function ChatWindow({
         flexDirection: 'column',
         height: '100%',
         minHeight: 0,
-        bgcolor: 'rgba(231, 245, 239, 0.6)',
+        bgcolor: 'rgba(231, 245, 239, 0.5)',
       }}
     >
       <Box
@@ -56,9 +56,9 @@ export default function ChatWindow({
           minHeight: 0,
           flex: 1,
           overflowY: 'auto',
-          p: 1.5,
+          p: 1.25,
           backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(17,94,89,0.10) 1px, transparent 0)',
-          backgroundSize: '24px 24px',
+          backgroundSize: '22px 22px',
         }}
       >
         {messages.length === 0 ? (

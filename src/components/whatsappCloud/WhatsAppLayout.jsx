@@ -7,7 +7,7 @@ export default function WhatsAppLayout({ sidebar, main, details }) {
       variant="outlined"
       sx={{
         overflow: 'hidden',
-        borderRadius: { xs: 2, md: 3 },
+        borderRadius: { xs: 1.5, md: 2 },
         bgcolor: 'background.paper',
         boxShadow: 1,
         height: '100%',
@@ -17,7 +17,7 @@ export default function WhatsAppLayout({ sidebar, main, details }) {
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', lg: details ? '340px minmax(0, 1fr) 288px' : '340px minmax(0, 1fr)' },
+          gridTemplateColumns: { xs: '1fr', lg: details ? '320px minmax(0, 1fr) 280px' : '320px minmax(0, 1fr)' },
           height: '100%',
           minHeight: 0,
         }}

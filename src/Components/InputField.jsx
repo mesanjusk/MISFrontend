@@ -14,6 +14,7 @@ export default function InputField({
       label={label}
       type={type}
       fullWidth
+      size="small"
       className={className}
       InputProps={
         Icon

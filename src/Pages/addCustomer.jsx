@@ -1,232 +1,205 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState } from 'react';
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Chip,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
 import axios from '../apiClient.js';
+import { ActionButtonGroup, PageContainer, SectionCard } from '../components/ui';
 
 export default function AddCustomer({ onClose }) {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
-    const [form, setForm] = useState({
-        Customer_name: '',
-        Mobile_number: '',  // This field is now optional by default
-        Customer_group: '',
-        Status: 'active',
-        Tags: [],
-        LastInteraction: '',
-    });
+  const [form, setForm] = useState({
+    Customer_name: '',
+    Mobile_number: '',
+    Customer_group: '',
+    Status: 'active',
+    Tags: [],
+    LastInteraction: '',
+  });
 
-    const [groupOptions, setGroupOptions] = useState([]);
-    const [duplicateNameError, setDuplicateNameError] = useState('');
+  const [groupOptions, setGroupOptions] = useState([]);
+  const [duplicateNameError, setDuplicateNameError] = useState('');
 
-    const canSubmit = Boolean(form.Customer_name.trim()) && Boolean(form.Customer_group.trim());
+  const canSubmit = Boolean(form.Customer_name.trim()) && Boolean(form.Customer_group.trim());
 
-    useEffect(() => {
-        axios.get("/customergroup/GetCustomergroupList")
-            .then(res => {
-                if (res.data.success) {
-                    const options = res.data.result.map(item => item.Customer_group);
-                    setGroupOptions(options);
-                }
-            })
-            .catch(err => {
-                console.error("Error fetching customer group options:", err);
-            });
-    }, []);
-
-    const formatDateForInput = (dateString) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        const offset = date.getTimezoneOffset();
-        const localDate = new Date(date.getTime() - offset * 60000);
-        return localDate.toISOString().slice(0, 16);
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setDuplicateNameError('');
-
-        if (!form.Customer_name.trim()) {
-            alert("Customer name is required.");
-            return;
+  useEffect(() => {
+    axios
+      .get('/customergroup/GetCustomergroupList')
+      .then((res) => {
+        if (res.data.success) {
+          const options = res.data.result.map((item) => item.Customer_group);
+          setGroupOptions(options);
         }
+      })
+      .catch((err) => {
+        console.error('Error fetching customer group options:', err);
+      });
+  }, []);
 
-        // Validate mobile number if it is entered (10 digits only)
-        if (form.Mobile_number && !/^\d{10}$/.test(form.Mobile_number)) {
-            alert("Please enter a valid 10-digit mobile number.");
-            return;
-        }
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const offset = date.getTimezoneOffset();
+    const localDate = new Date(date.getTime() - offset * 60000);
+    return localDate.toISOString().slice(0, 16);
+  };
 
-        try {
-            // Check for duplicate name
-            const duplicateRes = await axios.get(`/customer/checkDuplicateName?name=${form.Customer_name.trim()}`);
-            if (!duplicateRes.data.success) {
-                setDuplicateNameError("Customer name already exists.");
-                return;
-            }
-        } catch (error) {
-            console.error("Error checking for duplicate name:", error);
-            alert("Error checking for duplicate name");
-            return;
-        }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setDuplicateNameError('');
 
-        try {
-            const payload = { ...form };
+    if (!form.Customer_name.trim()) {
+      alert('Customer name is required.');
+      return;
+    }
 
-            // Clean up payload before sending to the backend
-            payload.Customer_name = form.Customer_name.trim();
-            payload.Tags = form.Tags.filter(tag => tag !== '');
-            if (!form.LastInteraction) delete payload.LastInteraction;
+    if (form.Mobile_number && !/^\d{10}$/.test(form.Mobile_number)) {
+      alert('Please enter a valid 10-digit mobile number.');
+      return;
+    }
 
-            const res = await axios.post("/customer/addCustomer", payload);
-            if (res.data.success) {
-                alert("Customer added successfully");
-                if (onClose) onClose();
-                else navigate("/home");
-            } else {
-                alert("Failed to add Customer.");
-            }
-        } catch (e) {
-            console.error("Error adding customer:", e);
-            alert("Error adding customer");
-        }
-    };
+    try {
+      const duplicateRes = await axios.get(`/customer/checkDuplicateName?name=${form.Customer_name.trim()}`);
+      if (!duplicateRes.data.success) {
+        setDuplicateNameError('Customer name already exists.');
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking for duplicate name:', error);
+      alert('Error checking for duplicate name');
+      return;
+    }
 
-    const handleChange = (field, value) => {
-        setForm(prev => ({
-            ...prev,
-            [field]: field === "Tags"
-                ? value.split(",").map(tag => tag.trim())
-                : value
-        }));
-    };
+    try {
+      const payload = { ...form };
+      payload.Customer_name = form.Customer_name.trim();
+      payload.Tags = form.Tags.filter((tag) => tag !== '');
+      if (!form.LastInteraction) delete payload.LastInteraction;
 
-    const handleCancel = () => {
+      const res = await axios.post('/customer/addCustomer', payload);
+      if (res.data.success) {
+        alert('Customer added successfully');
         if (onClose) onClose();
-        else navigate("/home");
-    };
+        else navigate('/home');
+      } else {
+        alert('Failed to add Customer.');
+      }
+    } catch (error) {
+      console.error('Error adding customer:', error);
+      alert('Error adding customer');
+    }
+  };
 
-    return (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-            <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-[90vw] max-h-[90vh] overflow-y-auto relative">
-                <button
-                    onClick={handleCancel}
-                    className="absolute right-2 top-2 text-xl text-gray-400 hover:text-blue-500"
-                    type="button"
-                >
-                    ×
-                </button>
-                <h2 className="text-2xl font-semibold text-blue-600 mb-4 text-center">Add Customer</h2>
-                <form onSubmit={handleSubmit} className="space-y-4">
+  const handleChange = (field, value) => {
+    setForm((prev) => ({
+      ...prev,
+      [field]: field === 'Tags' ? value.split(',').map((tag) => tag.trim()) : value,
+    }));
+  };
 
-                    {/* Customer Name */}
-                    <div>
-                        <label className="block text-gray-700 text-sm mb-1">Customer Name</label>
-                        <input
-                            type="text"
-                            value={form.Customer_name}
-                            onChange={(e) => handleChange('Customer_name', e.target.value)}
-                            placeholder="Customer Name"
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                            required
-                        />
-                        {duplicateNameError && <p className="text-red-500 text-sm">{duplicateNameError}</p>}
-                    </div>
+  const handleCancel = () => {
+    if (onClose) onClose();
+    else navigate('/home');
+  };
 
-                    {/* Mobile Number */}
-                    <div>
-                        <label className="block text-gray-700 text-sm mb-1">Mobile Number</label>
-                        <input
-                            type="text"
-                            value={form.Mobile_number}
-                            onChange={(e) => {
-                                const value = e.target.value;
-                                if (/^\d{0,10}$/.test(value)) {
-                                    handleChange('Mobile_number', value);
-                                }
-                            }}
-                            placeholder="Mobile Number"
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
+  return (
+    <PageContainer title="Add Customer" subtitle="Create customer profile with tags and interaction metadata.">
+      <SectionCard>
+        <Box component="form" onSubmit={handleSubmit}>
+          <Stack spacing={1}>
+            <TextField
+              label="Customer Name"
+              value={form.Customer_name}
+              onChange={(e) => handleChange('Customer_name', e.target.value)}
+              required
+              error={Boolean(duplicateNameError)}
+              helperText={duplicateNameError || ' '}
+            />
 
-                    {/* Customer Group */}
-                    <div>
-                        <label className="block text-gray-700 text-sm mb-1">Customer Group</label>
-                        <select
-                            value={form.Customer_group}
-                            onChange={(e) => handleChange('Customer_group', e.target.value)}
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                            required
-                        >
-                            <option value="">Select Group</option>
-                            {groupOptions.map((option, index) => (
-                                <option key={index} value={option}>{option}</option>
-                            ))}
-                        </select>
-                    </div>
+            <TextField
+              label="Mobile Number"
+              value={form.Mobile_number}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (/^\d{0,10}$/.test(value)) {
+                  handleChange('Mobile_number', value);
+                }
+              }}
+              placeholder="10-digit number"
+            />
 
-                    {/* Status */}
-                    <div>
-                        <label className="block text-gray-700 text-sm mb-1">Status</label>
-                        <select
-                            value={form.Status}
-                            onChange={(e) => handleChange('Status', e.target.value)}
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                    </div>
+            <FormControl fullWidth>
+              <InputLabel id="customer-group-label">Customer Group</InputLabel>
+              <Select
+                labelId="customer-group-label"
+                value={form.Customer_group}
+                label="Customer Group"
+                onChange={(e) => handleChange('Customer_group', e.target.value)}
+                required
+              >
+                {groupOptions.map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {option}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-                    {/* Tags */}
-                    <div>
-                        <label className="block text-gray-700 text-sm mb-1">Tags</label>
-                        <input
-                            type="text"
-                            value={form.Tags.join(", ")}
-                            onChange={(e) => handleChange('Tags', e.target.value)}
-                            placeholder="Enter tags separated by commas"
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                        />
-                        <div className="flex flex-wrap gap-2 mt-2">
-                            {form.Tags.map((tag, index) => (
-                                <span key={index} className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">{tag}</span>
-                            ))}
-                        </div>
-                    </div>
+            <FormControl fullWidth>
+              <InputLabel id="status-label">Status</InputLabel>
+              <Select
+                labelId="status-label"
+                value={form.Status}
+                label="Status"
+                onChange={(e) => handleChange('Status', e.target.value)}
+              >
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="inactive">Inactive</MenuItem>
+              </Select>
+            </FormControl>
 
-                    {/* Last Interaction */}
-                    <div>
-                        <label className="block text-gray-700 text-sm mb-1">Last Interaction</label>
-                        <input
-                            type="datetime-local"
-                            value={formatDateForInput(form.LastInteraction)}
-                            onChange={(e) => handleChange('LastInteraction', e.target.value)}
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
+            <TextField
+              label="Tags"
+              value={form.Tags.join(', ')}
+              onChange={(e) => handleChange('Tags', e.target.value)}
+              placeholder="VIP, Retail, Priority"
+            />
 
-                    {/* Buttons */}
-                    <div className="flex gap-4 mt-6">
-                <button
-                    type="submit"
-                    disabled={!canSubmit}
-                    className={`w-full text-white py-2 rounded-lg transition font-medium ${
-                        canSubmit ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-300 cursor-not-allowed'
-                    }`}
-                >
-                    Submit
-                </button>
-                <button
-                    type="button"
-                    onClick={handleCancel}
-                    className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg transition"
-                >
-                    Cancel
-                </button>
-            </div>
-                </form>
-            </div>
-        </div>
-    );
+            <Stack direction="row" spacing={0.6} flexWrap="wrap" useFlexGap>
+              {form.Tags.filter(Boolean).map((tag) => (
+                <Chip key={tag} size="small" label={tag} variant="outlined" />
+              ))}
+            </Stack>
+
+            <TextField
+              label="Last Interaction"
+              type="datetime-local"
+              value={formatDateForInput(form.LastInteraction)}
+              onChange={(e) => handleChange('LastInteraction', e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+
+            <Paper variant="outlined" sx={{ p: 1 }}>
+              <Typography variant="caption" color="text.secondary">
+                Required fields: Customer Name and Customer Group.
+              </Typography>
+            </Paper>
+
+            <ActionButtonGroup primaryLabel="Submit" onCancel={handleCancel} busy={!canSubmit} />
+          </Stack>
+        </Box>
+      </SectionCard>
+    </PageContainer>
+  );
 }

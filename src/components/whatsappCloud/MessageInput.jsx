@@ -87,7 +87,7 @@ export default function MessageInput({
     <Paper
       square
       elevation={0}
-      sx={{ borderTop: (theme) => `1px solid ${theme.palette.divider}`, p: 1.25, position: 'sticky', bottom: 0, zIndex: 3 }}
+      sx={{ borderTop: (theme) => `1px solid ${theme.palette.divider}`, p: 1, position: 'sticky', bottom: 0, zIndex: 3 }}
     >
       {canSendTemplateOnly ? (
         <>
@@ -99,7 +99,7 @@ export default function MessageInput({
       ) : null}
 
       {selectedFile ? (
-        <Paper variant="outlined" sx={{ mb: 1.2, p: 1.25, borderRadius: 2 }}>
+        <Paper variant="outlined" sx={{ mb: 1.2, p: 1, borderRadius: 2 }}>
           <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
             <Stack sx={{ minWidth: 0, flex: 1 }}>
               <Typography noWrap variant="body2" fontWeight={700}>{selectedFile.name}</Typography>
@@ -130,7 +130,7 @@ export default function MessageInput({
         placeholder={disabled ? 'Text input disabled outside 24h window' : 'Type a message'}
         disabled={disabled}
         size="small"
-        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 6, bgcolor: 'grey.100', pr: 0.5 } }}
+        sx={{ '& .MuiOutlinedInput-root': { borderRadius: 4, bgcolor: 'grey.100', pr: 0.5 } }}
         InputProps={{
           startAdornment: !canSendTemplateOnly ? (
             <InputAdornment position="start">

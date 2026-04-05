@@ -10,6 +10,7 @@ export default function SearchBar({ value, onChange, placeholder = 'Search...', 
       placeholder={placeholder}
       icon={FiSearch}
       className={className}
+      size="small"
       {...props}
     />
   );
