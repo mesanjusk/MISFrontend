@@ -17,7 +17,7 @@ import {
 import { fetchWhatsAppStatus } from '../services/whatsappService';
 import LoadingSkeleton from '../components/whatsappCloud/LoadingSkeleton';
 import { parseApiError } from '../utils/parseApiError';
-import { ErrorState, FilterToolbar, PageContainer, SectionCard } from '../components/ui';
+import { ErrorState, FilterToolbar, SectionCard } from '../components/ui';
 
 const MessagesPanel = lazy(() => import('../components/whatsappCloud/MessagesPanel'));
 const SendMessagePanel = lazy(() => import('../components/whatsappCloud/SendMessagePanel'));
@@ -104,15 +104,18 @@ export default function WhatsAppCloudDashboard() {
       : 'error';
 
   return (
-    <PageContainer>
+    <Box
+      sx={{
+        px: { xs: 0.5, sm: 0.75, md: 1 },
+        pt: 0,
+        pb: { xs: 0.5, md: 0.75 },
+      }}
+    >
       <SectionCard
         contentSx={{
           p: 0,
-          height: {
-            xs: 'calc(100dvh - 8.75rem)',
-            md: 'calc(100dvh - 7.75rem)',
-          },
-          minHeight: { xs: 520, md: 620 },
+          height: { xs: 'calc(100dvh - 7.9rem)', md: 'calc(100dvh - 7.1rem)' },
+          minHeight: { xs: 500, md: 600 },
         }}
       >
         <Box sx={{ display: 'flex', height: '100%', minHeight: 0, bgcolor: '#f4f7f8', overflow: 'hidden', borderRadius: 2 }}>
@@ -209,6 +212,7 @@ export default function WhatsAppCloudDashboard() {
                   minHeight: 34,
                   mt: 0.25,
                   '& .MuiTabs-scroller': { overflowY: 'hidden !important' },
+                  '& .MuiTabs-scrollButtons': { width: 26 },
                   '& .MuiTabs-indicator': { height: 2, borderRadius: 2 },
                   '& .MuiTab-root': {
                     minHeight: 34,
@@ -249,7 +253,7 @@ export default function WhatsAppCloudDashboard() {
                 flex: 1,
                 p: { xs: 0.75, md: 1 },
                 pb: {
-                  xs: 'calc(0.75rem + env(safe-area-inset-bottom))',
+                  xs: 'calc(5.25rem + env(safe-area-inset-bottom))',
                   md: 1,
                 },
                 overflow: 'hidden',
@@ -262,6 +266,6 @@ export default function WhatsAppCloudDashboard() {
           </Stack>
         </Box>
       </SectionCard>
-    </PageContainer>
+    </Box>
   );
 }
