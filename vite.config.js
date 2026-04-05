@@ -16,7 +16,7 @@ export default defineConfig({
     proxy: {
       // Forward all /api requests to backend
       '/api': {
-        target: 'http://localhost:10000', // your backend port
+        target: 'http://localhost:10000', // your backend p
         changeOrigin: true,
       },
     },
