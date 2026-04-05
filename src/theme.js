@@ -213,9 +213,9 @@ export const lightTheme = (() => {
     palette: {
       mode: 'light',
       ...basePalette,
-      background: { default: '#f3f5f3', paper: '#ffffff' },
-      text: { primary: '#2b332b', secondary: '#5b665b' },
-      divider: '#dce4de',
+      background: { default: '#eef5fb', paper: '#ffffff' },
+      text: { primary: '#243447', secondary: '#526273' },
+      divider: '#d6e3f0',
       action: {
         hover: alpha(PRIMARY_GREEN, 0.08),
         selected: alpha(PRIMARY_GREEN, 0.12),

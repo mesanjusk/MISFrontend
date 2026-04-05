@@ -57,9 +57,6 @@ const EditPayment = lazy(() => import('./Reports/editPayment'));
 const EditPriority = lazy(() => import('./Reports/editPriority'));
 const SendMessage = lazy(() => import('./Pages/SendMessage'));
 const SendMessageAll = lazy(() => import('./Pages/SendMessageAll'));
-const WhatsAppLogin = lazy(() => import('./Pages/WhatsAppLogin'));
-const WhatsAppSession = lazy(() => import('./Pages/WhatsAppSession'));
-const WhatsAppAdminPanel = lazy(() => import('./Pages/WhatsAppAdminPanel'));
 const WhatsAppCloudDashboard = lazy(() => import('./Pages/WhatsAppCloudDashboard'));
 const PendingTasks = lazy(() => import('./Pages/PendingTasks'));
 const AllAttandance = lazy(() => import('./Pages/AllAttandance'));
@@ -127,7 +124,7 @@ function App() {
             <Route path={ROUTES.ADD_TASK_GROUP} element={withSuspense(<AddTaskGroup />)} />
             <Route path="/addPriority" element={withSuspense(<AddPriority />)} />
             <Route path={ROUTES.ADD_ORDER} element={withSuspense(<AddOrder1 />)} />
-            <Route path={ROUTES.ADD_ORDER_V2} element={<Navigate to={ROUTES.ADD_ORDER} replace />} />
+            <Route path={ROUTES.ADD_ORDER_V2} element={withSuspense(<AddOrder1 />)} />
             <Route path="/allOrderT" element={withSuspense(<AllOrderTableView />)} />
             <Route path="/allOrder" element={withSuspense(<AllOrder />)} />
             <Route path="/allOrderM" element={withSuspense(<AllOrderMobile />)} />
@@ -138,7 +135,7 @@ function App() {
             <Route path={ROUTES.ADD_NOTE} element={withSuspense(<AddNote />)} />
             <Route path={ROUTE_ALIASES.ADD_NOTE_LOWER} element={<Navigate to={ROUTES.ADD_NOTE} replace />} />
             <Route path="/addTransaction" element={withSuspense(<AddTransaction />)} />
-            <Route path="/addTransactionOld" element={<Navigate to="/addTransaction1" replace />} />
+            <Route path="/addTransactionOld" element={<Navigate to="/addTransaction" replace />} />
             <Route path="/addTransaction1" element={withSuspense(<AddTransaction1 />)} />
             <Route path="/addTransaction1Old" element={<Navigate to="/addTransaction1" replace />} />
             <Route path="/addPayment" element={withSuspense(<AddPayment />)} />
@@ -161,9 +158,9 @@ function App() {
             <Route path={ROUTES.ALL_VENDORS} element={withSuspense(<AllVendors />)} />
             <Route path="/SendMessage" element={withSuspense(<SendMessage />)} />
             <Route path="/SendMessageAll" element={withSuspense(<SendMessageAll />)} />
-            <Route path="/WhatsAppLogin" element={withSuspense(<WhatsAppLogin />)} />
-            <Route path="/WhatsAppAdminPanel" element={withSuspense(<WhatsAppAdminPanel />)} />
-            <Route path="/WhatsAppSession" element={withSuspense(<WhatsAppSession />)} />
+            <Route path="/WhatsAppLogin" element={<Navigate to={ROUTES.WHATSAPP_CLOUD} replace />} />
+            <Route path="/WhatsAppAdminPanel" element={<Navigate to={ROUTES.WHATSAPP_CLOUD} replace />} />
+            <Route path="/WhatsAppSession" element={<Navigate to={ROUTES.WHATSAPP_CLOUD} replace />} />
             <Route path={ROUTES.WHATSAPP_CLOUD} element={withSuspense(<WhatsAppCloudDashboard />)} />
             <Route path={ROUTES.PENDING_TASKS} element={withSuspense(<PendingTasks />)} />
             <Route path="/AllAttandance" element={withSuspense(<AllAttandance />)} />

@@ -10,6 +10,7 @@ import {
   extractPhoneNumber,
   sendTemplateWithTextFallback,
 } from "../utils/whatsapp.js";
+import { DEFAULT_TEMPLATE_LANGUAGE, WHATSAPP_TEMPLATES, buildPaymentReceivedParameters } from '../constants/whatsappTemplates';
 /* ✅ MUI */
 import {
   AppBar,
@@ -353,8 +354,15 @@ if (driveFile?.status === "created") {
       const { data } = await sendTemplateWithTextFallback({
         axiosInstance: axios,
         phone,
-        templateName: "order_sk",
-        bodyParameters: [customerLabel],
+        templateName: WHATSAPP_TEMPLATES.ORDER_CONFIRMATION,
+        language: DEFAULT_TEMPLATE_LANGUAGE,
+        bodyParameters: buildPaymentReceivedParameters({
+          customerName: customerLabel,
+          actionLabel: "order",
+          date: new Date().toLocaleDateString("en-IN"),
+          amount: String(Number(Amount || 0) || 0),
+          description: Remark || "Order placed",
+        }),
         fallbackMessage: message,
       });
 

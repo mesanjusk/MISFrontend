@@ -125,7 +125,7 @@ export default function PaymentFollowup() {
       const { data } = await sendTemplateWithTextFallback({
         axiosInstance: axios,
         phone,
-        templateName: 'outstanding_sk',
+        templateName: WHATSAPP_TEMPLATES.FOLLOWUP,
         bodyParameters: [customerLabel],
         fallbackMessage: message,
       });

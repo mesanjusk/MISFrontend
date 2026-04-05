@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from '../apiClient.js';
 import { Button, InputField, ToastContainer, toast, LoadingSpinner } from "../Components";
+import { DEFAULT_TEMPLATE_LANGUAGE, WHATSAPP_TEMPLATES, buildPaymentReceivedParameters } from '../constants/whatsappTemplates';
 
 export default function AddTransaction({ editMode, existingData, onClose, onSuccess }) {
   const navigate = useNavigate();
@@ -189,21 +190,21 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
       to: cleanPhone,
 
       // ✅ FIXED TEMPLATE NAME
-      template_name: "payment_received_sk",
+      template_name: WHATSAPP_TEMPLATES.PAYMENT_RECEIVED,
 
       // ✅ FIXED LANGUAGE
-      language: "en_US",
+      language: DEFAULT_TEMPLATE_LANGUAGE,
 
       components: [
         {
           type: "body",
-          parameters: [
-            { type: "text", text: Customer_name || "Customer" },        // {{1}}
-            { type: "text", text: "payment" },                           // {{2}}
-            { type: "text", text: new Date().toLocaleDateString("en-IN") }, // {{3}}
-            { type: "text", text: String(Amount || "0") },               // {{4}}
-            { type: "text", text: Description || "Payment received" }    // {{5}}
-          ]
+          parameters: buildPaymentReceivedParameters({
+            customerName: Customer_name || "Customer",
+            actionLabel: "payment",
+            date: new Date().toLocaleDateString("en-IN"),
+            amount: String(Amount || "0"),
+            description: Description || "Payment received",
+          }).map((text) => ({ type: "text", text }))
         }
       ]
     };
@@ -240,10 +241,10 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
         <div className="bg-white w-full max-w-2xl rounded-xl shadow-xl p-6 relative">
           <button
             onClick={closeModal}
-            className="absolute right-2 top-2 text-xl text-gray-400 hover:text-blue-500"
+            className="absolute right-3 top-3 rounded-full border border-slate-300 px-3 py-1 text-sm font-semibold text-slate-600 transition hover:border-sky-400 hover:text-sky-600"
             type="button"
           >
-            ×
+            Close
           </button>
 
           <h2 className="text-xl font-semibold mb-4 text-center">

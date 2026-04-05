@@ -11,6 +11,7 @@ import {
   extractPhoneNumber,
   sendTemplateWithTextFallback,
 } from "../utils/whatsapp.js";
+import { DEFAULT_TEMPLATE_LANGUAGE, WHATSAPP_TEMPLATES, buildPaymentReceivedParameters } from '../constants/whatsappTemplates';
 
 export default function AddTransaction1({ onClose }) {
   const navigate = useNavigate();
@@ -236,10 +237,10 @@ export default function AddTransaction1({ onClose }) {
         <div className="bg-white w-full max-w-2xl rounded-xl shadow-xl p-6 relative">
           <button
             onClick={closeModal}
-            className="absolute right-2 top-2 text-xl text-gray-400 hover:text-blue-500"
+            className="absolute right-3 top-3 rounded-full border border-slate-300 px-3 py-1 text-sm font-semibold text-slate-600 transition hover:border-sky-400 hover:text-sky-600"
             type="button"
           >
-            ×
+            Close
           </button>
 
           <h2 className="text-xl font-semibold mb-4 text-center">Add Payment</h2>

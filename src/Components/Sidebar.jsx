@@ -142,7 +142,7 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
           <Avatar sx={{ bgcolor: 'primary.light', color: 'primary.dark', width: 34, height: 34 }}>M</Avatar>
           {!desktopCollapsed && (
             <Box sx={{ minWidth: 0 }}>
-              <Typography variant="subtitle2" fontWeight={700} noWrap>MIS CRM</Typography>
+              <Typography variant="subtitle2" fontWeight={700} noWrap>MIS Pro</Typography>
               <Typography variant="caption" color="text.secondary" noWrap>Compact operations panel</Typography>
             </Box>
           )}
