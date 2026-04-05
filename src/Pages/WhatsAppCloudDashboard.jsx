@@ -6,16 +6,18 @@ import {
   Button,
   Chip,
   CircularProgress,
-  Divider,
   InputAdornment,
   Stack,
+  Tab,
+  Tabs,
   TextField,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
 import { fetchWhatsAppStatus } from '../services/whatsappService';
 import LoadingSkeleton from '../components/whatsappCloud/LoadingSkeleton';
 import { parseApiError } from '../utils/parseApiError';
-import { ErrorState, FilterToolbar, PageContainer, SectionCard } from '../components/ui';
+import { ErrorState, FilterToolbar, SectionCard } from '../components/ui';
 
 const MessagesPanel = lazy(() => import('../components/whatsappCloud/MessagesPanel'));
 const SendMessagePanel = lazy(() => import('../components/whatsappCloud/SendMessagePanel'));
@@ -41,6 +43,7 @@ const getFriendlyStatusError = (error) => {
 };
 
 export default function WhatsAppCloudDashboard() {
+  const isDesktop = useMediaQuery((theme) => theme.breakpoints.up('md'));
   const [activeTab, setActiveTab] = useState('inbox');
   const [search, setSearch] = useState('');
   const [connectionState, setConnectionState] = useState('loading');
@@ -101,26 +104,68 @@ export default function WhatsAppCloudDashboard() {
       : 'error';
 
   return (
-    <PageContainer title="WhatsApp Cloud CRM" subtitle="Compact operational inbox for templates, campaigns and conversation lifecycle.">
-      <SectionCard contentSx={{ p: 0 }}>
-        <Box sx={{ display: 'flex', minHeight: 'calc(100vh - 13rem)', bgcolor: '#f4f7f8', overflow: 'hidden' }}>
+    <Box
+      sx={{
+        px: { xs: 0.5, sm: 0.75, md: 1 },
+        pt: 0,
+        pb: { xs: 0.5, md: 0.75 },
+      }}
+    >
+      <SectionCard
+        contentSx={{
+          p: 0,
+          height: { xs: 'calc(100dvh - 7.9rem)', md: 'calc(100dvh - 7.1rem)' },
+          minHeight: { xs: 500, md: 600 },
+        }}
+      >
+        <Box sx={{ display: 'flex', height: '100%', minHeight: 0, bgcolor: '#f4f7f8', overflow: 'hidden', borderRadius: 2 }}>
           <Box sx={{ width: 228, borderRight: (theme) => `1px solid ${theme.palette.divider}`, bgcolor: 'background.paper', p: 1.5, display: { xs: 'none', md: 'block' } }}>
             <Typography variant="subtitle1" fontWeight={700}>Cloud Inbox</Typography>
             <Typography variant="caption" color="text.secondary">WhatsApp workspace</Typography>
-            <Stack spacing={0.75} sx={{ mt: 1.75 }}>
+            <Tabs
+              orientation="vertical"
+              variant="scrollable"
+              value={activeTab}
+              onChange={(_, value) => setActiveTab(value)}
+              sx={{
+                mt: 1.25,
+                minHeight: 0,
+                '& .MuiTabs-flexContainer': { gap: 0.75 },
+                '& .MuiTabs-indicator': { left: 0, width: 3, borderRadius: 4 },
+              }}
+            >
               {navItems.map((item) => (
-                <Button
+                <Tab
                   key={item.key}
-                  variant={activeTab === item.key ? 'contained' : 'text'}
-                  color={activeTab === item.key ? 'success' : 'inherit'}
-                  size="small"
-                  onClick={() => setActiveTab(item.key)}
-                  sx={{ justifyContent: 'flex-start', textTransform: 'none', fontWeight: 600 }}
-                >
-                  {item.label}
-                </Button>
+                  value={item.key}
+                  label={item.label}
+                  disableRipple
+                  sx={{
+                    alignItems: 'flex-start',
+                    justifyContent: 'center',
+                    textAlign: 'left',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    fontSize: '0.82rem',
+                    px: 1.25,
+                    py: 0.9,
+                    borderRadius: 1.5,
+                    minHeight: 38,
+                    minWidth: 0,
+                    width: '100%',
+                    maxWidth: '100%',
+                    boxSizing: 'border-box',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    '&.Mui-selected': {
+                      bgcolor: 'success.main',
+                      color: 'success.contrastText',
+                    },
+                  }}
+                />
               ))}
-            </Stack>
+            </Tabs>
           </Box>
 
           <Stack sx={{ minWidth: 0, flex: 1 }}>
@@ -130,15 +175,16 @@ export default function WhatsAppCloudDashboard() {
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search conversations, templates, campaigns"
                 size="small"
-                sx={{ minWidth: { xs: '100%', sm: 320 } }}
+                sx={{ minWidth: { xs: '100%', sm: 300 }, flex: { md: 1 } }}
                 InputProps={{
                   startAdornment: <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment>,
                 }}
               />
 
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap', rowGap: 0.5 }}>
                 <Chip
                   color={connectionChipColor}
+                  size="small"
                   label={
                     connectionState === 'loading' ? (
                       <Stack direction="row" alignItems="center" spacing={0.75}><CircularProgress size={12} color="inherit" /><span>WhatsApp {connectionStatus}</span></Stack>
@@ -155,26 +201,71 @@ export default function WhatsAppCloudDashboard() {
                 ) : null}
               </Stack>
 
-              <Stack direction="row" spacing={0.75} sx={{ display: { xs: 'flex', md: 'none' }, overflowX: 'auto', pb: 0.25 }}>
+              <Tabs
+                value={activeTab}
+                onChange={(_, value) => setActiveTab(value)}
+                variant="scrollable"
+                scrollButtons="auto"
+                allowScrollButtonsMobile
+                sx={{
+                  display: { xs: 'flex', md: 'none' },
+                  minHeight: 34,
+                  mt: 0.25,
+                  '& .MuiTabs-scroller': { overflowY: 'hidden !important' },
+                  '& .MuiTabs-scrollButtons': { width: 26 },
+                  '& .MuiTabs-indicator': { height: 2, borderRadius: 2 },
+                  '& .MuiTab-root': {
+                    minHeight: 34,
+                    px: 1.25,
+                    py: 0.5,
+                    minWidth: 'fit-content',
+                    maxWidth: 'none',
+                    borderRadius: 999,
+                    border: (theme) => `1px solid ${theme.palette.divider}`,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    fontSize: 'clamp(0.72rem, 2.8vw, 0.82rem)',
+                    lineHeight: 1.2,
+                    boxSizing: 'border-box',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    mr: 0.75,
+                  },
+                  '& .MuiTab-root.Mui-selected': {
+                    color: 'success.contrastText',
+                    bgcolor: 'success.main',
+                    borderColor: 'success.main',
+                  },
+                }}
+              >
                 {navItems.map((item) => (
-                  <Button key={item.key} size="small" variant={activeTab === item.key ? 'contained' : 'outlined'} onClick={() => setActiveTab(item.key)} sx={{ whiteSpace: 'nowrap', textTransform: 'none' }}>
-                    {item.label}
-                  </Button>
+                  <Tab key={item.key} label={item.label} value={item.key} disableRipple />
                 ))}
-              </Stack>
+              </Tabs>
             </FilterToolbar>
 
             {statusError ? <ErrorState message={statusError} /> : null}
-            <Divider />
 
-            <Box sx={{ minHeight: 0, flex: 1, p: 1, overflow: 'auto' }}>
-              <Suspense fallback={<LoadingSkeleton lines={8} />}>
+            <Box
+              sx={{
+                minHeight: 0,
+                flex: 1,
+                p: { xs: 0.75, md: 1 },
+                pb: {
+                  xs: 'calc(5.25rem + env(safe-area-inset-bottom))',
+                  md: 1,
+                },
+                overflow: 'hidden',
+              }}
+            >
+              <Suspense fallback={<LoadingSkeleton lines={isDesktop ? 9 : 7} />}>
                 {renderSection}
               </Suspense>
             </Box>
           </Stack>
         </Box>
       </SectionCard>
-    </PageContainer>
+    </Box>
   );
 }
