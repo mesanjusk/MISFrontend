@@ -25,11 +25,11 @@ export default function Layout() {
 
   const buttonsList = useMemo(
     () => [
-      { onClick: () => navigate(ROUTES.ADD_ORDER_V2), label: 'Order' },
-      { onClick: () => navigate('/addTransaction'), label: 'Receipt' },
-      { onClick: () => navigate('/addTransaction1'), label: 'Payment' },
-      { onClick: () => navigate('/Followups'), label: 'Followups' },
-      { onClick: () => navigate('/addUsertask'), label: 'Task' },
+      { onClick: () => navigate(ROUTES.ORDERS_NEW), label: 'Order' },
+      { onClick: () => navigate(ROUTES.RECEIPT), label: 'Receipt' },
+      { onClick: () => navigate(ROUTES.PAYMENT), label: 'Payment' },
+      { onClick: () => navigate(ROUTES.FOLLOWUPS), label: 'Followups' },
+      { onClick: () => navigate(ROUTES.TASKS_NEW), label: 'Task' },
     ],
     [navigate],
   );
@@ -38,7 +38,7 @@ export default function Layout() {
     () => [
       { label: 'Refresh', onClick: () => window.location.reload(), icon: <RefreshRoundedIcon fontSize="small" /> },
       { label: 'Tasks', onClick: () => navigate(ROUTES.PENDING_TASKS), icon: <TaskRoundedIcon fontSize="small" /> },
-      { label: 'WhatsApp', onClick: () => navigate(ROUTES.WHATSAPP_CLOUD), icon: <ChatRoundedIcon fontSize="small" /> },
+      { label: 'WhatsApp', onClick: () => navigate(ROUTES.WHATSAPP), icon: <ChatRoundedIcon fontSize="small" /> },
       { label: 'Transactions', onClick: () => navigate(ROUTES.ALL_TRANSACTION), icon: <ReceiptLongRoundedIcon fontSize="small" /> },
     ],
     [navigate],

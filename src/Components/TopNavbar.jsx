@@ -47,7 +47,7 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
       { label: 'Home', path: ROUTES.HOME, icon: <HomeRoundedIcon sx={{ fontSize: 15 }} /> },
       { label: 'Orders', path: '/allOrder', icon: <AssignmentRoundedIcon sx={{ fontSize: 15 }} /> },
       { label: 'Transactions', path: ROUTES.ALL_TRANSACTION, icon: <ReceiptLongRoundedIcon sx={{ fontSize: 15 }} /> },
-      { label: 'WhatsApp', path: ROUTES.WHATSAPP_CLOUD, icon: <ChatRoundedIcon sx={{ fontSize: 15 }} /> },
+      { label: 'WhatsApp', path: ROUTES.WHATSAPP, icon: <ChatRoundedIcon sx={{ fontSize: 15 }} /> },
     ],
     [],
   );
@@ -76,10 +76,7 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
           <Typography variant="subtitle1" noWrap>
             MIS Pro
           </Typography>
-          <Breadcrumbs
-            separator={<NavigateNextRoundedIcon sx={{ fontSize: 14 }} />}
-            sx={{ '& .MuiBreadcrumbs-ol': { flexWrap: 'nowrap' } }}
-          >
+          <Breadcrumbs separator={<NavigateNextRoundedIcon sx={{ fontSize: 14 }} />} sx={{ '& .MuiBreadcrumbs-ol': { flexWrap: 'nowrap' } }}>
             <Typography variant="caption" color="text.secondary">Workspace</Typography>
             <Typography variant="caption" color="text.primary" noWrap>{titleFromPath(pathname)}</Typography>
           </Breadcrumbs>
@@ -105,14 +102,7 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
               clickable
               size="small"
               icon={tab.icon}
-              label={
-                <NavLink
-                  style={{ textDecoration: 'none', color: 'inherit', fontWeight: 700 }}
-                  to={tab.path}
-                >
-                  {tab.label}
-                </NavLink>
-              }
+              label={<NavLink style={{ textDecoration: 'none', color: 'inherit', fontWeight: 700 }} to={tab.path}>{tab.label}</NavLink>}
               variant={pathname === tab.path ? 'filled' : 'outlined'}
               color={pathname === tab.path ? 'primary' : 'default'}
             />

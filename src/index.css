@@ -44,38 +44,6 @@ a {
   text-decoration: none;
 }
 
-.btn,
-button.btn {
-  border-radius: 10px;
-  border: 1px solid transparent;
-  font-size: 12.5px;
-  font-weight: 600;
-  padding: 6px 10px;
-  line-height: 1.25;
-  white-space: nowrap;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, var(--crm-primary), var(--crm-accent));
-  color: #fff;
-}
-
-.btn-secondary {
-  background-color: #e2e8f0;
-  color: #0f172a;
-}
-
-.btn-success {
-  background-color: #16a34a;
-  color: #fff;
-}
-
-.btn-danger,
-.btn.bg-red-500 {
-  background-color: #dc2626;
-  color: #fff;
-}
-
 .form-control,
 input.form-control,
 select.form-control,
@@ -147,13 +115,6 @@ table th {
 .modal-content {
   padding: 14px;
   width: min(96vw, 620px);
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 12px;
 }
 
 .text-ellipsis {
