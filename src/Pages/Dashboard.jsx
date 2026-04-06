@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import {
   Box,
+  Button,
   Chip,
   Grid,
   LinearProgress,
@@ -19,6 +20,8 @@ import LocalShippingRoundedIcon from '@mui/icons-material/LocalShippingRounded';
 import CurrencyRupeeRoundedIcon from '@mui/icons-material/CurrencyRupeeRounded';
 import CreditCardRoundedIcon from '@mui/icons-material/CreditCardRounded';
 import SupportAgentRoundedIcon from '@mui/icons-material/SupportAgentRounded';
+import PaymentRoundedIcon from '@mui/icons-material/PaymentRounded';
+import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import axios from '../apiClient';
 import SummaryCard from '../components/dashboard/SummaryCard';
 import AllAttandance from './AllAttandance';
@@ -44,6 +47,18 @@ const normalizeDateValue = (value) => {
   if (Number.isNaN(dt.getTime())) return null;
   return dt;
 };
+
+const normalizeApiRows = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.result)) return payload.result;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.rows)) return payload.rows;
+  if (Array.isArray(payload?.items)) return payload.items;
+  return [];
+};
+
+const normalizeTaskStatus = (task) =>
+  toLower(task?.TaskStatus || task?.Status || task?.status || task?.Task_Status || 'pending');
 
 const isWithinNextDays = (value, days = 3) => {
   const date = normalizeDateValue(value);
@@ -181,12 +196,30 @@ export default function Dashboard() {
   useEffect(() => {
     let mounted = true;
 
+    const endpoints = [
+      '/usertask/GetUsertaskList',
+      '/usertask/getUsertaskList',
+      '/usertask/list',
+      '/usertask/get',
+    ];
+
     const fetchTasks = async () => {
       try {
         setTasksLoading(true);
-        const res = await axios.get('/usertask/GetUsertaskList');
+        let rows = [];
+
+        for (const endpoint of endpoints) {
+          try {
+            const res = await axios.get(endpoint);
+            rows = normalizeApiRows(res?.data);
+            if (rows.length) break;
+          } catch {
+            // try next
+          }
+        }
+
         if (!mounted) return;
-        setTasks(Array.isArray(res?.data?.result) ? res.data.result : []);
+        setTasks(rows);
       } catch (error) {
         console.error('Error fetching dashboard tasks:', error);
         if (mounted) setTasks([]);
@@ -206,10 +239,13 @@ export default function Dashboard() {
 
     const endpoints = [
       '/paymentfollowup/GetPaymentfollowupList',
+      '/paymentfollowup/getPaymentfollowupList',
       '/paymentfollowup/GetPaymentFollowupList',
-      '/paymentfollowup/get',
+      '/paymentfollowup/GetFollowupList',
       '/paymentfollowup/list',
+      '/paymentfollowup/get',
       '/paymentfollowup/GetList',
+      '/paymentfollowup/all',
     ];
 
     const fetchFollowups = async () => {
@@ -220,11 +256,8 @@ export default function Dashboard() {
         for (const endpoint of endpoints) {
           try {
             const res = await axios.get(endpoint);
-            const result = res?.data?.result || res?.data?.data || res?.data;
-            if (Array.isArray(result)) {
-              rows = result;
-              break;
-            }
+            rows = normalizeApiRows(res?.data);
+            if (rows.length) break;
           } catch {
             // try next endpoint
           }
@@ -326,10 +359,10 @@ export default function Dashboard() {
   );
 
   const assignedTasks = useMemo(() => {
-    const taskRows = (tasks || []).filter((task) => toLower(task?.Status) !== 'completed');
+    const taskRows = (tasks || []).filter((task) => !['completed', 'done'].includes(normalizeTaskStatus(task)));
     const scopedRows = roleInfo?.isAdmin
       ? taskRows
-      : taskRows.filter((task) => toLower(task?.User) === toLower(roleInfo?.userName));
+      : taskRows.filter((task) => toLower(task?.User || task?.AssignedTo || task?.Assigned) === toLower(roleInfo?.userName));
 
     return scopedRows.sort((a, b) => {
       const dateA = normalizeDateValue(a?.Deadline || a?.CreatedAt || a?.createdAt)?.getTime() || 0;
@@ -340,15 +373,34 @@ export default function Dashboard() {
 
   const followupRows = useMemo(() => {
     const rows = (followups || []).filter((item) =>
-      isWithinNextDays(item?.Followup_date || item?.Deadline || item?.Date, 3),
+      isWithinNextDays(item?.Followup_date || item?.FollowupDate || item?.Deadline || item?.Date, 3),
     );
 
     return rows.sort((a, b) => {
-      const dateA = normalizeDateValue(a?.Followup_date || a?.Deadline || a?.Date)?.getTime() || 0;
-      const dateB = normalizeDateValue(b?.Followup_date || b?.Deadline || b?.Date)?.getTime() || 0;
+      const dateA = normalizeDateValue(a?.Followup_date || a?.FollowupDate || a?.Deadline || a?.Date)?.getTime() || 0;
+      const dateB = normalizeDateValue(b?.Followup_date || b?.FollowupDate || b?.Deadline || b?.Date)?.getTime() || 0;
       return dateA - dateB;
     });
   }, [followups]);
+
+  const userWiseTaskRows = useMemo(() => {
+    const bucket = new Map();
+
+    (tasks || []).forEach((task) => {
+      const status = normalizeTaskStatus(task);
+      if (['completed', 'done'].includes(status)) return;
+      const userName = String(task?.User || task?.AssignedTo || task?.Assigned || 'Unassigned').trim() || 'Unassigned';
+      if (!bucket.has(userName)) {
+        bucket.set(userName, { user: userName, pending: 0, inProgress: 0, total: 0 });
+      }
+      const row = bucket.get(userName);
+      row.total += 1;
+      if (['in_progress', 'progress', 'ongoing', 'working'].includes(status)) row.inProgress += 1;
+      else row.pending += 1;
+    });
+
+    return Array.from(bucket.values()).sort((a, b) => b.total - a.total || a.user.localeCompare(b.user));
+  }, [tasks]);
 
   const loading = data?.isOrdersLoading || data?.isTasksLoading;
 
@@ -397,30 +449,34 @@ export default function Dashboard() {
                 rows={assignedTasks}
                 emptyLabel="No assigned tasks found."
                 maxHeight={320}
-                renderRow={(task) => (
-                  <TableRow key={task?._id || task?.Usertask_Number || `${task?.User}-${task?.Usertask_name}`} hover>
-                    <TableCell sx={{ minWidth: 180 }}>
-                      <Typography variant="body2" fontWeight={600}>
-                        {task?.Usertask_name || task?.Task_name || task?.Title || 'Untitled Task'}
-                      </Typography>
-                      {!!task?.Description && (
-                        <Typography variant="caption" color="text.secondary" noWrap>
-                          {task.Description}
+                renderRow={(task) => {
+                  const statusLabel = task?.TaskStatus || task?.Status || task?.status || 'Pending';
+                  const statusKey = normalizeTaskStatus(task);
+                  return (
+                    <TableRow key={task?._id || task?.Usertask_Number || `${task?.User}-${task?.Usertask_name}`} hover>
+                      <TableCell sx={{ minWidth: 180 }}>
+                        <Typography variant="body2" fontWeight={600}>
+                          {task?.Usertask_name || task?.Task_name || task?.Title || 'Untitled Task'}
                         </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{task?.User || '—'}</TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={task?.Status || 'Pending'}
-                        color={toLower(task?.Status) === 'pending' ? 'warning' : 'primary'}
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatTaskDate(task?.Deadline)}</TableCell>
-                  </TableRow>
-                )}
+                        {!!(task?.Remark || task?.Description) && (
+                          <Typography variant="caption" color="text.secondary" noWrap>
+                            {task?.Remark || task?.Description}
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{task?.User || task?.AssignedTo || task?.Assigned || '—'}</TableCell>
+                      <TableCell>
+                        <Chip
+                          size="small"
+                          label={statusLabel}
+                          color={statusKey === 'pending' ? 'warning' : 'primary'}
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatTaskDate(task?.Deadline)}</TableCell>
+                    </TableRow>
+                  );
+                }}
               />
             )}
           </SectionCard>
@@ -446,6 +502,13 @@ export default function Dashboard() {
             title="Payment Followups - Next 3 Days"
             subtitle="Small scrollable table for near-term collection followups"
             contentSx={{ p: 1 }}
+            action={
+              <Stack direction="row" spacing={0.5}>
+                <Button size="small" variant="outlined" startIcon={<ReceiptLongRoundedIcon fontSize="small" />} href="/accounts/followups">
+                  Open
+                </Button>
+              </Stack>
+            }
           >
             {followupsLoading ? (
               <LoadingState label="Loading payment followups" />
@@ -473,7 +536,7 @@ export default function Dashboard() {
                       {formatMoney(item?.Amount)}
                     </TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                      {formatFollowupDate(item?.Followup_date || item?.Deadline || item?.Date)}
+                      {formatFollowupDate(item?.Followup_date || item?.FollowupDate || item?.Deadline || item?.Date)}
                     </TableCell>
                   </TableRow>
                 )}
@@ -482,6 +545,46 @@ export default function Dashboard() {
           </SectionCard>
         </Grid>
       </Grid>
+
+      {roleInfo?.isAdmin ? (
+        <Grid container spacing={1.25}>
+          <Grid item xs={12}>
+            <SectionCard
+              title="User Wise Pending & Task"
+              subtitle="Compact user summary for pending tasks across the team"
+              contentSx={{ p: 1 }}
+            >
+              {tasksLoading ? (
+                <LoadingState label="Loading user wise task summary" />
+              ) : (
+                <SmallScrollableTable
+                  columns={[
+                    { key: 'user', label: 'User' },
+                    { key: 'pending', label: 'Pending', align: 'right' },
+                    { key: 'inProgress', label: 'In Progress', align: 'right' },
+                    { key: 'total', label: 'Total', align: 'right' },
+                  ]}
+                  rows={userWiseTaskRows}
+                  emptyLabel="No pending user tasks found."
+                  maxHeight={280}
+                  renderRow={(row) => (
+                    <TableRow key={row.user} hover>
+                      <TableCell sx={{ minWidth: 180 }}>
+                        <Typography variant="body2" fontWeight={600}>{row.user}</Typography>
+                      </TableCell>
+                      <TableCell align="right">{row.pending}</TableCell>
+                      <TableCell align="right">{row.inProgress}</TableCell>
+                      <TableCell align="right">
+                        <Chip size="small" label={row.total} color="primary" variant="outlined" />
+                      </TableCell>
+                    </TableRow>
+                  )}
+                />
+              )}
+            </SectionCard>
+          </Grid>
+        </Grid>
+      ) : null}
     </PageContainer>
   );
 }

@@ -22,6 +22,8 @@ import SupportAgentRoundedIcon from '@mui/icons-material/SupportAgentRounded';
 import ShoppingBagRoundedIcon from '@mui/icons-material/ShoppingBagRounded';
 import LocalShippingRoundedIcon from '@mui/icons-material/LocalShippingRounded';
 import PaymentsRoundedIcon from '@mui/icons-material/PaymentsRounded';
+import AccountBalanceWalletRoundedIcon from '@mui/icons-material/AccountBalanceWalletRounded';
+import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import ChatRoundedIcon from '@mui/icons-material/ChatRounded';
 import AnalyticsRoundedIcon from '@mui/icons-material/AnalyticsRounded';
@@ -46,7 +48,11 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
       { label: 'Enquiry', path: ROUTES.ENQUIRIES_NEW, icon: <SupportAgentRoundedIcon fontSize="small" /> },
       { label: 'Orders', path: ROUTES.ORDERS_NEW, icon: <ShoppingBagRoundedIcon fontSize="small" /> },
       { label: 'Delivery', path: '/allDelivery', icon: <LocalShippingRoundedIcon fontSize="small" /> },
-      { label: 'Accounts', path: ROUTES.RECEIPT, icon: <PaymentsRoundedIcon fontSize="small" /> },
+      { label: 'Receipt', path: ROUTES.RECEIPT, icon: <ReceiptLongRoundedIcon fontSize="small" /> },
+      { label: 'Payment', path: ROUTES.PAYMENT, icon: <PaymentsRoundedIcon fontSize="small" /> },
+      { label: 'Add Recievable', path: ROUTES.ADD_RECEIVABLE, icon: <AccountBalanceWalletRoundedIcon fontSize="small" /> },
+      { label: 'Add Payable', path: ROUTES.ADD_PAYABLE, icon: <PaymentsRoundedIcon fontSize="small" /> },
+      { label: 'Followups', path: ROUTES.FOLLOWUPS, icon: <ReceiptLongRoundedIcon fontSize="small" /> },
       { label: 'Vendors', path: ROUTES.VENDORS, icon: <StorefrontRoundedIcon fontSize="small" /> },
       { label: 'WhatsApp', path: ROUTES.WHATSAPP, icon: <ChatRoundedIcon fontSize="small" /> },
       { label: 'Reports', path: ROUTES.REPORTS_ORDERS, icon: <AnalyticsRoundedIcon fontSize="small" /> },
@@ -73,7 +79,7 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
           <Avatar sx={{ bgcolor: '#38bdf8', color: '#0f172a', width: 34, height: 34, fontWeight: 800 }}>M</Avatar>
           {!desktopCollapsed && (
             <Box sx={{ minWidth: 0 }}>
-              <Typography variant="subtitle2" fontWeight={700} noWrap color="#f8fafc">SK </Typography>
+              <Typography variant="subtitle2" fontWeight={700} noWrap color="#f8fafc">MIS Pro</Typography>
               <Typography variant="caption" color="rgba(226,232,240,0.72)" noWrap>Print business command center</Typography>
             </Box>
           )}
