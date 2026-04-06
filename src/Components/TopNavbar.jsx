@@ -74,7 +74,7 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
 
         <Stack sx={{ minWidth: 0, pr: 1, maxWidth: { xs: 170, sm: 260, md: 340 } }}>
           <Typography variant="subtitle1" noWrap>
-            MIS Pro
+            SK 
           </Typography>
           <Breadcrumbs separator={<NavigateNextRoundedIcon sx={{ fontSize: 14 }} />} sx={{ '& .MuiBreadcrumbs-ol': { flexWrap: 'nowrap' } }}>
             <Typography variant="caption" color="text.secondary">Workspace</Typography>
