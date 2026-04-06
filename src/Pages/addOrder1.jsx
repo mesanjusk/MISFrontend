@@ -7,7 +7,11 @@ import AddCustomer from './addCustomer';
 import InvoiceModal from '../Components/InvoiceModal';
 import { LoadingSpinner } from '../Components';
 import { extractPhoneNumber, normalizeWhatsAppPhone, sendAdminAlertText } from '../utils/whatsapp.js';
-import { DEFAULT_TEMPLATE_LANGUAGE, WHATSAPP_TEMPLATES, buildPaymentReceivedParameters } from '../constants/whatsappTemplates';
+import {
+  DEFAULT_TEMPLATE_LANGUAGE,
+  WHATSAPP_TEMPLATES,
+  buildOrderConfirmationParameters,
+} from '../constants/whatsappTemplates';
 import {
   Alert,
   Autocomplete,
@@ -52,6 +56,7 @@ export default function AddOrder1({ closeModal }) {
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceItems, setInvoiceItems] = useState([]);
   const [createdOrder, setCreatedOrder] = useState(null);
+  const [latestOrderNumber, setLatestOrderNumber] = useState('');
   const [optionsLoading, setOptionsLoading] = useState(true);
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [isDateChecked, setIsDateChecked] = useState(false);
@@ -151,12 +156,16 @@ export default function AddOrder1({ closeModal }) {
         language: DEFAULT_TEMPLATE_LANGUAGE,
         components: [{
           type: 'body',
-          parameters: buildPaymentReceivedParameters({
+          parameters: buildOrderConfirmationParameters({
             customerName: customerLabel,
-            actionLabel: 'order',
+            orderNumber:
+              latestOrderNumber ||
+              createdOrder?.Order_Number ||
+              createdOrder?.Order_number ||
+              '-',
             date: new Date().toLocaleDateString('en-IN'),
             amount: String(Number(Amount || 0) || 0),
-            description: Remark || 'Order placed',
+            details: Remark || 'Order placed',
           }).map((text) => ({ type: 'text', text })),
         }],
       };
@@ -205,6 +214,11 @@ export default function AddOrder1({ closeModal }) {
       }
 
       setCreatedOrder(orderRes.data.result || null);
+      setLatestOrderNumber(
+        orderRes?.data?.result?.Order_Number ||
+        orderRes?.data?.result?.Order_number ||
+        ''
+      );
       const driveFile = orderRes.data?.driveFile;
       if (driveFile?.status === 'created') toast.success('Order added and Drive file created');
       else if (driveFile?.status === 'failed') toast.error(`Order saved, but Drive file failed: ${driveFile?.error || 'Unknown error'}`);

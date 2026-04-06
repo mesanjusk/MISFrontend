@@ -19,6 +19,11 @@ import {
   extractPhoneNumber,
   sendTemplateWithTextFallback,
 } from '../utils/whatsapp.js';
+import {
+  WHATSAPP_TEMPLATES,
+  buildFollowupDueTodayParameters,
+  buildFollowupFriendlyParameters,
+} from '../constants/whatsappTemplates';
 import { ActionButtonGroup, PageContainer, SectionCard } from '../components/ui';
 
 const todayISO = () => new Date().toLocaleDateString('en-CA');
@@ -121,12 +126,33 @@ export default function PaymentFollowup() {
         customerDetails.find((item) => item.Customer_name === Customer);
 
       const customerLabel = selectedCustomer?.Customer_name || Customer || 'Customer';
+      const followupDate = Deadline || todayISO();
+      const today = todayISO();
+
+      const isDueToday = followupDate === today;
+      const templateName = isDueToday
+        ? WHATSAPP_TEMPLATES.FOLLOWUP_DUE_TODAY
+        : WHATSAPP_TEMPLATES.FOLLOWUP_FRIENDLY;
+
+      const bodyParameters = isDueToday
+        ? buildFollowupDueTodayParameters({
+            customerName: customerLabel,
+            amount: String(Number(Amount || 0) || 0),
+            dueDate: followupDate,
+            reference: Title?.trim() || Remark?.trim() || '-',
+          })
+        : buildFollowupFriendlyParameters({
+            customerName: customerLabel,
+            amount: String(Number(Amount || 0) || 0),
+            expectedDate: followupDate,
+            reference: Title?.trim() || Remark?.trim() || '-',
+          });
 
       const { data } = await sendTemplateWithTextFallback({
         axiosInstance: axios,
         phone,
-        templateName: WHATSAPP_TEMPLATES.FOLLOWUP,
-        bodyParameters: [customerLabel],
+        templateName,
+        bodyParameters,
         fallbackMessage: message,
       });
 

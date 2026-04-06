@@ -1,7 +1,27 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Box, Button, Grid, MenuItem, Stack, TextField } from '@mui/material';
+import {
+  Alert,
+  Box,
+  Button,
+  Checkbox,
+  FormControlLabel,
+  Grid,
+  MenuItem,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
+import SendRoundedIcon from '@mui/icons-material/SendRounded';
+import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import axios from '../apiClient.js';
+import toast, { Toaster } from 'react-hot-toast';
+import { extractPhoneNumber, normalizeWhatsAppPhone } from '../utils/whatsapp.js';
+import {
+  DEFAULT_TEMPLATE_LANGUAGE,
+  WHATSAPP_TEMPLATES,
+  buildOpeningBalanceReceivableParameters,
+} from '../constants/whatsappTemplates';
 import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../components/ui';
 
 export default function AddRecievable() {
@@ -21,6 +41,10 @@ export default function AddRecievable() {
   const [filteredOptions, setFilteredOptions] = useState([]);
   const [Customer_name, setCustomer_Name] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
+  const [mobileToSend, setMobileToSend] = useState('');
+  const [sendWhatsAppAfterSave, setSendWhatsAppAfterSave] = useState(false);
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+  const [isTransactionSaved, setIsTransactionSaved] = useState(false);
 
   useEffect(() => {
     const userNameFromState = location.state?.id;
@@ -58,15 +82,59 @@ export default function AddRecievable() {
       });
   }, []);
 
+  const selectedCustomer = useMemo(
+    () => allCustomerOptions.find((option) => option.Customer_uuid === CreditCustomer) || null,
+    [allCustomerOptions, CreditCustomer]
+  );
+
   function addCustomer() {
     navigate('/addCustomer');
   }
 
+  const sendWhatsApp = async (phone = mobileToSend, customerData = null) => {
+    if (!phone) return toast.error('Customer phone number is required');
+    setIsSendingWhatsApp(true);
+
+    try {
+      const customer = customerData || selectedCustomer;
+      const customerLabel = customer?.Customer_name || Customer_name || 'Customer';
+      const cleanPhone = normalizeWhatsAppPhone(phone);
+
+      const payload = {
+        to: cleanPhone,
+        template_name: WHATSAPP_TEMPLATES.OPENING_BALANCE_RECEIVABLE,
+        language: DEFAULT_TEMPLATE_LANGUAGE,
+        components: [{
+          type: 'body',
+          parameters: buildOpeningBalanceReceivableParameters({
+            customerName: customerLabel,
+            asOnDate: '01-04-2025',
+            amount: String(Amount || '0'),
+            description: Description || 'Opening balance receivable',
+          }).map((text) => ({ type: 'text', text })),
+        }],
+      };
+
+      const { data } = await axios.post('/api/whatsapp/send-template', payload);
+      if (!data?.success) return toast.error(data?.error || 'Failed to send WhatsApp');
+      toast.success('WhatsApp message sent');
+    } catch (error) {
+      toast.error(error?.response?.data?.error || 'Failed to send WhatsApp');
+    } finally {
+      setIsSendingWhatsApp(false);
+    }
+  };
+
   async function submit(e) {
     e.preventDefault();
 
-    if (!Amount || isNaN(Amount) || Amount <= 0) {
-      alert('Please enter a valid amount.');
+    if (!Amount || Number.isNaN(Number(Amount)) || Number(Amount) <= 0) {
+      toast.error('Please enter a valid amount.');
+      return;
+    }
+
+    if (!CreditCustomer) {
+      toast.error('Please select a customer.');
       return;
     }
 
@@ -105,14 +173,22 @@ export default function AddRecievable() {
       });
 
       if (response.data.success) {
-        alert(response.data.message);
+        const phoneNumber = extractPhoneNumber(creditCustomer);
+        setMobileToSend(phoneNumber);
+        setIsTransactionSaved(true);
+        toast.success(response.data.message || 'Opening receivable added');
+
+        if (sendWhatsAppAfterSave) {
+          await sendWhatsApp(phoneNumber, creditCustomer);
+        }
+
         navigate('/allOrder');
       } else {
-        alert('Failed to add Transaction');
+        toast.error('Failed to add Transaction');
       }
     } catch (err) {
       console.error('Error adding Transaction:', err);
-      alert('Error occurred while submitting the form.');
+      toast.error('Error occurred while submitting the form.');
     }
   }
 
@@ -145,65 +221,93 @@ export default function AddRecievable() {
   };
 
   return (
-    <PageContainer title="Add Receivable" subtitle="Record opening receivable entries with proof attachment.">
-      <SectionCard>
-        <Box component="form" onSubmit={submit}>
-          <Grid container spacing={1.25}>
-            <Grid item xs={12} md={6}>
-              <FormSection title="Party Selection">
-                <TextField
-                  label="Search by Customer Name"
-                  value={Customer_name}
-                  onChange={handleInputChange}
-                />
-                <TextField
-                  label="Matched Customers"
-                  select
-                  value={CreditCustomer}
-                  onChange={(e) => setCreditCustomer(e.target.value)}
-                >
-                  <MenuItem value="">Select Customer</MenuItem>
-                  {(filteredOptions.length ? filteredOptions : allCustomerOptions).map((option) => (
-                    <MenuItem key={option.Customer_uuid} value={option.Customer_uuid}>{option.Customer_name}</MenuItem>
-                  ))}
-                </TextField>
-                <Button variant="outlined" onClick={addCustomer}>Add Customer</Button>
-              </FormSection>
+    <>
+      <Toaster position="top-center" reverseOrder={false} />
+      <PageContainer title="Add Receivable" subtitle="Record opening receivable entries with proof attachment.">
+        <SectionCard>
+          <Box component="form" onSubmit={submit}>
+            <Grid container spacing={1.25}>
+              <Grid item xs={12} md={7}>
+                <FormSection title="Party Selection">
+                  <TextField
+                    label="Search by Customer Name"
+                    value={Customer_name}
+                    onChange={handleInputChange}
+                  />
+                  <TextField
+                    label="Matched Customers"
+                    select
+                    value={CreditCustomer}
+                    onChange={(e) => setCreditCustomer(e.target.value)}
+                  >
+                    <MenuItem value="">Select Customer</MenuItem>
+                    {(filteredOptions.length ? filteredOptions : allCustomerOptions).map((option) => (
+                      <MenuItem key={option.Customer_uuid} value={option.Customer_uuid}>{option.Customer_name}</MenuItem>
+                    ))}
+                  </TextField>
+                  <Button variant="outlined" onClick={addCustomer}>Add Customer</Button>
+
+                  <TextField
+                    label="Description"
+                    autoComplete="off"
+                    onChange={(e) => setDescription(e.target.value)}
+                    value={Description}
+                  />
+                  <TextField
+                    label="Amount"
+                    autoComplete="off"
+                    onChange={handleAmountChange}
+                    value={Amount}
+                  />
+                  <TextField
+                    type="file"
+                    inputProps={{ accept: 'image/*' }}
+                    onChange={handleFileChange}
+                    helperText="Upload supporting image (optional)"
+                  />
+                  <Stack direction="row" spacing={1}>
+                    <TextField label="Total Debit" value={Total_Debit} InputProps={{ readOnly: true }} />
+                    <TextField label="Total Credit" value={Total_Credit} InputProps={{ readOnly: true }} />
+                  </Stack>
+                </FormSection>
+              </Grid>
+
+              <Grid item xs={12} md={5}>
+                <FormSection title="Status & actions">
+                  <Alert severity="info" icon={<ReceiptLongRoundedIcon fontSize="inherit" />}>
+                    <Typography variant="caption">
+                      Customer: {selectedCustomer?.Customer_name || 'Not selected'}
+                      <br />
+                      As on: 01-04-2025
+                    </Typography>
+                  </Alert>
+
+                  <FormControlLabel
+                    control={<Checkbox checked={sendWhatsAppAfterSave} onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)} />}
+                    label="Send WhatsApp after saving"
+                  />
+
+                  {isTransactionSaved && mobileToSend ? (
+                    <Button
+                      type="button"
+                      variant="contained"
+                      startIcon={<SendRoundedIcon />}
+                      onClick={() => sendWhatsApp()}
+                      disabled={isSendingWhatsApp}
+                    >
+                      {isSendingWhatsApp ? 'Sending WhatsApp...' : 'Send WhatsApp Opening Balance'}
+                    </Button>
+                  ) : null}
+                </FormSection>
+              </Grid>
             </Grid>
 
-            <Grid item xs={12} md={6}>
-              <FormSection title="Transaction Details">
-                <TextField
-                  label="Description"
-                  autoComplete="off"
-                  onChange={(e) => setDescription(e.target.value)}
-                  value={Description}
-                />
-                <TextField
-                  label="Amount"
-                  autoComplete="off"
-                  onChange={handleAmountChange}
-                  value={Amount}
-                />
-                <TextField
-                  type="file"
-                  inputProps={{ accept: 'image/*' }}
-                  onChange={handleFileChange}
-                  helperText="Upload supporting image (optional)"
-                />
-                <Stack direction="row" spacing={1}>
-                  <TextField label="Total Debit" value={Total_Debit} InputProps={{ readOnly: true }} />
-                  <TextField label="Total Credit" value={Total_Credit} InputProps={{ readOnly: true }} />
-                </Stack>
-              </FormSection>
-            </Grid>
-          </Grid>
-
-          <Box sx={{ mt: 1.5 }}>
-            <ActionButtonGroup primaryLabel="Submit" onCancel={closeModal} cancelLabel="Close" />
+            <Box sx={{ mt: 1.5 }}>
+              <ActionButtonGroup primaryLabel="Submit" onCancel={closeModal} cancelLabel="Close" />
+            </Box>
           </Box>
-        </Box>
-      </SectionCard>
-    </PageContainer>
+        </SectionCard>
+      </PageContainer>
+    </>
   );
 }

@@ -19,7 +19,11 @@ import {
 import PersonAddAlt1RoundedIcon from '@mui/icons-material/PersonAddAlt1Rounded';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
-import { DEFAULT_TEMPLATE_LANGUAGE, WHATSAPP_TEMPLATES, buildPaymentReceivedParameters } from '../constants/whatsappTemplates';
+import {
+  DEFAULT_TEMPLATE_LANGUAGE,
+  WHATSAPP_TEMPLATES,
+  buildAmountReceivedParameters,
+} from '../constants/whatsappTemplates';
 import { sendAdminAlertText } from '../utils/whatsapp';
 import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../components/ui';
 
@@ -166,15 +170,15 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
 
       const payload = {
         to: cleanPhone,
-        template_name: WHATSAPP_TEMPLATES.PAYMENT_RECEIVED,
+        template_name: WHATSAPP_TEMPLATES.AMOUNT_RECEIVED,
         language: DEFAULT_TEMPLATE_LANGUAGE,
         components: [{
           type: 'body',
-          parameters: buildPaymentReceivedParameters({
+          parameters: buildAmountReceivedParameters({
             customerName: Customer_name || 'Customer',
-            actionLabel: 'payment',
             date: new Date().toLocaleDateString('en-IN'),
             amount: String(Amount || '0'),
+            reference: selectedPaymentMode?.Customer_name || '-',
             description: Description || 'Payment received',
           }).map((text) => ({ type: 'text', text })),
         }],

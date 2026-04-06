@@ -19,6 +19,10 @@ import {
 import AssignmentTurnedInRoundedIcon from '@mui/icons-material/AssignmentTurnedInRounded';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import { extractPhoneNumber, sendTemplateWithTextFallback } from '../utils/whatsapp.js';
+import {
+  WHATSAPP_TEMPLATES,
+  buildTaskAssignedParameters,
+} from '../constants/whatsappTemplates';
 import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../components/ui';
 
 export default function AddUsertask() {
@@ -72,9 +76,15 @@ export default function AddUsertask() {
       const { data } = await sendTemplateWithTextFallback({
         axiosInstance: axios,
         phone,
-        templateName: 'preview_sk',
-        bodyParameters: [userLabel],
-        fallbackMessage: `Hello ${userLabel}, your task has been created successfully. Thank you!`,
+        templateName: WHATSAPP_TEMPLATES.TASK_ASSIGNED,
+        bodyParameters: buildTaskAssignedParameters({
+          employeeName: userLabel,
+          taskTitle: Usertask_name || 'New Task',
+          assignedDate: new Date().toLocaleDateString('en-IN'),
+          dueDate: Deadline || '-',
+          assignedBy: localStorage.getItem('User_name') || 'Admin',
+        }),
+        fallbackMessage: `Hello ${userLabel}, a new task has been assigned to you: ${Usertask_name || 'New Task'}. Due date: ${Deadline || '-'}.`,
       });
       if (!data?.success) return toast.error(data?.error || 'Failed to send WhatsApp message');
       toast.success('WhatsApp message sent');
