@@ -253,8 +253,8 @@ export default function Dashboard() {
       <Grid container spacing={1.25}>
         <Grid item xs={12} lg={4}>
           <SectionCard
-            title="Todays Attendance"
-            subtitle="Live attendance status of team members"
+            title="User Wise Attendance"
+            subtitle="Today attendance grouped by user"
             contentSx={{ p: 1 }}
           >
             <AllAttandance />
