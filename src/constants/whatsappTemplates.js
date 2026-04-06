@@ -1,6 +1,6 @@
 export const WHATSAPP_TEMPLATES = {
   PAYMENT_RECEIVED: 'payment_received_sk',
-  ORDER_CONFIRMATION: 'payment_received_sk',
+  ORDER_CONFIRMATION: 'order_new_sk',
   FOLLOWUP: 'payment_received_sk',
 };
 
