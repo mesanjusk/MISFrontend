@@ -1,137 +1,100 @@
 /* eslint-disable react/prop-types */
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import axios from "../apiClient.js";
-import toast from "react-hot-toast";
-import AddCustomer from "./addCustomer";
-import InvoiceModal from "../Components/InvoiceModal";
-import { LoadingSpinner } from "../Components";
-import {
-  extractPhoneNumber,
-  normalizeWhatsAppPhone,
-  sendAdminAlertText,
-} from "../utils/whatsapp.js";
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import axios from '../apiClient.js';
+import toast from 'react-hot-toast';
+import AddCustomer from './addCustomer';
+import InvoiceModal from '../Components/InvoiceModal';
+import { LoadingSpinner } from '../Components';
+import { extractPhoneNumber, normalizeWhatsAppPhone, sendAdminAlertText } from '../utils/whatsapp.js';
 import { DEFAULT_TEMPLATE_LANGUAGE, WHATSAPP_TEMPLATES, buildPaymentReceivedParameters } from '../constants/whatsappTemplates';
-/* ✅ MUI */
 import {
-  AppBar,
-  Toolbar,
-  IconButton,
-  Typography,
+  Alert,
+  Autocomplete,
   Box,
-  Paper,
-  Container,
-  Stack,
-  TextField,
-  InputAdornment,
   Button,
-  Divider,
+  Checkbox,
   Dialog,
   DialogContent,
-  Autocomplete,
-  Select,
+  FormControlLabel,
+  Grid,
   MenuItem,
-  FormControl,
-  InputLabel,
-  CircularProgress,
-  ToggleButtonGroup,
+  Stack,
+  TextField,
   ToggleButton,
-} from "@mui/material";
-
-import CloseIcon from "@mui/icons-material/Close";
-import AddIcon from "@mui/icons-material/Add";
-import SearchIcon from "@mui/icons-material/Search";
-import PaymentsIcon from "@mui/icons-material/Payments";
-import ListAltIcon from "@mui/icons-material/ListAlt";
-import SendIcon from "@mui/icons-material/Send";
+  ToggleButtonGroup,
+  Typography,
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import AssignmentRoundedIcon from '@mui/icons-material/AssignmentRounded';
+import SendRoundedIcon from '@mui/icons-material/SendRounded';
+import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../components/ui';
 
 export default function AddOrder1({ closeModal }) {
   const navigate = useNavigate();
   const location = useLocation();
   const previewRef = useRef();
 
-  // Auth / user
-  const [loggedInUser, setLoggedInUser] = useState("");
-
-  // Customers
-  const [Customer_name, setCustomer_Name] = useState("");
-  const [Remark, setRemark] = useState("");
+  const [loggedInUser, setLoggedInUser] = useState('');
+  const [Customer_name, setCustomer_Name] = useState('');
+  const [Remark, setRemark] = useState('');
   const [customerOptions, setCustomerOptions] = useState([]);
   const [accountCustomerOptions, setAccountCustomerOptions] = useState([]);
-  const [group, setGroup] = useState("");
-
-  // Advance
+  const [group, setGroup] = useState('');
   const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
-  const [Amount, setAmount] = useState("");
-
-  // Task Groups / Steps
+  const [Amount, setAmount] = useState('');
   const [taskGroups, setTaskGroups] = useState([]);
   const [selectedTaskGroups, setSelectedTaskGroups] = useState([]);
-
-  // WhatsApp + invoice
-  const [whatsAppMessage, setWhatsAppMessage] = useState("");
-  const [mobileToSend, setMobileToSend] = useState("");
+  const [mobileToSend, setMobileToSend] = useState('');
   const [sendWhatsAppAfterSave, setSendWhatsAppAfterSave] = useState(false);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
   const [isTransactionSaved, setIsTransactionSaved] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceItems, setInvoiceItems] = useState([]);
   const [createdOrder, setCreatedOrder] = useState(null);
-
-  // UX
   const [optionsLoading, setOptionsLoading] = useState(true);
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [isDateChecked, setIsDateChecked] = useState(false);
-  const [saveDate, setSaveDate] = useState(new Date().toISOString().split("T")[0]);
+  const [saveDate, setSaveDate] = useState(new Date().toISOString().split('T')[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // ✅ Add Customer modal state
   const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [orderType, setOrderType] = useState('Order');
 
-  // ✅ Order type: "Order" | "Enquiry"
-  const [orderType, setOrderType] = useState("Order");
-  const isEnquiryOnly = orderType === "Enquiry";
+  const isEnquiryOnly = orderType === 'Enquiry';
 
-  /* ----------- auth init ----------- */
   useEffect(() => {
     const userNameFromState = location.state?.id;
-    const logInUser = userNameFromState || localStorage.getItem("User_name");
-    setIsAdminUser(localStorage.getItem("User_group") === "Admin User");
+    const logInUser = userNameFromState || localStorage.getItem('User_name');
+    setIsAdminUser(localStorage.getItem('User_group') === 'Admin User');
     if (logInUser) setLoggedInUser(logInUser);
-    else navigate("/login");
+    else navigate('/login');
   }, [location.state, navigate]);
 
-  /* ----------- Load customers + task groups ----------- */
   useEffect(() => {
     const fetchData = async () => {
       setOptionsLoading(true);
       try {
         const [customerRes, taskRes] = await Promise.all([
-          axios.get(`/customer/GetCustomersList`),
-          axios.get(`/taskgroup/GetTaskgroupList`),
+          axios.get('/customer/GetCustomersList'),
+          axios.get('/taskgroup/GetTaskgroupList'),
         ]);
 
         if (customerRes.data?.success) {
           const all = customerRes.data.result || [];
           setCustomerOptions(all);
-
-          const accountOptions = all.filter(
-            (item) => item.Customer_group === "Bank and Account"
-          );
-          setAccountCustomerOptions(accountOptions);
+          setAccountCustomerOptions(all.filter((item) => item.Customer_group === 'Bank and Account'));
         }
 
         if (taskRes.data?.success) {
-          const allGroups = taskRes.data.result || [];
-          setTaskGroups(allGroups);
+          setTaskGroups(taskRes.data.result || []);
           setSelectedTaskGroups([]);
         } else {
           setTaskGroups([]);
           setSelectedTaskGroups([]);
         }
-      } catch (e) {
-        console.error(e);
-        toast.error("Error fetching data");
+      } catch (error) {
+        console.error(error);
+        toast.error('Error fetching data');
       } finally {
         setOptionsLoading(false);
       }
@@ -139,71 +102,77 @@ export default function AddOrder1({ closeModal }) {
     fetchData();
   }, []);
 
-  /* ----------- Handlers ----------- */
   const handleTaskGroupToggle = (uuid) => {
-    setSelectedTaskGroups((prev) =>
-      prev.includes(uuid) ? prev.filter((id) => id !== uuid) : [...prev, uuid]
-    );
+    setSelectedTaskGroups((prev) => (prev.includes(uuid) ? prev.filter((id) => id !== uuid) : [...prev, uuid]));
   };
 
   const buildItemsFromRemark = (remark) => {
-    const r = String(remark || "").trim();
-    if (!r) return [];
-    return [
-      {
-        Item: "Order Note",
-        Quantity: 0,
-        Rate: 0,
-        Amount: 0,
-        Priority: "Normal",
-        Remark: r,
-      },
-    ];
+    const trimmed = String(remark || '').trim();
+    if (!trimmed) return [];
+    return [{ Item: 'Order Note', Quantity: 0, Rate: 0, Amount: 0, Priority: 'Normal', Remark: trimmed }];
   };
 
-  const handleAdvanceCheckboxChange = () => {
-    setIsAdvanceChecked((prev) => !prev);
-    setAmount("");
-    setGroup("");
-  };
-
-  const handleCustomer = () => setShowCustomerModal(true);
-  const exitModal = () => setShowCustomerModal(false);
   const closeAddOrder = () => {
-    if (typeof closeModal === "function") {
+    if (typeof closeModal === 'function') {
       closeModal();
       return;
     }
-    navigate("/home");
+    navigate('/home');
   };
-  const isEmbeddedFlow = typeof closeModal === "function";
-  const handleSaveDateCheckboxChange = () => {
-    setIsDateChecked((prev) => !prev);
-    setSaveDate(new Date().toISOString().split("T")[0]);
-  };
+  const isEmbeddedFlow = typeof closeModal === 'function';
 
-  /* ----------- Submit ----------- */
+  const selectedCustomer = useMemo(
+    () => customerOptions.find((c) => c.Customer_name === Customer_name) || null,
+    [customerOptions, Customer_name]
+  );
+  const selectedPaymentMode = useMemo(
+    () => accountCustomerOptions.find((c) => c.Customer_uuid === group) || null,
+    [accountCustomerOptions, group]
+  );
+  const stepCandidates = useMemo(() => taskGroups.filter((tg) => tg.Id === 1), [taskGroups]);
+
   const canSubmit = useMemo(() => {
-    const hasCustomer = Boolean(
-      customerOptions.find((c) => c.Customer_name === Customer_name)
-    );
-
-    // If enquiry: only need valid customer
+    const hasCustomer = Boolean(selectedCustomer);
     if (isEnquiryOnly) return hasCustomer;
-
-    const advanceOk = !isAdvanceChecked
-      ? true
-      : Number(Amount) > 0 && Boolean(group);
-
+    const advanceOk = !isAdvanceChecked ? true : Number(Amount) > 0 && Boolean(group);
     return hasCustomer && advanceOk;
-  }, [
-    Customer_name,
-    customerOptions,
-    isEnquiryOnly,
-    isAdvanceChecked,
-    Amount,
-    group,
-  ]);
+  }, [selectedCustomer, isEnquiryOnly, isAdvanceChecked, Amount, group]);
+
+  const sendWhatsApp = async (phone = mobileToSend, customerData = null) => {
+    if (!phone) return toast.error('Customer phone number is required');
+    setIsSendingWhatsApp(true);
+    try {
+      const customer = customerData || selectedCustomer;
+      const customerLabel = customer?.Customer_name || Customer_name || 'Customer';
+      const cleanPhone = normalizeWhatsAppPhone(phone);
+      const payload = {
+        to: cleanPhone,
+        template_name: WHATSAPP_TEMPLATES.ORDER_CONFIRMATION,
+        language: DEFAULT_TEMPLATE_LANGUAGE,
+        components: [{
+          type: 'body',
+          parameters: buildPaymentReceivedParameters({
+            customerName: customerLabel,
+            actionLabel: 'order',
+            date: new Date().toLocaleDateString('en-IN'),
+            amount: String(Number(Amount || 0) || 0),
+            description: Remark || 'Order placed',
+          }).map((text) => ({ type: 'text', text })),
+        }],
+      };
+      const { data } = await axios.post('/api/whatsapp/send-template', payload);
+      if (!data?.success) return toast.error(data?.error || 'Failed to send WhatsApp template');
+      await sendAdminAlertText({
+        axiosInstance: axios,
+        message: `Order alert: ${customerLabel} | Amount: ₹${Number(Amount || 0) || 0} | ${Remark || 'Order placed'}`,
+      }).catch(() => null);
+      toast.success('WhatsApp template sent');
+    } catch (error) {
+      toast.error(error?.response?.data?.error || 'Failed to send WhatsApp template');
+    } finally {
+      setIsSendingWhatsApp(false);
+    }
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -211,199 +180,93 @@ export default function AddOrder1({ closeModal }) {
     setIsSubmitting(true);
 
     try {
-      const customer = customerOptions.find(
-        (opt) => opt.Customer_name === Customer_name
-      );
+      const customer = selectedCustomer;
       if (!customer) {
-        toast.error("Invalid customer selection");
+        toast.error('Invalid customer selection');
         return;
       }
 
       const steps = selectedTaskGroups.map((tgUuid) => {
         const g = taskGroups.find((t) => t.Task_group_uuid === tgUuid);
-        return {
-          uuid: tgUuid,
-          label: g?.Task_group_name || g?.Task_group || "Unnamed Group",
-          checked: true,
-        };
+        return { uuid: tgUuid, label: g?.Task_group_name || g?.Task_group || 'Unnamed Group', checked: true };
       });
 
-      const orderRes = await axios.post(`/order/addOrder`, {
+      const orderRes = await axios.post('/order/addOrder', {
         Customer_uuid: customer.Customer_uuid,
         Steps: steps,
         Items: buildItemsFromRemark(Remark),
-        Type: isEnquiryOnly ? "Enquiry" : "Order",
+        Type: isEnquiryOnly ? 'Enquiry' : 'Order',
         isEnquiry: isEnquiryOnly,
       });
 
       if (!orderRes.data?.success) {
-        toast.error("Failed to add order");
+        toast.error('Failed to add order');
         return;
       }
 
       setCreatedOrder(orderRes.data.result || null);
+      const driveFile = orderRes.data?.driveFile;
+      if (driveFile?.status === 'created') toast.success('Order added and Drive file created');
+      else if (driveFile?.status === 'failed') toast.error(`Order saved, but Drive file failed: ${driveFile?.error || 'Unknown error'}`);
 
-const driveFile = orderRes.data?.driveFile;
-if (driveFile?.status === "created") {
-  toast.success("Order added and Drive file created");
-} else if (driveFile?.status === "failed") {
-  toast.error(`Order saved, but Drive file failed: ${driveFile?.error || "Unknown error"}`);
-}
-
-      // ✅ Enquiry flow
       if (isEnquiryOnly) {
-        toast.success("Enquiry saved");
+        toast.success('Enquiry saved');
         if (isEmbeddedFlow) closeAddOrder();
-        else navigate("/home");
+        else navigate('/home');
         return;
       }
 
-      // ------- Normal ORDER flow -------
-      const baseItems = buildItemsFromRemark(Remark);
-      setInvoiceItems(baseItems);
-
+      setInvoiceItems(buildItemsFromRemark(Remark));
       const phoneNumber = extractPhoneNumber(customer);
-      const orderAmount = Number(Amount) > 0 ? Number(Amount) : 0;
-      const message =
-        orderAmount > 0
-          ? `Hello ${customer.Customer_name}, your order of ₹${orderAmount} has been placed successfully. Thank you!`
-          : `Hello ${customer.Customer_name}, your order has been placed successfully. Thank you!`;
-
-      setWhatsAppMessage(message);
       setMobileToSend(phoneNumber);
       setIsTransactionSaved(true);
 
-      if (sendWhatsAppAfterSave) {
-        await sendWhatsApp(phoneNumber, message, customer);
-      }
+      if (sendWhatsAppAfterSave) await sendWhatsApp(phoneNumber, customer);
 
       setShowInvoiceModal(true);
-      toast.success("Order Added");
+      toast.success('Order added');
 
-      // Optional: record advance in background
       if (isAdvanceChecked && Amount && group) {
         const amt = Number(Amount || 0);
         if (Number.isNaN(amt) || amt <= 0) {
-          toast.error("Enter a valid advance amount");
+          toast.error('Enter a valid advance amount');
           return;
         }
 
-        const payModeCustomer = accountCustomerOptions.find(
-          (opt) => opt.Customer_uuid === group
-        );
-
+        const payModeCustomer = accountCustomerOptions.find((opt) => opt.Customer_uuid === group);
         const journal = [
-          { Account_id: group, Type: "Debit", Amount: amt },
-          { Account_id: customer.Customer_uuid, Type: "Credit", Amount: amt },
+          { Account_id: group, Type: 'Debit', Amount: amt },
+          { Account_id: customer.Customer_uuid, Type: 'Credit', Amount: amt },
         ];
 
         try {
-          const txnRes = await axios.post(`/transaction/addTransaction`, {
-            Description: Remark || "Advance received",
-            Transaction_date:
-              isAdminUser && isDateChecked
-                ? saveDate || new Date().toISOString().split("T")[0]
-                : new Date().toISOString().split("T")[0],
+          const txnRes = await axios.post('/transaction/addTransaction', {
+            Description: Remark || 'Advance received',
+            Transaction_date: isAdminUser && isDateChecked ? (saveDate || new Date().toISOString().split('T')[0]) : new Date().toISOString().split('T')[0],
             Total_Credit: amt,
             Total_Debit: amt,
-            Payment_mode: payModeCustomer?.Customer_name || "Advance",
+            Payment_mode: payModeCustomer?.Customer_name || 'Advance',
             Journal_entry: journal,
             Created_by: loggedInUser,
           });
 
           if (txnRes.data?.success) {
-            setInvoiceItems((prev) => [
-              ...prev,
-              { Item: "Advance", Quantity: 1, Rate: amt, Amount: amt },
-            ]);
-            toast.success("Advance payment recorded");
+            setInvoiceItems((prev) => [...prev, { Item: 'Advance', Quantity: 1, Rate: amt, Amount: amt }]);
+            toast.success('Advance payment recorded');
           } else {
-            toast.error("Transaction failed");
+            toast.error('Transaction failed');
           }
         } catch {
-          toast.error("Transaction failed");
+          toast.error('Transaction failed');
         }
       }
+
       if (isEmbeddedFlow) closeAddOrder();
     } catch (error) {
-      console.error("Error during submit:", error);
-      toast.error(error?.response?.data?.message || "Something went wrong");
+      console.error('Error during submit:', error);
+      toast.error(error?.response?.data?.message || 'Something went wrong');
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const sendWhatsApp = async (
-    phone = mobileToSend,
-    _message = whatsAppMessage,
-    customerData = null
-  ) => {
-    if (!phone) {
-      toast.error("Customer phone number is required");
-      return;
-    }
-
-    setIsSendingWhatsApp(true);
-
-    try {
-      const customer =
-        customerData ||
-        customerOptions.find((opt) => opt.Customer_name === Customer_name);
-
-      const customerLabel = customer?.Customer_name || Customer_name || "Customer";
-      const cleanPhone = normalizeWhatsAppPhone(phone);
-
-      const payload = {
-        to: cleanPhone,
-        template_name: WHATSAPP_TEMPLATES.ORDER_CONFIRMATION,
-        language: DEFAULT_TEMPLATE_LANGUAGE,
-        components: [
-          {
-            type: "body",
-            parameters: buildPaymentReceivedParameters({
-              customerName: customerLabel,
-              actionLabel: "order",
-              date: new Date().toLocaleDateString("en-IN"),
-              amount: String(Number(Amount || 0) || 0),
-              description: Remark || "Order placed",
-            }).map((text) => ({ type: "text", text })),
-          },
-        ],
-      };
-
-      const { data } = await axios.post('/api/whatsapp/send-template', payload);
-
-      if (data?.success) {
-        await sendAdminAlertText({
-          axiosInstance: axios,
-          message: `Order alert: ${customerLabel} | Amount: ₹${Number(Amount || 0) || 0} | ${Remark || 'Order placed'}`,
-        }).catch(() => null);
-        toast.success("WhatsApp template sent");
-      } else {
-        toast.error(data?.error || "Failed to send WhatsApp template");
-      }
-    } catch (error) {
-      toast.error(error?.response?.data?.error || "Failed to send WhatsApp template");
-    } finally {
-      setIsSendingWhatsApp(false);
-    }
-  };
-
-  const stepCandidates = useMemo(
-    () => taskGroups.filter((tg) => tg.Id === 1),
-    [taskGroups]
-  );
-
-  const onOrderTypeChange = (_, next) => {
-    if (!next) return;
-    setOrderType(next);
-
-    // Reset order-only fields when switching to Enquiry
-    if (next === "Enquiry") {
-      setIsAdvanceChecked(false);
-      setAmount("");
-      setGroup("");
-      setSelectedTaskGroups([]);
     }
   };
 
@@ -413,7 +276,7 @@ if (driveFile?.status === "created") {
         open={showInvoiceModal}
         onClose={() => {
           setShowInvoiceModal(false);
-          navigate("/home");
+          navigate('/home');
         }}
         invoiceRef={previewRef}
         customerName={Customer_name}
@@ -421,401 +284,123 @@ if (driveFile?.status === "created") {
         items={invoiceItems}
         remark={Remark}
         order={createdOrder}
-        onSendWhatsApp={sendWhatsApp}
+        onSendWhatsApp={() => sendWhatsApp()}
       />
 
-      <Dialog open fullScreen>
-        <AppBar position="sticky" elevation={0}>
-          <Toolbar>
-            <IconButton
-              edge="start"
-              color="inherit"
-              onClick={closeAddOrder}
-              aria-label="back"
-            >
-              <CloseIcon />
-            </IconButton>
+      <PageContainer title={isEnquiryOnly ? 'New Enquiry' : 'New Order'} subtitle="Redesigned to match the follow-up page with a cleaner compact form.">
+        <SectionCard>
+          <Box component="form" onSubmit={submit}>
+            <Grid container spacing={1.5}>
+              <Grid item xs={12} md={7}>
+                <FormSection title="Order details" subtitle="Select type, customer, note and optional production steps.">
+                  <ToggleButtonGroup value={orderType} exclusive onChange={(_, next) => { if (next) { setOrderType(next); if (next === 'Enquiry') { setIsAdvanceChecked(false); setAmount(''); setGroup(''); setSelectedTaskGroups([]); } } }} fullWidth>
+                    <ToggleButton value="Order">Order</ToggleButton>
+                    <ToggleButton value="Enquiry">Enquiry</ToggleButton>
+                  </ToggleButtonGroup>
 
-            <Typography variant="h6" sx={{ flex: 1 }}>
-              {isEnquiryOnly ? "New Enquiry" : "New Order"}
-            </Typography>
+                  <Autocomplete
+                    loading={optionsLoading}
+                    options={customerOptions}
+                    value={selectedCustomer}
+                    inputValue={Customer_name}
+                    onInputChange={(_, value) => setCustomer_Name(value || '')}
+                    onChange={(_, value) => setCustomer_Name(value?.Customer_name || '')}
+                    getOptionLabel={(option) => option?.Customer_name || ''}
+                    isOptionEqualToValue={(option, value) => option?.Customer_uuid === value?.Customer_uuid}
+                    renderInput={(params) => <TextField {...params} label="Customer" placeholder="Search by customer name" />}
+                  />
 
-            <Button
-              color="inherit"
-              startIcon={<AddIcon />}
-              onClick={handleCustomer}
-            >
-              New Customer
-            </Button>
-            <IconButton
-              edge="end"
-              color="inherit"
-              onClick={closeAddOrder}
-              aria-label="close"
-              sx={{ ml: 1 }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </Toolbar>
-        </AppBar>
+                  <Button type="button" variant="outlined" startIcon={<AddIcon />} onClick={() => setShowCustomerModal(true)}>
+                    New Customer
+                  </Button>
 
-        <DialogContent sx={{ px: 0, pb: 4 }}>
-          <Container maxWidth="sm">
-            <Box sx={{ pt: 2 }}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  borderRadius: 3,
-                  border: "1px solid",
-                  borderColor: "divider",
-                }}
-              >
-                <Stack spacing={2} component="form" onSubmit={submit}>
-                  {/* ✅ Top Toggle: Enquiry / Order */}
-                  <Stack spacing={1}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Select Type
-                    </Typography>
+                  <TextField label={isEnquiryOnly ? 'Enquiry Note' : 'Order Note'} value={Remark} onChange={(e) => setRemark(e.target.value)} placeholder="Item details / note" multiline minRows={2} />
 
-                    <ToggleButtonGroup
-                      value={orderType}
-                      exclusive
-                      onChange={onOrderTypeChange}
-                      fullWidth
-                      sx={{
-                        "& .MuiToggleButton-root": {
-                          py: 1.2,
-                          borderRadius: 2,
-                          textTransform: "none",
-                          fontWeight: 700,
-                        },
-                      }}
-                    >
-                      <ToggleButton value="Order">Order</ToggleButton>
-                      <ToggleButton value="Enquiry">Enquiry</ToggleButton>
-                    </ToggleButtonGroup>
-                  </Stack>
-
-                  <Divider />
-
-                  {/* Customer */}
-                  <Stack spacing={1}>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                    >
-                      <SearchIcon fontSize="small" />
-                      Customer
-                    </Typography>
-
-                    {optionsLoading ? (
-                      <Stack
-                        direction="row"
-                        alignItems="center"
-                        justifyContent="center"
-                        sx={{ py: 2 }}
-                      >
-                        <LoadingSpinner />
-                      </Stack>
-                    ) : (
-                      <Autocomplete
-                        options={customerOptions}
-                        getOptionLabel={(opt) => opt?.Customer_name || ""}
-                        value={
-                          customerOptions.find(
-                            (c) => c.Customer_name === Customer_name
-                          ) || null
-                        }
-                        onChange={(_, newValue) => {
-                          setCustomer_Name(newValue?.Customer_name || "");
-                        }}
-                        inputValue={Customer_name}
-                        onInputChange={(_, val) => setCustomer_Name(val)}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder="Search by customer name"
-                            size="medium"
-                            fullWidth
-                            InputProps={{
-                              ...params.InputProps,
-                              startAdornment: (
-                                <InputAdornment position="start">
-                                  <SearchIcon fontSize="small" />
-                                </InputAdornment>
-                              ),
-                            }}
-                          />
-                        )}
-                        isOptionEqualToValue={(opt, val) =>
-                          opt?.Customer_uuid === val?.Customer_uuid
-                        }
-                      />
-                    )}
-                  </Stack>
-
-                  {/* Order Note */}
-                  <Stack spacing={1}>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                    >
-                      <ListAltIcon fontSize="small" />
-                      {isEnquiryOnly ? "Enquiry Note" : "Order Note"}
-                    </Typography>
-
-                    <TextField
-                      placeholder="Item details / note"
-                      value={Remark}
-                      onChange={(e) => setRemark(e.target.value)}
-                      fullWidth
-                      multiline
-                      minRows={2}
-                    />
-                  </Stack>
-
-                  {/* ✅ If enquiry: hide everything below */}
-                  {!isEnquiryOnly && (
+                  {!isEnquiryOnly ? (
                     <>
-                      <Divider />
+                      <TextField
+                        select
+                        SelectProps={{ multiple: true, renderValue: (selected) => stepCandidates.filter((tg) => selected.includes(tg.Task_group_uuid)).map((tg) => tg.Task_group_name || tg.Task_group).join(', ') }}
+                        label="Production Steps"
+                        value={selectedTaskGroups}
+                        onChange={(e) => setSelectedTaskGroups(e.target.value)}
+                      >
+                        {stepCandidates.map((tg) => (
+                          <MenuItem key={tg.Task_group_uuid} value={tg.Task_group_uuid}>{tg.Task_group_name || tg.Task_group}</MenuItem>
+                        ))}
+                      </TextField>
 
-                      {/* Steps */}
-                      <Stack spacing={1}>
-                        <Typography variant="subtitle2">Steps</Typography>
+                      <FormControlLabel control={<Checkbox checked={isAdvanceChecked} onChange={() => { setIsAdvanceChecked((prev) => !prev); setAmount(''); setGroup(''); }} />} label="Add advance payment" />
 
-                        <Paper
-                          variant="outlined"
-                          sx={{
-                            p: 1.5,
-                            borderRadius: 2,
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: 1,
-                          }}
-                        >
-                          {stepCandidates.length === 0 ? (
-                            <Typography variant="body2" color="text.secondary">
-                              No steps available.
-                            </Typography>
-                          ) : (
-                            stepCandidates.map((tg) => {
-                              const uuid = tg.Task_group_uuid;
-                              const checked = selectedTaskGroups.includes(uuid);
-                              return (
-                                <Button
-                                  key={uuid}
-                                  variant={checked ? "contained" : "outlined"}
-                                  onClick={() => handleTaskGroupToggle(uuid)}
-                                  sx={{
-                                    borderRadius: 2,
-                                    textTransform: "none",
-                                    fontWeight: 700,
-                                  }}
-                                >
-                                  {tg.Task_group_name || tg.Task_group}
-                                </Button>
-                              );
-                            })
-                          )}
-                        </Paper>
-                      </Stack>
-
-                      {/* Advance */}
-                      <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
-                        <ToggleButtonGroup
-                          value={isAdvanceChecked ? "yes" : "no"}
-                          exclusive
-                          onChange={(_, v) => {
-                            if (!v) return;
-                            if (v === "yes" && !isAdvanceChecked)
-                              handleAdvanceCheckboxChange();
-                            if (v === "no" && isAdvanceChecked)
-                              handleAdvanceCheckboxChange();
-                          }}
-                          fullWidth
-                          sx={{
-                            "& .MuiToggleButton-root": {
-                              py: 1.1,
-                              borderRadius: 2,
-                              textTransform: "none",
-                              fontWeight: 700,
-                            },
-                          }}
-                        >
-                          <ToggleButton value="no">No Advance</ToggleButton>
-                          <ToggleButton value="yes">Advance</ToggleButton>
-                        </ToggleButtonGroup>
-
-                        {isAdvanceChecked && (
-                          <Stack spacing={2} sx={{ mt: 2 }}>
-                            <TextField
-                              label="Amount"
-                              type="number"
-                              value={Amount}
-                              onChange={(e) => setAmount(e.target.value)}
-                              fullWidth
-                              InputProps={{
-                                startAdornment: (
-                                  <InputAdornment position="start">
-                                    <PaymentsIcon fontSize="small" />
-                                  </InputAdornment>
-                                ),
-                              }}
-                            />
-
-                            <FormControl fullWidth>
-                              <InputLabel id="payment-mode-label">
-                                Payment Mode
-                              </InputLabel>
-                              <Select
-                                labelId="payment-mode-label"
-                                value={group}
-                                label="Payment Mode"
-                                onChange={(e) => setGroup(e.target.value)}
-                              >
-                                <MenuItem value="">
-                                  <em>Select Payment</em>
-                                </MenuItem>
-                                {accountCustomerOptions.map((c, i) => (
-                                  <MenuItem key={i} value={c.Customer_uuid}>
-                                    {c.Customer_name}
-                                  </MenuItem>
-                                ))}
-                              </Select>
-                            </FormControl>
-                          </Stack>
-                        )}
-                      </Paper>
+                      {isAdvanceChecked ? (
+                        <Grid container spacing={1.25}>
+                          <Grid item xs={12} sm={6}>
+                            <TextField label="Advance Amount (₹)" type="number" value={Amount} onChange={(e) => setAmount(e.target.value)} inputProps={{ min: 0, step: '0.01' }} fullWidth />
+                          </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <TextField select label="Payment Mode" value={group} onChange={(e) => setGroup(e.target.value)} fullWidth>
+                              <MenuItem value="">Select payment mode</MenuItem>
+                              {accountCustomerOptions.map((c) => (
+                                <MenuItem key={c.Customer_uuid} value={c.Customer_uuid}>{c.Customer_name}</MenuItem>
+                              ))}
+                            </TextField>
+                          </Grid>
+                        </Grid>
+                      ) : null}
                     </>
-                  )}
+                  ) : null}
+                </FormSection>
+              </Grid>
 
-                  {/* Submit */}
-                  <Divider />
+              <Grid item xs={12} md={5}>
+                <FormSection title="Status & actions" subtitle="Compact action panel like follow-ups, with order summary and delivery controls.">
+                  <Alert severity="info" icon={<AssignmentRoundedIcon fontSize="inherit" />}>
+                    <Typography variant="caption">
+                      Customer: {selectedCustomer?.Customer_name || 'Not selected'}
+                      <br />
+                      Type: {orderType}
+                      {!isEnquiryOnly ? <><br />Advance: {isAdvanceChecked ? `₹${Amount || 0}` : 'No'}</> : null}
+                      {!isEnquiryOnly && selectedPaymentMode ? <><br />Payment mode: {selectedPaymentMode.Customer_name}</> : null}
+                    </Typography>
+                  </Alert>
 
-                  <Stack spacing={1}>
-                    <Stack direction="row" spacing={1.25}>
-                      <Button
-                        type="button"
-                        variant="outlined"
-                        size="large"
-                        onClick={closeAddOrder}
-                        disabled={isSubmitting}
-                        sx={{
-                          borderRadius: 2,
-                          py: 1.2,
-                          textTransform: "none",
-                          fontWeight: 700,
-                          flex: 1,
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="submit"
-                        variant="contained"
-                        size="large"
-                        disabled={!canSubmit || optionsLoading || isSubmitting}
-                        startIcon={<SendIcon />}
-                        sx={{
-                          borderRadius: 2,
-                          py: 1.2,
-                          textTransform: "none",
-                          fontWeight: 800,
-                          flex: 1,
-                        }}
-                      >
-                        {isSubmitting
-                          ? isEnquiryOnly
-                            ? "Saving Enquiry..."
-                            : "Submitting..."
-                          : isEnquiryOnly
-                          ? "Save Enquiry"
-                          : "Submit Order"}
-                      </Button>
-                    </Stack>
+                  {!isEnquiryOnly ? <FormControlLabel control={<Checkbox checked={sendWhatsAppAfterSave} onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)} />} label="Send WhatsApp after saving" /> : null}
 
-                    {isAdminUser && !isEnquiryOnly && (
-                      <>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <input
-                            type="checkbox"
-                            checked={isDateChecked}
-                            onChange={handleSaveDateCheckboxChange}
-                            className="h-4 w-4 text-[#25d366] border-gray-300 rounded"
-                          />
-                          <Typography variant="body2">Save Date</Typography>
-                        </Stack>
+                  {isAdminUser && !isEnquiryOnly ? (
+                    <>
+                      <FormControlLabel control={<Checkbox checked={isDateChecked} onChange={() => { setIsDateChecked((prev) => !prev); setSaveDate(new Date().toISOString().split('T')[0]); }} />} label="Save custom advance date" />
+                      {isDateChecked ? <TextField label="Advance Date" type="date" value={saveDate} onChange={(e) => setSaveDate(e.target.value)} InputLabelProps={{ shrink: true }} /> : null}
+                    </>
+                  ) : null}
 
-                        {isDateChecked && (
-                          <TextField
-                            type="date"
-                            label="Date"
-                            value={saveDate}
-                            onChange={(e) => setSaveDate(e.target.value)}
-                            InputLabelProps={{ shrink: true }}
-                            fullWidth
-                          />
-                        )}
-                      </>
-                    )}
+                  {optionsLoading ? (
+                    <Stack direction="row" justifyContent="center"><LoadingSpinner /></Stack>
+                  ) : null}
 
-                    {!isEnquiryOnly && (
-                      <Stack direction="row" alignItems="center" spacing={1}>
-                        <input
-                          type="checkbox"
-                          checked={sendWhatsAppAfterSave}
-                          onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)}
-                          className="h-4 w-4 text-[#25d366] border-gray-300 rounded"
-                        />
-                        <Typography variant="body2">Send WhatsApp after saving</Typography>
-                      </Stack>
-                    )}
+                  {isTransactionSaved && !isEnquiryOnly ? (
+                    <Button type="button" variant="contained" startIcon={<SendRoundedIcon />} onClick={() => sendWhatsApp()} disabled={isSendingWhatsApp}>
+                      {isSendingWhatsApp ? 'Sending WhatsApp...' : 'Send WhatsApp Receipt'}
+                    </Button>
+                  ) : null}
+                </FormSection>
+              </Grid>
+            </Grid>
 
-                    {isTransactionSaved && !isEnquiryOnly && (
-                      <Button
-                        type="button"
-                        variant="contained"
-                        onClick={() => sendWhatsApp()}
-                        disabled={isSendingWhatsApp}
-                        sx={{
-                          borderRadius: 2,
-                          py: 1.1,
-                          textTransform: "none",
-                          fontWeight: 700,
-                          bgcolor: "#075e54",
-                        }}
-                      >
-                        {isSendingWhatsApp ? "Sending WhatsApp..." : "Send WhatsApp Receipt"}
-                      </Button>
-                    )}
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1.5 }}>
+              <ActionButtonGroup
+                primaryLabel={isSubmitting ? (isEnquiryOnly ? 'Saving Enquiry...' : 'Submitting...') : (isEnquiryOnly ? 'Save Enquiry' : 'Submit Order')}
+                busy={optionsLoading || isSubmitting || !canSubmit}
+                onCancel={closeAddOrder}
+                cancelLabel="Close"
+              />
+            </Stack>
+          </Box>
+        </SectionCard>
+      </PageContainer>
 
-                    {optionsLoading && (
-                      <Stack direction="row" justifyContent="center">
-                        <CircularProgress size={22} />
-                      </Stack>
-                    )}
-                  </Stack>
-                </Stack>
-              </Paper>
-
-              <Box sx={{ height: 24 }} />
-            </Box>
-          </Container>
-        </DialogContent>
-      </Dialog>
-
-      {/* ✅ FIX: show AddCustomer ABOVE the fullscreen dialog */}
-      <Dialog
-        open={showCustomerModal}
-        onClose={exitModal}
-        fullWidth
-        maxWidth="sm"
-        PaperProps={{ sx: { borderRadius: 3 } }}
-        sx={{ zIndex: (theme) => theme.zIndex.modal + 2 }}
-      >
+      <Dialog open={showCustomerModal} onClose={() => setShowCustomerModal(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 3 } }}>
         <DialogContent sx={{ p: 0 }}>
-          <AddCustomer onClose={exitModal} />
+          <AddCustomer onClose={() => setShowCustomerModal(false)} />
         </DialogContent>
       </Dialog>
     </>

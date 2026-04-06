@@ -1,166 +1,115 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from "react-router-dom";
-import toast, { Toaster } from "react-hot-toast";
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from '../apiClient.js';
-import InvoiceModal from "../Components/InvoiceModal";
+import toast, { Toaster } from 'react-hot-toast';
+import InvoiceModal from '../Components/InvoiceModal';
 import {
-  extractPhoneNumber,
-  sendTemplateWithTextFallback,
-} from "../utils/whatsapp.js";
+  Alert,
+  Autocomplete,
+  Box,
+  Button,
+  Checkbox,
+  FormControlLabel,
+  Grid,
+  MenuItem,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
+import AssignmentTurnedInRoundedIcon from '@mui/icons-material/AssignmentTurnedInRounded';
+import SendRoundedIcon from '@mui/icons-material/SendRounded';
+import { extractPhoneNumber, sendTemplateWithTextFallback } from '../utils/whatsapp.js';
+import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../components/ui';
 
 export default function AddUsertask() {
   const navigate = useNavigate();
+  const previewRef = useRef();
 
   const [Usertask_name, setUsertask_Name] = useState('');
   const [User, setUser] = useState('');
-  const [Deadline, setDeadline] = useState('');
+  const [Deadline, setDeadline] = useState(new Date().toLocaleDateString('en-CA'));
   const [Remark, setRemark] = useState('');
-  const [userOptions, setUserOptions] = useState([]);
-  const [orderOptions, setOrderOptions] = useState([]);
   const [LinkedOrder, setLinkedOrder] = useState('');
   const [TaskStatus, setTaskStatus] = useState('pending');
   const [isDeadlineChecked, setIsDeadlineChecked] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
+  const [userOptions, setUserOptions] = useState([]);
+  const [orderOptions, setOrderOptions] = useState([]);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceItems, setInvoiceItems] = useState([]);
-  const [whatsAppMessage, setWhatsAppMessage] = useState('');
   const [mobileToSend, setMobileToSend] = useState('');
   const [sendWhatsAppAfterSave, setSendWhatsAppAfterSave] = useState(false);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
   const [isTransactionSaved, setIsTransactionSaved] = useState(false);
-  const previewRef = useRef();
 
   useEffect(() => {
-    setIsAdminUser(localStorage.getItem("User_group") === "Admin User");
+    setIsAdminUser(localStorage.getItem('User_group') === 'Admin User');
 
-    axios.get("/user/GetUserList")
-      .then(res => {
+    axios.get('/user/GetUserList')
+      .then((res) => {
         if (res.data.success) {
-          const filteredUsers = res.data.result.filter(
-            item => item.User_group === "Office User"
-          );
-          setUserOptions(filteredUsers);
+          setUserOptions(res.data.result.filter((item) => item.User_group === 'Office User'));
         }
       })
-      .catch(err => {
-        console.error("Error fetching user options:", err);
-      });
+      .catch((err) => console.error('Error fetching user options:', err));
 
     axios.get('/order/GetOrderList?page=1&limit=200')
-      .then(res => {
-        if (res?.data?.success) {
-          setOrderOptions(res?.data?.result || []);
-        }
+      .then((res) => {
+        if (res?.data?.success) setOrderOptions(res?.data?.result || []);
       })
       .catch(() => setOrderOptions([]));
   }, []);
 
-  const submit = async (e) => {
-    e.preventDefault();
+  const selectedUser = useMemo(() => userOptions.find((option) => option.User_name === User) || null, [userOptions, User]);
+  const statusText = useMemo(() => ({ pending: 'Pending', in_progress: 'In Progress', done: 'Done' }[TaskStatus] || 'Pending'), [TaskStatus]);
 
-    if (!User || !Usertask_name) {
-      toast.error("Please fill in both User and Task fields.");
-      return;
-    }
-
-    const finalDeadline = isDeadlineChecked && Deadline
-      ? Deadline
-      : new Date().toLocaleDateString('en-CA');
-
-    try {
-      const res = await axios.post("/usertask/addUsertask", {
-        Usertask_name,
-        User,
-        Deadline: finalDeadline,
-        Remark,
-        LinkedOrder,
-        TaskStatus
-      });
-
-      if (res.data === "exist") {
-        toast.error("Task already exists");
-      } else if (res.data === "notexist") {
-        const selectedUser = userOptions.find((option) => option.User_name === User);
-        const phoneNumber = extractPhoneNumber(selectedUser);
-        const message = `Hello ${User}, your task has been created successfully. Thank you!`;
-
-        toast.success("Task added successfully");
-        setWhatsAppMessage(message);
-        setMobileToSend(phoneNumber);
-        setIsTransactionSaved(true);
-
-        if (sendWhatsAppAfterSave) {
-          await sendWhatsApp(phoneNumber, message, selectedUser);
-        }
-
-        setInvoiceItems([{ Item: Usertask_name, Quantity: 1, Rate: 0, Amount: 0 }]);
-        setShowInvoiceModal(true);
-      }
-    } catch (e) {
-      toast.error("Something went wrong.");
-      console.error(e);
-    }
-  };
-
-  const sendWhatsApp = async (
-    phone = mobileToSend,
-    message = whatsAppMessage,
-    userData = null
-  ) => {
-    if (!phone) {
-      toast.error("Customer phone number is required");
-      return;
-    }
-
+  const sendWhatsApp = async (phone = mobileToSend, userData = null) => {
+    if (!phone) return toast.error('User phone number is required');
     setIsSendingWhatsApp(true);
-
     try {
-      const selectedUser =
-        userData || userOptions.find((option) => option.User_name === User);
-
-      const userLabel = selectedUser?.User_name || User || "User";
-
+      const selected = userData || selectedUser;
+      const userLabel = selected?.User_name || User || 'User';
       const { data } = await sendTemplateWithTextFallback({
         axiosInstance: axios,
         phone,
-        templateName: "preview_sk",
+        templateName: 'preview_sk',
         bodyParameters: [userLabel],
-        fallbackMessage: message,
+        fallbackMessage: `Hello ${userLabel}, your task has been created successfully. Thank you!`,
       });
-
-      if (data?.success) {
-        toast.success("WhatsApp message sent");
-      } else {
-        toast.error(data?.error || "Failed to send WhatsApp message");
-      }
+      if (!data?.success) return toast.error(data?.error || 'Failed to send WhatsApp message');
+      toast.success('WhatsApp message sent');
     } catch (error) {
-      toast.error(error?.response?.data?.error || "Failed to send WhatsApp message");
+      toast.error(error?.response?.data?.error || 'Failed to send WhatsApp message');
     } finally {
       setIsSendingWhatsApp(false);
     }
   };
 
-  const closeModal = () => {
-    navigate("/Home");
-  };
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!User || !Usertask_name) return toast.error('Please fill in both user and task fields.');
 
-  const handleDeadlineCheckboxChange = () => {
-    setIsDeadlineChecked(prev => !prev);
-    setDeadline('');
-  };
+    const finalDeadline = isDeadlineChecked && Deadline ? Deadline : new Date().toLocaleDateString('en-CA');
+    try {
+      const res = await axios.post('/usertask/addUsertask', { Usertask_name, User, Deadline: finalDeadline, Remark, LinkedOrder, TaskStatus });
+      if (res.data === 'exist') return toast.error('Task already exists');
+      if (res.data !== 'notexist') return toast.error('Something went wrong.');
 
-  const statusText = useMemo(() => ({
-    pending: 'Pending',
-    in_progress: 'In Progress',
-    done: 'Done',
-  }[TaskStatus] || 'Pending'), [TaskStatus]);
+      const phoneNumber = extractPhoneNumber(selectedUser);
+      setMobileToSend(phoneNumber);
+      setIsTransactionSaved(true);
+      setInvoiceItems([{ Item: Usertask_name, Quantity: 1, Rate: 0, Amount: 0 }]);
+      toast.success('Task added successfully');
 
-  const toggleStatus = () => {
-    setTaskStatus((prev) => {
-      if (prev === 'pending') return 'in_progress';
-      if (prev === 'in_progress') return 'done';
-      return 'pending';
-    });
+      if (sendWhatsAppAfterSave) {
+        await sendWhatsApp(phoneNumber, selectedUser);
+      }
+
+      setShowInvoiceModal(true);
+    } catch (error) {
+      toast.error('Something went wrong.');
+      console.error(error);
+    }
   };
 
   return (
@@ -177,159 +126,79 @@ export default function AddUsertask() {
         customerMobile={mobileToSend}
         items={invoiceItems}
         remark={Remark}
-        onSendWhatsApp={sendWhatsApp}
+        onSendWhatsApp={() => sendWhatsApp()}
       />
 
-      <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-        <div className="bg-white w-full max-w-md rounded-2xl shadow-lg p-6 relative">
-          <button
-            onClick={closeModal}
-            className="absolute right-2 top-2 text-xl text-gray-400 hover:text-blue-500"
-            type="button"
-          >
-            ×
-          </button>
+      <PageContainer title="Add User Task" subtitle="Redesigned to match follow-ups with compact cards and faster inputs.">
+        <SectionCard>
+          <Box component="form" onSubmit={submit}>
+            <Grid container spacing={1.5}>
+              <Grid item xs={12} md={7}>
+                <FormSection title="Task details" subtitle="Assign a user, set deadline, link an order and add remarks.">
+                  <Autocomplete
+                    options={userOptions}
+                    value={selectedUser}
+                    onChange={(_, value) => setUser(value?.User_name || '')}
+                    getOptionLabel={(option) => option?.User_name || ''}
+                    isOptionEqualToValue={(option, value) => option?.User_name === value?.User_name}
+                    renderInput={(params) => <TextField {...params} label="Select User" placeholder="Search user" />}
+                  />
 
-          <h2 className="text-xl font-semibold mb-4 text-center text-[#075e54]">
-            Add User Task
-          </h2>
+                  <TextField label="Task" value={Usertask_name} onChange={(e) => setUsertask_Name(e.target.value)} placeholder="Enter task" />
 
-          <form onSubmit={submit} className="space-y-4">
-            <div>
-              <label className="block font-medium text-gray-700 mb-1">Select User</label>
-              <select
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-                value={User}
-                onChange={(e) => setUser(e.target.value)}
-              >
-                <option value="">-- Select User --</option>
-                {userOptions.map((option, index) => (
-                  <option key={index} value={option.User_name}>
-                    {option.User_name}
-                  </option>
-                ))}
-              </select>
-            </div>
+                  <TextField select label="Linked Order" value={LinkedOrder} onChange={(e) => setLinkedOrder(e.target.value)}>
+                    <MenuItem value="">Select order</MenuItem>
+                    {orderOptions.map((option) => (
+                      <MenuItem key={option?._id || option?.Order_uuid} value={option?.Order_uuid || option?._id || ''}>
+                        #{option?.Order_Number || '-'} - {option?.Customer_name || 'Unknown'}
+                      </MenuItem>
+                    ))}
+                  </TextField>
 
-            <div>
-              <label className="block font-medium text-gray-700 mb-1">Task</label>
-              <input
-                type="text"
-                value={Usertask_name}
-                onChange={(e) => setUsertask_Name(e.target.value)}
-                placeholder="Enter task"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-                autoFocus
-              />
-            </div>
+                  <TextField select label="Task Status" value={TaskStatus} onChange={(e) => setTaskStatus(e.target.value)}>
+                    <MenuItem value="pending">Pending</MenuItem>
+                    <MenuItem value="in_progress">In Progress</MenuItem>
+                    <MenuItem value="done">Done</MenuItem>
+                  </TextField>
 
-            {isAdminUser && (
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={isDeadlineChecked}
-                  onChange={handleDeadlineCheckboxChange}
-                  className="h-4 w-4 text-[#25d366] focus:ring-[#25d366] border-gray-300 rounded"
-                />
-                <label className="text-gray-700">Save Date</label>
-              </div>
-            )}
+                  <TextField label="Remark" value={Remark} onChange={(e) => setRemark(e.target.value)} placeholder="Add remark" multiline minRows={2} />
+                </FormSection>
+              </Grid>
 
-            {isAdminUser && isDeadlineChecked && (
-              <div>
-                <label className="block font-medium text-gray-700 mb-1">Deadline</label>
-                <input
-                  type="date"
-                  value={Deadline}
-                  onChange={(e) => setDeadline(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-                />
-              </div>
-            )}
+              <Grid item xs={12} md={5}>
+                <FormSection title="Status & actions" subtitle="Keep the important options visible without using a modal layout.">
+                  <Alert severity="info" icon={<AssignmentTurnedInRoundedIcon fontSize="inherit" />}>
+                    <Typography variant="caption">
+                      User: {selectedUser?.User_name || 'Not selected'}
+                      <br />
+                      Status: {statusText}
+                    </Typography>
+                  </Alert>
 
-            <div>
-              <label className="block font-medium text-gray-700 mb-1">Linked Order</label>
-              <select
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-                value={LinkedOrder}
-                onChange={(e) => setLinkedOrder(e.target.value)}
-              >
-                <option value="">-- Select Order --</option>
-                {orderOptions?.map((option) => (
-                  <option
-                    key={option?._id || option?.Order_uuid}
-                    value={option?.Order_uuid || option?._id || ''}
-                  >
-                    #{option?.Order_Number || '-'} - {option?.Customer_name || 'Unknown'}
-                  </option>
-                ))}
-              </select>
-            </div>
+                  <FormControlLabel control={<Checkbox checked={sendWhatsAppAfterSave} onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)} />} label="Send WhatsApp after saving" />
 
-            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <div>
-                <p className="text-sm font-medium text-slate-700">Task Status</p>
-                <p className="text-xs text-slate-500">{statusText}</p>
-              </div>
-              <button
-                type="button"
-                onClick={toggleStatus}
-                className="rounded-md border border-slate-300 px-3 py-2 text-xs hover:bg-white"
-              >
-                Toggle Status
-              </button>
-            </div>
+                  {isAdminUser ? (
+                    <>
+                      <FormControlLabel control={<Checkbox checked={isDeadlineChecked} onChange={() => setIsDeadlineChecked((prev) => !prev)} />} label="Save custom deadline" />
+                      {isDeadlineChecked ? <TextField label="Deadline" type="date" value={Deadline} onChange={(e) => setDeadline(e.target.value)} InputLabelProps={{ shrink: true }} /> : null}
+                    </>
+                  ) : null}
 
-            <div>
-              <label className="block font-medium text-gray-700 mb-1">Remark</label>
-              <input
-                type="text"
-                value={Remark}
-                onChange={(e) => setRemark(e.target.value)}
-                placeholder="Add remark"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#25d366]"
-              />
-            </div>
+                  {isTransactionSaved ? (
+                    <Button type="button" variant="contained" startIcon={<SendRoundedIcon />} onClick={() => sendWhatsApp()} disabled={isSendingWhatsApp}>
+                      {isSendingWhatsApp ? 'Sending WhatsApp...' : 'Send WhatsApp Task Alert'}
+                    </Button>
+                  ) : null}
+                </FormSection>
+              </Grid>
+            </Grid>
 
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={sendWhatsAppAfterSave}
-                onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)}
-                className="h-4 w-4 text-[#25d366] focus:ring-[#25d366] border-gray-300 rounded"
-              />
-              <label className="text-gray-700">Send WhatsApp after saving</label>
-            </div>
-
-            {isTransactionSaved && (
-              <button
-                type="button"
-                onClick={() => sendWhatsApp()}
-                disabled={isSendingWhatsApp}
-                className="bg-[#075e54] hover:bg-[#064c44] text-white font-medium py-2 rounded-lg transition disabled:opacity-60"
-              >
-                {isSendingWhatsApp ? 'Sending WhatsApp...' : 'Send WhatsApp Receipt'}
-              </button>
-            )}
-
-            <div className="flex flex-col space-y-2">
-              <button
-                type="submit"
-                className="bg-[#25d366] hover:bg-[#128c7e] text-white font-medium py-2 rounded-lg transition"
-              >
-                Submit
-              </button>
-              <button
-                type="button"
-                className="bg-gray-400 hover:bg-gray-600 text-white font-medium py-2 rounded-lg transition"
-                onClick={closeModal}
-              >
-                Close
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1.5 }}>
+              <ActionButtonGroup primaryLabel="Submit" onCancel={() => navigate('/home')} cancelLabel="Close" />
+            </Stack>
+          </Box>
+        </SectionCard>
+      </PageContainer>
     </>
   );
 }

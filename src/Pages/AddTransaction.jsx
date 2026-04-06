@@ -1,10 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from '../apiClient.js';
-import { Button, InputField, ToastContainer, toast, LoadingSpinner } from "../Components";
+import { ToastContainer, toast } from '../Components';
+import {
+  Alert,
+  Autocomplete,
+  Box,
+  Button,
+  Checkbox,
+  FormControlLabel,
+  Grid,
+  MenuItem,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
+import PersonAddAlt1RoundedIcon from '@mui/icons-material/PersonAddAlt1Rounded';
+import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
+import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import { DEFAULT_TEMPLATE_LANGUAGE, WHATSAPP_TEMPLATES, buildPaymentReceivedParameters } from '../constants/whatsappTemplates';
 import { sendAdminAlertText } from '../utils/whatsapp';
+import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../components/ui';
 
 export default function AddTransaction({ editMode, existingData, onClose, onSuccess }) {
   const navigate = useNavigate();
@@ -25,10 +42,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
 
   const [allCustomerOptions, setAllCustomerOptions] = useState([]);
   const [accountCustomerOptions, setAccountCustomerOptions] = useState([]);
-  const [filteredOptions, setFilteredOptions] = useState([]);
-  const [showOptions, setShowOptions] = useState(false);
 
-  const [whatsAppMessage, setWhatsAppMessage] = useState('');
   const [mobileToSend, setMobileToSend] = useState('');
   const [sendWhatsAppAfterSave, setSendWhatsAppAfterSave] = useState(false);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
@@ -36,400 +50,251 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
 
   useEffect(() => {
     const userNameFromState = location.state?.id || localStorage.getItem('User_name');
-    if (userNameFromState) {
-      setLoggedInUser(userNameFromState);
-    } else {
-      navigate("/login");
-    }
-    const currentUserGroup = localStorage.getItem("User_group") || '';
-    setIsAdminUser(currentUserGroup === "Admin User");
+    if (userNameFromState) setLoggedInUser(userNameFromState);
+    else navigate('/login');
+    setIsAdminUser((localStorage.getItem('User_group') || '') === 'Admin User');
   }, [location.state, navigate]);
 
   useEffect(() => {
     setOptionsLoading(true);
-    axios.get("/customer/GetCustomersList")
-      .then(res => {
+    axios.get('/customer/GetCustomersList')
+      .then((res) => {
         if (res.data.success) {
           setAllCustomerOptions(res.data.result);
-          const accountOptions = res.data.result.filter(item => item.Customer_group === "Bank and Account");
-          setAccountCustomerOptions(accountOptions);
+          setAccountCustomerOptions(
+            res.data.result.filter((item) => item.Customer_group === 'Bank and Account')
+          );
         }
-      }).catch(() => toast.error("Error fetching customers"))
+      })
+      .catch(() => toast.error('Error fetching customers'))
       .finally(() => setOptionsLoading(false));
   }, []);
 
   useEffect(() => {
-    if (editMode && existingData) {
-      setDescription(existingData.Description || "");
-      setAmount(existingData.Total_Debit || existingData.Total_Credit || "");
-      setTransaction_date(existingData.Transaction_date?.substring(0, 10) || "");
-      setGroup(getCreditUuid(existingData) || "");
-      setCustomers(getDebitUuid(existingData) || "");
-      const customer = allCustomerOptions.find(c => c.Customer_uuid === getDebitUuid(existingData));
-      setCustomer_Name(customer?.Customer_name || "");
-      setIsDateChecked(!!existingData.Transaction_date);
-    }
+    if (!editMode || !existingData || allCustomerOptions.length === 0) return;
+
+    const getCreditUuid = (txn) => txn.Journal_entry?.find((j) => j.Type.toLowerCase() === 'credit')?.Account_id;
+    const getDebitUuid = (txn) => txn.Journal_entry?.find((j) => j.Type.toLowerCase() === 'debit')?.Account_id;
+
+    const debitId = getDebitUuid(existingData) || '';
+    setDescription(existingData.Description || '');
+    setAmount(existingData.Total_Debit || existingData.Total_Credit || '');
+    setTransaction_date(existingData.Transaction_date?.substring(0, 10) || '');
+    setGroup(getCreditUuid(existingData) || '');
+    setCustomers(debitId);
+    const customer = allCustomerOptions.find((c) => c.Customer_uuid === debitId);
+    setCustomer_Name(customer?.Customer_name || '');
+    setIsDateChecked(!!existingData.Transaction_date);
   }, [editMode, existingData, allCustomerOptions]);
 
-  const getCreditUuid = (txn) =>
-    txn.Journal_entry?.find(j => j.Type.toLowerCase() === "credit")?.Account_id;
-  const getDebitUuid = (txn) =>
-    txn.Journal_entry?.find(j => j.Type.toLowerCase() === "debit")?.Account_id;
-
-  const handleFileChange = (e) => setSelectedImage(e.target.files[0]);
-
-  const handleAmountChange = (e) => setAmount(e.target.value);
-
-  const handleDateCheckboxChange = () => {
-    setIsDateChecked(prev => !prev);
-    setTransaction_date('');
-  };
-
-  const handleInputChange = (e) => {
-    const value = e.target.value;
-    setCustomer_Name(value);
-    if (value) {
-      const filtered = allCustomerOptions.filter(option =>
-        option.Customer_name.toLowerCase().includes(value.toLowerCase())
-      );
-      setFilteredOptions(filtered);
-      setShowOptions(true);
-    } else {
-      setShowOptions(false);
-    }
-  };
-
-  const handleOptionClick = (option) => {
-    setCustomer_Name(option.Customer_name);
-    setCustomers(option.Customer_uuid);
-    setShowOptions(false);
-  };
+  const selectedCustomer = useMemo(
+    () => allCustomerOptions.find((c) => c.Customer_uuid === customers) || null,
+    [allCustomerOptions, customers]
+  );
+  const selectedPaymentMode = useMemo(
+    () => accountCustomerOptions.find((c) => c.Customer_uuid === group) || null,
+    [accountCustomerOptions, group]
+  );
 
   const closeModal = () => {
-    onClose ? onClose() : navigate("/home");
+    if (onClose) onClose();
+    else navigate('/home');
   };
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!Amount || isNaN(Amount) || Amount <= 0) return toast.error("Enter valid amount.");
-    if (!customers || !group) return toast.error("Select both Credit and Debit customer.");
+    if (!Amount || Number.isNaN(Number(Amount)) || Number(Amount) <= 0) {
+      return toast.error('Enter valid amount.');
+    }
+    if (!customers || !group) {
+      return toast.error('Select both customer and payment mode.');
+    }
 
-    const Customer = allCustomerOptions.find(c => c.Customer_uuid === customers);
-    const Group = accountCustomerOptions.find(c => c.Customer_uuid === group);
-    const todayDate = new Date().toISOString().split("T")[0];
+    const customer = allCustomerOptions.find((c) => c.Customer_uuid === customers);
+    const paymentMode = accountCustomerOptions.find((c) => c.Customer_uuid === group);
+    if (!customer || !paymentMode) return toast.error('Selected customer or payment mode is invalid.');
 
+    const todayDate = new Date().toISOString().split('T')[0];
     const journal = [
       { Account_id: customers, Type: 'Debit', Amount: Number(Amount) },
-      { Account_id: group, Type: 'Credit', Amount: Number(Amount) }
+      { Account_id: group, Type: 'Credit', Amount: Number(Amount) },
     ];
 
     const formData = new FormData();
     formData.append('Description', Description);
     formData.append('Total_Credit', Number(Amount));
     formData.append('Total_Debit', Number(Amount));
-    formData.append('Payment_mode', Group.Customer_name);
+    formData.append('Payment_mode', paymentMode.Customer_name);
     formData.append('Created_by', loggedInUser);
-    const finalTransactionDate =
-      isAdminUser && isDateChecked ? (Transaction_date || todayDate) : todayDate;
-    formData.append('Transaction_date', finalTransactionDate);
+    formData.append('Transaction_date', isAdminUser && isDateChecked ? (Transaction_date || todayDate) : todayDate);
     formData.append('Journal_entry', JSON.stringify(journal));
     if (editMode && existingData?._id) formData.append('_id', existingData._id);
     if (selectedImage) formData.append('image', selectedImage);
 
     try {
       setLoading(true);
-      const res = await axios.post("/transaction/addTransaction", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      const res = await axios.post('/transaction/addTransaction', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      if (res.data.success) {
-        toast.success("Transaction saved.");
-        const phoneNumber =
-          Customer?.Mobile_number ||
-          Customer?.mobile ||
-          Customer?.phone ||
-          '';
+      if (!res.data.success) return toast.error('Failed to save transaction');
 
-        const message = `Hello ${Customer?.Customer_name || Customer_name}, your payment of ₹${Amount} has been recorded. Thank you!`;
+      toast.success(editMode ? 'Receipt updated.' : 'Receipt saved.');
+      const phoneNumber = customer?.Mobile_number || customer?.mobile || customer?.phone || '';
+      setMobileToSend(phoneNumber);
+      setIsTransactionSaved(true);
 
-        setWhatsAppMessage(message);
-        setMobileToSend(phoneNumber || '');
-
-        setIsTransactionSaved(true);
-        if (sendWhatsAppAfterSave) {
-          await sendWhatsApp(Customer?.Mobile_number, message);
-        }
-        onSuccess?.();
-        closeModal();
-      } else {
-        toast.error("Failed to save transaction");
+      if (sendWhatsAppAfterSave) {
+        await sendWhatsApp(phoneNumber);
       }
+
+      onSuccess?.();
+      closeModal();
     } catch {
-      toast.error("Submission error");
+      toast.error('Submission error');
     } finally {
       setLoading(false);
     }
   };
 
+  const sendWhatsApp = async (phone = mobileToSend) => {
+    if (!phone) return toast.error('Customer phone number is required');
+    setIsSendingWhatsApp(true);
+    try {
+      let cleanPhone = String(phone).replace(/\D/g, '');
+      if (cleanPhone.length === 10) cleanPhone = `91${cleanPhone}`;
 
- const sendWhatsApp = async (phone = mobileToSend) => {
-  if (!phone) {
-    toast.error("Customer phone number is required");
-    return;
-  }
-
-  setIsSendingWhatsApp(true);
-
-  try {
-    let cleanPhone = String(phone).replace(/\D/g, '');
-
-    if (cleanPhone.length === 10) {
-      cleanPhone = '91' + cleanPhone;
-    }
-
-    const payload = {
-      to: cleanPhone,
-
-      // ✅ FIXED TEMPLATE NAME
-      template_name: WHATSAPP_TEMPLATES.PAYMENT_RECEIVED,
-
-      // ✅ FIXED LANGUAGE
-      language: DEFAULT_TEMPLATE_LANGUAGE,
-
-      components: [
-        {
-          type: "body",
+      const payload = {
+        to: cleanPhone,
+        template_name: WHATSAPP_TEMPLATES.PAYMENT_RECEIVED,
+        language: DEFAULT_TEMPLATE_LANGUAGE,
+        components: [{
+          type: 'body',
           parameters: buildPaymentReceivedParameters({
-            customerName: Customer_name || "Customer",
-            actionLabel: "payment",
-            date: new Date().toLocaleDateString("en-IN"),
-            amount: String(Amount || "0"),
-            description: Description || "Payment received",
-          }).map((text) => ({ type: "text", text }))
-        }
-      ]
-    };
+            customerName: Customer_name || 'Customer',
+            actionLabel: 'payment',
+            date: new Date().toLocaleDateString('en-IN'),
+            amount: String(Amount || '0'),
+            description: Description || 'Payment received',
+          }).map((text) => ({ type: 'text', text })),
+        }],
+      };
 
-    console.log("📤 Sending WhatsApp payload:", payload);
+      const { data } = await axios.post('/api/whatsapp/send-template', payload);
+      if (!data?.success) return toast.error(data?.error || 'Failed to send WhatsApp');
 
-    const { data } = await axios.post('/api/whatsapp/send-template', payload);
-
-    if (data?.success) {
       await sendAdminAlertText({
         axiosInstance: axios,
         message: `Receipt alert: ${Customer_name || 'Customer'} | Amount: ₹${Amount || 0} | ${Description || 'Payment received'}`,
       }).catch(() => null);
-      toast.success("WhatsApp message sent ✅");
-    } else {
-      toast.error(data?.error || "Failed to send WhatsApp");
+      toast.success('WhatsApp message sent');
+    } catch (error) {
+      toast.error(error.response?.data?.error?.message || 'Failed to send WhatsApp');
+    } finally {
+      setIsSendingWhatsApp(false);
     }
-
-  } catch (error) {
-    console.error("❌ WhatsApp ERROR FULL:", error.response?.data || error);
-
-    toast.error(
-      error.response?.data?.error?.message ||
-      "Failed to send WhatsApp"
-    );
-  } finally {
-    setIsSendingWhatsApp(false);
-  }
-};
-
-  const addCustomer = () => navigate("/addCustomer");
+  };
 
   return (
     <>
       <ToastContainer />
+      <PageContainer title={editMode ? 'Edit Receipt' : 'Add Receipt'} subtitle="Create a receipt entry similar to follow-ups, but for payments received.">
+        <SectionCard>
+          <Box component="form" onSubmit={submit}>
+            <Grid container spacing={1.5}>
+              <Grid item xs={12} md={7}>
+                <FormSection title="Receipt details" subtitle="Select customer, enter amount and choose payment mode.">
+                  <Autocomplete
+                    loading={optionsLoading}
+                    options={allCustomerOptions}
+                    value={selectedCustomer}
+                    inputValue={Customer_name}
+                    onInputChange={(_, value) => {
+                      setCustomer_Name(value || '');
+                      if (!value) setCustomers('');
+                    }}
+                    onChange={(_, value) => {
+                      setCustomers(value?.Customer_uuid || '');
+                      setCustomer_Name(value?.Customer_name || '');
+                    }}
+                    getOptionLabel={(option) => option?.Customer_name || ''}
+                    isOptionEqualToValue={(option, value) => option?.Customer_uuid === value?.Customer_uuid}
+                    renderInput={(params) => <TextField {...params} label="Customer" placeholder="Search by customer name" />}
+                  />
 
-      <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-        <div className="bg-white w-full max-w-2xl rounded-xl shadow-xl p-6 relative">
-          <button
-            onClick={closeModal}
-            className="absolute right-3 top-3 rounded-full border border-slate-300 px-3 py-1 text-sm font-semibold text-slate-600 transition hover:border-sky-400 hover:text-sky-600"
-            type="button"
-          >
-            Close
-          </button>
+                  <Button type="button" variant="outlined" startIcon={<PersonAddAlt1RoundedIcon />} onClick={() => navigate('/addCustomer')}>
+                    Add Customer
+                  </Button>
 
-          <h2 className="text-xl font-semibold mb-4 text-center">
-            {editMode ? "Edit Receipt" : "Add Receipt"}
-          </h2>
+                  <TextField label="Description" value={Description} onChange={(e) => setDescription(e.target.value)} placeholder="Receipt description" />
 
-          <form onSubmit={submit} className="space-y-4">
-            {optionsLoading ? (
-              <div className="flex justify-center items-center h-12 mb-4">
-                <LoadingSpinner />
-              </div>
-            ) : (
-              <div className="relative">
-                <InputField
-                  label="Search by Customer Name"
-                  value={Customer_name}
-                  onChange={handleInputChange}
-                  onFocus={() => setShowOptions(true)}
-                  placeholder="Search by Customer Name"
-                />
-                {showOptions && filteredOptions.length > 0 && (
-                  <ul className="absolute z-10 w-full bg-white border rounded-md max-h-40 overflow-y-auto">
-                    {filteredOptions.map((option, index) => (
-                      <li
-                        key={index}
-                        className="p-2 hover:bg-gray-100 cursor-pointer"
-                        onClick={() => handleOptionClick(option)}
-                      >
-                        {option.Customer_name}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                  <Grid container spacing={1.25}>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        label="Amount (₹)"
+                        type="number"
+                        value={Amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        inputProps={{ min: 0, step: '0.01' }}
+                        fullWidth
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField select label="Payment Mode" value={group} onChange={(e) => setGroup(e.target.value)} fullWidth>
+                        <MenuItem value="">Select payment mode</MenuItem>
+                        {accountCustomerOptions.map((cust) => (
+                          <MenuItem key={cust.Customer_uuid} value={cust.Customer_uuid}>{cust.Customer_name}</MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                  </Grid>
 
-                <button
-                  type="button"
-                  onClick={addCustomer}
-                  className="absolute top-7 right-1 bg-[#25D366] text-white w-8 h-8 rounded-full flex items-center justify-center"
-                >
-                  +
-                </button>
-              </div>
-            )}
+                  <TextField type="file" inputProps={{ accept: 'image/*' }} onChange={(e) => setSelectedImage(e.target.files?.[0] || null)} helperText="Proof image is optional" />
+                </FormSection>
+              </Grid>
 
+              <Grid item xs={12} md={5}>
+                <FormSection title="Status & actions" subtitle="Compact side panel matching the follow-up style.">
+                  <Alert severity="info" icon={<ReceiptLongRoundedIcon fontSize="inherit" />}>
+                    <Typography variant="caption">
+                      Customer: {selectedCustomer?.Customer_name || 'Not selected'}
+                      <br />
+                      Payment mode: {selectedPaymentMode?.Customer_name || 'Not selected'}
+                    </Typography>
+                  </Alert>
 
+                  <FormControlLabel
+                    control={<Checkbox checked={sendWhatsAppAfterSave} onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)} />}
+                    label="Send WhatsApp after saving"
+                  />
 
-            <InputField
-              label="Description"
-              value={Description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Description"
-            />
+                  {isAdminUser ? (
+                    <>
+                      <FormControlLabel
+                        control={<Checkbox checked={isDateChecked} onChange={() => { setIsDateChecked((prev) => !prev); setTransaction_date(''); }} />}
+                        label="Save custom date"
+                      />
+                      {isDateChecked ? (
+                        <TextField label="Transaction Date" type="date" value={Transaction_date} onChange={(e) => setTransaction_date(e.target.value)} InputLabelProps={{ shrink: true }} />
+                      ) : null}
+                    </>
+                  ) : null}
 
-            <InputField
-              label="Amount"
-              type="number"
-              value={Amount}
-              onChange={handleAmountChange}
-              placeholder="Amount"
-            />
+                  {isTransactionSaved && mobileToSend ? (
+                    <Button type="button" variant="contained" startIcon={<SendRoundedIcon />} onClick={() => sendWhatsApp()} disabled={isSendingWhatsApp}>
+                      {isSendingWhatsApp ? 'Sending WhatsApp...' : 'Send WhatsApp Receipt'}
+                    </Button>
+                  ) : null}
+                </FormSection>
+              </Grid>
+            </Grid>
 
-            {optionsLoading ? (
-              <div className="flex justify-center items-center h-10 mb-4">
-                <LoadingSpinner />
-              </div>
-            ) : (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-text mb-1">Payment Mode</label>
-                <select
-                  value={group}
-                  onChange={(e) => setGroup(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md p-2 focus:border-primary focus:ring-1 focus:ring-primary"
-                  required
-                >
-                  <option value="">Select Payment</option>
-                  {accountCustomerOptions.map((cust, i) => (
-                    <option key={i} value={cust.Customer_uuid}>
-                      {cust.Customer_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <InputField type="file" accept="image/*" onChange={handleFileChange} />
-
-            {isAdminUser && (
-              <div className="mb-4 flex items-center space-x-2">
-                <input
-                  id="saveDate"
-                  type="checkbox"
-                  className="h-4 w-4 text-primary border-gray-300 rounded"
-                  checked={isDateChecked}
-                  onChange={handleDateCheckboxChange}
-                />
-                <label htmlFor="saveDate" className="text-sm">Save Date</label>
-              </div>
-            )}
-
-            {isAdminUser && isDateChecked && (
-              <InputField
-                label="Date"
-                type="date"
-                value={Transaction_date}
-                onChange={(e) => setTransaction_date(e.target.value)}
-              />
-            )}
-            <div className="mb-2 flex items-center space-x-2">
-              <input
-                id="sendWhatsAppAfterSave"
-                type="checkbox"
-                className="h-4 w-4 text-primary border-gray-300 rounded"
-                checked={sendWhatsAppAfterSave}
-                onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)}
-              />
-              <label htmlFor="sendWhatsAppAfterSave" className="text-sm">
-                Send WhatsApp after saving
-              </label>
-            </div>
-            {isSendingWhatsApp && (
-              <div className="flex items-center text-sm text-gray-600">
-                <LoadingSpinner size={14} className="mr-2" />
-                Sending WhatsApp...
-              </div>
-            )}
-
-            {isTransactionSaved && mobileToSend && (
-              <Button
-                type="button"
-                className="mt-1"
-                fullWidth
-                disabled={isSendingWhatsApp}
-                onClick={() => sendWhatsApp()}
-              >
-                {isSendingWhatsApp ? (
-                  <>
-                    <LoadingSpinner size={16} className="mr-2" /> Sending WhatsApp...
-                  </>
-                ) : (
-                  "Send WhatsApp Receipt"
-                )}
-              </Button>
-            )}
-
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <Button
-                type="button"
-                onClick={closeModal}
-                className="!bg-white !text-gray-700 !border !border-gray-300 hover:!bg-gray-50"
-                fullWidth
-                disabled={loading}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                fullWidth
-                disabled={
-                  loading ||
-                  !Amount ||
-                  isNaN(Amount) ||
-                  Amount <= 0 ||
-                  !customers ||
-                  !group
-                }
-              >
-                {loading ? (
-                  <>
-                    <LoadingSpinner size={16} className="mr-2" /> Saving....
-                  </>
-                ) : editMode ? (
-                  "Update"
-                ) : (
-                  "Submit"
-                )}
-              </Button>
-            </div>
-          </form>
-        </div>
-      </div>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1.5 }}>
+              <ActionButtonGroup primaryLabel={loading ? 'Saving...' : editMode ? 'Update' : 'Submit'} busy={loading} onCancel={closeModal} cancelLabel="Close" />
+            </Stack>
+          </Box>
+        </SectionCard>
+      </PageContainer>
     </>
   );
 }
