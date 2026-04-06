@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   Chip,
-  Divider,
   Grid,
   LinearProgress,
   Stack,
@@ -13,28 +12,25 @@ import {
   TableCell,
   TableHead,
   TableRow,
-  Tooltip,
   Typography,
 } from '@mui/material';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
-import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import AssignmentRoundedIcon from '@mui/icons-material/AssignmentRounded';
-import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded';
-import PriorityHighRoundedIcon from '@mui/icons-material/PriorityHighRounded';
+import PendingActionsRoundedIcon from '@mui/icons-material/PendingActionsRounded';
+import LocalShippingRoundedIcon from '@mui/icons-material/LocalShippingRounded';
 import CurrencyRupeeRoundedIcon from '@mui/icons-material/CurrencyRupeeRounded';
-import CreditCardRoundedIcon from '@mui/icons-material/CreditCardRounded';
-import Inventory2RoundedIcon from '@mui/icons-material/Inventory2Rounded';
+import PaymentsRoundedIcon from '@mui/icons-material/PaymentsRounded';
+import SupportAgentRoundedIcon from '@mui/icons-material/SupportAgentRounded';
 import axios from '../apiClient';
 import SummaryCard from '../components/dashboard/SummaryCard';
-import RoleWidget from '../components/dashboard/RoleWidget';
-import QuickActions from '../components/dashboard/QuickActions';
 import AllAttandance from './AllAttandance';
-import UserTask from './userTask';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useUserRole } from '../hooks/useUserRole';
 import { DataTableWrapper, EmptyState, ErrorState, LoadingState, PageContainer, SectionCard } from '../components/ui';
 
 const toId = (order) => order?.Order_uuid || order?._id || order?.Order_id;
+const toLower = (value = '') => String(value).trim().toLowerCase();
+const enquiryStages = new Set(['enquiry', 'enquiries', 'inquiry', 'lead']);
 
 function OrderList({ items, emptyLabel }) {
   if (!items?.length) {
@@ -66,63 +62,43 @@ function OrderList({ items, emptyLabel }) {
   );
 }
 
-function StatusMatrix({ summaryApi, fallbackSummary }) {
-  const rows = [
-    ['Open Pipeline', summaryApi?.pendingOrders ?? fallbackSummary?.activeOrders ?? 0],
-    ['Created Today', summaryApi?.todayOrders ?? fallbackSummary?.pendingToday ?? 0],
-    ['Delivered Today', fallbackSummary?.deliveredToday ?? 0],
-    ['Cancelled Today', fallbackSummary?.cancelledToday ?? 0],
-    ['Urgent', summaryApi?.urgentOrders ?? 0],
-  ];
+function UserWisePendingTable({ rows }) {
+  if (!rows?.length) {
+    return <EmptyState title="No user wise pending data available." />;
+  }
 
   return (
     <DataTableWrapper>
-      <Table>
+      <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell>Metric</TableCell>
-            <TableCell align="right">Count</TableCell>
+            <TableCell>User</TableCell>
+            <TableCell align="right">Pending Orders</TableCell>
+            <TableCell>Active Task</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {rows.map(([metric, value]) => (
-            <TableRow key={metric}>
-              <TableCell>{metric}</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 700 }}>{value}</TableCell>
+          {rows.map((row) => (
+            <TableRow key={row.user} hover>
+              <TableCell sx={{ fontWeight: 600 }}>{row.user}</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 700 }}>{row.pendingCount}</TableCell>
+              <TableCell>
+                <Stack direction="row" spacing={0.6} useFlexGap flexWrap="wrap">
+                  {row.tasks.map((task) => (
+                    <Chip
+                      key={`${row.user}-${task.label}`}
+                      size="small"
+                      variant="outlined"
+                      label={`${task.label}: ${task.count}`}
+                    />
+                  ))}
+                </Stack>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
     </DataTableWrapper>
-  );
-}
-
-function PipelineBars({ rows }) {
-  const max = Math.max(...rows.map((row) => row.count), 1);
-
-  return (
-    <Stack spacing={0.85}>
-      {rows.map((row) => {
-        const value = Math.round((row.count / max) * 100);
-        return (
-          <Stack key={row.label} spacing={0.3}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Typography variant="caption" color="text.secondary">{row.label}</Typography>
-              <Typography variant="caption" fontWeight={700}>{row.count}</Typography>
-            </Stack>
-            <LinearProgress
-              variant="determinate"
-              value={value}
-              sx={{
-                height: 6,
-                borderRadius: 999,
-                bgcolor: 'action.hover',
-              }}
-            />
-          </Stack>
-        );
-      })}
-    </Stack>
   );
 }
 
@@ -159,93 +135,116 @@ export default function Dashboard() {
     };
   }, []);
 
+  const todayEnquiryCount = useMemo(
+    () => data?.visibleOrders?.filter((order) => enquiryStages.has(toLower(order?.highestStatusTask?.Task))).length ?? 0,
+    [data?.visibleOrders],
+  );
+
+  const oldPendingOrders = useMemo(
+    () => Math.max((data?.summary?.activeOrders ?? 0) - (data?.summary?.pendingToday ?? 0), 0),
+    [data?.summary?.activeOrders, data?.summary?.pendingToday],
+  );
+
   const summaryCards = useMemo(
     () => [
       {
-        title: 'Today Orders',
-        value: summaryApi?.todayOrders ?? 0,
+        title: 'Todays New Orders',
+        value: summaryApi?.todayOrders ?? data?.summary?.pendingToday ?? 0,
         icon: AssignmentRoundedIcon,
         variant: 'primary',
-        trend: 'New entries captured today',
+        trend: 'Fresh orders added today',
       },
       {
-        title: 'Pending Orders',
-        value: summaryApi?.pendingOrders ?? data?.summary?.activeOrders ?? 0,
-        icon: BusinessRoundedIcon,
+        title: 'Old Pending Orders',
+        value: oldPendingOrders,
+        icon: PendingActionsRoundedIcon,
         variant: 'warning',
-        trend: 'Open operational queue',
+        trend: 'Backlog before today',
       },
       {
-        title: 'Urgent Orders',
-        value: summaryApi?.urgentOrders ?? 0,
-        icon: PriorityHighRoundedIcon,
-        variant: 'danger',
-        trend: 'Prioritize immediate follow-up',
+        title: 'Todays Delivery',
+        value: summaryApi?.deliveredToday ?? data?.summary?.deliveredToday ?? 0,
+        icon: LocalShippingRoundedIcon,
+        variant: 'success',
+        trend: 'Completed delivery today',
       },
       {
-        title: 'Revenue Today',
+        title: 'Todays Revenue',
         value: summaryApi?.revenueToday ?? 0,
         icon: CurrencyRupeeRoundedIcon,
         variant: 'success',
-        trend: 'Billing captured in current day',
+        trend: 'Billing booked today',
       },
       {
-        title: 'Pending Payments',
-        value: summaryApi?.pendingPayments ?? 0,
-        icon: CreditCardRoundedIcon,
+        title: 'Today Payment Reciviable',
+        value: summaryApi?.pendingPayments ?? summaryApi?.todayPaymentReceivable ?? 0,
+        icon: PaymentsRoundedIcon,
         variant: 'warning',
-        trend: 'Collections pending confirmation',
+        trend: 'Receivable amount to collect',
       },
       {
-        title: 'Visible Orders',
-        value: data?.visibleOrders?.length ?? 0,
-        icon: Inventory2RoundedIcon,
+        title: 'Today Enquiry',
+        value: summaryApi?.todayEnquiry ?? todayEnquiryCount,
+        icon: SupportAgentRoundedIcon,
         variant: 'primary',
-        trend: 'Based on role access and assignment',
+        trend: 'Enquiry stage orders visible today',
       },
     ],
-    [data?.summary?.activeOrders, data?.visibleOrders?.length, summaryApi],
+    [data?.summary?.deliveredToday, data?.summary?.pendingToday, oldPendingOrders, summaryApi, todayEnquiryCount],
   );
+
+  const userWisePending = useMemo(() => {
+    const grouped = (data?.activeOrders || []).reduce((acc, order) => {
+      const user = order?.highestStatusTask?.Assigned || 'Unassigned';
+      const task = order?.highestStatusTask?.Task || 'Other';
+
+      if (!acc[user]) {
+        acc[user] = {
+          user,
+          pendingCount: 0,
+          taskMap: {},
+        };
+      }
+
+      acc[user].pendingCount += 1;
+      acc[user].taskMap[task] = (acc[user].taskMap[task] || 0) + 1;
+      return acc;
+    }, {});
+
+    return Object.values(grouped)
+      .map((row) => ({
+        user: row.user,
+        pendingCount: row.pendingCount,
+        tasks: Object.entries(row.taskMap)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 4)
+          .map(([label, count]) => ({ label, count })),
+      }))
+      .sort((a, b) => b.pendingCount - a.pendingCount);
+  }, [data?.activeOrders]);
 
   const loading = data?.isOrdersLoading || data?.isTasksLoading;
 
-  const pipelineRows = useMemo(() => {
-    const keys = data?.columnOrder?.length ? data.columnOrder : Object.keys(data?.groupedOrders || {});
-    return keys.slice(0, 6).map((label) => ({
-      label,
-      count: Array.isArray(data?.groupedOrders?.[label]) ? data.groupedOrders[label].length : 0,
-    }));
-  }, [data?.columnOrder, data?.groupedOrders]);
-
-  const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
-
   return (
-    <PageContainer
-      title="Operations Dashboard"
-      subtitle="Compact CRM command center for orders, teams and cashflow performance."
-      actions={(
-        <Stack direction="row" spacing={1}>
-          <Button variant="outlined" color="inherit" size="small" startIcon={<RefreshRoundedIcon sx={{ fontSize: 16 }} />} onClick={data?.refresh}>
-            Refresh
-          </Button>
-          <Button variant="contained" size="small" endIcon={<OpenInNewRoundedIcon sx={{ fontSize: 16 }} />}>
-            View Reports
-          </Button>
-        </Stack>
-      )}
-    >
+    <PageContainer>
       {(loading || summaryLoading) ? <LinearProgress sx={{ borderRadius: 1 }} /> : null}
       {data?.loadError ? <ErrorState message={data.loadError} /> : null}
 
-      <Stack direction="row" spacing={0.8} sx={{ flexWrap: 'wrap' }}>
-        <Chip size="small" label={`Date: ${todayLabel}`} variant="outlined" />
-        <Chip size="small" label={`Visible Orders: ${data?.visibleOrders?.length || 0}`} color="primary" variant="outlined" />
-        <Chip size="small" label={`User: ${roleInfo?.userName || 'N/A'}`} variant="outlined" />
+      <Stack direction="row" justifyContent="flex-end">
+        <Button
+          variant="outlined"
+          color="inherit"
+          size="small"
+          startIcon={<RefreshRoundedIcon sx={{ fontSize: 16 }} />}
+          onClick={data?.refresh}
+        >
+          Refresh
+        </Button>
       </Stack>
 
       <Grid container spacing={1.25}>
         {summaryCards.map((card) => (
-          <Grid key={card.title} item xs={12} sm={6} lg={4} xl={3}>
+          <Grid key={card.title} item xs={12} sm={6} md={4} lg={2}>
             <SummaryCard {...card} />
           </Grid>
         ))}
@@ -253,53 +252,25 @@ export default function Dashboard() {
 
       <Grid container spacing={1.25}>
         <Grid item xs={12} lg={4}>
-          <Stack spacing={1.25} sx={{ height: '100%' }}>
-            <RoleWidget role={roleInfo?.role} userName={roleInfo?.userName} />
-            <QuickActions />
-          </Stack>
-        </Grid>
-
-        <Grid item xs={12} lg={8}>
-          <SectionCard title="Execution Summary" subtitle="Live operational matrix and decision support" contentSx={{ p: 1 }}>
-            <Grid container spacing={1}>
-              <Grid item xs={12} md={6}>
-                <StatusMatrix summaryApi={summaryApi} fallbackSummary={data?.summary} />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <DataTableWrapper>
-                  <Box sx={{ p: 1 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 0.75 }}>Pipeline Distribution</Typography>
-                    {pipelineRows.length ? <PipelineBars rows={pipelineRows} /> : <EmptyState title="No stage data available" />}
-                  </Box>
-                </DataTableWrapper>
-              </Grid>
-            </Grid>
-            <Divider sx={{ my: 1 }} />
-            <Typography variant="caption" color="text.secondary">
-              Tip: Use quick actions for direct entry and reports for complete analysis.
-            </Typography>
+          <SectionCard
+            title="Todays Attendance"
+            subtitle="Live attendance status of team members"
+            contentSx={{ p: 1 }}
+          >
+            <AllAttandance />
           </SectionCard>
         </Grid>
-      </Grid>
 
-      <Grid container spacing={1.25}>
         <Grid item xs={12} lg={8}>
-          <SectionCard title="My Pending Orders" subtitle="Priority pipeline requiring immediate action">
+          <SectionCard title="My Pending Order" subtitle="Orders that need action now">
             {loading ? <LoadingState label="Loading pending orders" /> : <OrderList items={data?.myPendingOrders} emptyLabel="No pending orders assigned." />}
           </SectionCard>
         </Grid>
-
-        <Grid item xs={12} lg={4}>
-          <SectionCard
-            title={roleInfo?.isAdmin ? 'Today Attendance' : 'My Task Flow'}
-            subtitle={roleInfo?.isAdmin ? 'Live team availability overview' : 'Assigned activity and updates'}
-            contentSx={{ p: 1 }}
-            action={<Tooltip title="This panel remains functionally unchanged"><Chip size="small" label="Live" color="secondary" variant="outlined" /></Tooltip>}
-          >
-            {roleInfo?.isAdmin ? <AllAttandance /> : <UserTask />}
-          </SectionCard>
-        </Grid>
       </Grid>
+
+      <SectionCard title="User Wise Pending & Task" subtitle="Pending order count and active task distribution by user">
+        {loading ? <LoadingState label="Loading user wise pending data" /> : <UserWisePendingTable rows={userWisePending} />}
+      </SectionCard>
     </PageContainer>
   );
 }
@@ -313,14 +284,21 @@ OrderList.defaultProps = {
   items: [],
 };
 
-StatusMatrix.propTypes = {
-  summaryApi: PropTypes.object,
-  fallbackSummary: PropTypes.object,
+UserWisePendingTable.propTypes = {
+  rows: PropTypes.arrayOf(
+    PropTypes.shape({
+      user: PropTypes.string.isRequired,
+      pendingCount: PropTypes.number.isRequired,
+      tasks: PropTypes.arrayOf(
+        PropTypes.shape({
+          label: PropTypes.string.isRequired,
+          count: PropTypes.number.isRequired,
+        }),
+      ).isRequired,
+    }),
+  ),
 };
 
-PipelineBars.propTypes = {
-  rows: PropTypes.arrayOf(PropTypes.shape({
-    label: PropTypes.string,
-    count: PropTypes.number,
-  })).isRequired,
+UserWisePendingTable.defaultProps = {
+  rows: [],
 };
