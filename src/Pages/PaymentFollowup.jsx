@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../apiClient.js';
 import toast, { Toaster } from 'react-hot-toast';
@@ -17,6 +17,7 @@ import {
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import {
   extractPhoneNumber,
+  normalizeWhatsAppPhone,
   sendTemplateWithTextFallback,
 } from '../utils/whatsapp.js';
 import {
@@ -27,6 +28,28 @@ import {
 import { ActionButtonGroup, PageContainer, SectionCard } from '../components/ui';
 
 const todayISO = () => new Date().toLocaleDateString('en-CA');
+
+const getCustomerDisplayName = (item = {}) =>
+  (
+    item.Customer_name ||
+    item.User_name ||
+    item.name ||
+    item.Name ||
+    ''
+  )
+    .toString()
+    .trim();
+
+const findCustomerByName = (customers = [], selectedName = '') => {
+  const target = String(selectedName || '').trim().toLowerCase();
+  if (!target) return null;
+
+  return (
+    customers.find(
+      (item) => getCustomerDisplayName(item).trim().toLowerCase() === target
+    ) || null
+  );
+};
 
 export default function PaymentFollowup() {
   const navigate = useNavigate();
@@ -59,15 +82,7 @@ export default function PaymentFollowup() {
         Array.from(
           new Set(
             (arr || [])
-              .map((it) =>
-                (it.Customer_name ||
-                  it.User_name ||
-                  it.name ||
-                  it.Name ||
-                  '')
-                  .toString()
-                  .trim()
-              )
+              .map((it) => getCustomerDisplayName(it))
               .filter(Boolean)
           )
         );
@@ -101,6 +116,16 @@ export default function PaymentFollowup() {
     loadCustomers();
   }, []);
 
+  const selectedCustomer = useMemo(
+    () => findCustomerByName(customerDetails, Customer),
+    [customerDetails, Customer]
+  );
+
+  const detectedPhone = useMemo(() => {
+    const rawPhone = extractPhoneNumber(selectedCustomer);
+    return normalizeWhatsAppPhone(rawPhone || '');
+  }, [selectedCustomer]);
+
   const closeModal = () => navigate('/Home');
 
   const handleDateCheckboxChange = () => {
@@ -113,19 +138,25 @@ export default function PaymentFollowup() {
     message = whatsAppMessage,
     customerData = null
   ) => {
-    if (!phone) {
-      toast.error('Customer phone number is required');
+    const selected = customerData || selectedCustomer;
+    const resolvedPhone = normalizeWhatsAppPhone(
+      phone || extractPhoneNumber(selected)
+    );
+
+    if (!selected) {
+      toast.error('Selected customer details not found');
+      return;
+    }
+
+    if (!resolvedPhone) {
+      toast.error('Selected customer has no mobile number');
       return;
     }
 
     setIsSendingWhatsApp(true);
 
     try {
-      const selectedCustomer =
-        customerData ||
-        customerDetails.find((item) => item.Customer_name === Customer);
-
-      const customerLabel = selectedCustomer?.Customer_name || Customer || 'Customer';
+      const customerLabel = getCustomerDisplayName(selected) || Customer || 'Customer';
       const followupDate = Deadline || todayISO();
       const today = todayISO();
 
@@ -150,7 +181,7 @@ export default function PaymentFollowup() {
 
       const { data } = await sendTemplateWithTextFallback({
         axiosInstance: axios,
-        phone,
+        phone: resolvedPhone,
         templateName,
         bodyParameters,
         fallbackMessage: message,
@@ -194,21 +225,32 @@ export default function PaymentFollowup() {
 
       if (res.data === 'exist') {
         toast.error('A similar follow-up already exists for this customer/date.');
-      } else {
-        const selectedCustomer = customerDetails.find(
-          (item) => item.Customer_name === Customer
-        );
-        const phoneNumber = extractPhoneNumber(selectedCustomer);
-        const message = `Hello ${Customer}, we will follow up with you for ₹${Number(Amount)}. Thank you!`;
+        return;
+      }
 
-        toast.success('Payment follow-up added.');
-        setWhatsAppMessage(message);
-        setMobileToSend(phoneNumber);
-        setIsTransactionSaved(true);
+      const matchedCustomer = findCustomerByName(customerDetails, Customer);
+      const phoneNumber = normalizeWhatsAppPhone(
+        extractPhoneNumber(matchedCustomer)
+      );
+      const message = `Hello ${Customer}, we will follow up with you for ₹${Number(Amount)}. Thank you!`;
 
-        if (sendWhatsAppAfterSave) {
-          await sendWhatsApp(phoneNumber, message, selectedCustomer);
+      toast.success('Payment follow-up added.');
+      setWhatsAppMessage(message);
+      setMobileToSend(phoneNumber || '');
+      setIsTransactionSaved(true);
+
+      if (sendWhatsAppAfterSave) {
+        if (!matchedCustomer) {
+          toast.error('Customer details not found for WhatsApp');
+          return;
         }
+
+        if (!phoneNumber) {
+          toast.error('Selected customer has no mobile number');
+          return;
+        }
+
+        await sendWhatsApp(phoneNumber, message, matchedCustomer);
       }
     } catch (err) {
       const msg =
@@ -223,7 +265,10 @@ export default function PaymentFollowup() {
   return (
     <>
       <Toaster position="top-center" reverseOrder={false} />
-      <PageContainer title="Payment Follow-up" subtitle="Track pending payment callbacks and send WhatsApp reminders.">
+      <PageContainer
+        title="Payment Follow-up"
+        subtitle="Track pending payment callbacks and send WhatsApp reminders."
+      >
         <SectionCard>
           <Box component="form" onSubmit={submit}>
             <Stack spacing={1}>
@@ -233,7 +278,11 @@ export default function PaymentFollowup() {
                 onChange={(_, value) => setCustomer(value || '')}
                 onInputChange={(_, value) => setCustomer(value || '')}
                 renderInput={(params) => (
-                  <TextField {...params} label="Select Customer" placeholder="Search customer" />
+                  <TextField
+                    {...params}
+                    label="Select Customer"
+                    placeholder="Search customer"
+                  />
                 )}
               />
 
@@ -247,7 +296,12 @@ export default function PaymentFollowup() {
 
               {isAdminUser && (
                 <FormControlLabel
-                  control={<Checkbox checked={isDateChecked} onChange={handleDateCheckboxChange} />}
+                  control={
+                    <Checkbox
+                      checked={isDateChecked}
+                      onChange={handleDateCheckboxChange}
+                    />
+                  }
                   label="Save Date"
                 />
               )}
@@ -281,9 +335,14 @@ export default function PaymentFollowup() {
                   <Checkbox
                     checked={sendWhatsAppAfterSave}
                     onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)}
+                    disabled={!detectedPhone}
                   />
                 }
-                label="Send WhatsApp after saving"
+                label={
+                  detectedPhone
+                    ? `Send WhatsApp after saving (${detectedPhone})`
+                    : 'Send WhatsApp after saving (mobile not available)'
+                }
               />
 
               {isTransactionSaved ? (
@@ -292,17 +351,33 @@ export default function PaymentFollowup() {
                   variant="outlined"
                   startIcon={<SendRoundedIcon fontSize="small" />}
                   onClick={() => sendWhatsApp()}
-                  disabled={isSendingWhatsApp}
+                  disabled={isSendingWhatsApp || !mobileToSend}
                 >
-                  {isSendingWhatsApp ? 'Sending WhatsApp...' : 'Send WhatsApp Reminder'}
+                  {isSendingWhatsApp
+                    ? 'Sending WhatsApp...'
+                    : !mobileToSend
+                    ? 'Mobile number missing'
+                    : 'Send WhatsApp Reminder'}
                 </Button>
               ) : null}
 
-              <ActionButtonGroup primaryLabel={submitting ? 'Saving...' : 'Submit'} busy={submitting} onCancel={closeModal} cancelLabel="Close" />
+              <ActionButtonGroup
+                primaryLabel={submitting ? 'Saving...' : 'Submit'}
+                busy={submitting}
+                onCancel={closeModal}
+                cancelLabel="Close"
+              />
 
-              <Alert severity="info">
+              <Alert severity={detectedPhone ? 'info' : 'warning'}>
                 <Typography variant="caption">
-                  {customerOptions.length} customer{customerOptions.length === 1 ? '' : 's'} available.
+                  {customerOptions.length} customer
+                  {customerOptions.length === 1 ? '' : 's'} available.
+                  {' '}
+                  {Customer
+                    ? detectedPhone
+                      ? `WhatsApp will use: ${detectedPhone}`
+                      : 'Selected customer does not have a mobile number.'
+                    : ''}
                 </Typography>
               </Alert>
             </Stack>
