@@ -14,140 +14,121 @@ export const WHATSAPP_TEMPLATES = {
 
 export const DEFAULT_TEMPLATE_LANGUAGE = 'en_US';
 
+export const TEMPLATE_VARIABLE_COUNTS = {
+  [WHATSAPP_TEMPLATES.FOLLOWUP_FRIENDLY]: 4,
+  [WHATSAPP_TEMPLATES.FOLLOWUP_DUE_TODAY]: 4,
+  [WHATSAPP_TEMPLATES.PURCHASE_ORDER]: 4,
+  [WHATSAPP_TEMPLATES.ATTENDANCE_MARKED]: 4,
+  [WHATSAPP_TEMPLATES.TASK_ASSIGNED]: 5,
+  [WHATSAPP_TEMPLATES.AMOUNT_PAID]: 5,
+  [WHATSAPP_TEMPLATES.AMOUNT_RECEIVED]: 5,
+  [WHATSAPP_TEMPLATES.OPENING_BALANCE_PAYABLE]: 4,
+  [WHATSAPP_TEMPLATES.OPENING_BALANCE_RECEIVABLE]: 4,
+  [WHATSAPP_TEMPLATES.ORDER_COMPLETED]: 2,
+  [WHATSAPP_TEMPLATES.ORDER_CONFIRMATION]: 5,
+};
+
+const cleanValue = (value, fallback = '-') => {
+  if (value === null || value === undefined) return String(fallback);
+  const text = String(value).trim();
+  return text || String(fallback);
+};
+
+const formatDate = (value = new Date()) => {
+  try {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return new Date().toLocaleDateString('en-IN');
+    return date.toLocaleDateString('en-IN');
+  } catch {
+    return new Date().toLocaleDateString('en-IN');
+  }
+};
+
+const normalizeParameterList = (templateName, values = []) => {
+  const expected = TEMPLATE_VARIABLE_COUNTS[templateName] ?? values.length;
+  const normalized = Array.isArray(values) ? values.slice(0, expected).map((item) => cleanValue(item)) : [];
+  while (normalized.length < expected) normalized.push('-');
+  return normalized;
+};
+
+export const buildTemplateBodyParameters = (templateName, values = []) =>
+  normalizeParameterList(templateName, values).map((text) => ({ type: 'text', text }));
+
 export const buildAmountReceivedParameters = ({
   customerName = 'Customer',
-  date = new Date().toLocaleDateString('en-IN'),
+  date = formatDate(),
   amount = '0',
   reference = '-',
   description = 'Amount received',
-} = {}) => [
-  String(customerName || 'Customer'),
-  String(date || new Date().toLocaleDateString('en-IN')),
-  String(amount ?? '0'),
-  String(reference || '-'),
-  String(description || 'Amount received'),
-];
+} = {}) => normalizeParameterList(WHATSAPP_TEMPLATES.AMOUNT_RECEIVED, [customerName, formatDate(date), amount, reference, description]);
 
 export const buildAmountPaidParameters = ({
   customerName = 'Customer',
-  date = new Date().toLocaleDateString('en-IN'),
+  date = formatDate(),
   amount = '0',
   reference = '-',
   description = 'Amount paid',
-} = {}) => [
-  String(customerName || 'Customer'),
-  String(date || new Date().toLocaleDateString('en-IN')),
-  String(amount ?? '0'),
-  String(reference || '-'),
-  String(description || 'Amount paid'),
-];
+} = {}) => normalizeParameterList(WHATSAPP_TEMPLATES.AMOUNT_PAID, [customerName, formatDate(date), amount, reference, description]);
 
-export const buildOrderNewParameters = ({
+export const buildOrderConfirmationParameters = ({
   customerName = 'Customer',
   orderNumber = '-',
-  date = new Date().toLocaleDateString('en-IN'),
+  date = formatDate(),
   amount = '0',
   details = 'Order details',
-} = {}) => [
-  String(customerName || 'Customer'),
-  String(orderNumber || '-'),
-  String(date || new Date().toLocaleDateString('en-IN')),
-  String(amount ?? '0'),
-  String(details || 'Order details'),
-];
+} = {}) => normalizeParameterList(WHATSAPP_TEMPLATES.ORDER_CONFIRMATION, [customerName, orderNumber, formatDate(date), amount, details]);
 
 export const buildOrderCompletedParameters = ({
   customerName = 'Customer',
   orderNumber = '-',
-} = {}) => [
-  String(customerName || 'Customer'),
-  String(orderNumber || '-'),
-];
+} = {}) => normalizeParameterList(WHATSAPP_TEMPLATES.ORDER_COMPLETED, [customerName, orderNumber]);
 
 export const buildFollowupFriendlyParameters = ({
   customerName = 'Customer',
   amount = '0',
-  expectedDate = new Date().toLocaleDateString('en-IN'),
+  expectedDate = formatDate(),
   reference = '-',
-} = {}) => [
-  String(customerName || 'Customer'),
-  String(amount ?? '0'),
-  String(expectedDate || new Date().toLocaleDateString('en-IN')),
-  String(reference || '-'),
-];
+} = {}) => normalizeParameterList(WHATSAPP_TEMPLATES.FOLLOWUP_FRIENDLY, [customerName, amount, formatDate(expectedDate), reference]);
 
 export const buildFollowupDueTodayParameters = ({
   customerName = 'Customer',
   amount = '0',
-  dueDate = new Date().toLocaleDateString('en-IN'),
+  dueDate = formatDate(),
   reference = '-',
-} = {}) => [
-  String(customerName || 'Customer'),
-  String(amount ?? '0'),
-  String(dueDate || new Date().toLocaleDateString('en-IN')),
-  String(reference || '-'),
-];
+} = {}) => normalizeParameterList(WHATSAPP_TEMPLATES.FOLLOWUP_DUE_TODAY, [customerName, amount, formatDate(dueDate), reference]);
 
 export const buildPurchaseOrderParameters = ({
-  vendorName = 'Vendor',
-  poNumber = '-',
-  date = new Date().toLocaleDateString('en-IN'),
+  customerName = 'Customer',
+  purchaseOrderNumber = '-',
+  date = formatDate(),
   amount = '0',
-  details = 'Purchase details',
-} = {}) => [
-  String(vendorName || 'Vendor'),
-  String(poNumber || '-'),
-  String(date || new Date().toLocaleDateString('en-IN')),
-  String(amount ?? '0'),
-  String(details || 'Purchase details'),
-];
+} = {}) => normalizeParameterList(WHATSAPP_TEMPLATES.PURCHASE_ORDER, [customerName, purchaseOrderNumber, formatDate(date), amount]);
 
 export const buildAttendanceMarkedParameters = ({
-  employeeName = 'Team Member',
-  date = new Date().toLocaleDateString('en-IN'),
-  checkInTime = '-',
+  employeeName = 'Employee',
+  attendanceDate = formatDate(),
   status = 'Present',
-} = {}) => [
-  String(employeeName || 'Team Member'),
-  String(date || new Date().toLocaleDateString('en-IN')),
-  String(checkInTime || '-'),
-  String(status || 'Present'),
-];
+  markedBy = 'Admin',
+} = {}) => normalizeParameterList(WHATSAPP_TEMPLATES.ATTENDANCE_MARKED, [employeeName, formatDate(attendanceDate), status, markedBy]);
 
 export const buildTaskAssignedParameters = ({
   employeeName = 'Team Member',
   taskTitle = 'New Task',
-  assignedDate = new Date().toLocaleDateString('en-IN'),
+  assignedDate = formatDate(),
   dueDate = '-',
   assignedBy = 'Admin',
-} = {}) => [
-  String(employeeName || 'Team Member'),
-  String(taskTitle || 'New Task'),
-  String(assignedDate || new Date().toLocaleDateString('en-IN')),
-  String(dueDate || '-'),
-  String(assignedBy || 'Admin'),
-];
+} = {}) => normalizeParameterList(WHATSAPP_TEMPLATES.TASK_ASSIGNED, [employeeName, taskTitle, formatDate(assignedDate), cleanValue(dueDate), assignedBy]);
 
 export const buildOpeningBalancePayableParameters = ({
   customerName = 'Customer',
-  asOnDate = new Date().toLocaleDateString('en-IN'),
+  asOnDate = formatDate(),
   amount = '0',
   description = 'Opening balance payable',
-} = {}) => [
-  String(customerName || 'Customer'),
-  String(asOnDate || new Date().toLocaleDateString('en-IN')),
-  String(amount ?? '0'),
-  String(description || 'Opening balance payable'),
-];
+} = {}) => normalizeParameterList(WHATSAPP_TEMPLATES.OPENING_BALANCE_PAYABLE, [customerName, formatDate(asOnDate), amount, description]);
 
 export const buildOpeningBalanceReceivableParameters = ({
   customerName = 'Customer',
-  asOnDate = new Date().toLocaleDateString('en-IN'),
+  asOnDate = formatDate(),
   amount = '0',
   description = 'Opening balance receivable',
-} = {}) => [
-  String(customerName || 'Customer'),
-  String(asOnDate || new Date().toLocaleDateString('en-IN')),
-  String(amount ?? '0'),
-  String(description || 'Opening balance receivable'),
-];
+} = {}) => normalizeParameterList(WHATSAPP_TEMPLATES.OPENING_BALANCE_RECEIVABLE, [customerName, formatDate(asOnDate), amount, description]);
