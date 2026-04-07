@@ -73,6 +73,14 @@ const isWithinNextDays = (value, days = 3) => {
   return date >= start && date <= end;
 };
 
+const isOverdueOrWithinNextDays = (value, days = 3) => {
+  const date = normalizeDateValue(value);
+  if (!date) return false;
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return date < start || isWithinNextDays(date, days);
+};
+
 const getFollowupTiming = (value) => {
   const date = normalizeDateValue(value);
   if (!date) return 'default';
@@ -125,24 +133,11 @@ function OrderList({ items, emptyLabel }) {
   );
 }
 
-function SmallScrollableTable({ columns, rows, emptyLabel, renderRow, maxHeight = 320 }) {
+function SmallScrollableTable({ columns, rows, emptyLabel, renderRow, maxHeight = 320, tableSx }) {
   return (
     <DataTableWrapper>
       <Box sx={{ maxHeight, overflow: 'auto' }}>
-        <Table
-          stickyHeader
-          size="small"
-          sx={{
-            '& .MuiTableCell-root': {
-              py: 0.75,
-            },
-            '& .MuiTableHead-root .MuiTableCell-root': {
-              py: 1,
-              fontWeight: 600,
-              bgcolor: 'background.paper',
-            },
-          }}
-        >
+        <Table stickyHeader size="small" sx={tableSx}>
           <TableHead>
             <TableRow>
               {columns.map((column) => (
@@ -402,7 +397,7 @@ export default function Dashboard() {
 
   const followupRows = useMemo(() => {
     const rows = (followups || []).filter((item) =>
-      isWithinNextDays(item?.Followup_date || item?.FollowupDate || item?.Deadline || item?.Date, 3),
+      isOverdueOrWithinNextDays(item?.Followup_date || item?.FollowupDate || item?.Deadline || item?.Date, 3),
     );
 
     return rows.sort((a, b) => {
@@ -541,8 +536,8 @@ export default function Dashboard() {
 
         <Grid item xs={12} lg={5}>
           <SectionCard
-            title="Payment Followups - Next 3 Days"
-            subtitle="Small scrollable table for near-term collection followups"
+            title="Payment Followups - Overdue + Next 3 Days"
+            subtitle="Compact, scrollable followup list with subtle due-state highlighting"
             contentSx={{ p: 1 }}
             action={
               <Stack direction="row" spacing={0.5}>
@@ -562,8 +557,18 @@ export default function Dashboard() {
                   { key: 'date', label: 'Date' },
                 ]}
                 rows={followupRows}
-                emptyLabel="No payment followups in next 3 days."
+                emptyLabel="No overdue or near-term payment followups."
                 maxHeight={320}
+                tableSx={{
+                  '& .MuiTableCell-root': {
+                    py: 0.75,
+                  },
+                  '& .MuiTableHead-root .MuiTableCell-root': {
+                    py: 1,
+                    fontWeight: 600,
+                    bgcolor: 'background.paper',
+                  },
+                }}
                 renderRow={(item, index) => {
                   const timing = getFollowupTiming(item?.Followup_date || item?.FollowupDate || item?.Deadline || item?.Date);
                   const rowSx = (theme) => {
@@ -665,9 +670,11 @@ SmallScrollableTable.propTypes = {
   emptyLabel: PropTypes.string.isRequired,
   renderRow: PropTypes.func.isRequired,
   maxHeight: PropTypes.number,
+  tableSx: PropTypes.object,
 };
 
 SmallScrollableTable.defaultProps = {
   rows: [],
   maxHeight: 320,
+  tableSx: undefined,
 };
