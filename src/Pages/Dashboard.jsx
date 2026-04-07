@@ -20,7 +20,7 @@ import LocalShippingRoundedIcon from '@mui/icons-material/LocalShippingRounded';
 import CurrencyRupeeRoundedIcon from '@mui/icons-material/CurrencyRupeeRounded';
 import CreditCardRoundedIcon from '@mui/icons-material/CreditCardRounded';
 import SupportAgentRoundedIcon from '@mui/icons-material/SupportAgentRounded';
-import PaymentRoundedIcon from '@mui/icons-material/PaymentRounded';
+import QrCode2RoundedIcon from '@mui/icons-material/QrCode2Rounded';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import axios from '../apiClient';
 import SummaryCard from '../components/dashboard/SummaryCard';
@@ -29,6 +29,7 @@ import UserTask from './userTask';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useUserRole } from '../hooks/useUserRole';
 import { DataTableWrapper, EmptyState, ErrorState, LoadingState, PageContainer, SectionCard } from '../components/ui';
+import UpiPaymentDialog from '../components/dashboard/UpiPaymentDialog';
 
 const toId = (order) => order?.Order_uuid || order?._id || order?.Order_id;
 const toLower = (value = '') => String(value).trim().toLowerCase();
@@ -163,6 +164,7 @@ export default function Dashboard() {
   const [tasksLoading, setTasksLoading] = useState(true);
   const [followups, setFollowups] = useState([]);
   const [followupsLoading, setFollowupsLoading] = useState(true);
+  const [showUpiDialog, setShowUpiDialog] = useState(false);
 
   const data = useDashboardData({
     role: roleInfo?.role,
@@ -405,7 +407,20 @@ export default function Dashboard() {
   const loading = data?.isOrdersLoading || data?.isTasksLoading;
 
   return (
-    <PageContainer>
+    <PageContainer
+      title="Dashboard"
+      subtitle="Track today operations, collections and team activity."
+      actions={
+        <Button
+          size="small"
+          variant="contained"
+          startIcon={<QrCode2RoundedIcon fontSize="small" />}
+          onClick={() => setShowUpiDialog(true)}
+        >
+          UPI Payment
+        </Button>
+      }
+    >
       {(loading || summaryLoading || tasksLoading || followupsLoading) ? (
         <LinearProgress sx={{ borderRadius: 1 }} />
       ) : null}
@@ -585,6 +600,9 @@ export default function Dashboard() {
           </Grid>
         </Grid>
       ) : null}
+
+
+      <UpiPaymentDialog open={showUpiDialog} onClose={() => setShowUpiDialog(false)} />
     </PageContainer>
   );
 }
