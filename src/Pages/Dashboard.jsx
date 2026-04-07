@@ -14,6 +14,7 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import AssignmentRoundedIcon from '@mui/icons-material/AssignmentRounded';
 import AutorenewRoundedIcon from '@mui/icons-material/AutorenewRounded';
 import LocalShippingRoundedIcon from '@mui/icons-material/LocalShippingRounded';
@@ -72,6 +73,19 @@ const isWithinNextDays = (value, days = 3) => {
   return date >= start && date <= end;
 };
 
+const getFollowupTiming = (value) => {
+  const date = normalizeDateValue(value);
+  if (!date) return 'default';
+
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const today = new Date();
+  const current = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  if (target.getTime() < current.getTime()) return 'overdue';
+  if (target.getTime() === current.getTime()) return 'today';
+  return 'upcoming';
+};
+
 function OrderList({ items, emptyLabel }) {
   if (!items?.length) {
     return <EmptyState title={emptyLabel} />;
@@ -115,7 +129,20 @@ function SmallScrollableTable({ columns, rows, emptyLabel, renderRow, maxHeight 
   return (
     <DataTableWrapper>
       <Box sx={{ maxHeight, overflow: 'auto' }}>
-        <Table stickyHeader size="small">
+        <Table
+          stickyHeader
+          size="small"
+          sx={{
+            '& .MuiTableCell-root': {
+              py: 0.75,
+            },
+            '& .MuiTableHead-root .MuiTableCell-root': {
+              py: 1,
+              fontWeight: 600,
+              bgcolor: 'background.paper',
+            },
+          }}
+        >
           <TableHead>
             <TableRow>
               {columns.map((column) => (
@@ -537,24 +564,34 @@ export default function Dashboard() {
                 rows={followupRows}
                 emptyLabel="No payment followups in next 3 days."
                 maxHeight={320}
-                renderRow={(item, index) => (
-                  <TableRow key={item?._id || item?.Paymentfollowup_uuid || `${item?.Customer}-${index}`} hover>
-                    <TableCell sx={{ minWidth: 180 }}>
-                      <Typography variant="body2" fontWeight={600}>
-                        {item?.Customer || item?.Customer_name || '—'}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" noWrap>
-                        {item?.Title || item?.Remark || 'Follow-up'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                      {formatMoney(item?.Amount)}
-                    </TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                      {formatFollowupDate(item?.Followup_date || item?.FollowupDate || item?.Deadline || item?.Date)}
-                    </TableCell>
-                  </TableRow>
-                )}
+                renderRow={(item, index) => {
+                  const timing = getFollowupTiming(item?.Followup_date || item?.FollowupDate || item?.Deadline || item?.Date);
+                  const rowSx = (theme) => {
+                    if (timing === 'overdue') return { bgcolor: alpha(theme.palette.error.main, 0.08) };
+                    if (timing === 'today') return { bgcolor: alpha(theme.palette.warning.main, 0.1) };
+                    if (timing === 'upcoming') return { bgcolor: alpha(theme.palette.info.main, 0.06) };
+                    return {};
+                  };
+
+                  return (
+                    <TableRow key={item?._id || item?.Paymentfollowup_uuid || `${item?.Customer}-${index}`} hover sx={rowSx}>
+                      <TableCell sx={{ minWidth: 180 }}>
+                        <Typography variant="body2" fontWeight={600}>
+                          {item?.Customer || item?.Customer_name || '—'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" noWrap>
+                          {item?.Title || item?.Remark || 'Follow-up'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                        {formatMoney(item?.Amount)}
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        {formatFollowupDate(item?.Followup_date || item?.FollowupDate || item?.Deadline || item?.Date)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                }}
               />
             )}
           </SectionCard>
