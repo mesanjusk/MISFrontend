@@ -4,20 +4,16 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
-  Chip,
+  Checkbox,
   Dialog,
-  DialogActions,
   DialogContent,
-  DialogTitle,
   FormControl,
-  IconButton,
+  FormControlLabel,
   InputLabel,
   MenuItem,
-  Paper,
   Select,
   Stack,
   TextField,
-  Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import axios from '../apiClient.js';
@@ -32,29 +28,24 @@ export default function AddCustomer({ onClose }) {
     Customer_group: '',
     Status: 'active',
     Tags: [],
+    PartyRoles: ['customer'],
     LastInteraction: '',
   });
 
   const [groupOptions, setGroupOptions] = useState([]);
   const [duplicateNameError, setDuplicateNameError] = useState('');
-
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [groupLoading, setGroupLoading] = useState(false);
 
-  const canSubmit =
-    Boolean(form.Customer_name.trim()) && Boolean(form.Customer_group.trim());
+  const canSubmit = Boolean(form.Customer_name.trim()) && Boolean(form.Customer_group.trim());
 
   const fetchCustomerGroups = async () => {
     try {
       const res = await axios.get('/customergroup/GetCustomergroupList');
       if (res.data.success) {
-        const options = (res.data.result || [])
-          .map((item) => item.Customer_group)
-          .filter(Boolean);
-
-        const uniqueOptions = [...new Set(options)];
-        setGroupOptions(uniqueOptions);
+        const options = (res.data.result || []).map((item) => item.Customer_group).filter(Boolean);
+        setGroupOptions([...new Set(options)]);
       }
     } catch (err) {
       console.error('Error fetching customer group options:', err);
@@ -65,12 +56,22 @@ export default function AddCustomer({ onClose }) {
     fetchCustomerGroups();
   }, []);
 
-  const formatDateForInput = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const offset = date.getTimezoneOffset();
-    const localDate = new Date(date.getTime() - offset * 60000);
-    return localDate.toISOString().slice(0, 16);
+  const handleChange = (field, value) => {
+    setForm((prev) => ({
+      ...prev,
+      [field]: field === 'Tags' ? value.split(',').map((tag) => tag.trim()).filter(Boolean) : value,
+    }));
+  };
+
+  const handleRoleToggle = (role) => {
+    setForm((prev) => {
+      const exists = prev.PartyRoles.includes(role);
+      const nextRoles = exists ? prev.PartyRoles.filter((item) => item !== role) : [...prev.PartyRoles, role];
+      return {
+        ...prev,
+        PartyRoles: nextRoles.length ? nextRoles : ['customer'],
+      };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -93,11 +94,8 @@ export default function AddCustomer({ onClose }) {
     }
 
     try {
-      const duplicateRes = await axios.get(
-        `/customer/checkDuplicateName?name=${encodeURIComponent(form.Customer_name.trim())}`
-      );
-
-      if (!duplicateRes.data.success) {
+      const duplicateRes = await axios.get(`/customer/checkDuplicateName?name=${encodeURIComponent(form.Customer_name.trim())}`);
+      if (duplicateRes.data?.exists) {
         setDuplicateNameError('Customer name already exists.');
         return;
       }
@@ -108,19 +106,15 @@ export default function AddCustomer({ onClose }) {
     }
 
     try {
-      const payload = { ...form };
+      const payload = {
+        ...form,
+        Customer_name: form.Customer_name.trim(),
+        Customer_group: form.Customer_group.trim(),
+        Tags: [...new Set([...(form.Tags || []), ...(form.PartyRoles || [])])],
+      };
 
-      payload.Customer_name = form.Customer_name.trim();
-      payload.Customer_group = form.Customer_group.trim();
-      payload.Tags = form.Tags.filter((tag) => tag !== '');
-
-      if (!payload.Mobile_number || !payload.Mobile_number.trim()) {
-        delete payload.Mobile_number;
-      }
-
-      if (!form.LastInteraction) {
-        delete payload.LastInteraction;
-      }
+      if (!payload.Mobile_number || !payload.Mobile_number.trim()) delete payload.Mobile_number;
+      if (!form.LastInteraction) delete payload.LastInteraction;
 
       const res = await axios.post('/customer/addCustomer', payload);
 
@@ -133,13 +127,12 @@ export default function AddCustomer({ onClose }) {
       }
     } catch (error) {
       console.error('Error adding customer:', error);
-      alert('Error adding customer');
+      alert(error?.response?.data?.message || 'Error adding customer');
     }
   };
 
   const handleAddGroup = async () => {
     const groupName = newGroupName.trim();
-
     if (!groupName) {
       alert('Please enter customer group name.');
       return;
@@ -154,15 +147,9 @@ export default function AddCustomer({ onClose }) {
 
     try {
       setGroupLoading(true);
-
-      // Assumed existing backend route
-      const res = await axios.post('/customergroup/addCustomergroup', {
-        Customer_group: groupName,
-      });
-
+      const res = await axios.post('/customergroup/addCustomergroup', { Customer_group: groupName });
       if (res.data.success) {
-        const updatedOptions = [...new Set([...groupOptions, groupName])];
-        setGroupOptions(updatedOptions);
+        setGroupOptions((prev) => [...new Set([...prev, groupName])]);
         handleChange('Customer_group', groupName);
         setGroupDialogOpen(false);
         setNewGroupName('');
@@ -178,28 +165,18 @@ export default function AddCustomer({ onClose }) {
     }
   };
 
-  const handleChange = (field, value) => {
-    setForm((prev) => ({
-      ...prev,
-      [field]: field === 'Tags' ? value.split(',').map((tag) => tag.trim()) : value,
-    }));
-  };
-
   const handleCancel = () => {
     if (onClose) onClose();
     else navigate('/home');
   };
 
   return (
-    <PageContainer
-      title="Add Customer"
-      subtitle="Create customer profile with tags and interaction metadata."
-    >
+    <PageContainer title="Add Customer / Party" subtitle="One record can work as customer, vendor, or both.">
       <SectionCard>
         <Box component="form" onSubmit={handleSubmit}>
           <Stack spacing={1.2}>
             <TextField
-              label="Customer Name"
+              label="Customer / Party Name"
               value={form.Customer_name}
               onChange={(e) => handleChange('Customer_name', e.target.value)}
               required
@@ -212,9 +189,7 @@ export default function AddCustomer({ onClose }) {
               value={form.Mobile_number}
               onChange={(e) => {
                 const value = e.target.value;
-                if (/^\d{0,10}$/.test(value)) {
-                  handleChange('Mobile_number', value);
-                }
+                if (/^\d{0,10}$/.test(value)) handleChange('Mobile_number', value);
               }}
               placeholder="Optional 10-digit number"
               helperText="Optional field. Leave blank for office, bank, or expense accounts."
@@ -230,22 +205,33 @@ export default function AddCustomer({ onClose }) {
                   onChange={(e) => handleChange('Customer_group', e.target.value)}
                 >
                   {groupOptions.map((option) => (
-                    <MenuItem key={option} value={option}>
-                      {option}
-                    </MenuItem>
+                    <MenuItem key={option} value={option}>{option}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
 
-              <Button
-                variant="outlined"
-                startIcon={<AddIcon />}
-                onClick={() => setGroupDialogOpen(true)}
-                sx={{ minWidth: { xs: '100%', sm: 170 }, height: 56 }}
-              >
+              <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setGroupDialogOpen(true)} sx={{ minWidth: { xs: '100%', sm: 170 }, height: 56 }}>
                 Add Group
               </Button>
             </Stack>
+
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <FormControlLabel
+                control={<Checkbox checked={form.PartyRoles.includes('customer')} onChange={() => handleRoleToggle('customer')} />}
+                label="Use as Customer"
+              />
+              <FormControlLabel
+                control={<Checkbox checked={form.PartyRoles.includes('vendor')} onChange={() => handleRoleToggle('vendor')} />}
+                label="Use as Vendor"
+              />
+            </Stack>
+
+            <TextField
+              label="Tags"
+              value={form.Tags.join(', ')}
+              onChange={(e) => handleChange('Tags', e.target.value)}
+              placeholder="optional, comma separated"
+            />
 
             <FormControl fullWidth>
               <InputLabel id="status-label">Status</InputLabel>
@@ -261,78 +247,25 @@ export default function AddCustomer({ onClose }) {
             </FormControl>
 
             <TextField
-              label="Tags"
-              value={form.Tags.join(', ')}
-              onChange={(e) => handleChange('Tags', e.target.value)}
-              placeholder="VIP, Retail, Priority"
-            />
-
-            <Stack direction="row" spacing={0.6} flexWrap="wrap" useFlexGap>
-              {form.Tags.filter(Boolean).map((tag) => (
-                <Chip key={tag} size="small" label={tag} variant="outlined" />
-              ))}
-            </Stack>
-
-            <TextField
               label="Last Interaction"
               type="datetime-local"
-              value={formatDateForInput(form.LastInteraction)}
+              value={form.LastInteraction}
               onChange={(e) => handleChange('LastInteraction', e.target.value)}
               InputLabelProps={{ shrink: true }}
             />
 
-            <Paper variant="outlined" sx={{ p: 1 }}>
-              <Typography variant="caption" color="text.secondary">
-                Required fields: Customer Name and Customer Group. Mobile Number is optional.
-              </Typography>
-            </Paper>
-
-            <ActionButtonGroup
-              primaryLabel="Submit"
-              onCancel={handleCancel}
-              busy={!canSubmit}
-            />
+            <ActionButtonGroup primaryLabel="Save Party" onCancel={handleCancel} busy={!canSubmit} cancelLabel="Close" />
           </Stack>
         </Box>
       </SectionCard>
 
-      <Dialog
-        open={groupDialogOpen}
-        onClose={() => {
-          if (!groupLoading) {
-            setGroupDialogOpen(false);
-            setNewGroupName('');
-          }
-        }}
-        fullWidth
-        maxWidth="xs"
-      >
-        <DialogTitle>Add Customer Group</DialogTitle>
+      <Dialog open={groupDialogOpen} onClose={() => setGroupDialogOpen(false)} fullWidth maxWidth="xs">
         <DialogContent>
-          <TextField
-            autoFocus
-            fullWidth
-            margin="dense"
-            label="Customer Group Name"
-            value={newGroupName}
-            onChange={(e) => setNewGroupName(e.target.value)}
-            placeholder="Enter new customer group"
-          />
+          <Stack spacing={1.5} sx={{ pt: 1 }}>
+            <TextField label="New Customer Group" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} autoFocus />
+            <ActionButtonGroup primaryLabel={groupLoading ? 'Saving...' : 'Save Group'} onPrimaryClick={handleAddGroup} onCancel={() => setGroupDialogOpen(false)} busy={groupLoading} cancelLabel="Cancel" />
+          </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setGroupDialogOpen(false);
-              setNewGroupName('');
-            }}
-            disabled={groupLoading}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleAddGroup} variant="contained" disabled={groupLoading}>
-            {groupLoading ? 'Adding...' : 'Add Group'}
-          </Button>
-        </DialogActions>
       </Dialog>
     </PageContainer>
   );
