@@ -25,3 +25,7 @@ export const fetchOrderListForAllocation = async () => unwrap(await axios.get('/
 
 export const fetchWhatsAppAttendanceSettings = async () => unwrap(await axios.get('/vendors/settings/whatsapp-attendance'));
 export const saveWhatsAppAttendanceSettings = async (payload) => unwrap(await axios.put('/vendors/settings/whatsapp-attendance', payload));
+
+export const fetchVendorSimpleWorkspace = async () => unwrap(await axios.get('/vendors/simple/workspace'));
+export const createSimpleVendorWorkEntry = async (payload) => unwrap(await axios.post('/vendors/simple/work-entry', payload));
+export const createSimpleVendorPaymentEntry = async (payload) => unwrap(await axios.post('/vendors/simple/payment-entry', payload));
