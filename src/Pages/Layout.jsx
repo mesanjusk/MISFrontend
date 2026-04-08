@@ -10,7 +10,7 @@ import Sidebar from '../Components/Sidebar';
 import TopNavbar from '../Components/TopNavbar';
 import Footer from '../Components/Footer';
 import FloatingButtons from '../Components/FloatingButtons';
-import RightUtilityRail from '../Components/layout/RightUtilityRail';
+import RightUtilityRail from '../components/layout/RightUtilityRail';
 import { ROUTES } from '../constants/routes';
 
 const DRAWER_WIDTH = 258;

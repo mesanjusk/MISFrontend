@@ -25,7 +25,7 @@ import {
   buildAmountReceivedParameters,
 } from '../constants/whatsappTemplates';
 import { sendAdminAlertText } from '../utils/whatsapp';
-import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../Components/ui';
+import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../components/ui';
 
 export default function AddTransaction({ editMode, existingData, onClose, onSuccess }) {
   const navigate = useNavigate();
@@ -172,7 +172,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
         to: cleanPhone,
         template_name: WHATSAPP_TEMPLATES.AMOUNT_RECEIVED,
         language: DEFAULT_TEMPLATE_LANGUAGE,
-        Components: [{
+        components: [{
           type: 'body',
           parameters: buildAmountReceivedParameters({
             customerName: Customer_name || 'Customer',

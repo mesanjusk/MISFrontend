@@ -67,7 +67,7 @@ export const lightTheme = createTheme({
       fontSize: '0.74rem',
     },
   },
-  Components: {
+  components: {
     MuiCssBaseline: {
       styleOverrides: {
         html: { height: '100%' },

@@ -107,7 +107,7 @@ export const sendTemplateMessage = async ({
     to: cleanPhone,
     template_name: templateName,
     language,
-    Components: [
+    components: [
       {
         type: 'body',
         parameters: buildTemplateBodyParameters(templateName, values),

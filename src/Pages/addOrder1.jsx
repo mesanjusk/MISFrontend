@@ -32,7 +32,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import AssignmentRoundedIcon from '@mui/icons-material/AssignmentRounded';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
-import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../Components/ui';
+import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../components/ui';
 
 export default function AddOrder1({ closeModal }) {
   const navigate = useNavigate();
@@ -154,7 +154,7 @@ export default function AddOrder1({ closeModal }) {
         to: cleanPhone,
         template_name: WHATSAPP_TEMPLATES.ORDER_CONFIRMATION,
         language: DEFAULT_TEMPLATE_LANGUAGE,
-        Components: [{
+        components: [{
           type: 'body',
           parameters: buildOrderConfirmationParameters({
             customerName: customerLabel,

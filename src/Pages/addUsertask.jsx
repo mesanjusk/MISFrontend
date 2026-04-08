@@ -23,7 +23,7 @@ import {
   WHATSAPP_TEMPLATES,
   buildTaskAssignedParameters,
 } from '../constants/whatsappTemplates';
-import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../Components/ui';
+import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../components/ui';
 
 export default function AddUsertask() {
   const navigate = useNavigate();

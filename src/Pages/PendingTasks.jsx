@@ -1,4 +1,4 @@
-// src/Components/PendingTasks.js
+// src/components/PendingTasks.js
 
 import React from 'react';
 import { EmptyState, Loader } from '../Components';

@@ -1,5 +1,5 @@
 import React from 'react';
-import FlowBuilder from '../Components/flowBuilder/FlowBuilder';
+import FlowBuilder from '../components/flowBuilder/FlowBuilder';
 
 export default function FlowBuilderPage() {
   return (

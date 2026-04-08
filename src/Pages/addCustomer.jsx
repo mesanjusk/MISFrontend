@@ -21,7 +21,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import axios from '../apiClient.js';
-import { ActionButtonGroup, PageContainer, SectionCard } from '../Components/ui';
+import { ActionButtonGroup, PageContainer, SectionCard } from '../components/ui';
 
 export default function AddCustomer({ onClose }) {
   const navigate = useNavigate();

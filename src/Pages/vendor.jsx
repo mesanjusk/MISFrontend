@@ -18,7 +18,7 @@ import {
   Typography,
 } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import WhatsAppAttendanceSettings from '../Components/whatsappCloud/WhatsAppAttendanceSettings';
+import WhatsAppAttendanceSettings from '../components/whatsappCloud/WhatsAppAttendanceSettings';
 import {
   createProductionJob,
   createVendorLedgerEntry,

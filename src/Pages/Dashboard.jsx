@@ -24,13 +24,13 @@ import SupportAgentRoundedIcon from '@mui/icons-material/SupportAgentRounded';
 import QrCode2RoundedIcon from '@mui/icons-material/QrCode2Rounded';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import axios from '../apiClient';
-import SummaryCard from '../Components/dashboard/SummaryCard';
+import SummaryCard from '../components/dashboard/SummaryCard';
 import AllAttandance from './AllAttandance';
 import UserTask from './userTask';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useUserRole } from '../hooks/useUserRole';
-import { DataTableWrapper, EmptyState, ErrorState, LoadingState, PageContainer, SectionCard } from '../Components/ui';
-import UpiPaymentDialog from '../Components/dashboard/UpiPaymentDialog';
+import { DataTableWrapper, EmptyState, ErrorState, LoadingState, PageContainer, SectionCard } from '../components/ui';
+import UpiPaymentDialog from '../components/dashboard/UpiPaymentDialog';
 
 const toId = (order) => order?.Order_uuid || order?._id || order?.Order_id;
 const toLower = (value = '') => String(value).trim().toLowerCase();
