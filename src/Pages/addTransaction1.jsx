@@ -28,7 +28,7 @@ import {
   WHATSAPP_TEMPLATES,
   buildAmountPaidParameters,
 } from '../constants/whatsappTemplates';
-import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../components/ui';
+import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../Components/ui';
 
 export default function AddTransaction1({ onClose }) {
   const navigate = useNavigate();
@@ -150,7 +150,7 @@ export default function AddTransaction1({ onClose }) {
         to: cleanPhone,
         template_name: WHATSAPP_TEMPLATES.AMOUNT_PAID,
         language: DEFAULT_TEMPLATE_LANGUAGE,
-        components: [{
+        Components: [{
           type: 'body',
           parameters: buildAmountPaidParameters({
             customerName: customerLabel,

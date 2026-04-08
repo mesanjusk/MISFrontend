@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Alert, Box, Chip, Grid, MenuItem, Stack, TextField } from '@mui/material';
 import axios from '../apiClient.js';
 import { toast, ToastContainer } from '../Components';
-import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../components/ui';
+import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../Components/ui';
 
 export default function AddUser({ closeModal }) {
   const navigate = useNavigate();

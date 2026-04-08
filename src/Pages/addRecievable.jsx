@@ -22,7 +22,7 @@ import {
   WHATSAPP_TEMPLATES,
   buildOpeningBalanceReceivableParameters,
 } from '../constants/whatsappTemplates';
-import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../components/ui';
+import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../Components/ui';
 
 export default function AddRecievable() {
   const navigate = useNavigate();
@@ -104,7 +104,7 @@ export default function AddRecievable() {
         to: cleanPhone,
         template_name: WHATSAPP_TEMPLATES.OPENING_BALANCE_RECEIVABLE,
         language: DEFAULT_TEMPLATE_LANGUAGE,
-        components: [{
+        Components: [{
           type: 'body',
           parameters: buildOpeningBalanceReceivableParameters({
             customerName: customerLabel,

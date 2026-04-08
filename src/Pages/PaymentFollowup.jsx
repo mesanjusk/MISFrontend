@@ -25,7 +25,7 @@ import {
   buildFollowupDueTodayParameters,
   buildFollowupFriendlyParameters,
 } from '../constants/whatsappTemplates';
-import { ActionButtonGroup, PageContainer, SectionCard } from '../components/ui';
+import { ActionButtonGroup, PageContainer, SectionCard } from '../Components/ui';
 
 const todayISO = () => new Date().toLocaleDateString('en-CA');
 

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Grid, MenuItem, TextField } from '@mui/material';
 import axios from '../apiClient.js';
-import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../components/ui';
+import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../Components/ui';
 
 export default function AddCategory() {
   const navigate = useNavigate();
