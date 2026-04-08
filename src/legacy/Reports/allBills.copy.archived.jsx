@@ -1,10 +1,10 @@
 // ARCHIVED: Legacy duplicate report file moved from src/Reports/allBills copy.jsx. Not routed or imported by App.
 import React, { useState, useEffect } from "react";
-import { fetchBillList } from '../services/orderService.js';
-import { fetchCustomers as fetchCustomersList } from '../services/customerService.js';
+import { fetchBillList } from '../../services/orderService.js';
+import { fetchCustomers as fetchCustomersList } from '../../services/customerService.js';
 import { useNavigate } from "react-router-dom";
-import BillUpdate from "../Reports/billUpdate";
-import AddOrder1 from "../Pages/addOrder1";
+import BillUpdate from "../../Reports/billUpdate";
+import AddOrder1 from "../../Pages/addOrder1";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
