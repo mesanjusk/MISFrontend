@@ -118,7 +118,7 @@ export default function UpiPaymentDialog({ open, onClose }) {
       setAttempts(toRows(response?.data));
     } catch (error) {
       setAttempts([]);
-      toast.error(parseApiError(error, 'Unable to load recent UPI attempts.'));
+      toast.error(parseApiError(error, 'Unable to load. recent UPI attempts.'));
     } finally {
       setLoadingAttempts(false);
     }
