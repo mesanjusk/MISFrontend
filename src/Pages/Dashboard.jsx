@@ -145,18 +145,18 @@ function OrderList({ items, emptyLabel }) {
   }
 
   return (
-    <Stack spacing={0.8}>
+    <Stack spacing={0.6}>
       {items.map((order) => (
         <Box
           key={toId(order)}
           sx={{
-            p: 1,
+            p: 0.9,
             border: (theme) => `1px solid ${theme.palette.divider}`,
             borderRadius: 1.5,
             bgcolor: 'background.paper',
           }}
         >
-          <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={0.75}>
             <Box sx={{ minWidth: 0 }}>
               <Typography variant="body2" fontWeight={600} noWrap>
                 {order?.Customer_name || 'Unknown'}
@@ -186,7 +186,11 @@ function SmallScrollableTable({ columns, rows, emptyLabel, renderRow, maxHeight 
           <TableHead>
             <TableRow>
               {columns.map((column) => (
-                <TableCell key={column.key} align={column.align || 'left'} sx={{ whiteSpace: 'nowrap' }}>
+                <TableCell
+                  key={column.key}
+                  align={column.align || 'left'}
+                  sx={{ whiteSpace: 'nowrap', py: 0.8 }}
+                >
                   {column.label}
                 </TableCell>
               ))}
@@ -195,7 +199,7 @@ function SmallScrollableTable({ columns, rows, emptyLabel, renderRow, maxHeight 
           <TableBody>
             {!rows?.length ? (
               <TableRow>
-                <TableCell colSpan={columns.length} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={columns.length} align="center" sx={{ py: 3 }}>
                   <Typography variant="body2" color="text.secondary">
                     {emptyLabel}
                   </Typography>
@@ -385,46 +389,40 @@ export default function Dashboard() {
   const summaryCards = useMemo(
     () => [
       {
-        title: 'Todays New Orders',
+        title: 'New Orders',
         value: summaryApi?.todayOrders ?? data?.summary?.pendingToday ?? 0,
         icon: AssignmentRoundedIcon,
         variant: 'primary',
-        trend: 'New orders added today',
       },
       {
-        title: 'Old Pending Orders',
+        title: 'Pending',
         value: oldPendingOrders,
         icon: AutorenewRoundedIcon,
         variant: 'warning',
-        trend: 'Pending orders before today',
       },
       {
-        title: 'Todays Delivery',
+        title: 'Delivery',
         value: todayDeliveryCount,
         icon: LocalShippingRoundedIcon,
         variant: 'success',
-        trend: 'Deliveries planned or closed today',
       },
       {
-        title: 'Todays Revenue',
+        title: 'Revenue',
         value: todayRevenue,
         icon: CurrencyRupeeRoundedIcon,
         variant: 'success',
-        trend: 'Revenue recorded today',
       },
       {
-        title: 'Today Payment Reciviable',
+        title: 'Receivable',
         value: todayReceivable,
         icon: CreditCardRoundedIcon,
         variant: 'warning',
-        trend: 'Amount still to collect',
       },
       {
-        title: 'Today Enquiry',
+        title: 'Enquiry',
         value: todayEnquiry,
         icon: SupportAgentRoundedIcon,
         variant: 'primary',
-        trend: 'Fresh enquiries for today',
       },
     ],
     [data?.summary?.pendingToday, oldPendingOrders, summaryApi, todayDeliveryCount, todayEnquiry, todayReceivable, todayRevenue],
@@ -478,38 +476,61 @@ export default function Dashboard() {
 
   return (
     <PageContainer
-      title="Dashboard"
-      subtitle="Track today operations, collections and team activity."
+      title=""
+      subtitle=""
+      sx={{
+        '& .MuiContainer-root, & .MuiBox-root': {
+          maxWidth: '100%',
+        },
+      }}
+      contentSx={{
+        px: { xs: 0.75, sm: 1, md: 1.25 },
+        py: 0.75,
+      }}
       actions={
         <Button
           size="small"
           variant="contained"
           startIcon={<QrCode2RoundedIcon fontSize="small" />}
           onClick={() => setShowUpiDialog(true)}
+          sx={{
+            minHeight: 32,
+            px: 1.25,
+            borderRadius: 1.75,
+            boxShadow: 'none',
+          }}
         >
           UPI Payment
         </Button>
       }
     >
       {(loading || summaryLoading || tasksLoading || followupsLoading) ? (
-        <LinearProgress sx={{ borderRadius: 1 }} />
+        <LinearProgress sx={{ borderRadius: 1, mb: 0.75 }} />
       ) : null}
+
       {data?.loadError ? <ErrorState message={data.loadError} /> : null}
 
-      <Grid container spacing={1.25}>
+      <Grid container spacing={0.9} sx={{ mb: 0.9 }}>
         {summaryCards.map((card) => (
-          <Grid key={card.title} item xs={12} sm={6} md={4} lg={2}>
-            <SummaryCard {...card} />
+          <Grid key={card.title} item xs={6} sm={4} md={4} lg={2}>
+            <SummaryCard
+              {...card}
+              trend=""
+              sx={{
+                '& .MuiCard-root, &': {
+                  borderRadius: 2,
+                },
+              }}
+            />
           </Grid>
         ))}
       </Grid>
 
-      <Grid container spacing={1.25}>
+      <Grid container spacing={0.9} sx={{ mb: 0.9 }}>
         <Grid item xs={12} lg={5}>
           <SectionCard
-            title={roleInfo?.isAdmin ? 'User Wise Attendance' : 'My Attendance'}
-            subtitle={roleInfo?.isAdmin ? 'All users attendance for today' : 'Mark attendance and view today status'}
-            contentSx={{ p: 1 }}
+            title={roleInfo?.isAdmin ? 'Attendance' : 'My Attendance'}
+            contentSx={{ p: 0.8 }}
           >
             {roleInfo?.isAdmin ? <AllAttandance /> : <UserTask />}
           </SectionCard>
@@ -517,9 +538,8 @@ export default function Dashboard() {
 
         <Grid item xs={12} lg={7}>
           <SectionCard
-            title={roleInfo?.isAdmin ? 'Assigned Tasks - All Users' : 'Assigned Tasks'}
-            subtitle={roleInfo?.isAdmin ? 'Pending and in-progress tasks across users' : 'Your assigned tasks'}
-            contentSx={{ p: 1 }}
+            title="Assigned Tasks"
+            contentSx={{ p: 0.8 }}
           >
             {tasksLoading ? (
               <LoadingState label="Loading assigned tasks" />
@@ -533,14 +553,25 @@ export default function Dashboard() {
                 ]}
                 rows={assignedTasks}
                 emptyLabel="No assigned tasks found."
-                maxHeight={320}
+                maxHeight={280}
+                tableSx={{
+                  '& .MuiTableCell-root': {
+                    py: 0.55,
+                    px: 1,
+                  },
+                  '& .MuiTableHead-root .MuiTableCell-root': {
+                    fontWeight: 600,
+                    bgcolor: 'background.paper',
+                  },
+                }}
                 renderRow={(task) => {
                   const statusLabel = task?.TaskStatus || task?.Status || task?.status || 'Pending';
                   const statusKey = normalizeTaskStatus(task);
+
                   return (
                     <TableRow key={task?._id || task?.Usertask_Number || `${task?.User}-${task?.Usertask_name}`} hover>
-                      <TableCell sx={{ minWidth: 180 }}>
-                        <Typography variant="body2" fontWeight={600}>
+                      <TableCell sx={{ minWidth: 160 }}>
+                        <Typography variant="body2" fontWeight={600} noWrap>
                           {task?.Usertask_name || task?.Task_name || task?.Title || 'Untitled Task'}
                         </Typography>
                         {!!(task?.Remark || task?.Description) && (
@@ -549,16 +580,21 @@ export default function Dashboard() {
                           </Typography>
                         )}
                       </TableCell>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{task?.User || task?.AssignedTo || task?.Assigned || '—'}</TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        {task?.User || task?.AssignedTo || task?.Assigned || '—'}
+                      </TableCell>
                       <TableCell>
                         <Chip
                           size="small"
                           label={statusLabel}
                           color={statusKey === 'pending' ? 'warning' : 'primary'}
                           variant="outlined"
+                          sx={{ height: 22 }}
                         />
                       </TableCell>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatTaskDate(task?.Deadline)}</TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        {formatTaskDate(task?.Deadline)}
+                      </TableCell>
                     </TableRow>
                   );
                 }}
@@ -568,9 +604,9 @@ export default function Dashboard() {
         </Grid>
       </Grid>
 
-      <Grid container spacing={1.25}>
+      <Grid container spacing={0.9} sx={{ mb: 0.9 }}>
         <Grid item xs={12} lg={7}>
-          <SectionCard title="My Pending Order" subtitle="Priority pipeline requiring immediate action">
+          <SectionCard title="Pending Orders" contentSx={{ p: 0.8 }}>
             {loading ? (
               <LoadingState label="Loading pending orders" />
             ) : (
@@ -584,12 +620,17 @@ export default function Dashboard() {
 
         <Grid item xs={12} lg={5}>
           <SectionCard
-            title="Payment Followups - Overdue + Next 3 Days"
-            subtitle="Compact, scrollable followup list with subtle due-state highlighting"
-            contentSx={{ p: 1 }}
+            title="Payment Followups"
+            contentSx={{ p: 0.8 }}
             action={
               <Stack direction="row" spacing={0.5}>
-                <Button size="small" variant="outlined" startIcon={<ReceiptLongRoundedIcon fontSize="small" />} href="/accounts/followups">
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<ReceiptLongRoundedIcon fontSize="small" />}
+                  href="/accounts/followups"
+                  sx={{ minHeight: 30, px: 1 }}
+                >
                   Open
                 </Button>
               </Stack>
@@ -606,13 +647,13 @@ export default function Dashboard() {
                 ]}
                 rows={followupRows}
                 emptyLabel="No overdue or near-term payment followups."
-                maxHeight={320}
+                maxHeight={280}
                 tableSx={{
                   '& .MuiTableCell-root': {
-                    py: 0.75,
+                    py: 0.55,
+                    px: 1,
                   },
                   '& .MuiTableHead-root .MuiTableCell-root': {
-                    py: 1,
                     fontWeight: 600,
                     bgcolor: 'background.paper',
                   },
@@ -628,8 +669,8 @@ export default function Dashboard() {
 
                   return (
                     <TableRow key={item?.id} hover sx={rowSx}>
-                      <TableCell sx={{ minWidth: 180 }}>
-                        <Typography variant="body2" fontWeight={600}>
+                      <TableCell sx={{ minWidth: 160 }}>
+                        <Typography variant="body2" fontWeight={600} noWrap>
                           {item?.customerName || '—'}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" noWrap>
@@ -652,12 +693,11 @@ export default function Dashboard() {
       </Grid>
 
       {roleInfo?.isAdmin ? (
-        <Grid container spacing={1.25}>
+        <Grid container spacing={0.9}>
           <Grid item xs={12}>
             <SectionCard
-              title="User Wise Pending & Task"
-              subtitle="Compact user summary for pending tasks across the team"
-              contentSx={{ p: 1 }}
+              title="User Tasks"
+              contentSx={{ p: 0.8 }}
             >
               {tasksLoading ? (
                 <LoadingState label="Loading user wise task summary" />
@@ -671,16 +711,28 @@ export default function Dashboard() {
                   ]}
                   rows={userWiseTaskRows}
                   emptyLabel="No pending user tasks found."
-                  maxHeight={280}
+                  maxHeight={240}
+                  tableSx={{
+                    '& .MuiTableCell-root': {
+                      py: 0.55,
+                      px: 1,
+                    },
+                    '& .MuiTableHead-root .MuiTableCell-root': {
+                      fontWeight: 600,
+                      bgcolor: 'background.paper',
+                    },
+                  }}
                   renderRow={(row) => (
                     <TableRow key={row.user} hover>
-                      <TableCell sx={{ minWidth: 180 }}>
-                        <Typography variant="body2" fontWeight={600}>{row.user}</Typography>
+                      <TableCell sx={{ minWidth: 160 }}>
+                        <Typography variant="body2" fontWeight={600} noWrap>
+                          {row.user}
+                        </Typography>
                       </TableCell>
                       <TableCell align="right">{row.pending}</TableCell>
                       <TableCell align="right">{row.inProgress}</TableCell>
                       <TableCell align="right">
-                        <Chip size="small" label={row.total} color="primary" variant="outlined" />
+                        <Chip size="small" label={row.total} color="primary" variant="outlined" sx={{ height: 22 }} />
                       </TableCell>
                     </TableRow>
                   )}
