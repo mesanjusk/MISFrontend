@@ -1,290 +1,560 @@
-/* eslint-disable react/prop-types */
-import { useEffect, useState, useRef } from 'react';
-import { useNavigate, useLocation } from "react-router-dom";
-import axios from '../apiClient.js';
-import AddItem from "./addItem";
-import InvoiceModal from "../Components/InvoiceModal";
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Alert,
+  Box,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  MenuItem,
+  Paper,
+  Stack,
+  Tab,
+  Tabs,
+  TextField,
+  Typography,
+} from '@mui/material';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import WhatsAppAttendanceSettings from '../components/whatsappCloud/WhatsAppAttendanceSettings';
+import {
+  createProductionJob,
+  createVendorLedgerEntry,
+  createVendorMaster,
+  fetchOrderListForAllocation,
+  fetchProductionJobs,
+  fetchStockMovements,
+  fetchVendorLedger,
+  fetchVendorMasters,
+  fetchVendorSummary,
+  updateVendorMaster,
+} from '../services/vendorService';
 
-export default function Vendor({ onClose, order }) {
-    const navigate = useNavigate();
-    const location = useLocation();  
-    const [order_uuid, setOrder_uuid] = useState("");
-    const [selectedCustomer, setSelectedCustomer] = useState(null);
-    const [Quantity, setQuantity] = useState('');
-    const [Rate, setRate] = useState('');
-    const [Item, setItem] = useState('');
-    const [Amount, setAmount] = useState(0);
-    const [Remark, setRemark] = useState('');
-    const [customerList, setCustomerList] = useState([]); 
-    const [itemOptions, setItemOptions] = useState([]);
-    const [purchasePaymentModeUuid, setPurchasePaymentModeUuid] = useState(null); 
-    const [loggedInUser, setLoggedInUser] = useState('');
-    const [showItemModal, setShowItemModal] = useState(false);
-    const [filteredOptions, setFilteredOptions] = useState([]);
-    const [showOptions, setShowOptions] = useState(false);
-    const [showInvoiceModal, setShowInvoiceModal] = useState(false);
-    const [whatsAppMessage, setWhatsAppMessage] = useState('');
-    const [mobileToSend, setMobileToSend] = useState('');
-    const [invoiceItems, setInvoiceItems] = useState([]);
-    const previewRef = useRef();
+const vendorFormInitial = {
+  vendor_name: '',
+  mobile_number: '',
+  address: '',
+  gst: '',
+  payment_terms: '',
+  vendor_type: 'mixed',
+  opening_balance: 0,
+  opening_balance_type: 'none',
+  notes: '',
+  raw_material_capable: false,
+  jobwork_capable: true,
+  active: true,
+};
 
-    useEffect(() => {
-        axios.get("/customer/GetCustomersList")
-            .then(res => {
-                if (res.data.success) {
-                    const filteredCustomers = res.data.result.filter(item => item.Customer_group === "Office & Vendor");
-                    setCustomerList(filteredCustomers);
-                }
-            })
-            .catch(err => {
-                console.error("Error fetching customer list:", err);
-            });
-    }, []);
+const ledgerFormInitial = {
+  vendor_uuid: '',
+  entry_type: 'advance_paid',
+  amount: '',
+  dr_cr: 'dr',
+  narration: '',
+  order_uuid: '',
+  order_number: '',
+};
 
-    useEffect(() => {
-        const userNameFromState = location.state?.id;
-        const logInUser = userNameFromState || localStorage.getItem('User_name');
-        if (logInUser) {
-            setLoggedInUser(logInUser);
-        } else {
-            navigate("/login");
-        }
-    }, [location.state, navigate]);
+const jobFormInitial = {
+  vendor_uuid: '',
+  job_type: 'printing',
+  job_mode: 'own_material_sent',
+  status: 'draft',
+  notes: '',
+  advanceAmount: '',
+  jobValue: '',
+  materialValue: '',
+  otherCharges: '',
+  inputItems: [{ itemName: '', itemType: 'raw', quantity: '', uom: 'pcs', rate: '', amount: '' }],
+  outputItems: [{ itemName: '', itemType: 'finished', quantity: '', uom: 'pcs', rate: '', amount: '' }],
+  linkedOrders: [],
+};
 
-    useEffect(() => {
-        if (order) {
-            setItem(order.Item);
-            setQuantity(order.Quantity);
-            setRate(order.Rate);
-            setAmount(order.Amount);
-            setRemark(order.Items[i].Remark);
-            setOrder_uuid(order.Order_uuid);
-        }
-    }, [order]);
+const StatCard = ({ label, value, helper }) => (
+  <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, height: '100%' }}>
+    <Typography variant="body2" color="text.secondary">
+      {label}
+    </Typography>
+    <Typography variant="h5" fontWeight={800} sx={{ mt: 0.5 }}>
+      {value}
+    </Typography>
+    {helper ? (
+      <Typography variant="caption" color="text.secondary">
+        {helper}
+      </Typography>
+    ) : null}
+  </Paper>
+);
 
-    useEffect(() => {
-        axios.get("/item/GetItemList")
-            .then(res => {
-                if (res.data.success) {
-                    setItemOptions(res.data.result);
-                }
-            })
-            .catch(err => {
-                console.error("Error fetching item options:", err);
-            });
-    }, []);
+const currency = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
 
-    useEffect(() => {
-        axios.get("/customer/GetCustomersList")
-        .then(res => {
-            if (res.data.success) {
-                const purchaseMode = res.data.result.find(c => c.Customer_name === "Purchase");
-                if (purchaseMode) {
-                    setPurchasePaymentModeUuid(purchaseMode.Customer_uuid);
-                }
-            }
-        })
-        .catch(err => {
-            console.error("Error fetching payment mode:", err);
-        });
-    }, []);
+function rowAmount(row) {
+  const qty = Number(row.quantity || 0);
+  const rate = Number(row.rate || 0);
+  return qty * rate;
+}
 
-    useEffect(() => {
-        if (Quantity && Rate) {
-            setAmount(Number(Quantity) * Number(Rate));
-        }
-    }, [Quantity, Rate]);
+export default function VendorPage() {
+  const [tab, setTab] = useState('overview');
+  const [summary, setSummary] = useState(null);
+  const [vendors, setVendors] = useState([]);
+  const [jobs, setJobs] = useState([]);
+  const [stockMovements, setStockMovements] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [selectedVendorUuid, setSelectedVendorUuid] = useState('');
+  const [ledger, setLedger] = useState({ entries: [], summary: {} });
+  const [vendorForm, setVendorForm] = useState(vendorFormInitial);
+  const [ledgerForm, setLedgerForm] = useState(ledgerFormInitial);
+  const [jobForm, setJobForm] = useState(jobFormInitial);
+  const [editingVendorUuid, setEditingVendorUuid] = useState('');
+  const [openVendorDialog, setOpenVendorDialog] = useState(false);
+  const [openLedgerDialog, setOpenLedgerDialog] = useState(false);
+  const [openJobDialog, setOpenJobDialog] = useState(false);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
-    const submit = async (e) => {
-        e.preventDefault();
-        if (!selectedCustomer) {
-            alert("Please select a vendor.");
-            return;
-        }
+  const selectedVendor = useMemo(
+    () => vendors.find((vendor) => vendor.Vendor_uuid === selectedVendorUuid) || null,
+    [selectedVendorUuid, vendors]
+  );
 
-        const journal = [
-            {
-                Account_id: selectedCustomer.Customer_uuid,
-                Type: 'Debit',
-                Amount: Number(Amount),
-            },
-            {
-                Account_id: purchasePaymentModeUuid,
-                Type: 'Credit',
-                Amount: Number(Amount),
-            }
-        ];
-        console.log("Sending Order_uuid:", order_uuid);
+  const loadAll = async () => {
+    setError('');
+    try {
+      const [summaryData, vendorData, jobData, stockData, orderData] = await Promise.all([
+        fetchVendorSummary(),
+        fetchVendorMasters(),
+        fetchProductionJobs(),
+        fetchStockMovements(),
+        fetchOrderListForAllocation(),
+      ]);
+      setSummary(summaryData);
+      setVendors(vendorData);
+      setJobs(jobData);
+      setStockMovements(stockData);
+      setOrders(orderData);
+      const defaultVendorUuid = selectedVendorUuid || vendorData?.[0]?.Vendor_uuid || '';
+      setSelectedVendorUuid(defaultVendorUuid);
+      if (defaultVendorUuid) {
+        const ledgerData = await fetchVendorLedger(defaultVendorUuid);
+        setLedger(ledgerData);
+      }
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to load vendor accounting workspace.');
+    }
+  };
 
-        try {
-            const transactionResponse = await axios.post("/transaction/addTransaction", {
-                Description: Remark,
-                Transaction_date: new Date().toISOString(),
-                Order_uuid: order_uuid,
-                Total_Credit: Number(Amount),
-                Total_Debit: Number(Amount),
-                Payment_mode: "Purchase",
-                Journal_entry: journal,
-                Created_by: loggedInUser
-            });
+  useEffect(() => {
+    loadAll();
+  }, []);
 
-            if (!transactionResponse.data.success) {
-                alert("Failed to add Transaction.");
-            } else {
-                alert("Transaction added successfully!");
-                setWhatsAppMessage(`Hello ${selectedCustomer.Customer_name}, your purchase of ${Item} worth ₹${Amount} has been recorded.`);
-                setMobileToSend(selectedCustomer.Mobile_number);
-                setInvoiceItems([{ Item, Quantity, Rate, Amount }]);
-                setShowInvoiceModal(true);
-            }
-        } catch (err) {
-            console.error("Error updating transaction:", err);
-        }
-    };
+  useEffect(() => {
+    if (!selectedVendorUuid) return;
+    fetchVendorLedger(selectedVendorUuid)
+      .then((data) => setLedger(data))
+      .catch((err) => setError(err?.response?.data?.message || 'Failed to load vendor ledger.'));
+  }, [selectedVendorUuid]);
 
-    const handleItem = () => {
-        setShowItemModal(true);
-    };
+  const linkedOrderOptions = useMemo(
+    () =>
+      orders.map((order) => ({
+        label: `#${order.Order_Number} · ${order.Items?.map((item) => item.Item).join(', ') || 'No items'}`,
+        value: order.Order_uuid,
+        order,
+      })),
+    [orders]
+  );
 
-    const exitModal = () => {
-        setShowItemModal(false);
-    };
+  const handleVendorSave = async () => {
+    setIsSaving(true);
+    setError('');
+    setMessage('');
+    try {
+      if (editingVendorUuid) {
+        await updateVendorMaster(editingVendorUuid, vendorForm);
+        setMessage('Vendor updated successfully.');
+      } else {
+        await createVendorMaster(vendorForm);
+        setMessage('Vendor created successfully.');
+      }
+      setOpenVendorDialog(false);
+      setVendorForm(vendorFormInitial);
+      setEditingVendorUuid('');
+      await loadAll();
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to save vendor.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-    const handleInputChange = (e) => {
-        const value = e.target.value;
-        setItem(value);
-        const filtered = itemOptions.filter(option => 
-            option.Item_name.toLowerCase().includes(value.toLowerCase())
-        );
-        setFilteredOptions(filtered);
-        setShowOptions(true);
-    };
+  const handleLedgerSave = async () => {
+    setIsSaving(true);
+    setError('');
+    try {
+      await createVendorLedgerEntry({ ...ledgerForm, amount: Number(ledgerForm.amount || 0) });
+      setMessage('Ledger entry added successfully.');
+      setOpenLedgerDialog(false);
+      setLedgerForm({ ...ledgerFormInitial, vendor_uuid: selectedVendorUuid });
+      if (selectedVendorUuid) {
+        const ledgerData = await fetchVendorLedger(selectedVendorUuid);
+        setLedger(ledgerData);
+      }
+      await loadAll();
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to save ledger entry.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-    const handleOptionClick = (option) => {
-        setItem(option.Item_name);
-        setShowOptions(false);
-    };
+  const handleJobSave = async () => {
+    setIsSaving(true);
+    setError('');
+    try {
+      await createProductionJob({
+        ...jobForm,
+        advanceAmount: Number(jobForm.advanceAmount || 0),
+        jobValue: Number(jobForm.jobValue || 0),
+        materialValue: Number(jobForm.materialValue || 0),
+        otherCharges: Number(jobForm.otherCharges || 0),
+        inputItems: jobForm.inputItems.map((item) => ({ ...item, quantity: Number(item.quantity || 0), rate: Number(item.rate || 0), amount: rowAmount(item) })),
+        outputItems: jobForm.outputItems.map((item) => ({ ...item, quantity: Number(item.quantity || 0), rate: Number(item.rate || 0), amount: rowAmount(item) })),
+      });
+      setMessage('Production job created successfully.');
+      setOpenJobDialog(false);
+      setJobForm(jobFormInitial);
+      await loadAll();
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to save production job.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-    const sendWhatsApp = async () => {
-        try {
-            await axios.post('/usertask/send-message', {
-                mobile: mobileToSend,
-                userName: selectedCustomer.Customer_name,
-                type: 'customer',
-                message: whatsAppMessage,
-            });
-            alert('WhatsApp message sent');
-        } catch {
-            alert('Failed to send WhatsApp');
-        } finally {
-            setShowInvoiceModal(false);
-            navigate('/allOrder');
-        }
-    };
+  return (
+    <Stack spacing={2.5}>
+      <Box>
+        <Typography variant="h4" fontWeight={800}>
+          Vendor accounting & production control
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Manage vendor masters, advances, job work, raw material issue, finished goods receipt, and WhatsApp attendance settings from frontend only.
+        </Typography>
+      </Box>
 
-    return (
-        <>
-        <InvoiceModal
-            isOpen={showInvoiceModal}
-            onClose={() => { setShowInvoiceModal(false); navigate('/allOrder'); }}
-            invoiceRef={previewRef}
-            customerName={selectedCustomer?.Customer_name}
-            customerMobile={mobileToSend}
-            items={invoiceItems}
-            remark={Remark}
-            onSendWhatsApp={sendWhatsApp}
-        />
-        <div className="d-flex justify-content-center align-items-center bg-secondary vh-100">
-            <div className="bg-white p-3 rounded w-90">
-                <button type="button" onClick={onClose}>X</button>
-                <h2>Add Vendor</h2>
-                <form onSubmit={submit}>
-                    <div className="mb-3">
-                        <label><strong>Vendors</strong></label>
-                        <select className="form-control rounded-0" 
-                                onChange={(e) => {
-                                    const vendor = customerList.find(c => c.Customer_name === e.target.value);
-                                    setSelectedCustomer(vendor);
-                                }}
-                                value={selectedCustomer?.Customer_name || ""}>
-                            <option value="">Select Vendor</option>
-                            {customerList.map((option, index) => (
-                                <option key={index} value={option.Customer_name}>{option.Customer_name}</option>
-                            ))}
-                        </select>
-                    </div>
+      {message ? <Alert severity="success">{message}</Alert> : null}
+      {error ? <Alert severity="error">{error}</Alert> : null}
 
-                    <div className="mb-3">
-                        <label>
-                            Search by Item Name
-                            <input
-                                value={Item}
-                                onChange={handleInputChange}
-                                placeholder="Search by name"
-                                onFocus={() => setShowOptions(true)}
-                            />
-                        </label>
-                        {showOptions && filteredOptions.length > 0 && (
-                            <ul className="list-group position-absolute w-100">
-                                {filteredOptions.map((option, index) => (
-                                    <li
-                                        key={index}
-                                        className="list-group-item list-group-item-action"
-                                        onClick={() => handleOptionClick(option)}
-                                    >
-                                        {option.Item_name}
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                        <button onClick={handleItem} type="button" className="text-white p-2 rounded-full bg-blue-500 mb-3">
-                            <svg className="h-8 w-8" width="20" height="20" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none">
-                                <path stroke="none" d="M0 0h24v24H0z"/>  
-                                <circle cx="12" cy="12" r="9" />  
-                                <line x1="9" y1="12" x2="15" y2="12" />  
-                                <line x1="12" y1="9" x2="12" y2="15" />
-                            </svg>
-                        </button>
-                    </div>
+      <Grid container spacing={2}>
+        <Grid item xs={12} md={3}><StatCard label="Vendor masters" value={summary?.vendorCount || 0} /></Grid>
+        <Grid item xs={12} md={3}><StatCard label="Production jobs" value={summary?.jobCount || 0} helper={currency(summary?.totalJobCost || 0)} /></Grid>
+        <Grid item xs={12} md={3}><StatCard label="Vendor payable" value={currency(summary?.totalVendorPayable || 0)} /></Grid>
+        <Grid item xs={12} md={3}><StatCard label="Vendor advance" value={currency(summary?.totalVendorAdvance || 0)} /></Grid>
+      </Grid>
 
-                    <div className="mb-3">
-                        <label><strong>Remark</strong></label>
-                        <input
-                            type="text"
-                            value={Remark}
-                            className="form-control rounded-0"
-                            onChange={(e) => setRemark(e.target.value)}
-                        />
-                    </div>
+      <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+        <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="scrollable" scrollButtons="auto">
+          <Tab value="overview" label="Overview" />
+          <Tab value="vendors" label="Vendor Master" />
+          <Tab value="ledger" label="Vendor Ledger" />
+          <Tab value="jobs" label="Production Jobs" />
+          <Tab value="stock" label="Stock Movements" />
+          <Tab value="whatsapp" label="WhatsApp Attendance" />
+        </Tabs>
 
-                    <div className="mb-3">
-                        <label><strong>Quantity</strong></label>
-                        <input type="number" value={Quantity} className="form-control rounded-0" onChange={(e) => setQuantity(e.target.value)} />
-                    </div>
+        <Box sx={{ p: 2.5 }}>
+          {tab === 'overview' ? (
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, height: '100%' }}>
+                  <Typography variant="subtitle1" fontWeight={700}>Top vendor balances</Typography>
+                  <Stack spacing={1.25} sx={{ mt: 2 }}>
+                    {(summary?.topVendorBalances || []).map((row) => (
+                      <Stack key={row.vendor_uuid} direction="row" justifyContent="space-between" alignItems="center">
+                        <Typography variant="body2">{row.vendor_name}</Typography>
+                        <Chip size="small" label={currency(row.balance)} color={row.balance >= 0 ? 'warning' : 'success'} />
+                      </Stack>
+                    ))}
+                  </Stack>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, height: '100%' }}>
+                  <Typography variant="subtitle1" fontWeight={700}>Live implementation notes</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    New jobs automatically create vendor ledger and stock movement records. Orders stay untouched, so your existing live workflow remains safe.
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Use one production job for each real-world process like printing, lamination, cutting, or packing. Link multiple orders when one batch serves multiple parties.
+                  </Typography>
+                </Paper>
+              </Grid>
+            </Grid>
+          ) : null}
 
-                    <div className="mb-3">
-                        <label><strong>Rate</strong></label>
-                        <input type="number" value={Rate} className="form-control rounded-0" onChange={(e) => setRate(e.target.value)} />
-                    </div>
+          {tab === 'vendors' ? (
+            <Stack spacing={2}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography variant="subtitle1" fontWeight={700}>Vendor master setup</Typography>
+                <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={() => { setEditingVendorUuid(''); setVendorForm(vendorFormInitial); setOpenVendorDialog(true); }}>
+                  Add vendor
+                </Button>
+              </Stack>
+              <Grid container spacing={2}>
+                {vendors.map((vendor) => (
+                  <Grid item xs={12} md={6} lg={4} key={vendor.Vendor_uuid}>
+                    <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, height: '100%' }}>
+                      <Stack spacing={1}>
+                        <Typography variant="subtitle1" fontWeight={700}>{vendor.Vendor_name}</Typography>
+                        <Typography variant="body2" color="text.secondary">{vendor.Vendor_type} · {vendor.Mobile_number || 'No mobile'}</Typography>
+                        <Typography variant="body2" color="text.secondary">Terms: {vendor.Payment_terms || 'Not set'}</Typography>
+                        <Stack direction="row" spacing={1} flexWrap="wrap">
+                          <Chip size="small" label={vendor.Active ? 'Active' : 'Inactive'} color={vendor.Active ? 'success' : 'default'} />
+                          <Chip size="small" label={vendor.Raw_material_capable ? 'Raw Material' : 'Jobwork'} />
+                        </Stack>
+                        <Button
+                          size="small"
+                          onClick={() => {
+                            setEditingVendorUuid(vendor.Vendor_uuid);
+                            setVendorForm({
+                              vendor_name: vendor.Vendor_name || '',
+                              mobile_number: vendor.Mobile_number || '',
+                              address: vendor.Address || '',
+                              gst: vendor.GST || '',
+                              payment_terms: vendor.Payment_terms || '',
+                              vendor_type: vendor.Vendor_type || 'mixed',
+                              opening_balance: vendor.Opening_balance || 0,
+                              opening_balance_type: vendor.Opening_balance_type || 'none',
+                              notes: vendor.Notes || '',
+                              raw_material_capable: Boolean(vendor.Raw_material_capable),
+                              jobwork_capable: vendor.Jobwork_capable !== false,
+                              active: vendor.Active !== false,
+                            });
+                            setOpenVendorDialog(true);
+                          }}
+                        >
+                          Edit
+                        </Button>
+                      </Stack>
+                    </Paper>
+                  </Grid>
+                ))}
+              </Grid>
+            </Stack>
+          ) : null}
 
-                    <div className="mb-3">
-                        <label><strong>Amount</strong></label>
-                        <input type="text" value={Amount} className="form-control rounded-0" readOnly />
-                    </div>
+          {tab === 'ledger' ? (
+            <Stack spacing={2}>
+              <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} spacing={1.5}>
+                <TextField select label="Select vendor" value={selectedVendorUuid} onChange={(e) => setSelectedVendorUuid(e.target.value)} sx={{ minWidth: 280 }}>
+                  {vendors.map((vendor) => (
+                    <MenuItem key={vendor.Vendor_uuid} value={vendor.Vendor_uuid}>{vendor.Vendor_name}</MenuItem>
+                  ))}
+                </TextField>
+                <Stack direction="row" spacing={1}>
+                  <Chip label={`Dr ${currency(ledger?.summary?.debit || 0)}`} />
+                  <Chip label={`Cr ${currency(ledger?.summary?.credit || 0)}`} />
+                  <Chip color={(ledger?.summary?.balance || 0) >= 0 ? 'warning' : 'success'} label={`Balance ${currency(Math.abs(ledger?.summary?.balance || 0))} ${ledger?.summary?.balanceNature || ''}`} />
+                  <Button variant="contained" onClick={() => { setLedgerForm((prev) => ({ ...prev, vendor_uuid: selectedVendorUuid, order_uuid: '', order_number: '' })); setOpenLedgerDialog(true); }}>Add entry</Button>
+                </Stack>
+              </Stack>
+              <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+                <Box sx={{ maxHeight: 480, overflow: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr>
+                        <th align="left">Date</th><th align="left">Type</th><th align="left">Narration</th><th align="right">Dr</th><th align="right">Cr</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(ledger.entries || []).map((entry) => (
+                        <tr key={entry.entry_uuid}>
+                          <td>{new Date(entry.date).toLocaleDateString()}</td>
+                          <td>{entry.entry_type}</td>
+                          <td>{entry.narration || '-'}</td>
+                          <td align="right">{entry.dr_cr === 'dr' ? currency(entry.amount) : '-'}</td>
+                          <td align="right">{entry.dr_cr === 'cr' ? currency(entry.amount) : '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </Box>
+              </Paper>
+            </Stack>
+          ) : null}
 
-                    <button type="submit" className="w-100 h-10 bg-blue-500 text-white shadow-lg flex items-center justify-center">
-                        Submit
-                    </button>
-                </form>
-            </div>
-        </div>
-        {showItemModal && (
-            <div className="modal-overlay">
-                <div className="modal-content">
-                    <AddItem closeModal={exitModal} />
-                </div>
-            </div>
-        )}
-        </>
-    );
+          {tab === 'jobs' ? (
+            <Stack spacing={2}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography variant="subtitle1" fontWeight={700}>Production jobs</Typography>
+                <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={() => { setJobForm(jobFormInitial); setOpenJobDialog(true); }}>
+                  Add job
+                </Button>
+              </Stack>
+              <Grid container spacing={2}>
+                {jobs.map((job) => (
+                  <Grid item xs={12} md={6} lg={4} key={job.job_uuid}>
+                    <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, height: '100%' }}>
+                      <Stack spacing={1}>
+                        <Typography variant="subtitle1" fontWeight={700}>Job #{job.job_number}</Typography>
+                        <Typography variant="body2" color="text.secondary">{job.job_type} · {job.job_mode}</Typography>
+                        <Typography variant="body2" color="text.secondary">Vendor: {job.vendor_name || 'Not linked'}</Typography>
+                        <Typography variant="body2" color="text.secondary">Cost: {currency(job.totalCost)}</Typography>
+                        <Typography variant="body2" color="text.secondary">Orders: {(job.linkedOrders || []).map((o) => o.orderNumber).filter(Boolean).join(', ') || 'None'}</Typography>
+                      </Stack>
+                    </Paper>
+                  </Grid>
+                ))}
+              </Grid>
+            </Stack>
+          ) : null}
+
+          {tab === 'stock' ? (
+            <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+              <Box sx={{ maxHeight: 520, overflow: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th align="left">Date</th><th align="left">Item</th><th align="left">Movement</th><th align="right">In</th><th align="right">Out</th><th align="right">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stockMovements.map((row) => (
+                      <tr key={row.movement_uuid}>
+                        <td>{new Date(row.date).toLocaleDateString()}</td>
+                        <td>{row.item_name}</td>
+                        <td>{row.movement_type}</td>
+                        <td align="right">{row.qty_in || 0}</td>
+                        <td align="right">{row.qty_out || 0}</td>
+                        <td align="right">{currency(row.value || 0)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Box>
+            </Paper>
+          ) : null}
+
+          {tab === 'whatsapp' ? <WhatsAppAttendanceSettings /> : null}
+        </Box>
+      </Paper>
+
+      <Dialog open={openVendorDialog} onClose={() => setOpenVendorDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>{editingVendorUuid ? 'Edit vendor' : 'Add vendor'}</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid item xs={12} md={6}><TextField fullWidth label="Vendor name" value={vendorForm.vendor_name} onChange={(e) => setVendorForm((prev) => ({ ...prev, vendor_name: e.target.value }))} /></Grid>
+            <Grid item xs={12} md={6}><TextField fullWidth label="Mobile number" value={vendorForm.mobile_number} onChange={(e) => setVendorForm((prev) => ({ ...prev, mobile_number: e.target.value }))} /></Grid>
+            <Grid item xs={12} md={4}><TextField fullWidth select label="Vendor type" value={vendorForm.vendor_type} onChange={(e) => setVendorForm((prev) => ({ ...prev, vendor_type: e.target.value }))}><MenuItem value="material">Material</MenuItem><MenuItem value="jobwork">Jobwork</MenuItem><MenuItem value="mixed">Mixed</MenuItem></TextField></Grid>
+            <Grid item xs={12} md={4}><TextField fullWidth label="Opening balance" type="number" value={vendorForm.opening_balance} onChange={(e) => setVendorForm((prev) => ({ ...prev, opening_balance: e.target.value }))} /></Grid>
+            <Grid item xs={12} md={4}><TextField fullWidth select label="Opening balance type" value={vendorForm.opening_balance_type} onChange={(e) => setVendorForm((prev) => ({ ...prev, opening_balance_type: e.target.value }))}><MenuItem value="none">None</MenuItem><MenuItem value="payable">Payable</MenuItem><MenuItem value="advance">Advance</MenuItem></TextField></Grid>
+            <Grid item xs={12} md={6}><TextField fullWidth label="Payment terms" value={vendorForm.payment_terms} onChange={(e) => setVendorForm((prev) => ({ ...prev, payment_terms: e.target.value }))} /></Grid>
+            <Grid item xs={12} md={6}><TextField fullWidth label="GST" value={vendorForm.gst} onChange={(e) => setVendorForm((prev) => ({ ...prev, gst: e.target.value }))} /></Grid>
+            <Grid item xs={12}><TextField fullWidth label="Address" value={vendorForm.address} onChange={(e) => setVendorForm((prev) => ({ ...prev, address: e.target.value }))} /></Grid>
+            <Grid item xs={12}><TextField fullWidth label="Notes" multiline minRows={3} value={vendorForm.notes} onChange={(e) => setVendorForm((prev) => ({ ...prev, notes: e.target.value }))} /></Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions><Button onClick={() => setOpenVendorDialog(false)}>Cancel</Button><Button variant="contained" onClick={handleVendorSave} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save'}</Button></DialogActions>
+      </Dialog>
+
+      <Dialog open={openLedgerDialog} onClose={() => setOpenLedgerDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Add vendor ledger entry</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid item xs={12}><TextField select fullWidth label="Vendor" value={ledgerForm.vendor_uuid} onChange={(e) => setLedgerForm((prev) => ({ ...prev, vendor_uuid: e.target.value }))}>{vendors.map((vendor) => <MenuItem key={vendor.Vendor_uuid} value={vendor.Vendor_uuid}>{vendor.Vendor_name}</MenuItem>)}</TextField></Grid>
+            <Grid item xs={12} md={6}><TextField select fullWidth label="Entry type" value={ledgerForm.entry_type} onChange={(e) => setLedgerForm((prev) => ({ ...prev, entry_type: e.target.value }))}><MenuItem value="advance_paid">Advance Paid</MenuItem><MenuItem value="payment">Payment</MenuItem><MenuItem value="job_bill">Job Bill</MenuItem><MenuItem value="material_bill">Material Bill</MenuItem><MenuItem value="adjustment">Adjustment</MenuItem></TextField></Grid>
+            <Grid item xs={12} md={6}><TextField select fullWidth label="Debit / Credit" value={ledgerForm.dr_cr} onChange={(e) => setLedgerForm((prev) => ({ ...prev, dr_cr: e.target.value }))}><MenuItem value="dr">Debit</MenuItem><MenuItem value="cr">Credit</MenuItem></TextField></Grid>
+            <Grid item xs={12} md={6}><TextField fullWidth type="number" label="Amount" value={ledgerForm.amount} onChange={(e) => setLedgerForm((prev) => ({ ...prev, amount: e.target.value }))} /></Grid>
+            <Grid item xs={12} md={6}><TextField fullWidth label="Narration" value={ledgerForm.narration} onChange={(e) => setLedgerForm((prev) => ({ ...prev, narration: e.target.value }))} /></Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions><Button onClick={() => setOpenLedgerDialog(false)}>Cancel</Button><Button variant="contained" onClick={handleLedgerSave} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save'}</Button></DialogActions>
+      </Dialog>
+
+      <Dialog open={openJobDialog} onClose={() => setOpenJobDialog(false)} maxWidth="lg" fullWidth>
+        <DialogTitle>Create production job</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 0.5 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={4}><TextField select fullWidth label="Vendor" value={jobForm.vendor_uuid} onChange={(e) => setJobForm((prev) => ({ ...prev, vendor_uuid: e.target.value }))}>{vendors.map((vendor) => <MenuItem key={vendor.Vendor_uuid} value={vendor.Vendor_uuid}>{vendor.Vendor_name}</MenuItem>)}</TextField></Grid>
+              <Grid item xs={12} md={4}><TextField select fullWidth label="Job type" value={jobForm.job_type} onChange={(e) => setJobForm((prev) => ({ ...prev, job_type: e.target.value }))}><MenuItem value="printing">Printing</MenuItem><MenuItem value="lamination">Lamination</MenuItem><MenuItem value="cutting">Cutting</MenuItem><MenuItem value="packing">Packing</MenuItem><MenuItem value="purchase">Purchase</MenuItem><MenuItem value="manual">Manual</MenuItem></TextField></Grid>
+              <Grid item xs={12} md={4}><TextField select fullWidth label="Job mode" value={jobForm.job_mode} onChange={(e) => setJobForm((prev) => ({ ...prev, job_mode: e.target.value }))}><MenuItem value="own_material_sent">Own Material Sent</MenuItem><MenuItem value="jobwork_only">Jobwork Only</MenuItem><MenuItem value="vendor_with_material">Vendor With Material</MenuItem><MenuItem value="mixed">Mixed</MenuItem></TextField></Grid>
+              <Grid item xs={12} md={3}><TextField fullWidth type="number" label="Advance" value={jobForm.advanceAmount} onChange={(e) => setJobForm((prev) => ({ ...prev, advanceAmount: e.target.value }))} /></Grid>
+              <Grid item xs={12} md={3}><TextField fullWidth type="number" label="Job value" value={jobForm.jobValue} onChange={(e) => setJobForm((prev) => ({ ...prev, jobValue: e.target.value }))} /></Grid>
+              <Grid item xs={12} md={3}><TextField fullWidth type="number" label="Material value" value={jobForm.materialValue} onChange={(e) => setJobForm((prev) => ({ ...prev, materialValue: e.target.value }))} /></Grid>
+              <Grid item xs={12} md={3}><TextField fullWidth type="number" label="Other charges" value={jobForm.otherCharges} onChange={(e) => setJobForm((prev) => ({ ...prev, otherCharges: e.target.value }))} /></Grid>
+            </Grid>
+
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+              <Typography variant="subtitle2" fontWeight={700}>Input items</Typography>
+              {jobForm.inputItems.map((item, index) => (
+                <Grid container spacing={1.5} sx={{ mt: 0.5 }} key={`input-${index}`}>
+                  <Grid item xs={12} md={4}><TextField fullWidth label="Item name" value={item.itemName} onChange={(e) => setJobForm((prev) => ({ ...prev, inputItems: prev.inputItems.map((row, i) => i === index ? { ...row, itemName: e.target.value } : row) }))} /></Grid>
+                  <Grid item xs={12} md={2}><TextField fullWidth label="Type" value={item.itemType} onChange={(e) => setJobForm((prev) => ({ ...prev, inputItems: prev.inputItems.map((row, i) => i === index ? { ...row, itemType: e.target.value } : row) }))} /></Grid>
+                  <Grid item xs={12} md={2}><TextField fullWidth type="number" label="Qty" value={item.quantity} onChange={(e) => setJobForm((prev) => ({ ...prev, inputItems: prev.inputItems.map((row, i) => i === index ? { ...row, quantity: e.target.value } : row) }))} /></Grid>
+                  <Grid item xs={12} md={2}><TextField fullWidth type="number" label="Rate" value={item.rate} onChange={(e) => setJobForm((prev) => ({ ...prev, inputItems: prev.inputItems.map((row, i) => i === index ? { ...row, rate: e.target.value } : row) }))} /></Grid>
+                  <Grid item xs={12} md={2}><TextField fullWidth label="Amount" value={currency(rowAmount(item))} InputProps={{ readOnly: true }} /></Grid>
+                </Grid>
+              ))}
+              <Button sx={{ mt: 1.5 }} onClick={() => setJobForm((prev) => ({ ...prev, inputItems: [...prev.inputItems, { itemName: '', itemType: 'raw', quantity: '', uom: 'pcs', rate: '', amount: '' }] }))}>Add input</Button>
+            </Paper>
+
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+              <Typography variant="subtitle2" fontWeight={700}>Output items</Typography>
+              {jobForm.outputItems.map((item, index) => (
+                <Grid container spacing={1.5} sx={{ mt: 0.5 }} key={`output-${index}`}>
+                  <Grid item xs={12} md={4}><TextField fullWidth label="Item name" value={item.itemName} onChange={(e) => setJobForm((prev) => ({ ...prev, outputItems: prev.outputItems.map((row, i) => i === index ? { ...row, itemName: e.target.value } : row) }))} /></Grid>
+                  <Grid item xs={12} md={2}><TextField fullWidth label="Type" value={item.itemType} onChange={(e) => setJobForm((prev) => ({ ...prev, outputItems: prev.outputItems.map((row, i) => i === index ? { ...row, itemType: e.target.value } : row) }))} /></Grid>
+                  <Grid item xs={12} md={2}><TextField fullWidth type="number" label="Qty" value={item.quantity} onChange={(e) => setJobForm((prev) => ({ ...prev, outputItems: prev.outputItems.map((row, i) => i === index ? { ...row, quantity: e.target.value } : row) }))} /></Grid>
+                  <Grid item xs={12} md={2}><TextField fullWidth type="number" label="Rate" value={item.rate} onChange={(e) => setJobForm((prev) => ({ ...prev, outputItems: prev.outputItems.map((row, i) => i === index ? { ...row, rate: e.target.value } : row) }))} /></Grid>
+                  <Grid item xs={12} md={2}><TextField fullWidth label="Amount" value={currency(rowAmount(item))} InputProps={{ readOnly: true }} /></Grid>
+                </Grid>
+              ))}
+              <Button sx={{ mt: 1.5 }} onClick={() => setJobForm((prev) => ({ ...prev, outputItems: [...prev.outputItems, { itemName: '', itemType: 'finished', quantity: '', uom: 'pcs', rate: '', amount: '' }] }))}>Add output</Button>
+            </Paper>
+
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 3 }}>
+              <Typography variant="subtitle2" fontWeight={700}>Link orders for costing split</Typography>
+              <TextField
+                select
+                SelectProps={{ multiple: true }}
+                fullWidth
+                value={jobForm.linkedOrders.map((row) => row.orderUuid)}
+                onChange={(e) => {
+                  const selected = Array.isArray(e.target.value) ? e.target.value : [e.target.value];
+                  setJobForm((prev) => ({
+                    ...prev,
+                    linkedOrders: selected.map((orderUuid) => {
+                      const match = linkedOrderOptions.find((option) => option.value === orderUuid)?.order;
+                      const firstItem = match?.Items?.[0];
+                      return {
+                        orderUuid,
+                        orderNumber: match?.Order_Number || '',
+                        orderItemLineId: firstItem?.lineId || firstItem?._id || '',
+                        quantity: firstItem?.Quantity || 0,
+                        outputQuantity: firstItem?.Quantity || 0,
+                        costShareAmount: 0,
+                        allocationBasis: 'manual',
+                      };
+                    }),
+                  }));
+                }}
+              >
+                {linkedOrderOptions.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                ))}
+              </TextField>
+            </Paper>
+
+            <TextField fullWidth label="Notes" multiline minRows={3} value={jobForm.notes} onChange={(e) => setJobForm((prev) => ({ ...prev, notes: e.target.value }))} />
+          </Stack>
+        </DialogContent>
+        <DialogActions><Button onClick={() => setOpenJobDialog(false)}>Cancel</Button><Button variant="contained" onClick={handleJobSave} disabled={isSaving}>{isSaving ? 'Saving...' : 'Create job'}</Button></DialogActions>
+      </Dialog>
+    </Stack>
+  );
 }

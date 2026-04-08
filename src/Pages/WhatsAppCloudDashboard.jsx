@@ -23,6 +23,7 @@ const SendMessagePanel = lazy(() => import('../components/whatsappCloud/SendMess
 const BulkSender = lazy(() => import('../components/whatsappCloud/BulkSender'));
 const AutoReplyManagementPanel = lazy(() => import('../components/whatsappCloud/AutoReplyManagementPanel'));
 const AnalyticsDashboard = lazy(() => import('../components/whatsappCloud/AnalyticsDashboard'));
+const WhatsAppAttendanceSettings = lazy(() => import('../components/whatsappCloud/WhatsAppAttendanceSettings'));
 
 const navItems = [
   { key: 'inbox', label: 'Chats' },
@@ -93,7 +94,7 @@ export default function WhatsAppCloudDashboard() {
     if (activeTab === 'campaigns') return <BulkSender />;
     if (activeTab === 'autoReply') return <AutoReplyManagementPanel />;
     if (activeTab === 'analytics') return <AnalyticsDashboard />;
-    return <Typography variant="body2">Settings panel is ready for configuration controls.</Typography>;
+    return <WhatsAppAttendanceSettings />;
   }, [activeTab, search]);
 
   const connectionChipColor =
