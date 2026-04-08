@@ -29,7 +29,14 @@ import AllAttandance from './AllAttandance';
 import UserTask from './userTask';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useUserRole } from '../hooks/useUserRole';
-import { DataTableWrapper, EmptyState, ErrorState, LoadingState, PageContainer, SectionCard } from '../components/ui';
+import {
+  DataTableWrapper,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PageContainer,
+  SectionCard,
+} from '../components/ui';
 import UpiPaymentDialog from '../components/dashboard/UpiPaymentDialog';
 
 const toId = (order) => order?.Order_uuid || order?._id || order?.Order_id;
@@ -65,19 +72,23 @@ const normalizeTaskStatus = (task) =>
 const isWithinNextDays = (value, days = 3) => {
   const date = normalizeDateValue(value);
   if (!date) return false;
+
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const end = new Date(start);
   end.setDate(end.getDate() + days - 1);
   end.setHours(23, 59, 59, 999);
+
   return date >= start && date <= end;
 };
 
 const isOverdueOrWithinNextDays = (value, days = 3) => {
   const date = normalizeDateValue(value);
   if (!date) return false;
+
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
   return date < start || isWithinNextDays(date, days);
 };
 
@@ -92,6 +103,40 @@ const getFollowupTiming = (value) => {
   if (target.getTime() < current.getTime()) return 'overdue';
   if (target.getTime() === current.getTime()) return 'today';
   return 'upcoming';
+};
+
+const normalizePaymentFollowup = (item = {}) => {
+  const followupDate =
+    item?.followup_date ||
+    item?.Followup_date ||
+    item?.FollowupDate ||
+    item?.deadline ||
+    item?.Deadline ||
+    item?.date ||
+    item?.Date ||
+    null;
+
+  return {
+    id:
+      item?._id ||
+      item?.followup_uuid ||
+      item?.Followup_uuid ||
+      item?.Paymentfollowup_uuid ||
+      `${item?.customer_name || item?.Customer_name || item?.Customer || 'followup'}-${followupDate || 'na'}`,
+    customerName:
+      item?.customer_name ||
+      item?.Customer_name ||
+      item?.Customer ||
+      item?.customer ||
+      '',
+    amount: Number(item?.amount ?? item?.Amount ?? 0),
+    title: item?.title || item?.Title || '',
+    remark: item?.remark || item?.Remark || '',
+    followupDate,
+    status: item?.status || item?.Status || 'pending',
+    createdBy: item?.created_by || item?.Created_by || item?.CreatedBy || '',
+    raw: item,
+  };
 };
 
 function OrderList({ items, emptyLabel }) {
@@ -280,8 +325,11 @@ export default function Dashboard() {
         for (const endpoint of endpoints) {
           try {
             const res = await axios.get(endpoint);
-            rows = normalizeApiRows(res?.data);
-            if (rows.length) break;
+            const apiRows = normalizeApiRows(res?.data);
+            if (apiRows.length) {
+              rows = apiRows.map(normalizePaymentFollowup);
+              break;
+            }
           } catch {
             // try next endpoint
           }
@@ -397,12 +445,12 @@ export default function Dashboard() {
 
   const followupRows = useMemo(() => {
     const rows = (followups || []).filter((item) =>
-      isOverdueOrWithinNextDays(item?.Followup_date || item?.FollowupDate || item?.Deadline || item?.Date, 3),
+      isOverdueOrWithinNextDays(item?.followupDate, 3),
     );
 
     return rows.sort((a, b) => {
-      const dateA = normalizeDateValue(a?.Followup_date || a?.FollowupDate || a?.Deadline || a?.Date)?.getTime() || 0;
-      const dateB = normalizeDateValue(b?.Followup_date || b?.FollowupDate || b?.Deadline || b?.Date)?.getTime() || 0;
+      const dateA = normalizeDateValue(a?.followupDate)?.getTime() || 0;
+      const dateB = normalizeDateValue(b?.followupDate)?.getTime() || 0;
       return dateA - dateB;
     });
   }, [followups]);
@@ -569,8 +617,8 @@ export default function Dashboard() {
                     bgcolor: 'background.paper',
                   },
                 }}
-                renderRow={(item, index) => {
-                  const timing = getFollowupTiming(item?.Followup_date || item?.FollowupDate || item?.Deadline || item?.Date);
+                renderRow={(item) => {
+                  const timing = getFollowupTiming(item?.followupDate);
                   const rowSx = (theme) => {
                     if (timing === 'overdue') return { bgcolor: alpha(theme.palette.error.main, 0.08) };
                     if (timing === 'today') return { bgcolor: alpha(theme.palette.warning.main, 0.1) };
@@ -579,20 +627,20 @@ export default function Dashboard() {
                   };
 
                   return (
-                    <TableRow key={item?._id || item?.Paymentfollowup_uuid || `${item?.Customer}-${index}`} hover sx={rowSx}>
+                    <TableRow key={item?.id} hover sx={rowSx}>
                       <TableCell sx={{ minWidth: 180 }}>
                         <Typography variant="body2" fontWeight={600}>
-                          {item?.Customer || item?.Customer_name || '—'}
+                          {item?.customerName || '—'}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" noWrap>
-                          {item?.Title || item?.Remark || 'Follow-up'}
+                          {item?.title || item?.remark || 'Follow-up'}
                         </Typography>
                       </TableCell>
                       <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                        {formatMoney(item?.Amount)}
+                        {formatMoney(item?.amount)}
                       </TableCell>
                       <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                        {formatFollowupDate(item?.Followup_date || item?.FollowupDate || item?.Deadline || item?.Date)}
+                        {formatFollowupDate(item?.followupDate)}
                       </TableCell>
                     </TableRow>
                   );
@@ -642,7 +690,6 @@ export default function Dashboard() {
           </Grid>
         </Grid>
       ) : null}
-
 
       <UpiPaymentDialog open={showUpiDialog} onClose={() => setShowUpiDialog(false)} />
     </PageContainer>

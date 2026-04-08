@@ -62,9 +62,7 @@ const findCustomerRecord = (list = [], selectedName = '') => {
 
   return (
     list.find((item) => getCustomerName(item).toLowerCase() === target) ||
-    list.find((item) =>
-      getCustomerName(item).toLowerCase().includes(target)
-    ) ||
+    list.find((item) => getCustomerName(item).toLowerCase().includes(target)) ||
     null
   );
 };
@@ -97,13 +95,7 @@ export default function PaymentFollowup() {
 
     const loadCustomers = async () => {
       const normalizeNames = (arr) =>
-        Array.from(
-          new Set(
-            (arr || [])
-              .map((it) => getCustomerName(it))
-              .filter(Boolean)
-          )
-        );
+        Array.from(new Set((arr || []).map((it) => getCustomerName(it)).filter(Boolean)));
 
       try {
         const r1 = await axios.get('/customer/GetCustomerList');
@@ -220,6 +212,10 @@ export default function PaymentFollowup() {
 
     try {
       setSubmitting(true);
+      setIsTransactionSaved(false);
+      setWhatsAppMessage('');
+      setMobileToSend('');
+
       const res = await axios.post('/paymentfollowup/add', {
         Customer,
         Amount: Number(Amount),
