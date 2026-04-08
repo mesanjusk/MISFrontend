@@ -10,7 +10,7 @@ import Sidebar from '../Components/Sidebar';
 import TopNavbar from '../Components/TopNavbar';
 import Footer from '../Components/Footer';
 import FloatingButtons from '../Components/FloatingButtons';
-import RightUtilityRail from '../components/layout/RightUtilityRail';
+
 import { ROUTES } from '../constants/routes';
 
 const DRAWER_WIDTH = 258;
@@ -119,7 +119,7 @@ export default function Layout() {
         <FloatingButtons buttonsList={buttonsList} />
       </Box>
 
-      <RightUtilityRail actions={utilityActions} />
+      
 
       <Fab
         color="primary"
