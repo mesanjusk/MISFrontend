@@ -1,14 +1,7 @@
 import PropTypes from 'prop-types';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Container,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Stack, TextField, Typography, Paper } from '@mui/material';
+import { FullscreenAddFormLayout } from '../ui';
+import { compactCardSx, compactFieldSx } from '../ui/addFormStyles';
 
 export default function SimpleEntityCreateForm({
   title,
@@ -24,56 +17,34 @@ export default function SimpleEntityCreateForm({
   onSecondaryAction,
 }) {
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        py: { xs: 3, md: 6 },
-        background:
-          'linear-gradient(135deg, rgba(220,252,231,0.6) 0%, rgba(236,253,245,0.75) 35%, rgba(240,249,255,0.95) 100%)',
-      }}
+    <FullscreenAddFormLayout
+      onSubmit={onSubmit}
+      onClose={onSecondaryAction}
+      submitLabel={submitLabel}
+      cancelLabel={secondaryActionLabel}
     >
-      <Container maxWidth="sm">
-        <Card sx={{ borderRadius: 4 }}>
-          <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
-            <Stack spacing={2.5} component="form" onSubmit={onSubmit}>
-              <Box>
-                <Typography variant="h5" fontWeight={700} gutterBottom>
-                  {title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {description}
-                </Typography>
-              </Box>
+      <Paper sx={compactCardSx}>
+        <Stack spacing={1.2}>
+          <Typography variant="h6" fontWeight={700}>{title}</Typography>
+          {description ? <Typography variant="caption" color="text.secondary">{description}</Typography> : null}
 
-              {label ? (
-                <TextField
-                  autoFocus
-                  fullWidth
-                  label={label}
-                  value={value}
-                  placeholder={placeholder}
-                  onChange={(event) => onChange(event.target.value)}
-                />
-              ) : null}
+          {label ? (
+            <TextField
+              autoFocus
+              fullWidth
+              size="small"
+              sx={compactFieldSx}
+              label={label}
+              value={value}
+              placeholder={placeholder}
+              onChange={(event) => onChange(event.target.value)}
+            />
+          ) : null}
 
-              {children}
-
-              <Button type="submit" variant="contained" size="large" fullWidth>
-                {submitLabel}
-              </Button>
-
-              {onSecondaryAction ? (
-                <Button type="button" variant="outlined" color="inherit" onClick={onSecondaryAction} fullWidth>
-                  {secondaryActionLabel}
-                </Button>
-              ) : null}
-            </Stack>
-          </CardContent>
-        </Card>
-      </Container>
-    </Box>
+          {children}
+        </Stack>
+      </Paper>
+    </FullscreenAddFormLayout>
   );
 }
 

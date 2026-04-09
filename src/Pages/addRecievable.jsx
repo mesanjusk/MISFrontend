@@ -2,12 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Alert,
-  Box,
   Button,
   Checkbox,
   FormControlLabel,
-  Grid,
   MenuItem,
+  Paper,
   Stack,
   TextField,
   Typography,
@@ -18,11 +17,17 @@ import axios from '../apiClient.js';
 import toast, { Toaster } from 'react-hot-toast';
 import { extractPhoneNumber, normalizeWhatsAppPhone } from '../utils/whatsapp.js';
 import {
+  FullscreenAddFormLayout,
+} from '../components/ui';
+import {
+  compactCardSx,
+  compactFieldSx,
+} from '../components/ui/addFormStyles';
+import {
   DEFAULT_TEMPLATE_LANGUAGE,
   WHATSAPP_TEMPLATES,
   buildOpeningBalanceReceivableParameters,
 } from '../constants/whatsappTemplates';
-import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../components/ui';
 
 export default function AddRecievable() {
   const navigate = useNavigate();
@@ -223,91 +228,93 @@ export default function AddRecievable() {
   return (
     <>
       <Toaster position="top-center" reverseOrder={false} />
-      <PageContainer title="Add Receivable" subtitle="Record opening receivable entries with proof attachment.">
-        <SectionCard>
-          <Box component="form" onSubmit={submit}>
-            <Grid container spacing={1.25}>
-              <Grid item xs={12} md={7}>
-                <FormSection title="Party Selection">
-                  <TextField
-                    label="Search by Customer Name"
-                    value={Customer_name}
-                    onChange={handleInputChange}
-                  />
-                  <TextField
-                    label="Matched Customers"
-                    select
-                    value={CreditCustomer}
-                    onChange={(e) => setCreditCustomer(e.target.value)}
-                  >
-                    <MenuItem value="">Select Customer</MenuItem>
-                    {(filteredOptions.length ? filteredOptions : allCustomerOptions).map((option) => (
-                      <MenuItem key={option.Customer_uuid} value={option.Customer_uuid}>{option.Customer_name}</MenuItem>
-                    ))}
-                  </TextField>
-                  <Button variant="outlined" onClick={addCustomer}>Add Customer</Button>
+      <FullscreenAddFormLayout
+        onSubmit={submit}
+        onClose={closeModal}
+        submitLabel="Submit"
+        cancelLabel="Close"
+      >
+        <Paper sx={compactCardSx}>
+          <Stack spacing={1.2}>
+            <Typography variant="h6" fontWeight={700}>Add Receivable</Typography>
+            <TextField
+              label="Search by Customer Name"
+              value={Customer_name}
+              onChange={handleInputChange}
+              size="small"
+              sx={compactFieldSx}
+            />
+            <TextField
+              label="Matched Customers"
+              select
+              value={CreditCustomer}
+              onChange={(e) => setCreditCustomer(e.target.value)}
+              size="small"
+              sx={compactFieldSx}
+            >
+              <MenuItem value="">Select Customer</MenuItem>
+              {(filteredOptions.length ? filteredOptions : allCustomerOptions).map((option) => (
+                <MenuItem key={option.Customer_uuid} value={option.Customer_uuid}>{option.Customer_name}</MenuItem>
+              ))}
+            </TextField>
+            <Button variant="outlined" onClick={addCustomer}>Add Customer</Button>
 
-                  <TextField
-                    label="Description"
-                    autoComplete="off"
-                    onChange={(e) => setDescription(e.target.value)}
-                    value={Description}
-                  />
-                  <TextField
-                    label="Amount"
-                    autoComplete="off"
-                    onChange={handleAmountChange}
-                    value={Amount}
-                  />
-                  <TextField
-                    type="file"
-                    inputProps={{ accept: 'image/*' }}
-                    onChange={handleFileChange}
-                    helperText="Upload supporting image (optional)"
-                  />
-                  <Stack direction="row" spacing={1}>
-                    <TextField label="Total Debit" value={Total_Debit} InputProps={{ readOnly: true }} />
-                    <TextField label="Total Credit" value={Total_Credit} InputProps={{ readOnly: true }} />
-                  </Stack>
-                </FormSection>
-              </Grid>
+            <TextField
+              label="Description"
+              autoComplete="off"
+              onChange={(e) => setDescription(e.target.value)}
+              value={Description}
+              size="small"
+              sx={compactFieldSx}
+            />
+            <TextField
+              label="Amount"
+              autoComplete="off"
+              onChange={handleAmountChange}
+              value={Amount}
+              size="small"
+              sx={compactFieldSx}
+            />
+            <TextField
+              type="file"
+              size="small"
+              sx={compactFieldSx}
+              inputProps={{ accept: 'image/*' }}
+              onChange={handleFileChange}
+              helperText="Upload supporting image (optional)"
+            />
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+              <TextField label="Total Debit" value={Total_Debit} InputProps={{ readOnly: true }} size="small" sx={compactFieldSx} />
+              <TextField label="Total Credit" value={Total_Credit} InputProps={{ readOnly: true }} size="small" sx={compactFieldSx} />
+            </Stack>
 
-              <Grid item xs={12} md={5}>
-                <FormSection title="Status & actions">
-                  <Alert severity="info" icon={<ReceiptLongRoundedIcon fontSize="inherit" />}>
-                    <Typography variant="caption">
-                      Customer: {selectedCustomer?.Customer_name || 'Not selected'}
-                      <br />
-                      As on: 01-04-2025
-                    </Typography>
-                  </Alert>
+            <Alert severity="info" icon={<ReceiptLongRoundedIcon fontSize="inherit" />}>
+              <Typography variant="caption">
+                Customer: {selectedCustomer?.Customer_name || 'Not selected'}
+                <br />
+                As on: 01-04-2025
+              </Typography>
+            </Alert>
 
-                  <FormControlLabel
-                    control={<Checkbox checked={sendWhatsAppAfterSave} onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)} />}
-                    label="Send WhatsApp after saving"
-                  />
+            <FormControlLabel
+              control={<Checkbox checked={sendWhatsAppAfterSave} onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)} />}
+              label="Send WhatsApp after saving"
+            />
 
-                  {isTransactionSaved && mobileToSend ? (
-                    <Button
-                      type="button"
-                      variant="contained"
-                      startIcon={<SendRoundedIcon />}
-                      onClick={() => sendWhatsApp()}
-                      disabled={isSendingWhatsApp}
-                    >
-                      {isSendingWhatsApp ? 'Sending WhatsApp...' : 'Send WhatsApp Opening Balance'}
-                    </Button>
-                  ) : null}
-                </FormSection>
-              </Grid>
-            </Grid>
-
-            <Box sx={{ mt: 1.5 }}>
-              <ActionButtonGroup primaryLabel="Submit" onCancel={closeModal} cancelLabel="Close" />
-            </Box>
-          </Box>
-        </SectionCard>
-      </PageContainer>
+            {isTransactionSaved && mobileToSend ? (
+              <Button
+                type="button"
+                variant="contained"
+                startIcon={<SendRoundedIcon />}
+                onClick={() => sendWhatsApp()}
+                disabled={isSendingWhatsApp}
+              >
+                {isSendingWhatsApp ? 'Sending WhatsApp...' : 'Send WhatsApp Opening Balance'}
+              </Button>
+            ) : null}
+          </Stack>
+        </Paper>
+      </FullscreenAddFormLayout>
     </>
   );
 }

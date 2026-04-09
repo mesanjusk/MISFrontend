@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box,
   Button,
   Checkbox,
   Dialog,
@@ -11,13 +10,16 @@ import {
   FormControlLabel,
   InputLabel,
   MenuItem,
+  Paper,
   Select,
   Stack,
   TextField,
+  Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import axios from '../apiClient.js';
-import { ActionButtonGroup, PageContainer, SectionCard } from '../components/ui';
+import { FullscreenAddFormLayout } from '../components/ui';
+import { compactCardSx, compactFieldSx } from '../components/ui/addFormStyles';
 
 export default function AddCustomer({ onClose }) {
   const navigate = useNavigate();
@@ -171,10 +173,19 @@ export default function AddCustomer({ onClose }) {
   };
 
   return (
-    <PageContainer title="Add Customer / Party" subtitle="One record can work as customer, vendor, or both.">
-      <SectionCard>
-        <Box component="form" onSubmit={handleSubmit}>
+    <>
+      <FullscreenAddFormLayout
+        onSubmit={handleSubmit}
+        onClose={handleCancel}
+        submitLabel="Save Party"
+        cancelLabel="Close"
+        disableSubmit={!canSubmit}
+      >
+        <Paper sx={compactCardSx}>
           <Stack spacing={1.2}>
+            <Typography variant="h6" fontWeight={700}>Add Customer / Party</Typography>
+            <Typography variant="caption" color="text.secondary">One record can work as customer, vendor, or both.</Typography>
+
             <TextField
               label="Customer / Party Name"
               value={form.Customer_name}
@@ -182,6 +193,8 @@ export default function AddCustomer({ onClose }) {
               required
               error={Boolean(duplicateNameError)}
               helperText={duplicateNameError || ' '}
+              size="small"
+              sx={compactFieldSx}
             />
 
             <TextField
@@ -193,10 +206,12 @@ export default function AddCustomer({ onClose }) {
               }}
               placeholder="Optional 10-digit number"
               helperText="Optional field. Leave blank for office, bank, or expense accounts."
+              size="small"
+              sx={compactFieldSx}
             />
 
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="stretch">
-              <FormControl fullWidth required>
+              <FormControl fullWidth required size="small" sx={compactFieldSx}>
                 <InputLabel id="customer-group-label">Customer Group</InputLabel>
                 <Select
                   labelId="customer-group-label"
@@ -210,18 +225,18 @@ export default function AddCustomer({ onClose }) {
                 </Select>
               </FormControl>
 
-              <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setGroupDialogOpen(true)} sx={{ minWidth: { xs: '100%', sm: 170 }, height: 56 }}>
+              <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setGroupDialogOpen(true)} sx={{ minWidth: { xs: '100%', sm: 150 } }}>
                 Add Group
               </Button>
             </Stack>
 
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <FormControlLabel
-                control={<Checkbox checked={form.PartyRoles.includes('customer')} onChange={() => handleRoleToggle('customer')} />}
+                control={<Checkbox checked={form.PartyRoles.includes('customer')} onChange={() => handleRoleToggle('customer')} size="small" />}
                 label="Use as Customer"
               />
               <FormControlLabel
-                control={<Checkbox checked={form.PartyRoles.includes('vendor')} onChange={() => handleRoleToggle('vendor')} />}
+                control={<Checkbox checked={form.PartyRoles.includes('vendor')} onChange={() => handleRoleToggle('vendor')} size="small" />}
                 label="Use as Vendor"
               />
             </Stack>
@@ -231,9 +246,11 @@ export default function AddCustomer({ onClose }) {
               value={form.Tags.join(', ')}
               onChange={(e) => handleChange('Tags', e.target.value)}
               placeholder="optional, comma separated"
+              size="small"
+              sx={compactFieldSx}
             />
 
-            <FormControl fullWidth>
+            <FormControl fullWidth size="small" sx={compactFieldSx}>
               <InputLabel id="status-label">Status</InputLabel>
               <Select
                 labelId="status-label"
@@ -252,21 +269,24 @@ export default function AddCustomer({ onClose }) {
               value={form.LastInteraction}
               onChange={(e) => handleChange('LastInteraction', e.target.value)}
               InputLabelProps={{ shrink: true }}
+              size="small"
+              sx={compactFieldSx}
             />
-
-            <ActionButtonGroup primaryLabel="Save Party" onCancel={handleCancel} busy={!canSubmit} cancelLabel="Close" />
           </Stack>
-        </Box>
-      </SectionCard>
+        </Paper>
+      </FullscreenAddFormLayout>
 
       <Dialog open={groupDialogOpen} onClose={() => setGroupDialogOpen(false)} fullWidth maxWidth="xs">
         <DialogContent>
           <Stack spacing={1.5} sx={{ pt: 1 }}>
-            <TextField label="New Customer Group" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} autoFocus />
-            <ActionButtonGroup primaryLabel={groupLoading ? 'Saving...' : 'Save Group'} onPrimaryClick={handleAddGroup} onCancel={() => setGroupDialogOpen(false)} busy={groupLoading} cancelLabel="Cancel" />
+            <TextField label="New Customer Group" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} autoFocus size="small" sx={compactFieldSx} />
+            <Stack direction="row" spacing={1}>
+              <Button variant="outlined" fullWidth onClick={() => setGroupDialogOpen(false)}>Cancel</Button>
+              <Button variant="contained" fullWidth onClick={handleAddGroup} disabled={groupLoading}>{groupLoading ? 'Saving...' : 'Save Group'}</Button>
+            </Stack>
           </Stack>
         </DialogContent>
       </Dialog>
-    </PageContainer>
+    </>
   );
 }
