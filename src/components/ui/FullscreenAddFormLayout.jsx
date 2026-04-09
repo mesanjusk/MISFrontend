@@ -33,7 +33,7 @@ export default function FullscreenAddFormLayout({
         inset: 0,
         width: '100vw',
         height: '100vh',
-        zIndex: 2000,
+        zIndex: (theme) => theme.zIndex.modal - 1,
         bgcolor: 'background.default',
         overflowY: 'auto',
         overflowX: 'hidden',
@@ -63,7 +63,7 @@ export default function FullscreenAddFormLayout({
             mt: 1,
             p: 1,
             borderRadius: 2.5,
-            zIndex: 2010,
+            zIndex: (theme) => theme.zIndex.modal,
           }}
         >
           <Stack direction="row" spacing={1}>
