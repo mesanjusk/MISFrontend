@@ -18,12 +18,13 @@ import {
   Box,
   Button,
   Checkbox,
+  Chip,
   Dialog,
   DialogContent,
   FormControlLabel,
-  Grid,
   IconButton,
   MenuItem,
+  Paper,
   Stack,
   TextField,
   ToggleButton,
@@ -31,17 +32,15 @@ import {
   Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import AssignmentRoundedIcon from '@mui/icons-material/AssignmentRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
-import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../components/ui';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 
 const createEmptyItem = () => ({
   Item: '',
   Quantity: 1,
   Rate: 0,
   Amount: 0,
-  Priority: 'Normal',
   Remark: '',
 });
 
@@ -50,12 +49,28 @@ const createEmptyVendorAssignment = () => ({
   vendorName: '',
   workType: '',
   note: '',
-  qty: 0,
-  amount: 0,
+  qty: '',
+  amount: '',
   dueDate: '',
-  paymentStatus: 'pending',
-  status: 'pending',
 });
+
+const compactFieldSx = {
+  '& .MuiOutlinedInput-root': {
+    borderRadius: 2,
+    minHeight: 42,
+  },
+};
+
+const sectionCardSx = {
+  p: 1.25,
+  borderRadius: 2.5,
+  border: '1px solid',
+  borderColor: 'divider',
+  boxShadow: 'none',
+  bgcolor: 'background.paper',
+};
+
+const inputLabelProps = { shrink: true };
 
 export default function AddOrder1({ closeModal }) {
   const navigate = useNavigate();
@@ -112,6 +127,9 @@ export default function AddOrder1({ closeModal }) {
         const all = customerRes.data.result || [];
         setCustomerOptions(all);
         setAccountCustomerOptions(all.filter((item) => item.Customer_group === 'Bank and Account'));
+      } else {
+        setCustomerOptions([]);
+        setAccountCustomerOptions([]);
       }
 
       if (taskRes.data?.success) {
@@ -141,12 +159,10 @@ export default function AddOrder1({ closeModal }) {
     [customerOptions, Customer_name]
   );
 
-  const selectedPaymentMode = useMemo(
-    () => accountCustomerOptions.find((c) => c.Customer_uuid === group) || null,
-    [accountCustomerOptions, group]
+  const stepCandidates = useMemo(
+    () => taskGroups.filter((tg) => tg.Id === 1),
+    [taskGroups]
   );
-
-  const stepCandidates = useMemo(() => taskGroups.filter((tg) => tg.Id === 1), [taskGroups]);
 
   const vendorOptions = useMemo(
     () => customerOptions.filter((customer) => (customer?.Status || 'active') !== 'inactive'),
@@ -154,31 +170,37 @@ export default function AddOrder1({ closeModal }) {
   );
 
   const normalizedItems = useMemo(
-    () => items
-      .map((item) => {
-        const quantity = Number(item.Quantity || 0);
-        const rate = Number(item.Rate || 0);
-        const amount = Number(item.Amount || quantity * rate || 0);
-        return {
-          ...item,
-          Item: String(item.Item || '').trim(),
-          Quantity: quantity,
-          Rate: rate,
-          Amount: amount,
-        };
-      })
-      .filter((item) => item.Item),
+    () =>
+      items
+        .map((item) => {
+          const quantity = Number(item.Quantity || 0);
+          const rate = Number(item.Rate || 0);
+          const amount = Number(item.Amount || quantity * rate || 0);
+
+          return {
+            ...item,
+            Item: String(item.Item || '').trim(),
+            Quantity: quantity,
+            Rate: rate,
+            Amount: amount,
+            Remark: String(item.Remark || '').trim(),
+          };
+        })
+        .filter((item) => item.Item),
     [items]
   );
 
   const normalizedVendorAssignments = useMemo(
-    () => vendorAssignments
-      .map((row) => ({
-        ...row,
-        qty: Number(row.qty || 0),
-        amount: Number(row.amount || 0),
-      }))
-      .filter((row) => row.vendorCustomerUuid && row.vendorName),
+    () =>
+      vendorAssignments
+        .map((row) => ({
+          ...row,
+          workType: String(row.workType || '').trim(),
+          note: String(row.note || '').trim(),
+          qty: Number(row.qty || 0),
+          amount: Number(row.amount || 0),
+        }))
+        .filter((row) => row.vendorCustomerUuid && row.vendorName),
     [vendorAssignments]
   );
 
@@ -189,8 +211,18 @@ export default function AddOrder1({ closeModal }) {
     const hasNote = Boolean(String(Remark || '').trim());
     const hasItems = orderMode === 'items' ? normalizedItems.length > 0 : hasNote;
     const advanceOk = !isAdvanceChecked ? true : Number(Amount) > 0 && Boolean(group);
+
     return hasItems && advanceOk;
-  }, [selectedCustomer, isEnquiryOnly, orderMode, normalizedItems.length, Remark, isAdvanceChecked, Amount, group]);
+  }, [
+    selectedCustomer,
+    isEnquiryOnly,
+    orderMode,
+    normalizedItems.length,
+    Remark,
+    isAdvanceChecked,
+    Amount,
+    group,
+  ]);
 
   const updateItemRow = (index, field, value) => {
     setItems((prev) =>
@@ -207,40 +239,83 @@ export default function AddOrder1({ closeModal }) {
     );
   };
 
+  const addItemRow = () => {
+    setItems((prev) => [...prev, createEmptyItem()]);
+  };
+
+  const removeItemRow = (index) => {
+    setItems((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
+  };
+
   const updateVendorRow = (index, patch) => {
     setVendorAssignments((prev) =>
       prev.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row))
     );
   };
 
+  const addVendorRow = () => {
+    setVendorAssignments((prev) => [...prev, createEmptyVendorAssignment()]);
+  };
+
+  const removeVendorRow = (index) => {
+    setVendorAssignments((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
+  };
+
+  const toggleTaskGroup = (taskGroupUuid) => {
+    setSelectedTaskGroups((prev) =>
+      prev.includes(taskGroupUuid)
+        ? prev.filter((uuid) => uuid !== taskGroupUuid)
+        : [...prev, taskGroupUuid]
+    );
+  };
+
   const sendWhatsApp = async (phone = mobileToSend, customerData = null) => {
-    if (!phone) return toast.error('Customer phone number is required');
+    if (!phone) {
+      toast.error('Customer phone number is required');
+      return;
+    }
+
     setIsSendingWhatsApp(true);
+
     try {
       const customer = customerData || selectedCustomer;
       const customerLabel = customer?.Customer_name || Customer_name || 'Customer';
       const cleanPhone = normalizeWhatsAppPhone(phone);
+
       const payload = {
         to: cleanPhone,
         template_name: WHATSAPP_TEMPLATES.ORDER_CONFIRMATION,
         language: DEFAULT_TEMPLATE_LANGUAGE,
-        components: [{
-          type: 'body',
-          parameters: buildOrderConfirmationParameters({
-            customerName: customerLabel,
-            orderNumber: latestOrderNumber || createdOrder?.Order_Number || createdOrder?.Order_number || '-',
-            date: new Date().toLocaleDateString('en-IN'),
-            amount: String(Number(Amount || 0) || 0),
-            details: Remark || normalizedItems[0]?.Item || 'Order placed',
-          }).map((text) => ({ type: 'text', text })),
-        }],
+        components: [
+          {
+            type: 'body',
+            parameters: buildOrderConfirmationParameters({
+              customerName: customerLabel,
+              orderNumber:
+                latestOrderNumber ||
+                createdOrder?.Order_Number ||
+                createdOrder?.Order_number ||
+                '-',
+              date: new Date().toLocaleDateString('en-IN'),
+              amount: String(Number(Amount || 0) || 0),
+              details: Remark || normalizedItems[0]?.Item || 'Order placed',
+            }).map((text) => ({ type: 'text', text })),
+          },
+        ],
       };
+
       const { data } = await axios.post('/api/whatsapp/send-template', payload);
-      if (!data?.success) return toast.error(data?.error || 'Failed to send WhatsApp template');
+
+      if (!data?.success) {
+        toast.error(data?.error || 'Failed to send WhatsApp template');
+        return;
+      }
+
       await sendAdminAlertText({
         axiosInstance: axios,
         message: `Order alert: ${customerLabel} | Amount: ₹${Number(Amount || 0) || 0} | ${Remark || 'Order placed'}`,
       }).catch(() => null);
+
       toast.success('WhatsApp template sent');
     } catch (error) {
       toast.error(error?.response?.data?.error || 'Failed to send WhatsApp template');
@@ -252,10 +327,12 @@ export default function AddOrder1({ closeModal }) {
   const submit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
+
     setIsSubmitting(true);
 
     try {
       const customer = selectedCustomer;
+
       if (!customer) {
         toast.error('Invalid customer selection');
         return;
@@ -289,9 +366,12 @@ export default function AddOrder1({ closeModal }) {
       }
 
       setCreatedOrder(orderRes.data.result || null);
-      setLatestOrderNumber(orderRes?.data?.result?.Order_Number || orderRes?.data?.result?.Order_number || '');
+      setLatestOrderNumber(
+        orderRes?.data?.result?.Order_Number || orderRes?.data?.result?.Order_number || ''
+      );
 
       const driveFile = orderRes.data?.driveFile;
+
       if (driveFile?.status === 'created') {
         toast.success('Order added and Drive file created');
       } else if (driveFile?.status === 'failed') {
@@ -308,7 +388,7 @@ export default function AddOrder1({ closeModal }) {
       setInvoiceItems(
         orderMode === 'items'
           ? payloadItems
-          : [{ Item: 'Order Note', Quantity: 0, Rate: 0, Amount: 0, Priority: 'Normal', Remark }]
+          : [{ Item: 'Order Note', Quantity: 0, Rate: 0, Amount: 0, Remark }]
       );
 
       const phoneNumber = extractPhoneNumber(customer);
@@ -324,6 +404,7 @@ export default function AddOrder1({ closeModal }) {
 
       if (isAdvanceChecked && Amount && group) {
         const amt = Number(Amount || 0);
+
         if (Number.isNaN(amt) || amt <= 0) {
           toast.error('Enter a valid advance amount');
           return;
@@ -351,7 +432,7 @@ export default function AddOrder1({ closeModal }) {
           if (txnRes.data?.success) {
             setInvoiceItems((prev) => [
               ...prev,
-              { Item: 'Advance', Quantity: 1, Rate: amt, Amount: amt },
+              { Item: 'Advance', Quantity: 1, Rate: amt, Amount: amt, Remark: '' },
             ]);
             toast.success('Advance payment recorded');
           } else {
@@ -388,21 +469,32 @@ export default function AddOrder1({ closeModal }) {
         onSendWhatsApp={() => sendWhatsApp()}
       />
 
-      <PageContainer
-        title={isEnquiryOnly ? 'New Enquiry' : 'New Order'}
-        subtitle="Use one customer master, optional item rows, and multiple vendor assignments in the same order."
+      <Box
+        sx={{
+          minHeight: '100%',
+          bgcolor: 'background.default',
+          p: { xs: 1, sm: 1.5 },
+        }}
       >
-        <SectionCard>
-          <Box component="form" onSubmit={submit}>
-            <Grid container spacing={1.5}>
-              <Grid item xs={12} md={8}>
-                <FormSection
-                  title="Order details"
-                  subtitle="Choose customer, mode, note or items, and assign outside work vendors if needed."
-                >
+        <Box
+          component="form"
+          onSubmit={submit}
+          sx={{
+            width: '100%',
+            maxWidth: 760,
+            mx: 'auto',
+            pb: 10,
+          }}
+        >
+          <Stack spacing={1}>
+            <Paper sx={sectionCardSx}>
+              <Stack spacing={1}>
+                <Stack direction="row" spacing={1}>
                   <ToggleButtonGroup
                     value={orderType}
                     exclusive
+                    size="small"
+                    fullWidth
                     onChange={(_, next) => {
                       if (!next) return;
                       setOrderType(next);
@@ -413,391 +505,528 @@ export default function AddOrder1({ closeModal }) {
                         setSelectedTaskGroups([]);
                       }
                     }}
-                    fullWidth
+                    sx={{
+                      '& .MuiToggleButton-root': {
+                        textTransform: 'none',
+                        borderRadius: '10px !important',
+                        py: 0.8,
+                      },
+                    }}
                   >
                     <ToggleButton value="Order">Order</ToggleButton>
                     <ToggleButton value="Enquiry">Enquiry</ToggleButton>
                   </ToggleButtonGroup>
+                </Stack>
 
-                  {!isEnquiryOnly ? (
-                    <ToggleButtonGroup
-                      value={orderMode}
-                      exclusive
-                      onChange={(_, next) => next && setOrderMode(next)}
-                      fullWidth
-                    >
-                      <ToggleButton value="note">Simple Note</ToggleButton>
-                      <ToggleButton value="items">Detailed Items</ToggleButton>
-                    </ToggleButtonGroup>
-                  ) : null}
-
-                  <Autocomplete
-                    loading={optionsLoading}
-                    options={customerOptions}
-                    value={selectedCustomer}
-                    inputValue={Customer_name}
-                    onInputChange={(_, value) => setCustomer_Name(value || '')}
-                    onChange={(_, value) => setCustomer_Name(value?.Customer_name || '')}
-                    getOptionLabel={(option) => option?.Customer_name || ''}
-                    isOptionEqualToValue={(option, value) => option?.Customer_uuid === value?.Customer_uuid}
-                    renderInput={(params) => (
-                      <TextField {...params} label="Customer / Party" placeholder="Search by name" />
-                    )}
-                  />
-
-                  <Button
-                    type="button"
-                    variant="outlined"
-                    startIcon={<AddIcon />}
-                    onClick={() => setShowCustomerModal(true)}
+                {!isEnquiryOnly ? (
+                  <ToggleButtonGroup
+                    value={orderMode}
+                    exclusive
+                    size="small"
+                    fullWidth
+                    onChange={(_, next) => next && setOrderMode(next)}
+                    sx={{
+                      '& .MuiToggleButton-root': {
+                        textTransform: 'none',
+                        borderRadius: '10px !important',
+                        py: 0.8,
+                      },
+                    }}
                   >
-                    New Customer / Party
-                  </Button>
+                    <ToggleButton value="note">Simple Note</ToggleButton>
+                    <ToggleButton value="items">Detailed Items</ToggleButton>
+                  </ToggleButtonGroup>
+                ) : null}
 
-                  <TextField
-                    label={isEnquiryOnly ? 'Enquiry Note' : 'Order Note'}
-                    value={Remark}
-                    onChange={(e) => setRemark(e.target.value)}
-                    placeholder="Job description, note, size, delivery details, or work instructions"
-                    multiline
-                    minRows={3}
-                  />
+                <Autocomplete
+                  loading={optionsLoading}
+                  options={customerOptions}
+                  value={selectedCustomer}
+                  inputValue={Customer_name}
+                  onInputChange={(_, value) => setCustomer_Name(value || '')}
+                  onChange={(_, value) => setCustomer_Name(value?.Customer_name || '')}
+                  getOptionLabel={(option) => option?.Customer_name || ''}
+                  isOptionEqualToValue={(option, value) =>
+                    option?.Customer_uuid === value?.Customer_uuid
+                  }
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Customer / Party"
+                      placeholder="Search by name"
+                      size="small"
+                      sx={compactFieldSx}
+                    />
+                  )}
+                />
 
-                  {!isEnquiryOnly && orderMode === 'items' ? (
-                    <Stack spacing={1}>
-                      {items.map((item, index) => (
-                        <Grid container spacing={1} key={`item-${index}`} alignItems="center">
-                          <Grid item xs={12} md={3.5}>
-                            <TextField
-                              label="Item"
-                              value={item.Item}
-                              onChange={(e) => updateItemRow(index, 'Item', e.target.value)}
-                              fullWidth
-                            />
-                          </Grid>
-                          <Grid item xs={4} md={1.5}>
-                            <TextField
-                              label="Qty"
-                              type="number"
-                              value={item.Quantity}
-                              onChange={(e) => updateItemRow(index, 'Quantity', e.target.value)}
-                              fullWidth
-                            />
-                          </Grid>
-                          <Grid item xs={4} md={2}>
-                            <TextField
-                              label="Rate"
-                              type="number"
-                              value={item.Rate}
-                              onChange={(e) => updateItemRow(index, 'Rate', e.target.value)}
-                              fullWidth
-                            />
-                          </Grid>
-                          <Grid item xs={4} md={2}>
-                            <TextField
-                              label="Amount"
-                              type="number"
-                              value={item.Amount}
-                              onChange={(e) => updateItemRow(index, 'Amount', e.target.value)}
-                              fullWidth
-                            />
-                          </Grid>
-                          <Grid item xs={10} md={2.5}>
-                            <TextField
-                              label="Remark"
-                              value={item.Remark}
-                              onChange={(e) => updateItemRow(index, 'Remark', e.target.value)}
-                              fullWidth
-                            />
-                          </Grid>
-                          <Grid item xs={2} md={0.5}>
-                            <IconButton
-                              color="error"
-                              onClick={() =>
-                                setItems((prev) =>
-                                  prev.length > 1
-                                    ? prev.filter((_, rowIndex) => rowIndex !== index)
-                                    : prev
-                                )
-                              }
-                            >
-                              <DeleteOutlineRoundedIcon />
-                            </IconButton>
-                          </Grid>
-                        </Grid>
-                      ))}
-                      <Button
-                        type="button"
-                        variant="outlined"
-                        startIcon={<AddIcon />}
-                        onClick={() => setItems((prev) => [...prev, createEmptyItem()])}
-                      >
-                        Add Item Row
-                      </Button>
-                    </Stack>
-                  ) : null}
+                <Button
+                  type="button"
+                  variant="outlined"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={() => setShowCustomerModal(true)}
+                  sx={{ alignSelf: 'flex-start', borderRadius: 2 }}
+                >
+                  New Customer
+                </Button>
 
-                  {!isEnquiryOnly ? (
-                    <>
-                      <TextField
-                        select
-                        SelectProps={{
-                          multiple: true,
-                          renderValue: (selected) =>
-                            stepCandidates
-                              .filter((tg) => selected.includes(tg.Task_group_uuid))
-                              .map((tg) => tg.Task_group_name || tg.Task_group)
-                              .join(', '),
-                        }}
-                        label="Production Steps"
-                        value={selectedTaskGroups}
-                        onChange={(e) => setSelectedTaskGroups(e.target.value)}
-                      >
-                        {stepCandidates.map((tg) => (
-                          <MenuItem key={tg.Task_group_uuid} value={tg.Task_group_uuid}>
-                            {tg.Task_group_name || tg.Task_group}
-                          </MenuItem>
-                        ))}
-                      </TextField>
+                <TextField
+                  label={isEnquiryOnly ? 'Enquiry Note' : 'Order Note'}
+                  value={Remark}
+                  onChange={(e) => setRemark(e.target.value)}
+                  placeholder="Job description, size, delivery details, or work instructions"
+                  multiline
+                  minRows={2.5}
+                  size="small"
+                  fullWidth
+                  sx={compactFieldSx}
+                />
+              </Stack>
+            </Paper>
 
-                      <Alert severity="info">
-                        No separate vendor master is needed. Pick any existing customer/party as a vendor for this order.
-                      </Alert>
+            {!isEnquiryOnly ? (
+              <Paper sx={sectionCardSx}>
+                <Stack spacing={1}>
+                  <Typography variant="body2" fontWeight={700}>
+                    Production Steps
+                  </Typography>
 
-                      <Stack spacing={1}>
-                        {vendorAssignments.map((row, index) => (
-                          <Grid container spacing={1} key={`vendor-${index}`} alignItems="center">
-                            <Grid item xs={12} md={3}>
-                              <Autocomplete
-                                options={vendorOptions}
-                                value={vendorOptions.find((item) => item.Customer_uuid === row.vendorCustomerUuid) || null}
-                                onChange={(_, value) =>
-                                  updateVendorRow(index, {
-                                    vendorCustomerUuid: value?.Customer_uuid || '',
-                                    vendorName: value?.Customer_name || '',
-                                  })
-                                }
-                                getOptionLabel={(option) => option?.Customer_name || ''}
-                                isOptionEqualToValue={(option, value) => option?.Customer_uuid === value?.Customer_uuid}
-                                renderInput={(params) => <TextField {...params} label="Vendor / Party" />}
+                  {stepCandidates.length ? (
+                    <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
+                      {stepCandidates.map((tg) => {
+                        const isSelected = selectedTaskGroups.includes(tg.Task_group_uuid);
+                        return (
+                          <Chip
+                            key={tg.Task_group_uuid}
+                            label={tg.Task_group_name || tg.Task_group}
+                            clickable
+                            color={isSelected ? 'primary' : 'default'}
+                            variant={isSelected ? 'filled' : 'outlined'}
+                            onClick={() => toggleTaskGroup(tg.Task_group_uuid)}
+                            icon={
+                              <Checkbox
+                                size="small"
+                                checked={isSelected}
+                                sx={{ p: 0, ml: 0.5 }}
                               />
-                            </Grid>
-                            <Grid item xs={12} md={2}>
-                              <TextField
-                                label="Work Type"
-                                value={row.workType}
-                                onChange={(e) => updateVendorRow(index, { workType: e.target.value })}
-                                fullWidth
-                              />
-                            </Grid>
-                            <Grid item xs={6} md={1.2}>
-                              <TextField
-                                label="Qty"
-                                type="number"
-                                value={row.qty}
-                                onChange={(e) => updateVendorRow(index, { qty: e.target.value })}
-                                fullWidth
-                              />
-                            </Grid>
-                            <Grid item xs={6} md={1.5}>
-                              <TextField
-                                label="Cost"
-                                type="number"
-                                value={row.amount}
-                                onChange={(e) => updateVendorRow(index, { amount: e.target.value })}
-                                fullWidth
-                              />
-                            </Grid>
-                            <Grid item xs={12} md={2}>
-                              <TextField
-                                label="Due Date"
-                                type="date"
-                                value={row.dueDate}
-                                onChange={(e) => updateVendorRow(index, { dueDate: e.target.value })}
-                                fullWidth
-                                InputLabelProps={{ shrink: true }}
-                              />
-                            </Grid>
-                            <Grid item xs={10} md={2}>
-                              <TextField
-                                label="Note"
-                                value={row.note}
-                                onChange={(e) => updateVendorRow(index, { note: e.target.value })}
-                                fullWidth
-                              />
-                            </Grid>
-                            <Grid item xs={2} md={0.3}>
-                              <IconButton
-                                color="error"
-                                onClick={() =>
-                                  setVendorAssignments((prev) =>
-                                    prev.length > 1
-                                      ? prev.filter((_, rowIndex) => rowIndex !== index)
-                                      : prev
-                                  )
-                                }
-                              >
-                                <DeleteOutlineRoundedIcon />
-                              </IconButton>
-                            </Grid>
-                          </Grid>
-                        ))}
-                        <Button
-                          type="button"
-                          variant="outlined"
-                          startIcon={<AddIcon />}
-                          onClick={() =>
-                            setVendorAssignments((prev) => [...prev, createEmptyVendorAssignment()])
-                          }
-                        >
-                          Add Vendor Assignment
-                        </Button>
-                      </Stack>
-
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={isAdvanceChecked}
-                            onChange={() => {
-                              setIsAdvanceChecked((prev) => !prev);
-                              setAmount('');
-                              setGroup('');
+                            }
+                            sx={{
+                              height: 34,
+                              borderRadius: 2,
+                              '& .MuiChip-label': { px: 0.75 },
                             }}
                           />
-                        }
-                        label="Add advance payment"
-                      />
-
-                      {isAdvanceChecked ? (
-                        <Grid container spacing={1.25}>
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              label="Advance Amount (₹)"
-                              type="number"
-                              value={Amount}
-                              onChange={(e) => setAmount(e.target.value)}
-                              inputProps={{ min: 0, step: '0.01' }}
-                              fullWidth
-                            />
-                          </Grid>
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              select
-                              label="Payment Mode"
-                              value={group}
-                              onChange={(e) => setGroup(e.target.value)}
-                              fullWidth
-                            >
-                              <MenuItem value="">Select payment mode</MenuItem>
-                              {accountCustomerOptions.map((c) => (
-                                <MenuItem key={c.Customer_uuid} value={c.Customer_uuid}>
-                                  {c.Customer_name}
-                                </MenuItem>
-                              ))}
-                            </TextField>
-                          </Grid>
-                        </Grid>
-                      ) : null}
-                    </>
-                  ) : null}
-                </FormSection>
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <FormSection title="Status & actions" subtitle="Compact summary with vendor and amount visibility.">
-                  <Alert severity="info" icon={<AssignmentRoundedIcon fontSize="inherit" />}>
-                    <Typography variant="caption">
-                      Customer: {selectedCustomer?.Customer_name || 'Not selected'}
-                      <br />
-                      Type: {orderType}
-                      {!isEnquiryOnly ? <><br />Mode: {orderMode === 'items' ? 'Detailed Items' : 'Simple Note'}</> : null}
-                      {!isEnquiryOnly ? <><br />Vendor rows: {normalizedVendorAssignments.length}</> : null}
-                      {!isEnquiryOnly ? (
-                        <><br />Vendor cost: ₹{normalizedVendorAssignments.reduce((sum, row) => sum + Number(row.amount || 0), 0)}</>
-                      ) : null}
-                      {!isEnquiryOnly ? <><br />Advance: {isAdvanceChecked ? `₹${Amount || 0}` : 'No'}</> : null}
-                      {!isEnquiryOnly && selectedPaymentMode ? <><br />Payment mode: {selectedPaymentMode.Customer_name}</> : null}
+                        );
+                      })}
+                    </Stack>
+                  ) : (
+                    <Typography variant="caption" color="text.secondary">
+                      No production steps available
                     </Typography>
+                  )}
+                </Stack>
+              </Paper>
+            ) : null}
+
+            {!isEnquiryOnly && orderMode === 'items' ? (
+              <Paper sx={sectionCardSx}>
+                <Stack spacing={1}>
+                  <Stack direction="row" alignItems="center" justifyContent="space-between">
+                    <Typography variant="body2" fontWeight={700}>
+                      Items
+                    </Typography>
+                    <Button
+                      type="button"
+                      variant="outlined"
+                      size="small"
+                      startIcon={<AddIcon />}
+                      onClick={addItemRow}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      Add Item
+                    </Button>
+                  </Stack>
+
+                  {items.map((item, index) => (
+                    <Paper
+                      key={`item-${index}`}
+                      variant="outlined"
+                      sx={{
+                        p: 1,
+                        borderRadius: 2,
+                        boxShadow: 'none',
+                      }}
+                    >
+                      <Stack spacing={1}>
+                        <Stack direction="row" alignItems="center" justifyContent="space-between">
+                          <Typography variant="caption" color="text.secondary">
+                            Item {index + 1}
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => removeItemRow(index)}
+                          >
+                            <DeleteOutlineRoundedIcon fontSize="small" />
+                          </IconButton>
+                        </Stack>
+
+                        <TextField
+                          label="Item"
+                          value={item.Item}
+                          onChange={(e) => updateItemRow(index, 'Item', e.target.value)}
+                          size="small"
+                          fullWidth
+                          sx={compactFieldSx}
+                        />
+
+                        <Stack direction="row" spacing={1}>
+                          <TextField
+                            label="Qty"
+                            type="number"
+                            value={item.Quantity}
+                            onChange={(e) => updateItemRow(index, 'Quantity', e.target.value)}
+                            size="small"
+                            fullWidth
+                            sx={compactFieldSx}
+                          />
+                          <TextField
+                            label="Rate"
+                            type="number"
+                            value={item.Rate}
+                            onChange={(e) => updateItemRow(index, 'Rate', e.target.value)}
+                            size="small"
+                            fullWidth
+                            sx={compactFieldSx}
+                          />
+                          <TextField
+                            label="Amount"
+                            type="number"
+                            value={item.Amount}
+                            onChange={(e) => updateItemRow(index, 'Amount', e.target.value)}
+                            size="small"
+                            fullWidth
+                            sx={compactFieldSx}
+                          />
+                        </Stack>
+
+                        <TextField
+                          label="Remark"
+                          value={item.Remark}
+                          onChange={(e) => updateItemRow(index, 'Remark', e.target.value)}
+                          size="small"
+                          fullWidth
+                          sx={compactFieldSx}
+                        />
+                      </Stack>
+                    </Paper>
+                  ))}
+                </Stack>
+              </Paper>
+            ) : null}
+
+            {!isEnquiryOnly ? (
+              <Paper sx={sectionCardSx}>
+                <Stack spacing={1}>
+                  <Alert
+                    severity="info"
+                    sx={{
+                      py: 0,
+                      borderRadius: 2,
+                      '& .MuiAlert-message': { py: 0.75 },
+                    }}
+                  >
+                    Pick any existing customer / party as vendor.
                   </Alert>
 
-                  {!isEnquiryOnly ? (
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={sendWhatsAppAfterSave}
-                          onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)}
-                        />
-                      }
-                      label="Send WhatsApp after saving"
-                    />
-                  ) : null}
+                  <Stack direction="row" alignItems="center" justifyContent="space-between">
+                    <Typography variant="body2" fontWeight={700}>
+                      Vendor Assignments
+                    </Typography>
+                    <Button
+                      type="button"
+                      variant="outlined"
+                      size="small"
+                      startIcon={<AddIcon />}
+                      onClick={addVendorRow}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      Add Vendor
+                    </Button>
+                  </Stack>
 
-                  {isAdminUser && !isEnquiryOnly ? (
-                    <>
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={isDateChecked}
-                            onChange={() => {
-                              setIsDateChecked((prev) => !prev);
-                              setSaveDate(new Date().toISOString().split('T')[0]);
-                            }}
-                          />
-                        }
-                        label="Save custom advance date"
-                      />
-                      {isDateChecked ? (
+                  {vendorAssignments.map((row, index) => (
+                    <Paper
+                      key={`vendor-${index}`}
+                      variant="outlined"
+                      sx={{
+                        p: 1,
+                        borderRadius: 2,
+                        boxShadow: 'none',
+                      }}
+                    >
+                      <Stack spacing={1}>
+                        <Stack direction="row" alignItems="center" justifyContent="space-between">
+                          <Typography variant="caption" color="text.secondary">
+                            Vendor {index + 1}
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => removeVendorRow(index)}
+                          >
+                            <DeleteOutlineRoundedIcon fontSize="small" />
+                          </IconButton>
+                        </Stack>
+
+                        <Autocomplete
+                          options={vendorOptions}
+                          value={
+                            vendorOptions.find(
+                              (item) => item.Customer_uuid === row.vendorCustomerUuid
+                            ) || null
+                          }
+                          onChange={(_, value) =>
+                            updateVendorRow(index, {
+                              vendorCustomerUuid: value?.Customer_uuid || '',
+                              vendorName: value?.Customer_name || '',
+                            })
+                          }
+                          getOptionLabel={(option) => option?.Customer_name || ''}
+                          isOptionEqualToValue={(option, value) =>
+                            option?.Customer_uuid === value?.Customer_uuid
+                          }
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Vendor / Party"
+                              size="small"
+                              sx={compactFieldSx}
+                            />
+                          )}
+                        />
+
                         <TextField
-                          label="Advance Date"
-                          type="date"
-                          value={saveDate}
-                          onChange={(e) => setSaveDate(e.target.value)}
-                          InputLabelProps={{ shrink: true }}
+                          label="Work Type"
+                          value={row.workType}
+                          onChange={(e) => updateVendorRow(index, { workType: e.target.value })}
+                          size="small"
+                          fullWidth
+                          sx={compactFieldSx}
                         />
-                      ) : null}
-                    </>
-                  ) : null}
 
-                  {optionsLoading ? (
-                    <Stack direction="row" justifyContent="center">
-                      <LoadingSpinner />
+                        <Stack direction="row" spacing={1}>
+                          <TextField
+                            label="Qty"
+                            type="number"
+                            value={row.qty}
+                            onChange={(e) => updateVendorRow(index, { qty: e.target.value })}
+                            size="small"
+                            fullWidth
+                            sx={compactFieldSx}
+                          />
+                          <TextField
+                            label="Cost"
+                            type="number"
+                            value={row.amount}
+                            onChange={(e) => updateVendorRow(index, { amount: e.target.value })}
+                            size="small"
+                            fullWidth
+                            sx={compactFieldSx}
+                          />
+                        </Stack>
+
+                        <TextField
+                          label="Due Date"
+                          type="date"
+                          value={row.dueDate}
+                          onChange={(e) => updateVendorRow(index, { dueDate: e.target.value })}
+                          size="small"
+                          fullWidth
+                          sx={compactFieldSx}
+                          InputLabelProps={inputLabelProps}
+                        />
+
+                        <TextField
+                          label="Note"
+                          value={row.note}
+                          onChange={(e) => updateVendorRow(index, { note: e.target.value })}
+                          size="small"
+                          fullWidth
+                          sx={compactFieldSx}
+                        />
+                      </Stack>
+                    </Paper>
+                  ))}
+                </Stack>
+              </Paper>
+            ) : null}
+
+            {!isEnquiryOnly ? (
+              <Paper sx={sectionCardSx}>
+                <Stack spacing={1}>
+                  <FormControlLabel
+                    sx={{ m: 0 }}
+                    control={
+                      <Checkbox
+                        checked={isAdvanceChecked}
+                        onChange={() => {
+                          setIsAdvanceChecked((prev) => !prev);
+                          setAmount('');
+                          setGroup('');
+                        }}
+                      />
+                    }
+                    label="Add advance payment"
+                  />
+
+                  {isAdvanceChecked ? (
+                    <Stack spacing={1}>
+                      <Stack direction="row" spacing={1}>
+                        <TextField
+                          label="Advance Amount (₹)"
+                          type="number"
+                          value={Amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                          inputProps={{ min: 0, step: '0.01' }}
+                          size="small"
+                          fullWidth
+                          sx={compactFieldSx}
+                        />
+                        <TextField
+                          select
+                          label="Payment Mode"
+                          value={group}
+                          onChange={(e) => setGroup(e.target.value)}
+                          size="small"
+                          fullWidth
+                          sx={compactFieldSx}
+                        >
+                          <MenuItem value="">Select</MenuItem>
+                          {accountCustomerOptions.map((c) => (
+                            <MenuItem key={c.Customer_uuid} value={c.Customer_uuid}>
+                              {c.Customer_name}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Stack>
+
+                      {isAdminUser ? (
+                        <>
+                          <FormControlLabel
+                            sx={{ m: 0 }}
+                            control={
+                              <Checkbox
+                                checked={isDateChecked}
+                                onChange={() => {
+                                  setIsDateChecked((prev) => !prev);
+                                  setSaveDate(new Date().toISOString().split('T')[0]);
+                                }}
+                              />
+                            }
+                            label="Save custom advance date"
+                          />
+
+                          {isDateChecked ? (
+                            <TextField
+                              label="Advance Date"
+                              type="date"
+                              value={saveDate}
+                              onChange={(e) => setSaveDate(e.target.value)}
+                              size="small"
+                              fullWidth
+                              sx={compactFieldSx}
+                              InputLabelProps={inputLabelProps}
+                            />
+                          ) : null}
+                        </>
+                      ) : null}
                     </Stack>
                   ) : null}
 
-                  {isTransactionSaved && !isEnquiryOnly ? (
+                  <FormControlLabel
+                    sx={{ m: 0 }}
+                    control={
+                      <Checkbox
+                        checked={sendWhatsAppAfterSave}
+                        onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)}
+                      />
+                    }
+                    label="Send WhatsApp after save"
+                  />
+
+                  {isTransactionSaved ? (
                     <Button
                       type="button"
                       variant="contained"
+                      size="small"
                       startIcon={<SendRoundedIcon />}
                       onClick={() => sendWhatsApp()}
                       disabled={isSendingWhatsApp}
+                      sx={{ alignSelf: 'flex-start', borderRadius: 2 }}
                     >
-                      {isSendingWhatsApp ? 'Sending WhatsApp...' : 'Send WhatsApp Receipt'}
+                      {isSendingWhatsApp ? 'Sending...' : 'Send WhatsApp Receipt'}
                     </Button>
                   ) : null}
-                </FormSection>
-              </Grid>
-            </Grid>
+                </Stack>
+              </Paper>
+            ) : null}
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1.5 }}>
-              <ActionButtonGroup
-                primaryLabel={
-                  isSubmitting
-                    ? isEnquiryOnly
-                      ? 'Saving Enquiry...'
-                      : 'Submitting...'
-                    : isEnquiryOnly
-                      ? 'Save Enquiry'
-                      : 'Submit Order'
-                }
-                busy={optionsLoading || isSubmitting || !canSubmit}
-                onCancel={closeAddOrder}
-                cancelLabel="Close"
-              />
+            {optionsLoading ? (
+              <Paper sx={sectionCardSx}>
+                <Stack direction="row" justifyContent="center" py={1}>
+                  <LoadingSpinner />
+                </Stack>
+              </Paper>
+            ) : null}
+          </Stack>
+
+          <Paper
+            elevation={6}
+            sx={{
+              position: 'fixed',
+              left: { xs: 8, sm: 16 },
+              right: { xs: 8, sm: 16 },
+              bottom: { xs: 8, sm: 16 },
+              maxWidth: 760,
+              mx: 'auto',
+              p: 1,
+              borderRadius: 2.5,
+              zIndex: 1200,
+            }}
+          >
+            <Stack direction="row" spacing={1}>
+              <Button
+                type="button"
+                variant="outlined"
+                fullWidth
+                startIcon={<CloseRoundedIcon />}
+                onClick={closeAddOrder}
+                sx={{ borderRadius: 2, py: 1 }}
+              >
+                Close
+              </Button>
+
+              <Button
+                type="submit"
+                variant="contained"
+                fullWidth
+                disabled={optionsLoading || isSubmitting || !canSubmit}
+                sx={{ borderRadius: 2, py: 1 }}
+              >
+                {isSubmitting
+                  ? isEnquiryOnly
+                    ? 'Saving Enquiry...'
+                    : 'Submitting...'
+                  : isEnquiryOnly
+                    ? 'Save Enquiry'
+                    : 'Submit Order'}
+              </Button>
             </Stack>
-          </Box>
-        </SectionCard>
-      </PageContainer>
+          </Paper>
+        </Box>
+      </Box>
 
       <Dialog
         open={showCustomerModal}
