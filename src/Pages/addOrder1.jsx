@@ -133,6 +133,19 @@ export default function AddOrder1({ closeModal }) {
     if (!logInUser) navigate('/login');
   }, [location.state, navigate]);
 
+  useEffect(() => {
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, []);
+
   const fetchData = async () => {
     setOptionsLoading(true);
     try {
@@ -170,7 +183,9 @@ export default function AddOrder1({ closeModal }) {
       }
 
       if (itemGroupRes.data?.success) {
-        const groups = (itemGroupRes.data.result || []).map((item) => item.Item_group).filter(Boolean);
+        const groups = (itemGroupRes.data.result || [])
+          .map((item) => item.Item_group)
+          .filter(Boolean);
         setItemGroupOptions(sortStrings(groups));
       } else {
         setItemGroupOptions([]);
@@ -563,9 +578,14 @@ export default function AddOrder1({ closeModal }) {
 
       <Box
         sx={{
-          minHeight: '100vh',
-          width: '100%',
+          position: 'fixed',
+          inset: 0,
+          width: '100vw',
+          height: '100vh',
+          zIndex: 2000,
           bgcolor: 'background.default',
+          overflowY: 'auto',
+          overflowX: 'hidden',
           p: { xs: 1, sm: 1.5 },
         }}
       >
@@ -574,8 +594,7 @@ export default function AddOrder1({ closeModal }) {
           onSubmit={submit}
           sx={{
             width: '100%',
-            maxWidth: '100%',
-            mx: 'auto',
+            minHeight: '100%',
             pb: 10,
           }}
         >
@@ -1094,13 +1113,12 @@ export default function AddOrder1({ closeModal }) {
           <Paper
             elevation={6}
             sx={{
-              position: 'fixed',
-              left: { xs: 8, sm: 16 },
-              right: { xs: 8, sm: 16 },
-              bottom: { xs: 8, sm: 16 },
+              position: 'sticky',
+              bottom: 8,
+              mt: 1,
               p: 1,
               borderRadius: 2.5,
-              zIndex: 1200,
+              zIndex: 5,
             }}
           >
             <Stack direction="row" spacing={1}>
@@ -1143,7 +1161,12 @@ export default function AddOrder1({ closeModal }) {
         }}
         fullWidth
         maxWidth="sm"
-        PaperProps={{ sx: { borderRadius: 3 } }}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            zIndex: 2100,
+          },
+        }}
       >
         <DialogContent sx={{ p: 0 }}>
           <AddCustomer
