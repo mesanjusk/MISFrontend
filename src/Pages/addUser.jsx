@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Alert, Box, Chip, Grid, MenuItem, Stack, TextField } from '@mui/material';
+import { Alert, Chip, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
 import axios from '../apiClient.js';
 import { toast, ToastContainer } from '../Components';
-import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../components/ui';
+import { FullscreenAddFormLayout } from '../components/ui';
+import { compactCardSx, compactFieldSx } from '../components/ui/addFormStyles';
 
 export default function AddUser({ closeModal }) {
   const navigate = useNavigate();
@@ -94,76 +95,83 @@ export default function AddUser({ closeModal }) {
   const passwordColor = passwordStrength === 'Strong' ? 'success' : passwordStrength === 'Medium' ? 'warning' : 'error';
 
   return (
-    <PageContainer title="Add User" subtitle="Create user access with task-group permissions.">
+    <FullscreenAddFormLayout
+      onSubmit={submit}
+      onClose={closeModal || (() => navigate('/home'))}
+      submitLabel="Submit"
+      cancelLabel="Cancel"
+    >
       <ToastContainer position="top-center" />
-      <SectionCard>
-        <Box component="form" onSubmit={submit}>
-          <Grid container spacing={1.25}>
-            <Grid item xs={12} md={6}>
-              <FormSection title="Basic Details">
-                <TextField
-                  label="User Name"
-                  autoComplete="off"
-                  value={User_name}
-                  onChange={(e) => setUser_Name(e.target.value)}
-                  placeholder="User Name"
-                />
-                <TextField
-                  label="Password"
-                  type="password"
-                  autoComplete="new-password"
-                  value={Password}
-                  onChange={handlePasswordChange}
-                  placeholder="Password"
-                />
-                {Password ? <Alert severity={passwordColor} sx={{ py: 0 }}>Strength: {passwordStrength}</Alert> : null}
-                <TextField
-                  label="Mobile Number"
-                  autoComplete="off"
-                  value={Mobile_number}
-                  onChange={(e) => setMobile_Number(e.target.value)}
-                  placeholder="Mobile Number"
-                />
-              </FormSection>
-            </Grid>
+      <Paper sx={compactCardSx}>
+        <Stack spacing={1.2}>
+          <Typography variant="h6" fontWeight={700}>Add User</Typography>
 
-            <Grid item xs={12} md={6}>
-              <FormSection title="Permissions">
-                <TextField
-                  label="User Group"
-                  select
-                  value={User_group}
-                  onChange={(e) => setUser_Group(e.target.value)}
-                >
-                  <MenuItem value="">Select Group</MenuItem>
-                  {groupOptions.map((option) => (
-                    <MenuItem key={option} value={option}>{option}</MenuItem>
-                  ))}
-                </TextField>
+          <TextField
+            label="User Name"
+            autoComplete="off"
+            value={User_name}
+            onChange={(e) => setUser_Name(e.target.value)}
+            placeholder="User Name"
+            size="small"
+            sx={compactFieldSx}
+          />
+          <TextField
+            label="Password"
+            type="password"
+            autoComplete="new-password"
+            value={Password}
+            onChange={handlePasswordChange}
+            placeholder="Password"
+            size="small"
+            sx={compactFieldSx}
+          />
+          {Password ? <Alert severity={passwordColor} sx={{ py: 0 }}>Strength: {passwordStrength}</Alert> : null}
+          <TextField
+            label="Mobile Number"
+            autoComplete="off"
+            value={Mobile_number}
+            onChange={(e) => setMobile_Number(e.target.value)}
+            placeholder="Mobile Number"
+            size="small"
+            sx={compactFieldSx}
+          />
 
-                <TextField
-                  label="Allowed Task Groups"
-                  select
-                  SelectProps={{ multiple: true, value: Allowed_Task_Groups, onChange: handleTaskGroupChange }}
-                  helperText="Select one or multiple task groups"
-                >
-                  {taskGroupOptions.map((task) => (
-                    <MenuItem key={task} value={task}>{task}</MenuItem>
-                  ))}
-                </TextField>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+            <TextField
+              label="User Group"
+              select
+              fullWidth
+              value={User_group}
+              onChange={(e) => setUser_Group(e.target.value)}
+              size="small"
+              sx={compactFieldSx}
+            >
+              <MenuItem value="">Select Group</MenuItem>
+              {groupOptions.map((option) => (
+                <MenuItem key={option} value={option}>{option}</MenuItem>
+              ))}
+            </TextField>
 
-                <Stack direction="row" spacing={0.75} flexWrap="wrap">
-                  {Allowed_Task_Groups.map((task) => <Chip key={task} size="small" label={task} color="primary" variant="outlined" />)}
-                </Stack>
-              </FormSection>
-            </Grid>
-          </Grid>
+            <TextField
+              label="Allowed Task Groups"
+              select
+              fullWidth
+              SelectProps={{ multiple: true, value: Allowed_Task_Groups, onChange: handleTaskGroupChange }}
+              helperText="Select one or multiple task groups"
+              size="small"
+              sx={compactFieldSx}
+            >
+              {taskGroupOptions.map((task) => (
+                <MenuItem key={task} value={task}>{task}</MenuItem>
+              ))}
+            </TextField>
+          </Stack>
 
-          <Box sx={{ mt: 1.5 }}>
-            <ActionButtonGroup primaryLabel="Submit" onCancel={closeModal} cancelLabel="Cancel" />
-          </Box>
-        </Box>
-      </SectionCard>
-    </PageContainer>
+          <Stack direction="row" spacing={0.75} flexWrap="wrap">
+            {Allowed_Task_Groups.map((task) => <Chip key={task} size="small" label={task} color="primary" variant="outlined" />)}
+          </Stack>
+        </Stack>
+      </Paper>
+    </FullscreenAddFormLayout>
   );
 }
