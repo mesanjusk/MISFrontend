@@ -1,10 +1,23 @@
 import PropTypes from 'prop-types';
+import { useLocation } from 'react-router-dom';
 import SpeedDial from '@mui/material/SpeedDial';
 import SpeedDialAction from '@mui/material/SpeedDialAction';
 import SpeedDialIcon from '@mui/material/SpeedDialIcon';
 import AddCircleOutlineRoundedIcon from '@mui/icons-material/AddCircleOutlineRounded';
+import EditNoteRoundedIcon from '@mui/icons-material/EditNoteRounded';
 
 export default function FloatingButtons({ buttonsList = [] }) {
+  const location = useLocation();
+  const hideOnFullscreenAddRoutes = [
+    '/orders/new',
+    '/accounts/receipt',
+    '/accounts/payment',
+    '/tasks/new',
+    '/enquiries/new',
+  ].includes(location.pathname);
+
+  if (hideOnFullscreenAddRoutes) return null;
+
   return (
     <SpeedDial
       ariaLabel="quick actions"
@@ -13,26 +26,39 @@ export default function FloatingButtons({ buttonsList = [] }) {
       FabProps={{
         color: 'primary',
         sx: {
-          boxShadow: (theme) => theme.shadows[8],
+          width: 52,
+          height: 52,
+          boxShadow: (theme) => theme.shadows[9],
           '&:hover': {
-            boxShadow: (theme) => theme.shadows[10],
+            boxShadow: (theme) => theme.shadows[12],
           },
         },
       }}
-      sx={{ position: 'fixed', bottom: { xs: 78, md: 28 }, right: { xs: 16, md: 24 }, zIndex: 1250 }}
+      sx={{
+        position: 'fixed',
+        bottom: { xs: 78, md: 26 },
+        right: { xs: 16, md: 24 },
+        zIndex: 1245,
+      }}
     >
       {buttonsList.map((button) => (
         <SpeedDialAction
           key={button.label}
-          icon={<AddCircleOutlineRoundedIcon fontSize="small" />}
+          icon={<EditNoteRoundedIcon fontSize="small" />}
           tooltipTitle={button.label}
           tooltipOpen
           onClick={button.onClick}
           FabProps={{
             sx: {
+              width: 40,
+              height: 40,
               bgcolor: 'background.paper',
               color: 'text.primary',
-              '&:hover': { bgcolor: 'grey.100' },
+              boxShadow: 4,
+              '&:hover': {
+                bgcolor: 'grey.100',
+                boxShadow: 7,
+              },
             },
           }}
           slotProps={{

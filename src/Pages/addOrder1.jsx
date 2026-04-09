@@ -90,8 +90,10 @@ const sortStrings = (list = []) =>
 const getSuccessfulResultArray = (settledResult) => {
   if (settledResult?.status !== 'fulfilled') return [];
   const payload = settledResult.value?.data;
-  if (!payload?.success) return [];
-  return Array.isArray(payload?.result) ? payload.result : [];
+  if (Array.isArray(payload?.result)) return payload.result;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload)) return payload;
+  return [];
 };
 
 export default function AddOrder1({ closeModal }) {
@@ -101,6 +103,8 @@ export default function AddOrder1({ closeModal }) {
 
   const [entryType, setEntryType] = useState('Order');
   const [Customer_name, setCustomer_Name] = useState('');
+  const [selectedCustomerUuid, setSelectedCustomerUuid] = useState('');
+  const [customerSearchInput, setCustomerSearchInput] = useState('');
   const [Remark, setRemark] = useState('');
   const [customerOptions, setCustomerOptions] = useState([]);
   const [accountCustomerOptions, setAccountCustomerOptions] = useState([]);
@@ -156,16 +160,19 @@ export default function AddOrder1({ closeModal }) {
   const fetchData = async () => {
     setOptionsLoading(true);
     try {
-      const [customerRes, taskRes, itemRes, itemGroupRes] = await Promise.allSettled([
+      const [customerRes, taskRes, itemRes, itemResPaged, itemGroupRes] = await Promise.allSettled([
         axios.get('/customer/GetCustomersList'),
         axios.get('/taskgroup/GetTaskgroupList'),
         axios.get('/item/GetItemList'),
+        axios.get('/item/GetItemList?page=1&limit=1000'),
         axios.get('/itemgroup/GetItemgroupList'),
       ]);
 
       const customers = getSuccessfulResultArray(customerRes);
       const tasks = getSuccessfulResultArray(taskRes);
-      const itemsList = getSuccessfulResultArray(itemRes);
+      const itemsList = getSuccessfulResultArray(itemRes).length
+        ? getSuccessfulResultArray(itemRes)
+        : getSuccessfulResultArray(itemResPaged);
       const itemGroups = getSuccessfulResultArray(itemGroupRes);
 
       setCustomerOptions(sortByName(customers, 'Customer_name'));
@@ -187,13 +194,14 @@ export default function AddOrder1({ closeModal }) {
       if (
         customerRes.status === 'rejected' ||
         taskRes.status === 'rejected' ||
-        itemRes.status === 'rejected' ||
+        (itemRes.status === 'rejected' && itemResPaged.status === 'rejected') ||
         itemGroupRes.status === 'rejected'
       ) {
         console.error('One or more dropdown APIs failed', {
           customerRes,
           taskRes,
           itemRes,
+          itemResPaged,
           itemGroupRes,
         });
       }
@@ -222,9 +230,11 @@ export default function AddOrder1({ closeModal }) {
   const selectedCustomer = useMemo(
     () =>
       sortedCustomerOptions.find(
-        (c) => String(c.Customer_name || '') === String(Customer_name || '')
+        (c) =>
+          (selectedCustomerUuid && String(c.Customer_uuid) === String(selectedCustomerUuid)) ||
+          String(c.Customer_name || '') === String(Customer_name || '')
       ) || null,
-    [sortedCustomerOptions, Customer_name]
+    [sortedCustomerOptions, selectedCustomerUuid, Customer_name]
   );
 
   const stepCandidates = useMemo(
@@ -251,8 +261,27 @@ export default function AddOrder1({ closeModal }) {
   );
 
   const itemNameOptions = useMemo(
-    () => sortStrings(itemOptions.map((item) => item.Item_name).filter(Boolean)),
+    () => sortByName(itemOptions, 'Item_name'),
     [itemOptions]
+  );
+
+  const selectMenuProps = useMemo(
+    () => ({
+      sx: { zIndex: 2305 },
+      PaperProps: {
+        sx: { zIndex: 2305 },
+      },
+    }),
+    []
+  );
+
+  const autocompleteSlotProps = useMemo(
+    () => ({
+      popper: {
+        sx: { zIndex: 2305 },
+      },
+    }),
+    []
   );
 
   const normalizedItems = useMemo(
@@ -636,12 +665,29 @@ export default function AddOrder1({ closeModal }) {
                     loading={optionsLoading}
                     options={sortedCustomerOptions}
                     value={selectedCustomer}
-                    onChange={(_, value) => setCustomer_Name(value?.Customer_name || '')}
+                    inputValue={customerSearchInput}
+                    onInputChange={(_, value, reason) => {
+                      setCustomerSearchInput(value || '');
+                      if (reason === 'input') {
+                        setSelectedCustomerUuid('');
+                        setCustomer_Name(value || '');
+                      }
+                      if (reason === 'clear') {
+                        setSelectedCustomerUuid('');
+                        setCustomer_Name('');
+                      }
+                    }}
+                    onChange={(_, value) => {
+                      setCustomer_Name(value?.Customer_name || '');
+                      setSelectedCustomerUuid(value?.Customer_uuid || '');
+                      setCustomerSearchInput(value?.Customer_name || '');
+                    }}
                     getOptionLabel={(option) => option?.Customer_name || ''}
                     isOptionEqualToValue={(option, value) =>
                       option?.Customer_uuid === value?.Customer_uuid
                     }
-                    sx={{ flex: 1 }}
+                    slotProps={autocompleteSlotProps}
+                    sx={{ flex: 1, minWidth: 0 }}
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -649,8 +695,6 @@ export default function AddOrder1({ closeModal }) {
                         placeholder="Search by name"
                         size="small"
                         sx={compactFieldSx}
-                        value={Customer_name}
-                        onChange={(e) => setCustomer_Name(e.target.value)}
                       />
                     )}
                   />
@@ -663,8 +707,10 @@ export default function AddOrder1({ closeModal }) {
                     sx={{
                       minWidth: 42,
                       width: 42,
+                      flexShrink: 0,
                       borderRadius: 2,
                       px: 0,
+                      zIndex: 2,
                     }}
                   >
                     <AddIcon />
@@ -777,8 +823,18 @@ export default function AddOrder1({ closeModal }) {
                         <Autocomplete
                           options={itemNameOptions}
                           freeSolo
+                          slotProps={autocompleteSlotProps}
                           value={item.Item || ''}
-                          onChange={(_, value) => updateItemRow(index, 'Item', value || '')}
+                          getOptionLabel={(option) =>
+                            typeof option === 'string' ? option : option?.Item_name || ''
+                          }
+                          onChange={(_, value) =>
+                            updateItemRow(
+                              index,
+                              'Item',
+                              typeof value === 'string' ? value : value?.Item_name || ''
+                            )
+                          }
                           inputValue={item.Item || ''}
                           onInputChange={(_, value) => updateItemRow(index, 'Item', value || '')}
                           renderInput={(params) => (
@@ -800,6 +856,7 @@ export default function AddOrder1({ closeModal }) {
                           size="small"
                           fullWidth
                           sx={compactFieldSx}
+                          MenuProps={selectMenuProps}
                         >
                           <MenuItem value="">Select Group</MenuItem>
                           {itemGroupOptions.map((option) => (
@@ -917,6 +974,7 @@ export default function AddOrder1({ closeModal }) {
                           size="small"
                           fullWidth
                           sx={compactFieldSx}
+                          MenuProps={selectMenuProps}
                         >
                           <MenuItem value="">Select</MenuItem>
                           {sortedPaymentModeOptions.map((c) => (
@@ -1015,6 +1073,7 @@ export default function AddOrder1({ closeModal }) {
 
                             <Autocomplete
                               options={vendorOptions}
+                              slotProps={autocompleteSlotProps}
                               value={
                                 vendorOptions.find(
                                   (item) => item.Customer_uuid === row.vendorCustomerUuid
@@ -1129,7 +1188,7 @@ export default function AddOrder1({ closeModal }) {
               mt: 1,
               p: 1,
               borderRadius: 2.5,
-              zIndex: 5,
+              zIndex: 2010,
             }}
           >
             <Stack direction="row" spacing={1}>
@@ -1172,10 +1231,10 @@ export default function AddOrder1({ closeModal }) {
         }}
         fullWidth
         maxWidth="sm"
+        sx={{ zIndex: 2400 }}
         PaperProps={{
           sx: {
             borderRadius: 3,
-            zIndex: 2100,
           },
         }}
       >
