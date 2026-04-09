@@ -38,6 +38,7 @@ import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 
 const createEmptyItem = () => ({
   Item: '',
+  Item_group: '',
   Quantity: 1,
   Rate: 0,
   Amount: 0,
@@ -72,16 +73,32 @@ const sectionCardSx = {
 
 const inputLabelProps = { shrink: true };
 
+const sortByName = (list = [], key = '') =>
+  [...list].sort((a, b) =>
+    String(a?.[key] || '').localeCompare(String(b?.[key] || ''), undefined, {
+      sensitivity: 'base',
+    })
+  );
+
+const sortStrings = (list = []) =>
+  [...list].sort((a, b) =>
+    String(a || '').localeCompare(String(b || ''), undefined, {
+      sensitivity: 'base',
+    })
+  );
+
 export default function AddOrder1({ closeModal }) {
   const navigate = useNavigate();
   const location = useLocation();
   const previewRef = useRef();
 
-  const [entryType, setEntryType] = useState('Order');
+  const [entryType, setEntryType] = useState('Enquiry');
   const [Customer_name, setCustomer_Name] = useState('');
   const [Remark, setRemark] = useState('');
   const [customerOptions, setCustomerOptions] = useState([]);
   const [accountCustomerOptions, setAccountCustomerOptions] = useState([]);
+  const [itemOptions, setItemOptions] = useState([]);
+  const [itemGroupOptions, setItemGroupOptions] = useState([]);
   const [group, setGroup] = useState('');
   const [isAdvanceChecked, setIsAdvanceChecked] = useState(false);
   const [Amount, setAmount] = useState('');
@@ -107,7 +124,6 @@ export default function AddOrder1({ closeModal }) {
 
   const isEnquiryOnly = entryType === 'Enquiry';
   const isDetailedOrder = entryType === 'DetailedOrder';
-  const isStandardOrder = entryType === 'Order';
   const isEmbeddedFlow = typeof closeModal === 'function';
 
   useEffect(() => {
@@ -120,15 +136,22 @@ export default function AddOrder1({ closeModal }) {
   const fetchData = async () => {
     setOptionsLoading(true);
     try {
-      const [customerRes, taskRes] = await Promise.all([
+      const [customerRes, taskRes, itemRes, itemGroupRes] = await Promise.all([
         axios.get('/customer/GetCustomersList'),
         axios.get('/taskgroup/GetTaskgroupList'),
+        axios.get('/item/GetItemList'),
+        axios.get('/itemgroup/GetItemgroupList'),
       ]);
 
       if (customerRes.data?.success) {
         const all = customerRes.data.result || [];
-        setCustomerOptions(all);
-        setAccountCustomerOptions(all.filter((item) => item.Customer_group === 'Bank and Account'));
+        setCustomerOptions(sortByName(all, 'Customer_name'));
+        setAccountCustomerOptions(
+          sortByName(
+            all.filter((item) => item.Customer_group === 'Bank and Account'),
+            'Customer_name'
+          )
+        );
       } else {
         setCustomerOptions([]);
         setAccountCustomerOptions([]);
@@ -138,6 +161,19 @@ export default function AddOrder1({ closeModal }) {
         setTaskGroups(taskRes.data.result || []);
       } else {
         setTaskGroups([]);
+      }
+
+      if (itemRes.data?.success) {
+        setItemOptions(sortByName(itemRes.data.result || [], 'Item_name'));
+      } else {
+        setItemOptions([]);
+      }
+
+      if (itemGroupRes.data?.success) {
+        const groups = (itemGroupRes.data.result || []).map((item) => item.Item_group).filter(Boolean);
+        setItemGroupOptions(sortStrings(groups));
+      } else {
+        setItemGroupOptions([]);
       }
     } catch (error) {
       console.error(error);
@@ -156,19 +192,42 @@ export default function AddOrder1({ closeModal }) {
     else navigate('/home');
   };
 
+  const sortedCustomerOptions = useMemo(
+    () => sortByName(customerOptions, 'Customer_name'),
+    [customerOptions]
+  );
+
   const selectedCustomer = useMemo(
-    () => customerOptions.find((c) => c.Customer_name === Customer_name) || null,
-    [customerOptions, Customer_name]
+    () => sortedCustomerOptions.find((c) => c.Customer_name === Customer_name) || null,
+    [sortedCustomerOptions, Customer_name]
   );
 
   const stepCandidates = useMemo(
-    () => taskGroups.filter((tg) => tg.Id === 1),
+    () =>
+      sortByName(
+        taskGroups.filter((tg) => tg.Id === 1),
+        'Task_group_name'
+      ),
     [taskGroups]
   );
 
+  const sortedPaymentModeOptions = useMemo(
+    () => sortByName(accountCustomerOptions, 'Customer_name'),
+    [accountCustomerOptions]
+  );
+
   const vendorOptions = useMemo(
-    () => customerOptions.filter((customer) => (customer?.Status || 'active') !== 'inactive'),
+    () =>
+      sortByName(
+        customerOptions.filter((customer) => (customer?.Status || 'active') !== 'inactive'),
+        'Customer_name'
+      ),
     [customerOptions]
+  );
+
+  const itemNameOptions = useMemo(
+    () => sortStrings(itemOptions.map((item) => item.Item_name).filter(Boolean)),
+    [itemOptions]
   );
 
   const normalizedItems = useMemo(
@@ -182,6 +241,7 @@ export default function AddOrder1({ closeModal }) {
           return {
             ...item,
             Item: String(item.Item || '').trim(),
+            Item_group: String(item.Item_group || '').trim(),
             Quantity: quantity,
             Rate: rate,
             Amount: amount,
@@ -231,11 +291,23 @@ export default function AddOrder1({ closeModal }) {
       prev.map((row, rowIndex) => {
         if (rowIndex !== index) return row;
         const next = { ...row, [field]: value };
+
+        if (field === 'Item') {
+          const selectedItem = itemOptions.find(
+            (option) => String(option?.Item_name || '') === String(value || '')
+          );
+          if (selectedItem?.Item_group) {
+            next.Item_group = selectedItem.Item_group;
+          }
+        }
+
         const quantity = Number(next.Quantity || 0);
         const rate = Number(next.Rate || 0);
+
         if (field !== 'Amount') {
           next.Amount = quantity * rate;
         }
+
         return next;
       })
     );
@@ -314,10 +386,9 @@ export default function AddOrder1({ closeModal }) {
                 '-',
               date: new Date().toLocaleDateString('en-IN'),
               amount: String(Number(Amount || 0) || 0),
-              details:
-                isDetailedOrder
-                  ? normalizedItems[0]?.Item || 'Detailed order placed'
-                  : Remark || 'Order placed',
+              details: isDetailedOrder
+                ? normalizedItems[0]?.Item || 'Detailed order placed'
+                : Remark || 'Order placed',
             }).map((text) => ({ type: 'text', text })),
           },
         ],
@@ -431,7 +502,7 @@ export default function AddOrder1({ closeModal }) {
           return;
         }
 
-        const payModeCustomer = accountCustomerOptions.find((opt) => opt.Customer_uuid === group);
+        const payModeCustomer = sortedPaymentModeOptions.find((opt) => opt.Customer_uuid === group);
         const journal = [
           { Account_id: group, Type: 'Debit', Amount: amt },
           { Account_id: customer.Customer_uuid, Type: 'Credit', Amount: amt },
@@ -492,7 +563,8 @@ export default function AddOrder1({ closeModal }) {
 
       <Box
         sx={{
-          minHeight: '100%',
+          minHeight: '100vh',
+          width: '100%',
           bgcolor: 'background.default',
           p: { xs: 1, sm: 1.5 },
         }}
@@ -502,7 +574,7 @@ export default function AddOrder1({ closeModal }) {
           onSubmit={submit}
           sx={{
             width: '100%',
-            maxWidth: 760,
+            maxWidth: '100%',
             mx: 'auto',
             pb: 10,
           }}
@@ -525,15 +597,15 @@ export default function AddOrder1({ closeModal }) {
                     },
                   }}
                 >
-                  <ToggleButton value="Order">Order</ToggleButton>
                   <ToggleButton value="Enquiry">Enquiry</ToggleButton>
+                  <ToggleButton value="Order">Order</ToggleButton>
                   <ToggleButton value="DetailedOrder">Detailed Order</ToggleButton>
                 </ToggleButtonGroup>
 
                 <Stack direction="row" spacing={1} alignItems="stretch">
                   <Autocomplete
                     loading={optionsLoading}
-                    options={customerOptions}
+                    options={sortedCustomerOptions}
                     value={selectedCustomer}
                     inputValue={Customer_name}
                     onInputChange={(_, value) => setCustomer_Name(value || '')}
@@ -673,14 +745,39 @@ export default function AddOrder1({ closeModal }) {
                           </IconButton>
                         </Stack>
 
+                        <Autocomplete
+                          options={itemNameOptions}
+                          value={item.Item || null}
+                          onChange={(_, value) => updateItemRow(index, 'Item', value || '')}
+                          inputValue={item.Item || ''}
+                          onInputChange={(_, value) => updateItemRow(index, 'Item', value || '')}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Item Name"
+                              size="small"
+                              fullWidth
+                              sx={compactFieldSx}
+                            />
+                          )}
+                        />
+
                         <TextField
-                          label="Item"
-                          value={item.Item}
-                          onChange={(e) => updateItemRow(index, 'Item', e.target.value)}
+                          select
+                          label="Item Group"
+                          value={item.Item_group}
+                          onChange={(e) => updateItemRow(index, 'Item_group', e.target.value)}
                           size="small"
                           fullWidth
                           sx={compactFieldSx}
-                        />
+                        >
+                          <MenuItem value="">Select Group</MenuItem>
+                          {itemGroupOptions.map((option) => (
+                            <MenuItem key={option} value={option}>
+                              {option}
+                            </MenuItem>
+                          ))}
+                        </TextField>
 
                         <Stack direction="row" spacing={1}>
                           <TextField
@@ -730,13 +827,7 @@ export default function AddOrder1({ closeModal }) {
             {!isEnquiryOnly ? (
               <Paper sx={sectionCardSx}>
                 <Stack spacing={1}>
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    useFlexGap
-                    flexWrap="wrap"
-                    alignItems="center"
-                  >
+                  <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" alignItems="center">
                     <FormControlLabel
                       sx={{ m: 0 }}
                       control={
@@ -798,7 +889,7 @@ export default function AddOrder1({ closeModal }) {
                           sx={compactFieldSx}
                         >
                           <MenuItem value="">Select</MenuItem>
-                          {accountCustomerOptions.map((c) => (
+                          {sortedPaymentModeOptions.map((c) => (
                             <MenuItem key={c.Customer_uuid} value={c.Customer_uuid}>
                               {c.Customer_name}
                             </MenuItem>
@@ -1007,8 +1098,6 @@ export default function AddOrder1({ closeModal }) {
               left: { xs: 8, sm: 16 },
               right: { xs: 8, sm: 16 },
               bottom: { xs: 8, sm: 16 },
-              maxWidth: 760,
-              mx: 'auto',
               p: 1,
               borderRadius: 2.5,
               zIndex: 1200,
