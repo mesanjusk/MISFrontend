@@ -87,12 +87,19 @@ const sortStrings = (list = []) =>
     })
   );
 
+const getSuccessfulResultArray = (settledResult) => {
+  if (settledResult?.status !== 'fulfilled') return [];
+  const payload = settledResult.value?.data;
+  if (!payload?.success) return [];
+  return Array.isArray(payload?.result) ? payload.result : [];
+};
+
 export default function AddOrder1({ closeModal }) {
   const navigate = useNavigate();
   const location = useLocation();
   const previewRef = useRef();
 
-  const [entryType, setEntryType] = useState('Enquiry');
+  const [entryType, setEntryType] = useState('Order');
   const [Customer_name, setCustomer_Name] = useState('');
   const [Remark, setRemark] = useState('');
   const [customerOptions, setCustomerOptions] = useState([]);
@@ -149,46 +156,46 @@ export default function AddOrder1({ closeModal }) {
   const fetchData = async () => {
     setOptionsLoading(true);
     try {
-      const [customerRes, taskRes, itemRes, itemGroupRes] = await Promise.all([
+      const [customerRes, taskRes, itemRes, itemGroupRes] = await Promise.allSettled([
         axios.get('/customer/GetCustomersList'),
         axios.get('/taskgroup/GetTaskgroupList'),
         axios.get('/item/GetItemList'),
         axios.get('/itemgroup/GetItemgroupList'),
       ]);
 
-      if (customerRes.data?.success) {
-        const all = customerRes.data.result || [];
-        setCustomerOptions(sortByName(all, 'Customer_name'));
-        setAccountCustomerOptions(
-          sortByName(
-            all.filter((item) => item.Customer_group === 'Bank and Account'),
-            'Customer_name'
-          )
-        );
-      } else {
-        setCustomerOptions([]);
-        setAccountCustomerOptions([]);
-      }
+      const customers = getSuccessfulResultArray(customerRes);
+      const tasks = getSuccessfulResultArray(taskRes);
+      const itemsList = getSuccessfulResultArray(itemRes);
+      const itemGroups = getSuccessfulResultArray(itemGroupRes);
 
-      if (taskRes.data?.success) {
-        setTaskGroups(taskRes.data.result || []);
-      } else {
-        setTaskGroups([]);
-      }
+      setCustomerOptions(sortByName(customers, 'Customer_name'));
+      setAccountCustomerOptions(
+        sortByName(
+          customers.filter((item) => item.Customer_group === 'Bank and Account'),
+          'Customer_name'
+        )
+      );
+      setTaskGroups(tasks);
+      setItemOptions(sortByName(itemsList, 'Item_name'));
 
-      if (itemRes.data?.success) {
-        setItemOptions(sortByName(itemRes.data.result || [], 'Item_name'));
-      } else {
-        setItemOptions([]);
-      }
+      const groupNames = itemGroups
+        .map((item) => item?.Item_group)
+        .filter(Boolean);
 
-      if (itemGroupRes.data?.success) {
-        const groups = (itemGroupRes.data.result || [])
-          .map((item) => item.Item_group)
-          .filter(Boolean);
-        setItemGroupOptions(sortStrings(groups));
-      } else {
-        setItemGroupOptions([]);
+      setItemGroupOptions(sortStrings(groupNames));
+
+      if (
+        customerRes.status === 'rejected' ||
+        taskRes.status === 'rejected' ||
+        itemRes.status === 'rejected' ||
+        itemGroupRes.status === 'rejected'
+      ) {
+        console.error('One or more dropdown APIs failed', {
+          customerRes,
+          taskRes,
+          itemRes,
+          itemGroupRes,
+        });
       }
     } catch (error) {
       console.error(error);
@@ -213,7 +220,10 @@ export default function AddOrder1({ closeModal }) {
   );
 
   const selectedCustomer = useMemo(
-    () => sortedCustomerOptions.find((c) => c.Customer_name === Customer_name) || null,
+    () =>
+      sortedCustomerOptions.find(
+        (c) => String(c.Customer_name || '') === String(Customer_name || '')
+      ) || null,
     [sortedCustomerOptions, Customer_name]
   );
 
@@ -616,9 +626,9 @@ export default function AddOrder1({ closeModal }) {
                     },
                   }}
                 >
-                  <ToggleButton value="Enquiry">Enquiry</ToggleButton>
                   <ToggleButton value="Order">Order</ToggleButton>
                   <ToggleButton value="DetailedOrder">Detailed Order</ToggleButton>
+                  <ToggleButton value="Enquiry">Enquiry</ToggleButton>
                 </ToggleButtonGroup>
 
                 <Stack direction="row" spacing={1} alignItems="stretch">
@@ -626,8 +636,6 @@ export default function AddOrder1({ closeModal }) {
                     loading={optionsLoading}
                     options={sortedCustomerOptions}
                     value={selectedCustomer}
-                    inputValue={Customer_name}
-                    onInputChange={(_, value) => setCustomer_Name(value || '')}
                     onChange={(_, value) => setCustomer_Name(value?.Customer_name || '')}
                     getOptionLabel={(option) => option?.Customer_name || ''}
                     isOptionEqualToValue={(option, value) =>
@@ -641,6 +649,8 @@ export default function AddOrder1({ closeModal }) {
                         placeholder="Search by name"
                         size="small"
                         sx={compactFieldSx}
+                        value={Customer_name}
+                        onChange={(e) => setCustomer_Name(e.target.value)}
                       />
                     )}
                   />
@@ -766,7 +776,8 @@ export default function AddOrder1({ closeModal }) {
 
                         <Autocomplete
                           options={itemNameOptions}
-                          value={item.Item || null}
+                          freeSolo
+                          value={item.Item || ''}
                           onChange={(_, value) => updateItemRow(index, 'Item', value || '')}
                           inputValue={item.Item || ''}
                           onInputChange={(_, value) => updateItemRow(index, 'Item', value || '')}
