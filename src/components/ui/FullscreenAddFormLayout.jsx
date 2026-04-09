@@ -33,11 +33,11 @@ export default function FullscreenAddFormLayout({
         inset: 0,
         width: '100vw',
         height: '100vh',
-        zIndex: 1250,
+        zIndex: 2000,
         bgcolor: 'background.default',
         overflowY: 'auto',
         overflowX: 'hidden',
-        p: { xs: 1, sm: 1.5 },
+        p: { xs: 1, sm: 2 },
       }}
     >
       <Box
@@ -45,8 +45,10 @@ export default function FullscreenAddFormLayout({
         onSubmit={onSubmit}
         sx={{
           width: '100%',
-          minHeight: '100%',
-          pb: 10,
+          minHeight: '100vh',
+          maxWidth: 560,
+          mx: 'auto',
+          pb: { xs: 10, sm: 11 },
         }}
       >
         <Stack spacing={1}>
@@ -57,11 +59,11 @@ export default function FullscreenAddFormLayout({
           elevation={6}
           sx={{
             position: 'sticky',
-            bottom: 8,
+            bottom: { xs: 8, sm: 10 },
             mt: 1,
             p: 1,
             borderRadius: 2.5,
-            zIndex: 1260,
+            zIndex: 2010,
           }}
         >
           <Stack direction="row" spacing={1}>
