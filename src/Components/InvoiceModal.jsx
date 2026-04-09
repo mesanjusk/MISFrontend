@@ -157,7 +157,10 @@ export default function InvoiceModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
+      style={{ zIndex: 2500 }}
+    >
       <div className="bg-white w-full max-w-3xl p-6 rounded-lg shadow-xl relative">
         <button className="absolute top-2 right-3 text-xl" onClick={onClose}>
           ✕

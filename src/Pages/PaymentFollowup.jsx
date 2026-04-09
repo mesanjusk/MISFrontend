@@ -1,18 +1,15 @@
-/* eslint-disable react/prop-types */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../apiClient.js';
 import toast, { Toaster } from 'react-hot-toast';
 import {
-  Alert,
-  Box,
   Button,
   Checkbox,
   FormControlLabel,
   Stack,
   TextField,
-  Typography,
   Autocomplete,
+  Paper,
 } from '@mui/material';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import {
@@ -25,7 +22,8 @@ import {
   buildFollowupDueTodayParameters,
   buildFollowupFriendlyParameters,
 } from '../constants/whatsappTemplates';
-import { ActionButtonGroup, PageContainer, SectionCard } from '../components/ui';
+import { FullscreenAddFormLayout } from '../components/ui';
+import { compactCardSx, compactFieldSx } from '../components/ui/addFormStyles';
 
 const todayISO = () => new Date().toLocaleDateString('en-CA');
 
@@ -89,6 +87,7 @@ export default function PaymentFollowup() {
 
   const [submitting, setSubmitting] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
+  const inputLabelProps = { shrink: true };
 
   useEffect(() => {
     setIsAdminUser(localStorage.getItem('User_group') === 'Admin User');
@@ -257,101 +256,104 @@ export default function PaymentFollowup() {
   return (
     <>
       <Toaster position="top-center" reverseOrder={false} />
-      <PageContainer title="Payment Follow-up" subtitle="Track pending payment callbacks and send WhatsApp reminders.">
-        <SectionCard>
-          <Box component="form" onSubmit={submit}>
-            <Stack spacing={1}>
-              <Autocomplete
-                options={customerOptions}
-                value={Customer}
-                onChange={(_, value) => setCustomer(value || '')}
-                onInputChange={(_, value) => setCustomer(value || '')}
-                renderInput={(params) => (
-                  <TextField {...params} label="Select Customer" placeholder="Search customer" />
-                )}
-              />
-
-              <TextField
-                label="Amount (₹)"
-                type="number"
-                value={Amount}
-                onChange={(e) => setAmount(e.target.value)}
-                inputProps={{ min: 0, step: '0.01' }}
-              />
-
-              {isAdminUser && (
-                <FormControlLabel
-                  control={<Checkbox checked={isDateChecked} onChange={handleDateCheckboxChange} />}
-                  label="Save Date"
-                />
+      <FullscreenAddFormLayout
+        onSubmit={submit}
+        onClose={closeModal}
+        submitLabel={submitting ? 'Saving...' : 'Submit'}
+        busy={submitting}
+      >
+        <Paper sx={compactCardSx}>
+          <Stack spacing={1}>
+            <Autocomplete
+              options={customerOptions}
+              value={Customer}
+              slotProps={{ popper: { sx: { zIndex: 2305 } } }}
+              onChange={(_, value) => setCustomer(value || '')}
+              onInputChange={(_, value) => setCustomer(value || '')}
+              renderInput={(params) => (
+                <TextField {...params} label="Select Customer" placeholder="Search customer" size="small" sx={compactFieldSx} />
               )}
+            />
 
-              {isAdminUser && isDateChecked ? (
-                <TextField
-                  label="Follow-up Date"
-                  type="date"
-                  value={Deadline}
-                  onChange={(e) => setDeadline(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                />
-              ) : null}
+            <TextField
+              label="Amount (₹)"
+              type="number"
+              value={Amount}
+              onChange={(e) => setAmount(e.target.value)}
+              inputProps={{ min: 0, step: '0.01' }}
+              size="small"
+              sx={compactFieldSx}
+            />
 
-              <TextField
-                label="Short Title / Reason"
-                value={Title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Pending invoice for July"
-              />
-
-              <TextField
-                label="Remark"
-                value={Remark}
-                onChange={(e) => setRemark(e.target.value)}
-                placeholder="Add remark"
-              />
-
+            {isAdminUser && (
               <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={sendWhatsAppAfterSave}
-                    onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)}
-                  />
-                }
-                label="Send WhatsApp after saving"
+                sx={{ m: 0 }}
+                control={<Checkbox checked={isDateChecked} onChange={handleDateCheckboxChange} />}
+                label="Save Date"
               />
+            )}
 
-              {isTransactionSaved ? (
-                <Button
-                  type="button"
-                  variant="outlined"
-                  startIcon={<SendRoundedIcon fontSize="small" />}
-                  onClick={() => sendWhatsApp()}
-                  disabled={isSendingWhatsApp || !mobileToSend}
-                >
-                  {isSendingWhatsApp
-                    ? 'Sending WhatsApp...'
-                    : !mobileToSend
-                    ? 'Mobile number missing'
-                    : 'Send WhatsApp Reminder'}
-                </Button>
-              ) : null}
-
-              <ActionButtonGroup
-                primaryLabel={submitting ? 'Saving...' : 'Submit'}
-                busy={submitting}
-                onCancel={closeModal}
-                cancelLabel="Close"
+            {isAdminUser && isDateChecked ? (
+              <TextField
+                label="Follow-up Date"
+                type="date"
+                value={Deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+                InputLabelProps={inputLabelProps}
+                size="small"
+                sx={compactFieldSx}
               />
+            ) : null}
 
-              <Alert severity="info">
-                <Typography variant="caption">
-                  {customerOptions.length} customer{customerOptions.length === 1 ? '' : 's'} available.
-                </Typography>
-              </Alert>
-            </Stack>
-          </Box>
-        </SectionCard>
-      </PageContainer>
+            <TextField
+              label="Short Title / Reason"
+              value={Title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Pending invoice for July"
+              size="small"
+              sx={compactFieldSx}
+            />
+
+            <TextField
+              label="Remark"
+              value={Remark}
+              onChange={(e) => setRemark(e.target.value)}
+              placeholder="Add remark"
+              size="small"
+              sx={compactFieldSx}
+            />
+
+            <FormControlLabel
+              sx={{ m: 0 }}
+              control={
+                <Checkbox
+                  checked={sendWhatsAppAfterSave}
+                  onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)}
+                />
+              }
+              label="Send WhatsApp after saving"
+            />
+
+            {isTransactionSaved ? (
+              <Button
+                type="button"
+                variant="outlined"
+                size="small"
+                startIcon={<SendRoundedIcon fontSize="small" />}
+                onClick={() => sendWhatsApp()}
+                disabled={isSendingWhatsApp || !mobileToSend}
+                sx={{ borderRadius: 2 }}
+              >
+                {isSendingWhatsApp
+                  ? 'Sending WhatsApp...'
+                  : !mobileToSend
+                  ? 'Mobile number missing'
+                  : 'Send WhatsApp Reminder'}
+              </Button>
+            ) : null}
+          </Stack>
+        </Paper>
+      </FullscreenAddFormLayout>
     </>
   );
 }

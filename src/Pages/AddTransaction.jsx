@@ -4,20 +4,16 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import axios from '../apiClient.js';
 import { ToastContainer, toast } from '../Components';
 import {
-  Alert,
   Autocomplete,
-  Box,
   Button,
   Checkbox,
   FormControlLabel,
-  Grid,
   MenuItem,
   Stack,
   TextField,
-  Typography,
+  Paper,
 } from '@mui/material';
 import PersonAddAlt1RoundedIcon from '@mui/icons-material/PersonAddAlt1Rounded';
-import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import {
   DEFAULT_TEMPLATE_LANGUAGE,
@@ -25,7 +21,8 @@ import {
   buildAmountReceivedParameters,
 } from '../constants/whatsappTemplates';
 import { sendAdminAlertText } from '../utils/whatsapp';
-import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../components/ui';
+import { FullscreenAddFormLayout } from '../components/ui';
+import { compactCardSx, compactFieldSx } from '../components/ui/addFormStyles';
 
 export default function AddTransaction({ editMode, existingData, onClose, onSuccess }) {
   const navigate = useNavigate();
@@ -51,6 +48,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
   const [sendWhatsAppAfterSave, setSendWhatsAppAfterSave] = useState(false);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
   const [isTransactionSaved, setIsTransactionSaved] = useState(false);
+  const inputLabelProps = { shrink: true };
 
   useEffect(() => {
     const userNameFromState = location.state?.id || localStorage.getItem('User_name');
@@ -98,6 +96,17 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
   const selectedPaymentMode = useMemo(
     () => accountCustomerOptions.find((c) => c.Customer_uuid === group) || null,
     [accountCustomerOptions, group]
+  );
+  const selectMenuProps = useMemo(
+    () => ({
+      sx: { zIndex: 2305 },
+      PaperProps: { sx: { zIndex: 2305 } },
+    }),
+    []
+  );
+  const autocompleteSlotProps = useMemo(
+    () => ({ popper: { sx: { zIndex: 2305 } } }),
+    []
   );
 
   const closeModal = () => {
@@ -202,103 +211,88 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
   return (
     <>
       <ToastContainer />
-      <PageContainer title={editMode ? 'Edit Receipt' : 'Add Receipt'} subtitle="Create a receipt entry similar to follow-ups, but for payments received.">
-        <SectionCard>
-          <Box component="form" onSubmit={submit}>
-            <Grid container spacing={1.5}>
-              <Grid item xs={12} md={7}>
-                <FormSection title="Receipt details" subtitle="Select customer, enter amount and choose payment mode.">
-                  <Autocomplete
-                    loading={optionsLoading}
-                    options={allCustomerOptions}
-                    value={selectedCustomer}
-                    inputValue={Customer_name}
-                    onInputChange={(_, value) => {
-                      setCustomer_Name(value || '');
-                      if (!value) setCustomers('');
-                    }}
-                    onChange={(_, value) => {
-                      setCustomers(value?.Customer_uuid || '');
-                      setCustomer_Name(value?.Customer_name || '');
-                    }}
-                    getOptionLabel={(option) => option?.Customer_name || ''}
-                    isOptionEqualToValue={(option, value) => option?.Customer_uuid === value?.Customer_uuid}
-                    renderInput={(params) => <TextField {...params} label="Customer" placeholder="Search by customer name" />}
-                  />
+      <FullscreenAddFormLayout
+        onSubmit={submit}
+        onClose={closeModal}
+        submitLabel={loading ? 'Saving...' : editMode ? 'Update' : 'Submit'}
+        busy={loading}
+        disableSubmit={optionsLoading}
+      >
+        <Paper sx={compactCardSx}>
+          <Stack spacing={1}>
+            <Autocomplete
+              loading={optionsLoading}
+              options={allCustomerOptions}
+              value={selectedCustomer}
+              inputValue={Customer_name}
+              slotProps={autocompleteSlotProps}
+              onInputChange={(_, value) => {
+                setCustomer_Name(value || '');
+                if (!value) setCustomers('');
+              }}
+              onChange={(_, value) => {
+                setCustomers(value?.Customer_uuid || '');
+                setCustomer_Name(value?.Customer_name || '');
+              }}
+              getOptionLabel={(option) => option?.Customer_name || ''}
+              isOptionEqualToValue={(option, value) => option?.Customer_uuid === value?.Customer_uuid}
+              renderInput={(params) => <TextField {...params} label="Customer" placeholder="Search by customer name" size="small" sx={compactFieldSx} />}
+            />
 
-                  <Button type="button" variant="outlined" startIcon={<PersonAddAlt1RoundedIcon />} onClick={() => navigate('/addCustomer')}>
-                    Add Customer
-                  </Button>
+            <Button type="button" variant="outlined" size="small" startIcon={<PersonAddAlt1RoundedIcon />} onClick={() => navigate('/addCustomer')} sx={{ borderRadius: 2 }}>
+              Add Customer
+            </Button>
 
-                  <TextField label="Description" value={Description} onChange={(e) => setDescription(e.target.value)} placeholder="Receipt description" />
+            <TextField label="Description" value={Description} onChange={(e) => setDescription(e.target.value)} placeholder="Receipt description" size="small" sx={compactFieldSx} />
 
-                  <Grid container spacing={1.25}>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        label="Amount (₹)"
-                        type="number"
-                        value={Amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        inputProps={{ min: 0, step: '0.01' }}
-                        fullWidth
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField select label="Payment Mode" value={group} onChange={(e) => setGroup(e.target.value)} fullWidth>
-                        <MenuItem value="">Select payment mode</MenuItem>
-                        {accountCustomerOptions.map((cust) => (
-                          <MenuItem key={cust.Customer_uuid} value={cust.Customer_uuid}>{cust.Customer_name}</MenuItem>
-                        ))}
-                      </TextField>
-                    </Grid>
-                  </Grid>
-
-                  <TextField type="file" inputProps={{ accept: 'image/*' }} onChange={(e) => setSelectedImage(e.target.files?.[0] || null)} helperText="Proof image is optional" />
-                </FormSection>
-              </Grid>
-
-              <Grid item xs={12} md={5}>
-                <FormSection title="Status & actions" subtitle="Compact side panel matching the follow-up style.">
-                  <Alert severity="info" icon={<ReceiptLongRoundedIcon fontSize="inherit" />}>
-                    <Typography variant="caption">
-                      Customer: {selectedCustomer?.Customer_name || 'Not selected'}
-                      <br />
-                      Payment mode: {selectedPaymentMode?.Customer_name || 'Not selected'}
-                    </Typography>
-                  </Alert>
-
-                  <FormControlLabel
-                    control={<Checkbox checked={sendWhatsAppAfterSave} onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)} />}
-                    label="Send WhatsApp after saving"
-                  />
-
-                  {isAdminUser ? (
-                    <>
-                      <FormControlLabel
-                        control={<Checkbox checked={isDateChecked} onChange={() => { setIsDateChecked((prev) => !prev); setTransaction_date(''); }} />}
-                        label="Save custom date"
-                      />
-                      {isDateChecked ? (
-                        <TextField label="Transaction Date" type="date" value={Transaction_date} onChange={(e) => setTransaction_date(e.target.value)} InputLabelProps={{ shrink: true }} />
-                      ) : null}
-                    </>
-                  ) : null}
-
-                  {isTransactionSaved && mobileToSend ? (
-                    <Button type="button" variant="contained" startIcon={<SendRoundedIcon />} onClick={() => sendWhatsApp()} disabled={isSendingWhatsApp}>
-                      {isSendingWhatsApp ? 'Sending WhatsApp...' : 'Send WhatsApp Receipt'}
-                    </Button>
-                  ) : null}
-                </FormSection>
-              </Grid>
-            </Grid>
-
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1.5 }}>
-              <ActionButtonGroup primaryLabel={loading ? 'Saving...' : editMode ? 'Update' : 'Submit'} busy={loading} onCancel={closeModal} cancelLabel="Close" />
+            <Stack direction="row" spacing={1}>
+              <TextField
+                label="Amount (₹)"
+                type="number"
+                value={Amount}
+                onChange={(e) => setAmount(e.target.value)}
+                inputProps={{ min: 0, step: '0.01' }}
+                fullWidth
+                size="small"
+                sx={compactFieldSx}
+              />
+              <TextField select label="Payment Mode" value={group} onChange={(e) => setGroup(e.target.value)} fullWidth size="small" sx={compactFieldSx} MenuProps={selectMenuProps}>
+                <MenuItem value="">Select payment mode</MenuItem>
+                {accountCustomerOptions.map((cust) => (
+                  <MenuItem key={cust.Customer_uuid} value={cust.Customer_uuid}>{cust.Customer_name}</MenuItem>
+                ))}
+              </TextField>
             </Stack>
-          </Box>
-        </SectionCard>
-      </PageContainer>
+
+            <TextField type="file" size="small" inputProps={{ accept: 'image/*' }} onChange={(e) => setSelectedImage(e.target.files?.[0] || null)} helperText="Proof image is optional" sx={compactFieldSx} />
+
+            <FormControlLabel
+              sx={{ m: 0 }}
+              control={<Checkbox checked={sendWhatsAppAfterSave} onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)} />}
+              label="Send WhatsApp after saving"
+            />
+
+            {isAdminUser ? (
+              <>
+                <FormControlLabel
+                  sx={{ m: 0 }}
+                  control={<Checkbox checked={isDateChecked} onChange={() => { setIsDateChecked((prev) => !prev); setTransaction_date(''); }} />}
+                  label="Save custom date"
+                />
+                {isDateChecked ? (
+                  <TextField label="Transaction Date" type="date" value={Transaction_date} onChange={(e) => setTransaction_date(e.target.value)} InputLabelProps={inputLabelProps} size="small" sx={compactFieldSx} />
+                ) : null}
+              </>
+            ) : null}
+
+            {isTransactionSaved && mobileToSend ? (
+              <Button type="button" variant="contained" size="small" startIcon={<SendRoundedIcon />} onClick={() => sendWhatsApp()} disabled={isSendingWhatsApp} sx={{ borderRadius: 2 }}>
+                {isSendingWhatsApp ? 'Sending WhatsApp...' : 'Send WhatsApp Receipt'}
+              </Button>
+            ) : null}
+          </Stack>
+        </Paper>
+      </FullscreenAddFormLayout>
     </>
   );
 }
