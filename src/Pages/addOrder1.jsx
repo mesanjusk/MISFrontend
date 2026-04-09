@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from '../apiClient.js';
 import toast from 'react-hot-toast';
-import AddCustomer from './addCustomer';
 import InvoiceModal from '../Components/InvoiceModal';
 import { LoadingSpinner } from '../Components';
 import { extractPhoneNumber, normalizeWhatsAppPhone, sendAdminAlertText } from '../utils/whatsapp.js';
@@ -19,8 +18,6 @@ import {
   Button,
   Checkbox,
   Chip,
-  Dialog,
-  DialogContent,
   FormControlLabel,
   IconButton,
   MenuItem,
@@ -114,7 +111,6 @@ export default function AddOrder1({ closeModal }) {
   const [isDateChecked, setIsDateChecked] = useState(false);
   const [saveDate, setSaveDate] = useState(new Date().toISOString().split('T')[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [items, setItems] = useState([createEmptyItem()]);
   const [vendorAssignments, setVendorAssignments] = useState([createEmptyVendorAssignment()]);
 
@@ -188,6 +184,19 @@ export default function AddOrder1({ closeModal }) {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (location.state?.refreshCustomers) {
+      fetchData();
+      navigate(location.pathname, {
+        replace: true,
+        state: {
+          ...location.state,
+          refreshCustomers: false,
+        },
+      });
+    }
+  }, [location, navigate]);
 
   const closeAddOrder = () => {
     if (isEmbeddedFlow) closeModal();
@@ -381,6 +390,16 @@ export default function AddOrder1({ closeModal }) {
       setGroup('');
       setSelectedTaskGroups([]);
     }
+  };
+
+  const openAddCustomerPage = () => {
+    navigate('/addCustomer', {
+      state: {
+        from: '/addOrder1',
+        returnTo: location.pathname,
+        refreshCustomers: true,
+      },
+    });
   };
 
   const sendWhatsApp = async (phone = mobileToSend, customerData = null) => {
@@ -668,7 +687,7 @@ export default function AddOrder1({ closeModal }) {
                   type="button"
                   variant="outlined"
                   size="small"
-                  onClick={() => setShowCustomerModal(true)}
+                  onClick={openAddCustomerPage}
                   sx={{
                     minWidth: 42,
                     width: 42,
@@ -1144,31 +1163,6 @@ export default function AddOrder1({ closeModal }) {
           ) : null}
         </Stack>
       </FullscreenAddFormLayout>
-
-      <Dialog
-        open={showCustomerModal}
-        onClose={() => {
-          setShowCustomerModal(false);
-          fetchData();
-        }}
-        fullWidth
-        maxWidth="sm"
-        sx={{ zIndex: 2400 }}
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-          },
-        }}
-      >
-        <DialogContent sx={{ p: 0 }}>
-          <AddCustomer
-            onClose={() => {
-              setShowCustomerModal(false);
-              fetchData();
-            }}
-          />
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
