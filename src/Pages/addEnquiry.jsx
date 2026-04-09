@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, Grid, MenuItem, TextField } from '@mui/material';
+import { Button, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
 import axios from '../apiClient.js';
-import { ActionButtonGroup, FormSection, PageContainer, SectionCard } from '../components/ui';
+import { FullscreenAddFormLayout } from '../components/ui';
+import { compactCardSx, compactFieldSx } from '../components/ui/addFormStyles';
 
 export default function AddCategory() {
   const navigate = useNavigate();
@@ -68,48 +69,44 @@ export default function AddCategory() {
   };
 
   return (
-    <PageContainer title="Add Enquiry" subtitle="Capture a new customer enquiry with compact CRM form flow.">
-      <SectionCard>
-        <Box component="form" onSubmit={submit}>
-          <Grid container spacing={1.25}>
-            <Grid item xs={12} md={6}>
-              <FormSection title="Customer">
-                <TextField
-                  label="Customer Name"
-                  select
-                  value={Customer_name}
-                  onChange={(e) => setCustomer_Name(e.target.value)}
-                >
-                  <MenuItem value="">Select Customer</MenuItem>
-                  {customerOptions.map((option) => (
-                    <MenuItem key={option} value={option}>{option}</MenuItem>
-                  ))}
-                </TextField>
+    <FullscreenAddFormLayout
+      onSubmit={submit}
+      onClose={closeModal}
+      submitLabel="Submit"
+      cancelLabel="Close"
+    >
+      <Paper sx={compactCardSx}>
+        <Stack spacing={1.2}>
+          <Typography variant="h6" fontWeight={700}>Add Enquiry</Typography>
+          <TextField
+            label="Customer Name"
+            select
+            value={Customer_name}
+            onChange={(e) => setCustomer_Name(e.target.value)}
+            size="small"
+            sx={compactFieldSx}
+          >
+            <MenuItem value="">Select Customer</MenuItem>
+            {customerOptions.map((option) => (
+              <MenuItem key={option} value={option}>{option}</MenuItem>
+            ))}
+          </TextField>
 
-                <Button variant="outlined" onClick={addCustomer}>Add Customer</Button>
-              </FormSection>
-            </Grid>
+          <Button variant="outlined" onClick={addCustomer}>Add Customer</Button>
 
-            <Grid item xs={12} md={6}>
-              <FormSection title="Enquiry Details">
-                <TextField
-                  label="Order Details"
-                  autoComplete="off"
-                  onChange={(e) => setRemark(e.target.value)}
-                  value={Remark}
-                  placeholder="Remarks"
-                  multiline
-                  minRows={4}
-                />
-              </FormSection>
-            </Grid>
-          </Grid>
-
-          <Box sx={{ mt: 1.5 }}>
-            <ActionButtonGroup primaryLabel="Submit" onCancel={closeModal} cancelLabel="Close" />
-          </Box>
-        </Box>
-      </SectionCard>
-    </PageContainer>
+          <TextField
+            label="Order Details"
+            autoComplete="off"
+            onChange={(e) => setRemark(e.target.value)}
+            value={Remark}
+            placeholder="Remarks"
+            multiline
+            minRows={3}
+            size="small"
+            sx={compactFieldSx}
+          />
+        </Stack>
+      </Paper>
+    </FullscreenAddFormLayout>
   );
 }
