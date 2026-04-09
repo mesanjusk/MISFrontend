@@ -5,7 +5,6 @@ import AddShoppingCartRoundedIcon from '@mui/icons-material/AddShoppingCartRound
 import PersonAddRoundedIcon from '@mui/icons-material/PersonAddRounded';
 import Inventory2RoundedIcon from '@mui/icons-material/Inventory2Rounded';
 import GroupRoundedIcon from '@mui/icons-material/GroupRounded';
-import RequestQuoteRoundedIcon from '@mui/icons-material/RequestQuoteRounded';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import PaymentsRoundedIcon from '@mui/icons-material/PaymentsRounded';
 import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';

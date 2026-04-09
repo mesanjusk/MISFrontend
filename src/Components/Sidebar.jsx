@@ -20,7 +20,7 @@ import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import { useAuth } from '../context/AuthContext';
-import { SIDEBAR_GROUPS } from '../constants/sidebarMenu';
+import { SIDEBAR_GROUPS } from '../constants/sidebarMenu.jsx';
 
 const DRAWER_WIDTH = 286;
 const DRAWER_COLLAPSED = 72;
