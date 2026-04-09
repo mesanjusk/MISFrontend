@@ -77,6 +77,7 @@ export default function AddOrder1({ closeModal }) {
   const location = useLocation();
   const previewRef = useRef();
 
+  const [entryType, setEntryType] = useState('Order');
   const [Customer_name, setCustomer_Name] = useState('');
   const [Remark, setRemark] = useState('');
   const [customerOptions, setCustomerOptions] = useState([]);
@@ -88,6 +89,7 @@ export default function AddOrder1({ closeModal }) {
   const [selectedTaskGroups, setSelectedTaskGroups] = useState([]);
   const [mobileToSend, setMobileToSend] = useState('');
   const [sendWhatsAppAfterSave, setSendWhatsAppAfterSave] = useState(false);
+  const [isVendorChecked, setIsVendorChecked] = useState(false);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
   const [isTransactionSaved, setIsTransactionSaved] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -100,12 +102,12 @@ export default function AddOrder1({ closeModal }) {
   const [saveDate, setSaveDate] = useState(new Date().toISOString().split('T')[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
-  const [orderType, setOrderType] = useState('Order');
-  const [orderMode, setOrderMode] = useState('note');
   const [items, setItems] = useState([createEmptyItem()]);
   const [vendorAssignments, setVendorAssignments] = useState([createEmptyVendorAssignment()]);
 
-  const isEnquiryOnly = orderType === 'Enquiry';
+  const isEnquiryOnly = entryType === 'Enquiry';
+  const isDetailedOrder = entryType === 'DetailedOrder';
+  const isStandardOrder = entryType === 'Order';
   const isEmbeddedFlow = typeof closeModal === 'function';
 
   useEffect(() => {
@@ -209,14 +211,14 @@ export default function AddOrder1({ closeModal }) {
     if (isEnquiryOnly) return true;
 
     const hasNote = Boolean(String(Remark || '').trim());
-    const hasItems = orderMode === 'items' ? normalizedItems.length > 0 : hasNote;
+    const hasItems = isDetailedOrder ? normalizedItems.length > 0 : hasNote;
     const advanceOk = !isAdvanceChecked ? true : Number(Amount) > 0 && Boolean(group);
 
     return hasItems && advanceOk;
   }, [
     selectedCustomer,
     isEnquiryOnly,
-    orderMode,
+    isDetailedOrder,
     normalizedItems.length,
     Remark,
     isAdvanceChecked,
@@ -269,6 +271,20 @@ export default function AddOrder1({ closeModal }) {
     );
   };
 
+  const handleEntryTypeChange = (_, next) => {
+    if (!next) return;
+    setEntryType(next);
+
+    if (next === 'Enquiry') {
+      setIsAdvanceChecked(false);
+      setSendWhatsAppAfterSave(false);
+      setIsVendorChecked(false);
+      setAmount('');
+      setGroup('');
+      setSelectedTaskGroups([]);
+    }
+  };
+
   const sendWhatsApp = async (phone = mobileToSend, customerData = null) => {
     if (!phone) {
       toast.error('Customer phone number is required');
@@ -298,7 +314,10 @@ export default function AddOrder1({ closeModal }) {
                 '-',
               date: new Date().toLocaleDateString('en-IN'),
               amount: String(Number(Amount || 0) || 0),
-              details: Remark || normalizedItems[0]?.Item || 'Order placed',
+              details:
+                isDetailedOrder
+                  ? normalizedItems[0]?.Item || 'Detailed order placed'
+                  : Remark || 'Order placed',
             }).map((text) => ({ type: 'text', text })),
           },
         ],
@@ -313,7 +332,9 @@ export default function AddOrder1({ closeModal }) {
 
       await sendAdminAlertText({
         axiosInstance: axios,
-        message: `Order alert: ${customerLabel} | Amount: ₹${Number(Amount || 0) || 0} | ${Remark || 'Order placed'}`,
+        message: `Order alert: ${customerLabel} | Amount: ₹${Number(Amount || 0) || 0} | ${
+          isDetailedOrder ? normalizedItems[0]?.Item || 'Detailed order placed' : Remark || 'Order placed'
+        }`,
       }).catch(() => null);
 
       toast.success('WhatsApp template sent');
@@ -347,13 +368,13 @@ export default function AddOrder1({ closeModal }) {
         };
       });
 
-      const payloadItems = orderMode === 'items' ? normalizedItems : [];
+      const payloadItems = isDetailedOrder ? normalizedItems : [];
 
       const orderRes = await axios.post('/order/addOrder', {
         Customer_uuid: customer.Customer_uuid,
-        orderMode,
-        orderNote: Remark,
-        vendorAssignments: normalizedVendorAssignments,
+        orderMode: isDetailedOrder ? 'items' : 'note',
+        orderNote: isDetailedOrder ? '' : Remark,
+        vendorAssignments: isVendorChecked ? normalizedVendorAssignments : [],
         Steps: steps,
         Items: payloadItems,
         Type: isEnquiryOnly ? 'Enquiry' : 'Order',
@@ -386,7 +407,7 @@ export default function AddOrder1({ closeModal }) {
       }
 
       setInvoiceItems(
-        orderMode === 'items'
+        isDetailedOrder
           ? payloadItems
           : [{ Item: 'Order Note', Quantity: 0, Rate: 0, Amount: 0, Remark }]
       );
@@ -489,99 +510,79 @@ export default function AddOrder1({ closeModal }) {
           <Stack spacing={1}>
             <Paper sx={sectionCardSx}>
               <Stack spacing={1}>
-                <Stack direction="row" spacing={1}>
-                  <ToggleButtonGroup
-                    value={orderType}
-                    exclusive
-                    size="small"
-                    fullWidth
-                    onChange={(_, next) => {
-                      if (!next) return;
-                      setOrderType(next);
-                      if (next === 'Enquiry') {
-                        setIsAdvanceChecked(false);
-                        setAmount('');
-                        setGroup('');
-                        setSelectedTaskGroups([]);
-                      }
-                    }}
-                    sx={{
-                      '& .MuiToggleButton-root': {
-                        textTransform: 'none',
-                        borderRadius: '10px !important',
-                        py: 0.8,
-                      },
-                    }}
-                  >
-                    <ToggleButton value="Order">Order</ToggleButton>
-                    <ToggleButton value="Enquiry">Enquiry</ToggleButton>
-                  </ToggleButtonGroup>
-                </Stack>
-
-                {!isEnquiryOnly ? (
-                  <ToggleButtonGroup
-                    value={orderMode}
-                    exclusive
-                    size="small"
-                    fullWidth
-                    onChange={(_, next) => next && setOrderMode(next)}
-                    sx={{
-                      '& .MuiToggleButton-root': {
-                        textTransform: 'none',
-                        borderRadius: '10px !important',
-                        py: 0.8,
-                      },
-                    }}
-                  >
-                    <ToggleButton value="note">Simple Note</ToggleButton>
-                    <ToggleButton value="items">Detailed Items</ToggleButton>
-                  </ToggleButtonGroup>
-                ) : null}
-
-                <Autocomplete
-                  loading={optionsLoading}
-                  options={customerOptions}
-                  value={selectedCustomer}
-                  inputValue={Customer_name}
-                  onInputChange={(_, value) => setCustomer_Name(value || '')}
-                  onChange={(_, value) => setCustomer_Name(value?.Customer_name || '')}
-                  getOptionLabel={(option) => option?.Customer_name || ''}
-                  isOptionEqualToValue={(option, value) =>
-                    option?.Customer_uuid === value?.Customer_uuid
-                  }
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Customer / Party"
-                      placeholder="Search by name"
-                      size="small"
-                      sx={compactFieldSx}
-                    />
-                  )}
-                />
-
-                <Button
-                  type="button"
-                  variant="outlined"
-                  size="small"
-                  startIcon={<AddIcon />}
-                  onClick={() => setShowCustomerModal(true)}
-                  sx={{ alignSelf: 'flex-start', borderRadius: 2 }}
-                >
-                  New Customer
-                </Button>
-
-                <TextField
-                  label={isEnquiryOnly ? 'Enquiry Note' : 'Order Note'}
-                  value={Remark}
-                  onChange={(e) => setRemark(e.target.value)}
-                  placeholder="Job description, size, delivery details, or work instructions"
-                  multiline
-                  minRows={2.5}
+                <ToggleButtonGroup
+                  value={entryType}
+                  exclusive
                   size="small"
                   fullWidth
-                  sx={compactFieldSx}
-                />
+                  onChange={handleEntryTypeChange}
+                  sx={{
+                    '& .MuiToggleButton-root': {
+                      textTransform: 'none',
+                      borderRadius: '10px !important',
+                      py: 0.8,
+                      fontSize: { xs: '0.74rem', sm: '0.82rem' },
+                    },
+                  }}
+                >
+                  <ToggleButton value="Order">Order</ToggleButton>
+                  <ToggleButton value="Enquiry">Enquiry</ToggleButton>
+                  <ToggleButton value="DetailedOrder">Detailed Order</ToggleButton>
+                </ToggleButtonGroup>
+
+                <Stack direction="row" spacing={1} alignItems="stretch">
+                  <Autocomplete
+                    loading={optionsLoading}
+                    options={customerOptions}
+                    value={selectedCustomer}
+                    inputValue={Customer_name}
+                    onInputChange={(_, value) => setCustomer_Name(value || '')}
+                    onChange={(_, value) => setCustomer_Name(value?.Customer_name || '')}
+                    getOptionLabel={(option) => option?.Customer_name || ''}
+                    isOptionEqualToValue={(option, value) =>
+                      option?.Customer_uuid === value?.Customer_uuid
+                    }
+                    sx={{ flex: 1 }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Customer / Party"
+                        placeholder="Search by name"
+                        size="small"
+                        sx={compactFieldSx}
+                      />
+                    )}
+                  />
+
+                  <Button
+                    type="button"
+                    variant="outlined"
+                    size="small"
+                    onClick={() => setShowCustomerModal(true)}
+                    sx={{
+                      minWidth: 42,
+                      width: 42,
+                      borderRadius: 2,
+                      px: 0,
+                    }}
+                  >
+                    <AddIcon />
+                  </Button>
+                </Stack>
+
+                {!isDetailedOrder ? (
+                  <TextField
+                    label={isEnquiryOnly ? 'Enquiry Note' : 'Order Note'}
+                    value={Remark}
+                    onChange={(e) => setRemark(e.target.value)}
+                    placeholder="Job description, size, delivery details, or work instructions"
+                    multiline
+                    minRows={2.5}
+                    size="small"
+                    fullWidth
+                    sx={compactFieldSx}
+                  />
+                ) : null}
               </Stack>
             </Paper>
 
@@ -629,12 +630,12 @@ export default function AddOrder1({ closeModal }) {
               </Paper>
             ) : null}
 
-            {!isEnquiryOnly && orderMode === 'items' ? (
+            {isDetailedOrder ? (
               <Paper sx={sectionCardSx}>
                 <Stack spacing={1}>
                   <Stack direction="row" alignItems="center" justifyContent="space-between">
                     <Typography variant="body2" fontWeight={700}>
-                      Items
+                      Detailed Items
                     </Typography>
                     <Button
                       type="button"
@@ -729,157 +730,50 @@ export default function AddOrder1({ closeModal }) {
             {!isEnquiryOnly ? (
               <Paper sx={sectionCardSx}>
                 <Stack spacing={1}>
-                  <Alert
-                    severity="info"
-                    sx={{
-                      py: 0,
-                      borderRadius: 2,
-                      '& .MuiAlert-message': { py: 0.75 },
-                    }}
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    useFlexGap
+                    flexWrap="wrap"
+                    alignItems="center"
                   >
-                    Pick any existing customer / party as vendor.
-                  </Alert>
+                    <FormControlLabel
+                      sx={{ m: 0 }}
+                      control={
+                        <Checkbox
+                          checked={isAdvanceChecked}
+                          onChange={() => {
+                            setIsAdvanceChecked((prev) => !prev);
+                            setAmount('');
+                            setGroup('');
+                          }}
+                        />
+                      }
+                      label="Advance"
+                    />
 
-                  <Stack direction="row" alignItems="center" justifyContent="space-between">
-                    <Typography variant="body2" fontWeight={700}>
-                      Vendor Assignments
-                    </Typography>
-                    <Button
-                      type="button"
-                      variant="outlined"
-                      size="small"
-                      startIcon={<AddIcon />}
-                      onClick={addVendorRow}
-                      sx={{ borderRadius: 2 }}
-                    >
-                      Add Vendor
-                    </Button>
+                    <FormControlLabel
+                      sx={{ m: 0 }}
+                      control={
+                        <Checkbox
+                          checked={sendWhatsAppAfterSave}
+                          onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)}
+                        />
+                      }
+                      label="Send WhatsApp"
+                    />
+
+                    <FormControlLabel
+                      sx={{ m: 0 }}
+                      control={
+                        <Checkbox
+                          checked={isVendorChecked}
+                          onChange={(e) => setIsVendorChecked(e.target.checked)}
+                        />
+                      }
+                      label="Vendor"
+                    />
                   </Stack>
-
-                  {vendorAssignments.map((row, index) => (
-                    <Paper
-                      key={`vendor-${index}`}
-                      variant="outlined"
-                      sx={{
-                        p: 1,
-                        borderRadius: 2,
-                        boxShadow: 'none',
-                      }}
-                    >
-                      <Stack spacing={1}>
-                        <Stack direction="row" alignItems="center" justifyContent="space-between">
-                          <Typography variant="caption" color="text.secondary">
-                            Vendor {index + 1}
-                          </Typography>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => removeVendorRow(index)}
-                          >
-                            <DeleteOutlineRoundedIcon fontSize="small" />
-                          </IconButton>
-                        </Stack>
-
-                        <Autocomplete
-                          options={vendorOptions}
-                          value={
-                            vendorOptions.find(
-                              (item) => item.Customer_uuid === row.vendorCustomerUuid
-                            ) || null
-                          }
-                          onChange={(_, value) =>
-                            updateVendorRow(index, {
-                              vendorCustomerUuid: value?.Customer_uuid || '',
-                              vendorName: value?.Customer_name || '',
-                            })
-                          }
-                          getOptionLabel={(option) => option?.Customer_name || ''}
-                          isOptionEqualToValue={(option, value) =>
-                            option?.Customer_uuid === value?.Customer_uuid
-                          }
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              label="Vendor / Party"
-                              size="small"
-                              sx={compactFieldSx}
-                            />
-                          )}
-                        />
-
-                        <TextField
-                          label="Work Type"
-                          value={row.workType}
-                          onChange={(e) => updateVendorRow(index, { workType: e.target.value })}
-                          size="small"
-                          fullWidth
-                          sx={compactFieldSx}
-                        />
-
-                        <Stack direction="row" spacing={1}>
-                          <TextField
-                            label="Qty"
-                            type="number"
-                            value={row.qty}
-                            onChange={(e) => updateVendorRow(index, { qty: e.target.value })}
-                            size="small"
-                            fullWidth
-                            sx={compactFieldSx}
-                          />
-                          <TextField
-                            label="Cost"
-                            type="number"
-                            value={row.amount}
-                            onChange={(e) => updateVendorRow(index, { amount: e.target.value })}
-                            size="small"
-                            fullWidth
-                            sx={compactFieldSx}
-                          />
-                        </Stack>
-
-                        <TextField
-                          label="Due Date"
-                          type="date"
-                          value={row.dueDate}
-                          onChange={(e) => updateVendorRow(index, { dueDate: e.target.value })}
-                          size="small"
-                          fullWidth
-                          sx={compactFieldSx}
-                          InputLabelProps={inputLabelProps}
-                        />
-
-                        <TextField
-                          label="Note"
-                          value={row.note}
-                          onChange={(e) => updateVendorRow(index, { note: e.target.value })}
-                          size="small"
-                          fullWidth
-                          sx={compactFieldSx}
-                        />
-                      </Stack>
-                    </Paper>
-                  ))}
-                </Stack>
-              </Paper>
-            ) : null}
-
-            {!isEnquiryOnly ? (
-              <Paper sx={sectionCardSx}>
-                <Stack spacing={1}>
-                  <FormControlLabel
-                    sx={{ m: 0 }}
-                    control={
-                      <Checkbox
-                        checked={isAdvanceChecked}
-                        onChange={() => {
-                          setIsAdvanceChecked((prev) => !prev);
-                          setAmount('');
-                          setGroup('');
-                        }}
-                      />
-                    }
-                    label="Add advance payment"
-                  />
 
                   {isAdvanceChecked ? (
                     <Stack spacing={1}>
@@ -945,16 +839,140 @@ export default function AddOrder1({ closeModal }) {
                     </Stack>
                   ) : null}
 
-                  <FormControlLabel
-                    sx={{ m: 0 }}
-                    control={
-                      <Checkbox
-                        checked={sendWhatsAppAfterSave}
-                        onChange={(e) => setSendWhatsAppAfterSave(e.target.checked)}
-                      />
-                    }
-                    label="Send WhatsApp after save"
-                  />
+                  {isVendorChecked ? (
+                    <Stack spacing={1}>
+                      <Alert
+                        severity="info"
+                        sx={{
+                          py: 0,
+                          borderRadius: 2,
+                          '& .MuiAlert-message': { py: 0.75 },
+                        }}
+                      >
+                        Pick any existing customer / party as vendor.
+                      </Alert>
+
+                      <Stack direction="row" alignItems="center" justifyContent="space-between">
+                        <Typography variant="body2" fontWeight={700}>
+                          Vendor Details
+                        </Typography>
+                        <Button
+                          type="button"
+                          variant="outlined"
+                          size="small"
+                          startIcon={<AddIcon />}
+                          onClick={addVendorRow}
+                          sx={{ borderRadius: 2 }}
+                        >
+                          Add Vendor
+                        </Button>
+                      </Stack>
+
+                      {vendorAssignments.map((row, index) => (
+                        <Paper
+                          key={`vendor-${index}`}
+                          variant="outlined"
+                          sx={{
+                            p: 1,
+                            borderRadius: 2,
+                            boxShadow: 'none',
+                          }}
+                        >
+                          <Stack spacing={1}>
+                            <Stack direction="row" alignItems="center" justifyContent="space-between">
+                              <Typography variant="caption" color="text.secondary">
+                                Vendor {index + 1}
+                              </Typography>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => removeVendorRow(index)}
+                              >
+                                <DeleteOutlineRoundedIcon fontSize="small" />
+                              </IconButton>
+                            </Stack>
+
+                            <Autocomplete
+                              options={vendorOptions}
+                              value={
+                                vendorOptions.find(
+                                  (item) => item.Customer_uuid === row.vendorCustomerUuid
+                                ) || null
+                              }
+                              onChange={(_, value) =>
+                                updateVendorRow(index, {
+                                  vendorCustomerUuid: value?.Customer_uuid || '',
+                                  vendorName: value?.Customer_name || '',
+                                })
+                              }
+                              getOptionLabel={(option) => option?.Customer_name || ''}
+                              isOptionEqualToValue={(option, value) =>
+                                option?.Customer_uuid === value?.Customer_uuid
+                              }
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Vendor / Party"
+                                  size="small"
+                                  sx={compactFieldSx}
+                                />
+                              )}
+                            />
+
+                            <TextField
+                              label="Work Type"
+                              value={row.workType}
+                              onChange={(e) => updateVendorRow(index, { workType: e.target.value })}
+                              size="small"
+                              fullWidth
+                              sx={compactFieldSx}
+                            />
+
+                            <Stack direction="row" spacing={1}>
+                              <TextField
+                                label="Qty"
+                                type="number"
+                                value={row.qty}
+                                onChange={(e) => updateVendorRow(index, { qty: e.target.value })}
+                                size="small"
+                                fullWidth
+                                sx={compactFieldSx}
+                              />
+                              <TextField
+                                label="Cost"
+                                type="number"
+                                value={row.amount}
+                                onChange={(e) => updateVendorRow(index, { amount: e.target.value })}
+                                size="small"
+                                fullWidth
+                                sx={compactFieldSx}
+                              />
+                            </Stack>
+
+                            <TextField
+                              label="Due Date"
+                              type="date"
+                              value={row.dueDate}
+                              onChange={(e) => updateVendorRow(index, { dueDate: e.target.value })}
+                              size="small"
+                              fullWidth
+                              sx={compactFieldSx}
+                              InputLabelProps={inputLabelProps}
+                            />
+
+                            <TextField
+                              label="Note"
+                              value={row.note}
+                              onChange={(e) => updateVendorRow(index, { note: e.target.value })}
+                              size="small"
+                              fullWidth
+                              sx={compactFieldSx}
+                            />
+                          </Stack>
+                        </Paper>
+                      ))}
+                    </Stack>
+                  ) : null}
 
                   {isTransactionSaved ? (
                     <Button
