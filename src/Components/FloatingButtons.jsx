@@ -1,23 +1,10 @@
 import PropTypes from 'prop-types';
-import { useLocation } from 'react-router-dom';
 import SpeedDial from '@mui/material/SpeedDial';
 import SpeedDialAction from '@mui/material/SpeedDialAction';
 import SpeedDialIcon from '@mui/material/SpeedDialIcon';
 import AddCircleOutlineRoundedIcon from '@mui/icons-material/AddCircleOutlineRounded';
-import EditNoteRoundedIcon from '@mui/icons-material/EditNoteRounded';
 
 export default function FloatingButtons({ buttonsList = [] }) {
-  const location = useLocation();
-  const hideOnFullscreenAddRoutes = [
-    '/orders/new',
-    '/accounts/receipt',
-    '/accounts/payment',
-    '/tasks/new',
-    '/enquiries/new',
-  ].includes(location.pathname);
-
-  if (hideOnFullscreenAddRoutes) return null;
-
   return (
     <SpeedDial
       ariaLabel="quick actions"
@@ -44,7 +31,7 @@ export default function FloatingButtons({ buttonsList = [] }) {
       {buttonsList.map((button) => (
         <SpeedDialAction
           key={button.label}
-          icon={<EditNoteRoundedIcon fontSize="small" />}
+          icon={<AddCircleOutlineRoundedIcon fontSize="small" />}
           tooltipTitle={button.label}
           tooltipOpen
           onClick={button.onClick}
