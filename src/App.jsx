@@ -18,11 +18,7 @@ const AddUsertask = lazy(() => import('./Pages/addUsertask'));
 const AddEnquiry = lazy(() => import('./Pages/addEnquiry'));
 const AddCustomer = lazy(() => import('./Pages/addCustomer'));
 const AddUser = lazy(() => import('./Pages/addUser'));
-const AddUsergroup = lazy(() => import('./Pages/addUsergroup'));
 const AddItem = lazy(() => import('./Pages/addItem'));
-const AddItemgroup = lazy(() => import('./Pages/addItemgroup'));
-const AddTask = lazy(() => import('./Pages/addTask'));
-const AddTaskgroup = lazy(() => import('./Pages/addTaskgroup'));
 const AddOrder1 = lazy(() => import('./Pages/addOrder1'));
 const OrderKanban = lazy(() => import('./Pages/OrderKanban'));
 const OrderUpdate = lazy(() => import('./Pages/OrderUpdate'));
@@ -35,6 +31,8 @@ const Vendor = lazy(() => import('./Pages/vendor'));
 const VendorDetails = lazy(() => import('./Pages/vendorDetails'));
 const CustomerDetails = lazy(() => import('./Pages/CustomerDetails'));
 const WhatsAppCloudDashboard = lazy(() => import('./Pages/WhatsAppCloudDashboard'));
+const SendMessage = lazy(() => import('./Pages/SendMessage'));
+const SendMessageAll = lazy(() => import('./Pages/SendMessageAll'));
 const AllOrder = lazy(() => import('./Reports/allOrder'));
 const AllDelivery = lazy(() => import('./Reports/allDelivery'));
 const AllTransaction = lazy(() => import('./Reports/allTransaction'));
@@ -95,11 +93,7 @@ export default function App() {
             <Route path={ROUTES.ENQUIRIES_NEW} element={withSuspense(<AddEnquiry />)} />
             <Route path={ROUTES.ADD_CUSTOMER} element={withSuspense(<AddCustomer />)} />
             <Route path={ROUTES.ADD_USER} element={withSuspense(<AddUser />)} />
-            <Route path={ROUTES.ADD_USER_GROUP} element={withSuspense(<AddUsergroup />)} />
             <Route path={ROUTES.ADD_ITEM} element={withSuspense(<AddItem />)} />
-            <Route path={ROUTES.ADD_ITEM_GROUP} element={withSuspense(<AddItemgroup />)} />
-            <Route path={ROUTES.ADD_TASK} element={withSuspense(<AddTask />)} />
-            <Route path={ROUTES.ADD_TASK_GROUP} element={withSuspense(<AddTaskgroup />)} />
 
             <Route path={ROUTES.ORDERS_NEW} element={withSuspense(<AddOrder1 />)} />
             <Route path={ROUTES.ADD_ORDER} element={<Navigate to={ROUTES.ORDERS_NEW} replace />} />
@@ -126,8 +120,8 @@ export default function App() {
 
             <Route path={ROUTES.WHATSAPP} element={withSuspense(<WhatsAppCloudDashboard />)} />
             <Route path={ROUTES.WHATSAPP_CLOUD} element={withSuspense(<WhatsAppCloudDashboard />)} />
-            <Route path={ROUTES.WHATSAPP_SEND} element={<Navigate to={ROUTES.WHATSAPP} replace />} />
-            <Route path={ROUTES.WHATSAPP_BULK} element={<Navigate to={ROUTES.WHATSAPP} replace />} />
+            <Route path={ROUTES.WHATSAPP_SEND} element={withSuspense(<SendMessage />)} />
+            <Route path={ROUTES.WHATSAPP_BULK} element={withSuspense(<SendMessageAll />)} />
             <Route path={ROUTE_ALIASES.WHATSAPP_LOGIN} element={<Navigate to={ROUTES.WHATSAPP} replace />} />
             <Route path={ROUTE_ALIASES.WHATSAPP_SESSION} element={<Navigate to={ROUTES.WHATSAPP} replace />} />
             <Route path={ROUTE_ALIASES.WHATSAPP_ADMIN} element={<Navigate to={ROUTES.WHATSAPP} replace />} />

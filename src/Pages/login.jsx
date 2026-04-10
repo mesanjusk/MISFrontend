@@ -39,7 +39,7 @@ export default function Login() {
 
   async function checkGoogleDriveAndRedirect(userGroupValue) {
     try {
-      const statusRes = await axios.get('/api/google-drive/status');
+      const statusRes = await axios.get('/google-drive/status');
       const connected = !!statusRes?.data?.connected;
 
       if (!connected) {

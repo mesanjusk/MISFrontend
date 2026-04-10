@@ -36,7 +36,9 @@ import { compactCardSx, compactFieldSx } from '../components/ui/addFormStyles';
 
 const createEmptyItem = () => ({
   Item: '',
+  Item_uuid: '',
   Item_group: '',
+  itemType: 'finished_item',
   Quantity: 1,
   Rate: 0,
   Amount: 0,
@@ -208,6 +210,14 @@ export default function AddOrder1({ closeModal }) {
     [customerOptions]
   );
 
+  const selectedItemCatalogMap = useMemo(() => {
+    const map = new Map();
+    (itemOptions || []).forEach((option) => {
+      map.set(String(option?.Item_name || ''), option);
+    });
+    return map;
+  }, [itemOptions]);
+
   const selectedCustomer = useMemo(
     () =>
       sortedCustomerOptions.find(
@@ -331,9 +341,11 @@ export default function AddOrder1({ closeModal }) {
           const selectedItem = itemOptions.find(
             (option) => String(option?.Item_name || '') === String(value || '')
           );
-          if (selectedItem?.Item_group) {
-            next.Item_group = selectedItem.Item_group;
-          }
+          if (selectedItem?.Item_group) next.Item_group = selectedItem.Item_group;
+          if (selectedItem?.Item_uuid) next.Item_uuid = selectedItem.Item_uuid;
+          if (selectedItem?.itemType) next.itemType = selectedItem.itemType;
+          if (selectedItem?.defaultSaleRate && !Number(next.Rate || 0)) next.Rate = Number(selectedItem.defaultSaleRate || 0);
+          if (selectedItem?.defaultSaleRate && field !== 'Amount') next.Amount = Number(next.Quantity || 0) * Number(next.Rate || selectedItem.defaultSaleRate || 0);
         }
 
         const quantity = Number(next.Quantity || 0);
@@ -848,6 +860,34 @@ export default function AddOrder1({ closeModal }) {
                           </MenuItem>
                         ))}
                       </TextField>
+
+
+                      {selectedItemCatalogMap.get(item.Item)?.itemType === 'finished_item' && (selectedItemCatalogMap.get(item.Item)?.bomCount || 0) > 0 && (
+                        <Alert severity="info" sx={{ borderRadius: 2 }}>
+                          This finished item has {(selectedItemCatalogMap.get(item.Item)?.bomCount || 0)} BOM rows. Raw material and service work will be created automatically after saving the order. Vendor or user can be decided later.
+                        </Alert>
+                      )}
+
+                      {selectedItemCatalogMap.get(item.Item)?.itemType && (
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                          <TextField
+                            label="Item Type"
+                            value={selectedItemCatalogMap.get(item.Item)?.itemType || item.itemType || ''}
+                            size="small"
+                            fullWidth
+                            disabled
+                            sx={compactFieldSx}
+                          />
+                          <TextField
+                            label="Execution"
+                            value={selectedItemCatalogMap.get(item.Item)?.executionMode || '-'}
+                            size="small"
+                            fullWidth
+                            disabled
+                            sx={compactFieldSx}
+                          />
+                        </Stack>
+                      )}
 
                       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                         <TextField
