@@ -26,7 +26,7 @@ export default function CustomerDetails() {
     const loadTimeline = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`/customers/${id}/timeline`);
+        const res = await axios.get(`/customer/${id}/timeline`);
         if (!mounted) return;
         setTimeline(res?.data?.result || res?.data?.data || {});
       } catch (error) {
@@ -68,7 +68,7 @@ export default function CustomerDetails() {
             type="button"
             onClick={() => {
               if (!customerIdInput?.trim()) return;
-              navigate(`/customer-360/${customerIdInput.trim()}`);
+              navigate(`/customers/${customerIdInput.trim()}`);
             }}
             className="rounded-md bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-700"
           >
