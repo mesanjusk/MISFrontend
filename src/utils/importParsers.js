@@ -7,12 +7,18 @@ const normalizeKey = (value) =>
 
 const normalizeCell = (value) => {
   if (value === null || value === undefined) return '';
-  return String(value).trim();
+  const normalized = String(value).trim();
+  if (!normalized) return '';
+  if (['nan', 'null', 'undefined'].includes(normalized.toLowerCase())) return '';
+  return normalized;
 };
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 
-const isMeaningfulValue = (value) => normalizeCell(value) !== '';
+const isMeaningfulValue = (value) => {
+  const normalized = normalizeCell(value);
+  return normalized !== '' && normalized !== '-';
+};
 
 const buildOrderedRow = (row = {}, headers = []) =>
   Object.fromEntries(headers.map((header) => [header, normalizeCell(row?.[header])]));
@@ -67,9 +73,16 @@ export const parseTabularFile = async (file) => {
   return XLSX.utils.sheet_to_json(sheet, { defval: '' });
 };
 
-const getFirstNonEmptySheet = (workbook) => {
+const getPreferredSheet = (workbook) => {
   const names = Array.isArray(workbook?.SheetNames) ? workbook.SheetNames : [];
-  const firstNonEmpty = names.find((sheetName) => {
+  const preferredName =
+    names.find((sheetName) => String(sheetName || '').trim().toLowerCase() === 'price_list_clean') ||
+    names.find((sheetName) => String(sheetName || '').trim().toLowerCase().includes('price')) ||
+    names.find((sheetName) => String(sheetName || '').trim().toLowerCase().includes('catalog'));
+
+  const candidateNames = preferredName ? [preferredName, ...names.filter((name) => name !== preferredName)] : names;
+
+  const firstNonEmpty = candidateNames.find((sheetName) => {
     const sheet = workbook.Sheets?.[sheetName];
     const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
     return (Array.isArray(matrix) ? matrix : []).some((row) =>
@@ -77,7 +90,7 @@ const getFirstNonEmptySheet = (workbook) => {
     );
   });
 
-  return workbook?.Sheets?.[firstNonEmpty || names[0]];
+  return workbook?.Sheets?.[firstNonEmpty || candidateNames[0] || names[0]];
 };
 
 const extractRowsAndHeaders = (sheet) => {
@@ -105,7 +118,7 @@ export const parseDynamicCatalogFile = async (file) => {
       ? XLSX.read(await file.text(), { type: 'string' })
       : XLSX.read(await file.arrayBuffer(), { type: 'array' });
 
-  const sheet = getFirstNonEmptySheet(workbook);
+  const sheet = getPreferredSheet(workbook);
   const { headers, rows } = extractRowsAndHeaders(sheet || {});
   return parsePriceCatalogRows(rows, { headerOrder: headers });
 };
@@ -146,7 +159,7 @@ export const parsePriceCatalogRows = (
   options = {}
 ) => {
   const {
-    resultColumnCount = 2,
+    resultColumnCount = 1,
     explicitResultFields = [],
     headerOrder = [],
   } = options || {};
@@ -176,6 +189,9 @@ export const parsePriceCatalogRows = (
 
   let resultFields = [];
   let selectionFields = [];
+  const lowerHeaders = activeHeaders.map((header) => header.toLowerCase());
+  const hasRate = lowerHeaders.includes('rate');
+  const hasDispatchDays = lowerHeaders.includes('dispatch days');
 
   if (Array.isArray(explicitResultFields) && explicitResultFields.length > 0) {
     resultFields = explicitResultFields
@@ -185,6 +201,12 @@ export const parsePriceCatalogRows = (
     selectionFields = activeHeaders.filter(
       (header) => !resultFields.includes(header)
     );
+  } else if (hasRate) {
+    resultFields = activeHeaders.filter((header) => {
+      const key = header.toLowerCase();
+      return key === 'rate' || key === 'dispatch days';
+    });
+    selectionFields = activeHeaders.filter((header) => !resultFields.includes(header));
   } else if (activeHeaders.length === 1) {
     selectionFields = [];
     resultFields = [activeHeaders[0]];
