@@ -80,6 +80,67 @@ const getSuccessfulResultArray = (settledResult) => {
   return [];
 };
 
+const getDriveMetaFromCustomer = (customer = {}) => {
+  const sourceFileId =
+    customer?.googleDriveSourceFileId ||
+    customer?.googleDriveTemplateFileId ||
+    customer?.driveSourceFileId ||
+    customer?.driveTemplateFileId ||
+    customer?.sourceFileId ||
+    customer?.templateFileId ||
+    '';
+  const sourceFileName =
+    customer?.googleDriveSourceFileName ||
+    customer?.googleDriveTemplateFileName ||
+    customer?.driveSourceFileName ||
+    customer?.driveTemplateFileName ||
+    customer?.sourceFileName ||
+    customer?.templateFileName ||
+    '';
+  const folderId =
+    customer?.googleDriveFolderId ||
+    customer?.driveFolderId ||
+    customer?.folderId ||
+    '';
+  const folderPath =
+    customer?.googleDriveFolderPath ||
+    customer?.driveFolderPath ||
+    customer?.folderPath ||
+    '';
+
+  return {
+    sourceFileId: String(sourceFileId || '').trim(),
+    sourceFileName: String(sourceFileName || '').trim(),
+    folderId: String(folderId || '').trim(),
+    folderPath: String(folderPath || '').trim(),
+  };
+};
+
+const buildDrivePayload = (driveMeta = {}) => {
+  const payload = {};
+  if (driveMeta.sourceFileId) {
+    payload.driveTemplateFileId = driveMeta.sourceFileId;
+    payload.driveSourceFileId = driveMeta.sourceFileId;
+  }
+  if (driveMeta.sourceFileName) {
+    payload.driveTemplateFileName = driveMeta.sourceFileName;
+    payload.driveSourceFileName = driveMeta.sourceFileName;
+  }
+  if (driveMeta.folderId) payload.driveFolderId = driveMeta.folderId;
+  if (driveMeta.folderPath) payload.driveFolderPath = driveMeta.folderPath;
+
+  if (Object.keys(payload).length > 0) {
+    payload.googleDrive = {
+      sourceFileId: driveMeta.sourceFileId || undefined,
+      sourceFileName: driveMeta.sourceFileName || undefined,
+      folderId: driveMeta.folderId || undefined,
+      folderPath: driveMeta.folderPath || undefined,
+    };
+  }
+
+  return payload;
+};
+
 export default function AddOrder1({ closeModal }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -497,6 +558,8 @@ export default function AddOrder1({ closeModal }) {
       });
 
       const payloadItems = isDetailedOrder ? normalizedItems : [];
+      const driveMeta = getDriveMetaFromCustomer(customer);
+      const drivePayload = buildDrivePayload(driveMeta);
 
       const orderRes = await axios.post('/order/addOrder', {
         Customer_uuid: customer.Customer_uuid,
@@ -507,6 +570,8 @@ export default function AddOrder1({ closeModal }) {
         Items: payloadItems,
         Type: isEnquiryOnly ? 'Enquiry' : 'Order',
         isEnquiry: isEnquiryOnly,
+        customerName: customer.Customer_name || Customer_name || '',
+        ...drivePayload,
       });
 
       if (!orderRes.data?.success) {
@@ -519,19 +584,15 @@ export default function AddOrder1({ closeModal }) {
         orderRes?.data?.result?.Order_Number || orderRes?.data?.result?.Order_number || ''
       );
 
-      if (driveFile?.status === 'created') {
-  toast.success('Order added and Drive file created');
-  if (driveFile?.webViewLink) {
-    console.log('Drive file link:', driveFile.webViewLink);
-  }
-} else if (driveFile?.status === 'failed') {
-  toast.error(`Order saved, but Drive file failed: ${driveFile?.error || 'Unknown error'}`);
-} else if (driveFile?.status === 'skipped') {
-  console.log('Drive file skipped for this order');
-}
+      const driveFile = orderRes.data?.driveFile || orderRes.data?.result?.driveFile;
+
+      const hasDriveStatusToast =
+        driveFile?.status === 'created' || driveFile?.status === 'failed' || driveFile?.status === 'skipped';
 
       if (driveFile?.status === 'created') {
         toast.success('Order added and Drive file created');
+      } else if (driveFile?.status === 'skipped') {
+        toast.success('Order added');
       } else if (driveFile?.status === 'failed') {
         toast.error(`Order saved, but Drive file failed: ${driveFile?.error || 'Unknown error'}`);
       }
@@ -558,7 +619,7 @@ export default function AddOrder1({ closeModal }) {
       }
 
       setShowInvoiceModal(true);
-      toast.success('Order added');
+      if (!hasDriveStatusToast) toast.success('Order added');
 
       if (isAdvanceChecked && Amount && group) {
         const amt = Number(Amount || 0);
