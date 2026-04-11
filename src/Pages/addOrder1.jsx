@@ -519,7 +519,16 @@ export default function AddOrder1({ closeModal }) {
         orderRes?.data?.result?.Order_Number || orderRes?.data?.result?.Order_number || ''
       );
 
-      const driveFile = orderRes.data?.driveFile;
+      if (driveFile?.status === 'created') {
+  toast.success('Order added and Drive file created');
+  if (driveFile?.webViewLink) {
+    console.log('Drive file link:', driveFile.webViewLink);
+  }
+} else if (driveFile?.status === 'failed') {
+  toast.error(`Order saved, but Drive file failed: ${driveFile?.error || 'Unknown error'}`);
+} else if (driveFile?.status === 'skipped') {
+  console.log('Drive file skipped for this order');
+}
 
       if (driveFile?.status === 'created') {
         toast.success('Order added and Drive file created');

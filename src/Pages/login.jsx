@@ -37,27 +37,31 @@ export default function Login() {
     navigate(target, { replace: true });
   }, [navigate, userGroup, userName]);
 
-  async function checkGoogleDriveAndRedirect(userGroupValue) {
-    try {
-      const statusRes = await axios.get('/api/google-drive/status');
-      const connected = !!statusRes?.data?.connected;
+ async function checkGoogleDriveAndRedirect(userGroupValue) {
+  try {
+    const statusRes = await axios.get('/api/google-drive/status');
+    const connected = !!statusRes?.data?.connected;
+    const automationEnabled = !!statusRes?.data?.automationEnabled;
 
-      if (!connected) {
-        const returnTo = userGroupValue === 'Vendor' ? `${window.location.origin}/vendorHome` : `${window.location.origin}/home`;
+    const target = userGroupValue === 'Vendor' ? '/vendorHome' : '/home';
 
-        window.location.href = `${BACKEND_BASE}/api/google-drive/connect?returnTo=${encodeURIComponent(returnTo)}`;
-        return;
-      }
+    if (automationEnabled && !connected) {
+      const returnTo =
+        userGroupValue === 'Vendor'
+          ? `${window.location.origin}/vendorHome`
+          : `${window.location.origin}/home`;
 
-      const target = userGroupValue === 'Vendor' ? '/vendorHome' : '/home';
-      navigate(target, { replace: true });
-    } catch (error) {
-      console.error('Google Drive status check failed:', error);
-      const target = userGroupValue === 'Vendor' ? '/vendorHome' : '/home';
-      navigate(target, { replace: true });
+      window.location.href = `${BACKEND_BASE}/api/google-drive/connect?returnTo=${encodeURIComponent(returnTo)}`;
+      return;
     }
-  }
 
+    navigate(target, { replace: true });
+  } catch (error) {
+    console.error('Google Drive status check failed:', error);
+    const target = userGroupValue === 'Vendor' ? '/vendorHome' : '/home';
+    navigate(target, { replace: true });
+  }
+}
   async function submit(e) {
     e.preventDefault();
     setLoading(true);
