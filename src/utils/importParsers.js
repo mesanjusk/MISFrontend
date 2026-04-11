@@ -67,6 +67,49 @@ export const parseTabularFile = async (file) => {
   return XLSX.utils.sheet_to_json(sheet, { defval: '' });
 };
 
+const getFirstNonEmptySheet = (workbook) => {
+  const names = Array.isArray(workbook?.SheetNames) ? workbook.SheetNames : [];
+  const firstNonEmpty = names.find((sheetName) => {
+    const sheet = workbook.Sheets?.[sheetName];
+    const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    return (Array.isArray(matrix) ? matrix : []).some((row) =>
+      (Array.isArray(row) ? row : []).some((cell) => normalizeCell(cell) !== '')
+    );
+  });
+
+  return workbook?.Sheets?.[firstNonEmpty || names[0]];
+};
+
+const extractRowsAndHeaders = (sheet) => {
+  const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+  const [headerRow = [], ...dataRows] = Array.isArray(matrix) ? matrix : [];
+
+  const headers = (Array.isArray(headerRow) ? headerRow : []).map((header, index) => {
+    const normalized = normalizeKey(header);
+    return normalized || `Column ${index + 1}`;
+  });
+
+  const rows = (Array.isArray(dataRows) ? dataRows : []).map((row) =>
+    Object.fromEntries(
+      headers.map((header, index) => [header, normalizeCell((Array.isArray(row) ? row : [])[index])])
+    )
+  );
+
+  return { headers, rows };
+};
+
+export const parseDynamicCatalogFile = async (file) => {
+  const extension = String(file?.name || '').split('.').pop()?.toLowerCase();
+  const workbook =
+    extension === 'csv'
+      ? XLSX.read(await file.text(), { type: 'string' })
+      : XLSX.read(await file.arrayBuffer(), { type: 'array' });
+
+  const sheet = getFirstNonEmptySheet(workbook);
+  const { headers, rows } = extractRowsAndHeaders(sheet || {});
+  return parsePriceCatalogRows(rows, { headerOrder: headers });
+};
+
 export const parseContactsFromRows = (rows = []) =>
   (Array.isArray(rows) ? rows : [])
     .map((row) => {
@@ -105,6 +148,7 @@ export const parsePriceCatalogRows = (
   const {
     resultColumnCount = 2,
     explicitResultFields = [],
+    headerOrder = [],
   } = options || {};
 
   const normalizedRawRows = (Array.isArray(rows) ? rows : []).map((raw) =>
@@ -117,7 +161,11 @@ export const parsePriceCatalogRows = (
   );
 
   const meaningfulRows = removeCompletelyEmptyRows(normalizedRawRows);
-  const allHeaders = getAllHeadersInOrder(meaningfulRows);
+  const normalizedHeaderOrder = (Array.isArray(headerOrder) ? headerOrder : [])
+    .map((header) => normalizeKey(header))
+    .filter(Boolean);
+  const fallbackHeaders = getAllHeadersInOrder(meaningfulRows);
+  const allHeaders = normalizedHeaderOrder.length ? normalizedHeaderOrder : fallbackHeaders;
   const activeHeaders = getNonEmptyHeaders(meaningfulRows, allHeaders);
 
   const cleanedRows = meaningfulRows.map((row) => buildOrderedRow(row, activeHeaders));
@@ -137,15 +185,14 @@ export const parsePriceCatalogRows = (
     selectionFields = activeHeaders.filter(
       (header) => !resultFields.includes(header)
     );
+  } else if (activeHeaders.length === 1) {
+    selectionFields = [];
+    resultFields = [activeHeaders[0]];
+  } else if (activeHeaders.length === 2) {
+    selectionFields = [activeHeaders[0]];
+    resultFields = [activeHeaders[1]];
   } else {
-    const safeResultCount =
-      activeHeaders.length <= 1
-        ? 1
-        : Math.min(
-            Math.max(Number(resultColumnCount) || 2, 1),
-            activeHeaders.length - 1
-          );
-
+    const safeResultCount = Math.min(Math.max(Number(resultColumnCount) || 2, 1), 2);
     selectionFields = activeHeaders.slice(0, activeHeaders.length - safeResultCount);
     resultFields = activeHeaders.slice(activeHeaders.length - safeResultCount);
   }

@@ -58,7 +58,7 @@ export default function OrderUpdate({
     Order_uuid: order?.Order_uuid || "",
     Order_Number: order?.Order_Number || "",
     Customer_uuid: order?.Customer_uuid || "",
-    Remark: order?.Remark || "",
+    Remark: order?.orderNote || order?.Remark || "",
     Delivery_Date: toYmd(order?.highestStatusTask?.Delivery_Date) || "",
     Task: order?.highestStatusTask?.Task || "",
     CreatedAt: toYmd(order?.highestStatusTask?.CreatedAt) || toYmd(new Date()),

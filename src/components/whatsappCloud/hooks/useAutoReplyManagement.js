@@ -15,7 +15,12 @@ export const initialFormState = {
   delaySeconds: '',
   menuTitle: 'Product Price Finder',
   menuIntro: 'Choose product options to get the latest price.',
+  audienceScope: 'all',
   catalogRows: [],
+  catalogHeaders: [],
+  selectionFields: [],
+  resultFields: [],
+  skippedEmptyFields: [],
   catalogSummary: '',
 };
 
@@ -44,7 +49,12 @@ export const normalizeRules = (list) =>
       templateLanguage: String(rule?.templateLanguage || rule?.language || 'en_US'),
       menuTitle: String(rule?.catalogConfig?.menuTitle || 'Product Price Finder'),
       menuIntro: String(rule?.catalogConfig?.menuIntro || 'Choose product options to get the latest price.'),
+      audienceScope: String(rule?.audienceScope || 'all'),
       catalogRows: Array.isArray(rule?.catalogRows) ? rule.catalogRows : [],
+      selectionFields: Array.isArray(rule?.catalogConfig?.selectionFields) ? rule.catalogConfig.selectionFields : [],
+      resultFields: Array.isArray(rule?.catalogConfig?.resultFields) ? rule.catalogConfig.resultFields : [],
+      skippedEmptyFields: Array.isArray(rule?.catalogConfig?.skippedEmptyFields) ? rule.catalogConfig.skippedEmptyFields : [],
+      catalogHeaders: Array.isArray(rule?.catalogConfig?.headers) ? rule.catalogConfig.headers : [],
     };
   });
 
@@ -100,8 +110,15 @@ export function useAutoReplyManagement() {
       delaySeconds: rule.delaySeconds ?? '',
       menuTitle: rule.menuTitle || initialFormState.menuTitle,
       menuIntro: rule.menuIntro || initialFormState.menuIntro,
+      audienceScope: rule.audienceScope || 'all',
       catalogRows: Array.isArray(rule.catalogRows) ? rule.catalogRows : [],
-      catalogSummary: Array.isArray(rule.catalogRows) ? `${rule.catalogRows.length} products loaded` : '',
+      catalogHeaders: Array.isArray(rule.catalogHeaders) ? rule.catalogHeaders : [],
+      selectionFields: Array.isArray(rule.selectionFields) ? rule.selectionFields : [],
+      resultFields: Array.isArray(rule.resultFields) ? rule.resultFields : [],
+      skippedEmptyFields: Array.isArray(rule.skippedEmptyFields) ? rule.skippedEmptyFields : [],
+      catalogSummary: Array.isArray(rule.catalogRows)
+        ? `${rule.catalogRows.length} rows loaded · ${(rule.catalogHeaders || []).length} active columns`
+        : '',
     });
     setIsModalOpen(true);
   };
@@ -114,9 +131,19 @@ export function useAutoReplyManagement() {
     reply: formData.replyMode === 'text' ? formData.replyText.trim() : formData.templateName.trim(),
     templateLanguage: formData.replyMode === 'template' ? String(formData.templateLanguage || 'en_US').trim() || 'en_US' : undefined,
     isActive: Boolean(formData.active),
+    audienceScope: formData.audienceScope === 'registered_only' ? 'registered_only' : 'all',
     delaySeconds: formData.delaySeconds === '' ? null : Number(formData.delaySeconds),
     catalogRows: formData.ruleType === 'product_catalog' ? formData.catalogRows : [],
-    catalogConfig: formData.ruleType === 'product_catalog' ? { menuTitle: formData.menuTitle, menuIntro: formData.menuIntro } : undefined,
+    catalogConfig: formData.ruleType === 'product_catalog'
+      ? {
+          menuTitle: formData.menuTitle,
+          menuIntro: formData.menuIntro,
+          headers: formData.catalogHeaders,
+          skippedEmptyFields: formData.skippedEmptyFields,
+          selectionFields: formData.selectionFields,
+          resultFields: formData.resultFields,
+        }
+      : undefined,
   });
 
   const handleSaveRule = async (event) => {

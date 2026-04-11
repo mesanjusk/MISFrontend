@@ -18,7 +18,7 @@ import {
 import PropTypes from 'prop-types';
 import Modal from '../common/Modal';
 import { parseApiError } from '../../utils/parseApiError';
-import { parsePriceCatalogRows, parseTabularFile } from '../../utils/importParsers';
+import { parseDynamicCatalogFile } from '../../utils/importParsers';
 import { toast } from '../../Components/Toast';
 import { useAutoReplyManagement } from './hooks/useAutoReplyManagement';
 
@@ -55,11 +55,18 @@ export default function AutoReplyManagementPanel({ search }) {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
-      const rows = await parseTabularFile(file);
-      const catalogRows = parsePriceCatalogRows(rows);
-      if (!catalogRows.length) return toast.error('No valid price rows found in the uploaded file.');
-      setFormData((prev) => ({ ...prev, catalogRows, catalogSummary: `${catalogRows.length} products loaded` }));
-      toast.success(`${catalogRows.length} price rows loaded.`);
+      const parsedCatalog = await parseDynamicCatalogFile(file);
+      if (!parsedCatalog.rows.length) return toast.error('No valid price rows found in the uploaded file.');
+      setFormData((prev) => ({
+        ...prev,
+        catalogRows: parsedCatalog.rows,
+        catalogHeaders: parsedCatalog.headers,
+        selectionFields: parsedCatalog.selectionFields,
+        resultFields: parsedCatalog.resultFields,
+        skippedEmptyFields: parsedCatalog.skippedEmptyFields,
+        catalogSummary: `${parsedCatalog.rows.length} rows loaded · ${parsedCatalog.headers.length} active columns`,
+      }));
+      toast.success(`${parsedCatalog.rows.length} rows loaded from catalog file.`);
     } catch (error) {
       toast.error(parseApiError(error, 'Could not read the price list file.'));
     } finally {
@@ -144,6 +151,10 @@ export default function AutoReplyManagementPanel({ search }) {
               <MenuItem value="exact">Exact</MenuItem>
               <MenuItem value="starts_with">Starts with</MenuItem>
             </TextField>
+            <TextField select label="Access" value={formData.audienceScope} onChange={(event) => setFormData((prev) => ({ ...prev, audienceScope: event.target.value }))}>
+              <MenuItem value="all">All</MenuItem>
+              <MenuItem value="registered_only">Only Registered Person</MenuItem>
+            </TextField>
 
             {formData.ruleType === 'keyword' ? (
               <>
@@ -168,7 +179,23 @@ export default function AutoReplyManagementPanel({ search }) {
                   Upload price list (CSV / Excel)
                   <input type="file" accept=".csv,.xlsx,.xls" hidden onChange={handleCatalogUpload} />
                 </Button>
-                {formData.catalogSummary ? <Typography variant="body2">{formData.catalogSummary}</Typography> : null}
+                {formData.catalogSummary ? (
+                  <Stack spacing={0.5}>
+                    <Typography variant="body2">{formData.catalogSummary}</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Active Columns: {formData.catalogHeaders.join(', ') || 'None'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Selection Fields: {formData.selectionFields.join(', ') || 'None'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Result Fields: {formData.resultFields.join(', ') || 'None'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Skipped Empty Columns: {formData.skippedEmptyFields.join(', ') || 'None'}
+                    </Typography>
+                  </Stack>
+                ) : null}
               </>
             )}
 
