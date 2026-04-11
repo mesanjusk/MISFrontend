@@ -116,6 +116,31 @@ const getDriveMetaFromCustomer = (customer = {}) => {
   };
 };
 
+const buildDrivePayload = (driveMeta = {}) => {
+  const payload = {};
+  if (driveMeta.sourceFileId) {
+    payload.driveTemplateFileId = driveMeta.sourceFileId;
+    payload.driveSourceFileId = driveMeta.sourceFileId;
+  }
+  if (driveMeta.sourceFileName) {
+    payload.driveTemplateFileName = driveMeta.sourceFileName;
+    payload.driveSourceFileName = driveMeta.sourceFileName;
+  }
+  if (driveMeta.folderId) payload.driveFolderId = driveMeta.folderId;
+  if (driveMeta.folderPath) payload.driveFolderPath = driveMeta.folderPath;
+
+  if (Object.keys(payload).length > 0) {
+    payload.googleDrive = {
+      sourceFileId: driveMeta.sourceFileId || undefined,
+      sourceFileName: driveMeta.sourceFileName || undefined,
+      folderId: driveMeta.folderId || undefined,
+      folderPath: driveMeta.folderPath || undefined,
+    };
+  }
+
+  return payload;
+};
+
 export default function AddOrder1({ closeModal }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -534,6 +559,7 @@ export default function AddOrder1({ closeModal }) {
 
       const payloadItems = isDetailedOrder ? normalizedItems : [];
       const driveMeta = getDriveMetaFromCustomer(customer);
+      const drivePayload = buildDrivePayload(driveMeta);
 
       const orderRes = await axios.post('/order/addOrder', {
         Customer_uuid: customer.Customer_uuid,
@@ -544,18 +570,8 @@ export default function AddOrder1({ closeModal }) {
         Items: payloadItems,
         Type: isEnquiryOnly ? 'Enquiry' : 'Order',
         isEnquiry: isEnquiryOnly,
-        orderNumber: latestOrderNumber || undefined,
         customerName: customer.Customer_name || Customer_name || '',
-        driveTemplateFileId: driveMeta.sourceFileId || undefined,
-        driveTemplateFileName: driveMeta.sourceFileName || undefined,
-        driveFolderId: driveMeta.folderId || undefined,
-        driveFolderPath: driveMeta.folderPath || undefined,
-        googleDrive: {
-          sourceFileId: driveMeta.sourceFileId || undefined,
-          sourceFileName: driveMeta.sourceFileName || undefined,
-          folderId: driveMeta.folderId || undefined,
-          folderPath: driveMeta.folderPath || undefined,
-        },
+        ...drivePayload,
       });
 
       if (!orderRes.data?.success) {

@@ -116,7 +116,9 @@ export function useAutoReplyManagement() {
       selectionFields: Array.isArray(rule.selectionFields) ? rule.selectionFields : [],
       resultFields: Array.isArray(rule.resultFields) ? rule.resultFields : [],
       skippedEmptyFields: Array.isArray(rule.skippedEmptyFields) ? rule.skippedEmptyFields : [],
-      catalogSummary: Array.isArray(rule.catalogRows) ? `${rule.catalogRows.length} products loaded` : '',
+      catalogSummary: Array.isArray(rule.catalogRows)
+        ? `${rule.catalogRows.length} rows loaded · ${(rule.catalogHeaders || []).length} active columns`
+        : '',
     });
     setIsModalOpen(true);
   };
@@ -136,6 +138,8 @@ export function useAutoReplyManagement() {
       ? {
           menuTitle: formData.menuTitle,
           menuIntro: formData.menuIntro,
+          headers: formData.catalogHeaders,
+          skippedEmptyFields: formData.skippedEmptyFields,
           selectionFields: formData.selectionFields,
           resultFields: formData.resultFields,
         }
