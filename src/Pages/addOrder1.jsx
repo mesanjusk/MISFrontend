@@ -204,7 +204,14 @@ export default function AddOrder1({ closeModal }) {
   useEffect(() => {
     const userNameFromState = location.state?.id;
     const logInUser = userNameFromState || localStorage.getItem('User_name');
-    setIsAdminUser(localStorage.getItem('User_group') === 'Admin User');
+    const userGroup = String(localStorage.getItem('User_group') || '').trim().toLowerCase();
+
+    setIsAdminUser(
+      userGroup === 'admin user' ||
+      userGroup === 'admin' ||
+      userGroup === 'super admin'
+    );
+
     if (!logInUser) navigate('/login');
   }, [location.state, navigate]);
 
@@ -217,7 +224,7 @@ export default function AddOrder1({ closeModal }) {
         axios.get('/item/GetItemList'),
         axios.get('/item/GetItemList?page=1&limit=1000'),
         axios.get('/itemgroup/GetItemgroupList'),
-        isAdminUser ? axios.get('/user/GetUserList') : Promise.resolve({ data: { result: [] } }),
+        axios.get('/user/GetUserList'),
       ]);
 
       const customers = getSuccessfulResultArray(customerRes);
@@ -229,13 +236,25 @@ export default function AddOrder1({ closeModal }) {
       const users = getSuccessfulResultArray(usersRes);
 
       setCustomerOptions(sortByName(customers, 'Customer_name'));
-      setAssignableUsers(sortByName(users, 'User_name'));
+
+      setAssignableUsers(
+        sortByName(
+          (users || []).filter(
+            (user) =>
+              user?.User_name &&
+              String(user?.User_group || '').trim().toLowerCase() === 'office user'
+          ),
+          'User_name'
+        )
+      );
+
       setAccountCustomerOptions(
         sortByName(
           customers.filter((item) => item.Customer_group === 'Bank and Account'),
           'Customer_name'
         )
       );
+
       setTaskGroups(tasks);
       setItemOptions(sortByName(itemsList, 'Item_name'));
 
@@ -251,7 +270,7 @@ export default function AddOrder1({ closeModal }) {
 
   useEffect(() => {
     fetchData();
-  }, [isAdminUser]);
+  }, []);
 
   useEffect(() => {
     if (location.state?.refreshCustomers) {
@@ -822,11 +841,11 @@ export default function AddOrder1({ closeModal }) {
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             <Typography variant="body2" color="text.secondary">
-              Assign this order now so it appears in that user&apos;s pending design queue and attendance popup.
+              Assign this order now so it appears in that user's pending design queue and attendance popup.
             </Typography>
             <TextField
               select
-              label="Design user"
+              label="Assign to Office User"
               value={selectedAssignee}
               onChange={(e) => setSelectedAssignee(e.target.value)}
               size="small"
@@ -836,12 +855,18 @@ export default function AddOrder1({ closeModal }) {
                 MenuProps: selectMenuProps,
               }}
             >
-              <MenuItem value="">Select user</MenuItem>
-              {assignableUsers.map((user) => (
-                <MenuItem key={user._id} value={user._id}>
-                  {user.User_name}
+              <MenuItem value="">Select office user</MenuItem>
+              {assignableUsers.length ? (
+                assignableUsers.map((user) => (
+                  <MenuItem key={user._id} value={user._id}>
+                    {user.User_name}
+                  </MenuItem>
+                ))
+              ) : (
+                <MenuItem value="" disabled>
+                  No office user found
                 </MenuItem>
-              ))}
+              )}
             </TextField>
           </Stack>
         </DialogContent>
