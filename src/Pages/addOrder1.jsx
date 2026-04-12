@@ -18,6 +18,10 @@ import {
   Button,
   Checkbox,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControlLabel,
   IconButton,
   MenuItem,
@@ -191,6 +195,11 @@ export default function AddOrder1({ closeModal }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [items, setItems] = useState([createEmptyItem()]);
   const [vendorAssignments, setVendorAssignments] = useState([createEmptyVendorAssignment()]);
+  const [assignableUsers, setAssignableUsers] = useState([]);
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [selectedAssignee, setSelectedAssignee] = useState('');
+  const [savedOrderId, setSavedOrderId] = useState('');
+  const editOrderId = location.state?.orderId || location.state?.order?._id || '';
 
   const isEnquiryOnly = entryType === 'Enquiry';
   const isDetailedOrder = entryType === 'DetailedOrder';
@@ -206,12 +215,13 @@ export default function AddOrder1({ closeModal }) {
   const fetchData = async () => {
     setOptionsLoading(true);
     try {
-      const [customerRes, taskRes, itemRes, itemResPaged, itemGroupRes] = await Promise.allSettled([
+      const [customerRes, taskRes, itemRes, itemResPaged, itemGroupRes, usersRes] = await Promise.allSettled([
         axios.get('/customer/GetCustomersList'),
         axios.get('/taskgroup/GetTaskgroupList'),
         axios.get('/item/GetItemList'),
         axios.get('/item/GetItemList?page=1&limit=1000'),
         axios.get('/itemgroup/GetItemgroupList'),
+        isAdminUser ? axios.get('/user/GetUserList') : Promise.resolve({ data: { result: [] } }),
       ]);
 
       const customers = getSuccessfulResultArray(customerRes);
@@ -220,8 +230,10 @@ export default function AddOrder1({ closeModal }) {
         ? getSuccessfulResultArray(itemRes)
         : getSuccessfulResultArray(itemResPaged);
       const itemGroups = getSuccessfulResultArray(itemGroupRes);
+      const users = getSuccessfulResultArray(usersRes);
 
       setCustomerOptions(sortByName(customers, 'Customer_name'));
+      setAssignableUsers(sortByName(users, 'User_name'));
       setAccountCustomerOptions(
         sortByName(
           customers.filter((item) => item.Customer_group === 'Bank and Account'),
@@ -261,7 +273,7 @@ export default function AddOrder1({ closeModal }) {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [isAdminUser]);
 
   useEffect(() => {
     if (location.state?.refreshCustomers) {
@@ -275,6 +287,49 @@ export default function AddOrder1({ closeModal }) {
       });
     }
   }, [location, navigate]);
+
+  useEffect(() => {
+    const hydrateEditOrder = async () => {
+      if (!editOrderId) return;
+      try {
+        const { data } = await axios.get(`/order/${editOrderId}`);
+        const order = data?.result || data || null;
+        if (!order) return;
+        const note = order?.orderNote || order?.Remark || '';
+        setCreatedOrder(order);
+        setSavedOrderId(order?._id || '');
+        setLatestOrderNumber(order?.Order_Number || order?.Order_number || '');
+        setSelectedCustomerUuid(order?.Customer_uuid || '');
+        setRemark(note);
+        setEntryType(Array.isArray(order?.Items) && order.Items.length ? 'DetailedOrder' : 'Order');
+        setItems(Array.isArray(order?.Items) && order.Items.length ? order.Items.map((row) => ({
+          Item: row?.Item || '',
+          Item_uuid: row?.Item_uuid || '',
+          Item_group: row?.Item_group || '',
+          itemType: row?.itemType || 'finished_item',
+          Quantity: row?.Quantity || 1,
+          Rate: row?.Rate || 0,
+          Amount: row?.Amount || 0,
+          Remark: row?.Remark || '',
+        })) : [createEmptyItem()]);
+        setVendorAssignments(Array.isArray(order?.vendorAssignments) && order.vendorAssignments.length ? order.vendorAssignments.map((row) => ({
+          vendorCustomerUuid: row?.vendorCustomerUuid || '',
+          vendorName: row?.vendorName || '',
+          workType: row?.workType || '',
+          note: row?.note || '',
+          qty: row?.qty || '',
+          amount: row?.amount || '',
+          dueDate: row?.dueDate ? String(row.dueDate).split('T')[0] : '',
+        })) : [createEmptyVendorAssignment()]);
+        setSelectedTaskGroups(Array.isArray(order?.Steps) ? order.Steps.map((row) => row?.uuid).filter(Boolean) : []);
+        setIsVendorChecked(Boolean(order?.vendorAssignments?.length));
+      } catch (error) {
+        console.error('Failed to hydrate order for edit', error);
+      }
+    };
+
+    hydrateEditOrder();
+  }, [editOrderId]);
 
   const closeAddOrder = () => {
     if (isEmbeddedFlow) closeModal();
@@ -303,6 +358,13 @@ export default function AddOrder1({ closeModal }) {
       ) || null,
     [sortedCustomerOptions, selectedCustomerUuid, Customer_name]
   );
+
+  useEffect(() => {
+    if (selectedCustomer?.Customer_name) {
+      setCustomer_Name(selectedCustomer.Customer_name);
+      setCustomerSearchInput(selectedCustomer.Customer_name);
+    }
+  }, [selectedCustomer?.Customer_name]);
 
   const stepCandidates = useMemo(
     () =>
@@ -576,7 +638,7 @@ export default function AddOrder1({ closeModal }) {
       const driveMeta = getDriveMetaFromCustomer(customer);
       const drivePayload = buildDrivePayload(driveMeta);
 
-      const orderRes = await axios.post('/order/addOrder', {
+      const orderPayload = {
         Customer_uuid: customer.Customer_uuid,
         orderMode: isDetailedOrder ? 'items' : 'note',
         orderNote: isDetailedOrder ? '' : String(Remark || '').trim(),
@@ -588,7 +650,11 @@ export default function AddOrder1({ closeModal }) {
         isEnquiry: isEnquiryOnly,
         customerName: customer.Customer_name || Customer_name || '',
         ...drivePayload,
-      });
+      };
+
+      const orderRes = editOrderId
+        ? await axios.put(`/order/updateOrder/${editOrderId}`, orderPayload)
+        : await axios.post('/order/addOrder', orderPayload);
 
       if (!orderRes.data?.success) {
         toast.error('Failed to add order');
@@ -596,6 +662,7 @@ export default function AddOrder1({ closeModal }) {
       }
 
       setCreatedOrder(orderRes.data.result || null);
+      setSavedOrderId(orderRes?.data?.result?._id || editOrderId || '');
       setLatestOrderNumber(
         orderRes?.data?.result?.Order_Number || orderRes?.data?.result?.Order_number || ''
       );
@@ -637,7 +704,10 @@ export default function AddOrder1({ closeModal }) {
       }
 
       setShowInvoiceModal(true);
-      if (!hasDriveStatusToast) toast.success('Order added');
+      if (!hasDriveStatusToast) toast.success(editOrderId ? 'Order updated' : 'Order added');
+
+      const shouldPromptAssignment = !isEnquiryOnly && isAdminUser;
+      if (shouldPromptAssignment) setShowAssignDialog(true);
 
       if (isAdvanceChecked && Amount && group) {
         const amt = Number(Amount || 0);
@@ -706,6 +776,51 @@ export default function AddOrder1({ closeModal }) {
         onSendWhatsApp={() => sendWhatsApp()}
       />
 
+      <Dialog open={showAssignDialog} onClose={() => setShowAssignDialog(false)} fullWidth maxWidth="xs">
+        <DialogTitle>Assign design task</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              Assign this order now so it appears in that user's pending design queue and attendance popup.
+            </Typography>
+            <TextField
+              select
+              label="Design user"
+              value={selectedAssignee}
+              onChange={(e) => setSelectedAssignee(e.target.value)}
+              size="small"
+              fullWidth
+              sx={compactFieldSx}
+            >
+              <MenuItem value="">Select user</MenuItem>
+              {assignableUsers.map((user) => (
+                <MenuItem key={user._id} value={user._id}>
+                  {user.User_name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowAssignDialog(false)}>Later</Button>
+          <Button
+            variant="contained"
+            disabled={!selectedAssignee || !savedOrderId}
+            onClick={async () => {
+              try {
+                await axios.patch(`/order/${savedOrderId}/assign`, { assignedTo: selectedAssignee, assignedBy: localStorage.getItem('User_name') || 'System' });
+                toast.success('Design assigned successfully');
+                setShowAssignDialog(false);
+              } catch (error) {
+                toast.error(error?.response?.data?.message || 'Failed to assign design');
+              }
+            }}
+          >
+            Assign now
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <FullscreenAddFormLayout
         onSubmit={submit}
         onClose={closeAddOrder}
@@ -716,7 +831,7 @@ export default function AddOrder1({ closeModal }) {
               : 'Submitting...'
             : isEnquiryOnly
               ? 'Save Enquiry'
-              : 'Submit Order'
+              : editOrderId ? 'Update Order' : 'Submit Order'
         }
         busy={isSubmitting}
         disableSubmit={optionsLoading || isSubmitting || !canSubmit}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Box, Button, Card, CardContent, Chip, Divider, Stack, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Stack, Typography } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import axios from '../apiClient';
 import { fetchMyOrderTasks } from '../services/orderService';
@@ -10,6 +10,8 @@ export default function UserTask() {
   const [attendanceFlow, setAttendanceFlow] = useState([]);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [pendingAssignments, setPendingAssignments] = useState([]);
+  const [showAssignmentDialog, setShowAssignmentDialog] = useState(false);
 
   const loadPage = async () => {
     if (!userName) return;
@@ -19,8 +21,10 @@ export default function UserTask() {
         fetchMyOrderTasks(userName),
         axios.get(`/attendance/getTodayAttendance/${userName}`),
       ]);
+      const pending = attendanceRes?.data?.pendingAssignments || taskRes?.data?.result?.orders || [];
       setTasks(taskRes?.data?.result?.orders || []);
       setAttendanceFlow(attendanceRes?.data?.flow || []);
+      setPendingAssignments(pending);
       setMessage(taskRes?.data?.result?.message || '');
     } catch (err) {
       console.error(err);
@@ -38,12 +42,16 @@ export default function UserTask() {
   const saveAttendance = async (type) => {
     try {
       setError('');
-      await axios.post('/attendance/addAttendance', {
+      const response = await axios.post('/attendance/addAttendance', {
         User_name: userName,
         Type: type,
         Status: type === 'Out' ? 'Completed' : 'Present',
         Time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       });
+      if (type === 'In' && Array.isArray(response?.data?.pendingAssignments)) {
+        setPendingAssignments(response.data.pendingAssignments);
+        setShowAssignmentDialog(response.data.pendingAssignments.length > 0);
+      }
       await loadPage();
     } catch (err) {
       console.error(err);
@@ -65,6 +73,24 @@ export default function UserTask() {
 
       {error && <Alert severity="error">{error}</Alert>}
       {message && <Alert severity="info">{message}</Alert>}
+
+      <Dialog open={showAssignmentDialog} onClose={() => setShowAssignmentDialog(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Your design assignments</DialogTitle>
+        <DialogContent>
+          <Stack spacing={1.5} sx={{ pt: 1 }}>
+            {pendingAssignments.length ? pendingAssignments.map((task) => (
+              <Box key={task._id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
+                <Typography fontWeight={700}>Order #{task.Order_Number}</Typography>
+                <Typography variant="body2" color="text.secondary">Task: {task?.latestStatusTask?.Task || task.stage || 'Design'}</Typography>
+                <Typography variant="body2" color="text.secondary">Due: {task?.dueDate ? new Date(task.dueDate).toLocaleString() : 'Today 8:00 PM'}</Typography>
+              </Box>
+            )) : <Typography variant="body2" color="text.secondary">No pending design assignments right now.</Typography>}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowAssignmentDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
 
       <Card>
         <CardContent>
