@@ -192,6 +192,7 @@ export const parsePriceCatalogRows = (
   const lowerHeaders = activeHeaders.map((header) => header.toLowerCase());
   const hasRate = lowerHeaders.includes('rate');
   const deliveryAliases = new Set(['dispatch days', 'delivery', 'delivary']);
+  const hasDelivery = lowerHeaders.some((header) => deliveryAliases.has(header));
 
   if (Array.isArray(explicitResultFields) && explicitResultFields.length > 0) {
     resultFields = explicitResultFields
@@ -206,13 +207,9 @@ export const parsePriceCatalogRows = (
       const key = header.toLowerCase();
       return key === 'rate' || deliveryAliases.has(key);
     });
-
     if (!resultFields.length) {
-      const rateField = activeHeaders.find((header) => header.toLowerCase() === 'rate');
-      const trailingField = activeHeaders[activeHeaders.length - 1];
-      resultFields = [rateField, trailingField].filter(Boolean);
+      resultFields = activeHeaders.filter((header) => header.toLowerCase() === 'rate');
     }
-
     selectionFields = activeHeaders.filter((header) => !resultFields.includes(header));
   } else if (activeHeaders.length === 1) {
     selectionFields = [];
@@ -221,7 +218,7 @@ export const parsePriceCatalogRows = (
     selectionFields = [activeHeaders[0]];
     resultFields = [activeHeaders[1]];
   } else {
-    const safeResultCount = Math.min(Math.max(Number(resultColumnCount) || 2, 1), Math.min(2, activeHeaders.length - 1));
+    const safeResultCount = Math.min(Math.max(Number(resultColumnCount) || 2, 1), 2);
     selectionFields = activeHeaders.slice(0, activeHeaders.length - safeResultCount);
     resultFields = activeHeaders.slice(activeHeaders.length - safeResultCount);
   }
