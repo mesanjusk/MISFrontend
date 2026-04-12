@@ -1,9 +1,8 @@
 /* eslint-disable react/prop-types */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from '../apiClient.js';
 import toast from 'react-hot-toast';
-import InvoiceModal from '../Components/InvoiceModal';
 import { LoadingSpinner } from '../Components';
 import { extractPhoneNumber, normalizeWhatsAppPhone, sendAdminAlertText } from '../utils/whatsapp.js';
 import {
@@ -23,6 +22,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControlLabel,
+  GlobalStyles,
   IconButton,
   MenuItem,
   Paper,
@@ -34,7 +34,6 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import { FullscreenAddFormLayout } from '../components/ui';
 import { compactCardSx, compactFieldSx } from '../components/ui/addFormStyles';
 
@@ -163,7 +162,6 @@ const buildDrivePayload = (driveMeta = {}) => {
 export default function AddOrder1({ closeModal }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const previewRef = useRef();
 
   const [entryType, setEntryType] = useState('Order');
   const [Customer_name, setCustomer_Name] = useState('');
@@ -183,9 +181,6 @@ export default function AddOrder1({ closeModal }) {
   const [sendWhatsAppAfterSave, setSendWhatsAppAfterSave] = useState(false);
   const [isVendorChecked, setIsVendorChecked] = useState(false);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
-  const [isTransactionSaved, setIsTransactionSaved] = useState(false);
-  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
-  const [invoiceItems, setInvoiceItems] = useState([]);
   const [createdOrder, setCreatedOrder] = useState(null);
   const [latestOrderNumber, setLatestOrderNumber] = useState('');
   const [optionsLoading, setOptionsLoading] = useState(true);
@@ -199,8 +194,9 @@ export default function AddOrder1({ closeModal }) {
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [selectedAssignee, setSelectedAssignee] = useState('');
   const [savedOrderId, setSavedOrderId] = useState('');
-  const editOrderId = location.state?.orderId || location.state?.order?._id || '';
+  const [pendingCloseAfterAssignment, setPendingCloseAfterAssignment] = useState(false);
 
+  const editOrderId = location.state?.orderId || location.state?.order?._id || '';
   const isEnquiryOnly = entryType === 'Enquiry';
   const isDetailedOrder = entryType === 'DetailedOrder';
   const isEmbeddedFlow = typeof closeModal === 'function';
@@ -243,26 +239,8 @@ export default function AddOrder1({ closeModal }) {
       setTaskGroups(tasks);
       setItemOptions(sortByName(itemsList, 'Item_name'));
 
-      const groupNames = itemGroups
-        .map((item) => item?.Item_group)
-        .filter(Boolean);
-
+      const groupNames = itemGroups.map((item) => item?.Item_group).filter(Boolean);
       setItemGroupOptions(sortStrings(groupNames));
-
-      if (
-        customerRes.status === 'rejected' ||
-        taskRes.status === 'rejected' ||
-        (itemRes.status === 'rejected' && itemResPaged.status === 'rejected') ||
-        itemGroupRes.status === 'rejected'
-      ) {
-        console.error('One or more dropdown APIs failed', {
-          customerRes,
-          taskRes,
-          itemRes,
-          itemResPaged,
-          itemGroupRes,
-        });
-      }
     } catch (error) {
       console.error(error);
       toast.error('Error fetching data');
@@ -295,43 +273,59 @@ export default function AddOrder1({ closeModal }) {
         const { data } = await axios.get(`/order/${editOrderId}`);
         const order = data?.result || data || null;
         if (!order) return;
+
         const note = order?.orderNote || order?.Remark || '';
         setCreatedOrder(order);
         setSavedOrderId(order?._id || '');
         setLatestOrderNumber(order?.Order_Number || order?.Order_number || '');
         setSelectedCustomerUuid(order?.Customer_uuid || '');
         setRemark(note);
+
         setEntryType(Array.isArray(order?.Items) && order.Items.length ? 'DetailedOrder' : 'Order');
-        setItems(Array.isArray(order?.Items) && order.Items.length ? order.Items.map((row) => ({
-          Item: row?.Item || '',
-          Item_uuid: row?.Item_uuid || '',
-          Item_group: row?.Item_group || '',
-          itemType: row?.itemType || 'finished_item',
-          Quantity: row?.Quantity || 1,
-          Rate: row?.Rate || 0,
-          Amount: row?.Amount || 0,
-          Remark: row?.Remark || '',
-        })) : [createEmptyItem()]);
-        setVendorAssignments(Array.isArray(order?.vendorAssignments) && order.vendorAssignments.length ? order.vendorAssignments.map((row) => ({
-          vendorCustomerUuid: row?.vendorCustomerUuid || '',
-          vendorName: row?.vendorName || '',
-          workType: row?.workType || '',
-          note: row?.note || '',
-          qty: row?.qty || '',
-          amount: row?.amount || '',
-          dueDate: row?.dueDate ? String(row.dueDate).split('T')[0] : '',
-        })) : [createEmptyVendorAssignment()]);
-        setSelectedTaskGroups(Array.isArray(order?.Steps) ? order.Steps.map((row) => row?.uuid).filter(Boolean) : []);
+
+        setItems(
+          Array.isArray(order?.Items) && order.Items.length
+            ? order.Items.map((row) => ({
+                Item: row?.Item || '',
+                Item_uuid: row?.Item_uuid || '',
+                Item_group: row?.Item_group || '',
+                itemType: row?.itemType || 'finished_item',
+                Quantity: row?.Quantity || 1,
+                Rate: row?.Rate || 0,
+                Amount: row?.Amount || 0,
+                Remark: row?.Remark || '',
+              }))
+            : [createEmptyItem()]
+        );
+
+        setVendorAssignments(
+          Array.isArray(order?.vendorAssignments) && order.vendorAssignments.length
+            ? order.vendorAssignments.map((row) => ({
+                vendorCustomerUuid: row?.vendorCustomerUuid || '',
+                vendorName: row?.vendorName || '',
+                workType: row?.workType || '',
+                note: row?.note || '',
+                qty: row?.qty || '',
+                amount: row?.amount || '',
+                dueDate: row?.dueDate ? String(row.dueDate).split('T')[0] : '',
+              }))
+            : [createEmptyVendorAssignment()]
+        );
+
+        setSelectedTaskGroups(
+          Array.isArray(order?.Steps) ? order.Steps.map((row) => row?.uuid).filter(Boolean) : []
+        );
         setIsVendorChecked(Boolean(order?.vendorAssignments?.length));
       } catch (error) {
         console.error('Failed to hydrate order for edit', error);
+        toast.error('Failed to load order for edit');
       }
     };
 
     hydrateEditOrder();
   }, [editOrderId]);
 
-  const closeAddOrder = () => {
+  const finishAndClose = () => {
     if (isEmbeddedFlow) closeModal();
     else navigate('/home');
   };
@@ -396,9 +390,9 @@ export default function AddOrder1({ closeModal }) {
 
   const selectMenuProps = useMemo(
     () => ({
-      sx: { zIndex: 2305 },
+      sx: { zIndex: 2605 },
       PaperProps: {
-        sx: { zIndex: 2305 },
+        sx: { zIndex: 2605 },
       },
     }),
     []
@@ -407,7 +401,7 @@ export default function AddOrder1({ closeModal }) {
   const autocompleteSlotProps = useMemo(
     () => ({
       popper: {
-        sx: { zIndex: 2305 },
+        sx: { zIndex: 2605 },
       },
     }),
     []
@@ -482,8 +476,12 @@ export default function AddOrder1({ closeModal }) {
           if (selectedItem?.Item_group) next.Item_group = selectedItem.Item_group;
           if (selectedItem?.Item_uuid) next.Item_uuid = selectedItem.Item_uuid;
           if (selectedItem?.itemType) next.itemType = selectedItem.itemType;
-          if (selectedItem?.defaultSaleRate && !Number(next.Rate || 0)) next.Rate = Number(selectedItem.defaultSaleRate || 0);
-          if (selectedItem?.defaultSaleRate && field !== 'Amount') next.Amount = Number(next.Quantity || 0) * Number(next.Rate || selectedItem.defaultSaleRate || 0);
+          if (selectedItem?.defaultSaleRate && !Number(next.Rate || 0)) {
+            next.Rate = Number(selectedItem.defaultSaleRate || 0);
+          }
+          if (selectedItem?.defaultSaleRate && field !== 'Amount') {
+            next.Amount = Number(next.Quantity || 0) * Number(next.Rate || selectedItem.defaultSaleRate || 0);
+          }
         }
 
         const quantity = Number(next.Quantity || 0);
@@ -611,6 +609,22 @@ export default function AddOrder1({ closeModal }) {
     }
   };
 
+  const openAssignmentFlow = (orderId) => {
+    setSavedOrderId(orderId || '');
+    setSelectedAssignee('');
+    setShowAssignDialog(true);
+    setPendingCloseAfterAssignment(true);
+  };
+
+  const completeAfterSave = (savedId) => {
+    const shouldPromptAssignment = !isEnquiryOnly && isAdminUser && !editOrderId;
+    if (shouldPromptAssignment) {
+      openAssignmentFlow(savedId);
+    } else {
+      finishAndClose();
+    }
+  };
+
   const submit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -657,57 +671,40 @@ export default function AddOrder1({ closeModal }) {
         : await axios.post('/order/addOrder', orderPayload);
 
       if (!orderRes.data?.success) {
-        toast.error('Failed to add order');
+        toast.error(editOrderId ? 'Failed to update order' : 'Failed to add order');
         return;
       }
 
-      setCreatedOrder(orderRes.data.result || null);
-      setSavedOrderId(orderRes?.data?.result?._id || editOrderId || '');
+      const savedOrder = orderRes.data.result || null;
+      const savedId = savedOrder?._id || editOrderId || '';
+      setCreatedOrder(savedOrder);
+      setSavedOrderId(savedId);
       setLatestOrderNumber(
-        orderRes?.data?.result?.Order_Number || orderRes?.data?.result?.Order_number || ''
+        savedOrder?.Order_Number || savedOrder?.Order_number || ''
       );
 
-      const driveFile = orderRes.data?.driveFile || orderRes.data?.result?.driveFile;
-
-      const hasDriveStatusToast =
-        driveFile?.status === 'created' || driveFile?.status === 'failed' || driveFile?.status === 'skipped';
+      const driveFile = orderRes.data?.driveFile || savedOrder?.driveFile;
 
       if (driveFile?.status === 'created') {
-        toast.success('Order added and Drive file created');
-      } else if (driveFile?.status === 'skipped') {
-        toast.success('Order added');
+        toast.success('Order saved and Drive file created');
       } else if (driveFile?.status === 'failed') {
         toast.error(`Order saved, but Drive file failed: ${driveFile?.error || 'Unknown error'}`);
       } else {
-        toast.success('Order added');
+        toast.success(editOrderId ? 'Order updated successfully' : 'Order saved successfully');
       }
 
       if (isEnquiryOnly) {
         toast.success('Enquiry saved');
-        if (isEmbeddedFlow) closeAddOrder();
-        else navigate('/home');
+        finishAndClose();
         return;
       }
 
-      setInvoiceItems(
-        isDetailedOrder
-          ? payloadItems
-          : [{ Item: 'Order Note', Quantity: 0, Rate: 0, Amount: 0, Remark }]
-      );
-
       const phoneNumber = extractPhoneNumber(customer);
       setMobileToSend(phoneNumber);
-      setIsTransactionSaved(true);
 
       if (sendWhatsAppAfterSave) {
         await sendWhatsApp(phoneNumber, customer);
       }
-
-      setShowInvoiceModal(true);
-      if (!hasDriveStatusToast) toast.success(editOrderId ? 'Order updated' : 'Order added');
-
-      const shouldPromptAssignment = !isEnquiryOnly && isAdminUser;
-      if (shouldPromptAssignment) setShowAssignDialog(true);
 
       if (isAdvanceChecked && Amount && group) {
         const amt = Number(Amount || 0);
@@ -737,10 +734,6 @@ export default function AddOrder1({ closeModal }) {
           });
 
           if (txnRes.data?.success) {
-            setInvoiceItems((prev) => [
-              ...prev,
-              { Item: 'Advance', Quantity: 1, Rate: amt, Amount: amt, Remark: '' },
-            ]);
             toast.success('Advance payment recorded');
           } else {
             toast.error('Transaction failed');
@@ -750,7 +743,7 @@ export default function AddOrder1({ closeModal }) {
         }
       }
 
-      if (isEmbeddedFlow) closeAddOrder();
+      completeAfterSave(savedId);
     } catch (error) {
       console.error('Error during submit:', error);
       toast.error(error?.response?.data?.message || 'Something went wrong');
@@ -759,29 +752,77 @@ export default function AddOrder1({ closeModal }) {
     }
   };
 
+  const handleAssignLater = () => {
+    setShowAssignDialog(false);
+    if (pendingCloseAfterAssignment) {
+      setPendingCloseAfterAssignment(false);
+      finishAndClose();
+    }
+  };
+
+  const handleAssignNow = async () => {
+    try {
+      const selectedUser = assignableUsers.find(
+        (user) => String(user._id) === String(selectedAssignee)
+      );
+
+      await axios.patch(`/order/${savedOrderId}/assign`, {
+        assignedTo: selectedAssignee,
+        assignedBy: localStorage.getItem('User_name') || 'System',
+        assignedToName: selectedUser?.User_name || '',
+      });
+
+      toast.success('Design assigned successfully');
+      setShowAssignDialog(false);
+
+      if (pendingCloseAfterAssignment) {
+        setPendingCloseAfterAssignment(false);
+        finishAndClose();
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Failed to assign design');
+    }
+  };
+
   return (
     <>
-      <InvoiceModal
-        open={showInvoiceModal}
-        onClose={() => {
-          setShowInvoiceModal(false);
-          navigate('/home');
+      <GlobalStyles
+        styles={{
+          '#root': { isolation: 'isolate' },
+          '.react-hot-toast, [data-sonner-toaster], .Toaster, [data-hot-toast]': {
+            zIndex: '4000 !important',
+          },
+          '.MuiDialog-root': {
+            zIndex: '3200 !important',
+          },
+          '.MuiPopover-root, .MuiPopper-root, .MuiAutocomplete-popper, .MuiMenu-root': {
+            zIndex: '3300 !important',
+          },
         }}
-        invoiceRef={previewRef}
-        customerName={Customer_name}
-        customerMobile={mobileToSend}
-        items={invoiceItems}
-        remark={Remark}
-        order={createdOrder}
-        onSendWhatsApp={() => sendWhatsApp()}
       />
 
-      <Dialog open={showAssignDialog} onClose={() => setShowAssignDialog(false)} fullWidth maxWidth="xs">
+      <Dialog
+        open={showAssignDialog}
+        onClose={handleAssignLater}
+        fullWidth
+        maxWidth="xs"
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            zIndex: 3201,
+          },
+        }}
+        BackdropProps={{
+          sx: {
+            zIndex: 3200,
+          },
+        }}
+      >
         <DialogTitle>Assign design task</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             <Typography variant="body2" color="text.secondary">
-              Assign this order now so it appears in that user's pending design queue and attendance popup.
+              Assign this order now so it appears in that user&apos;s pending design queue and attendance popup.
             </Typography>
             <TextField
               select
@@ -791,6 +832,9 @@ export default function AddOrder1({ closeModal }) {
               size="small"
               fullWidth
               sx={compactFieldSx}
+              SelectProps={{
+                MenuProps: selectMenuProps,
+              }}
             >
               <MenuItem value="">Select user</MenuItem>
               {assignableUsers.map((user) => (
@@ -801,20 +845,12 @@ export default function AddOrder1({ closeModal }) {
             </TextField>
           </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowAssignDialog(false)}>Later</Button>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={handleAssignLater}>Later</Button>
           <Button
             variant="contained"
             disabled={!selectedAssignee || !savedOrderId}
-            onClick={async () => {
-              try {
-                await axios.patch(`/order/${savedOrderId}/assign`, { assignedTo: selectedAssignee, assignedBy: localStorage.getItem('User_name') || 'System' });
-                toast.success('Design assigned successfully');
-                setShowAssignDialog(false);
-              } catch (error) {
-                toast.error(error?.response?.data?.message || 'Failed to assign design');
-              }
-            }}
+            onClick={handleAssignNow}
           >
             Assign now
           </Button>
@@ -823,7 +859,7 @@ export default function AddOrder1({ closeModal }) {
 
       <FullscreenAddFormLayout
         onSubmit={submit}
-        onClose={closeAddOrder}
+        onClose={closeModal || (() => navigate('/home'))}
         submitLabel={
           isSubmitting
             ? isEnquiryOnly
@@ -831,7 +867,9 @@ export default function AddOrder1({ closeModal }) {
               : 'Submitting...'
             : isEnquiryOnly
               ? 'Save Enquiry'
-              : editOrderId ? 'Update Order' : 'Submit Order'
+              : editOrderId
+                ? 'Update Order'
+                : 'Submit Order'
         }
         busy={isSubmitting}
         disableSubmit={optionsLoading || isSubmitting || !canSubmit}
@@ -1064,14 +1102,14 @@ export default function AddOrder1({ closeModal }) {
                         ))}
                       </TextField>
 
-
-                      {selectedItemCatalogMap.get(item.Item)?.itemType === 'finished_item' && (selectedItemCatalogMap.get(item.Item)?.bomCount || 0) > 0 && (
+                      {selectedItemCatalogMap.get(item.Item)?.itemType === 'finished_item' &&
+                      (selectedItemCatalogMap.get(item.Item)?.bomCount || 0) > 0 ? (
                         <Alert severity="info" sx={{ borderRadius: 2 }}>
                           This finished item has {(selectedItemCatalogMap.get(item.Item)?.bomCount || 0)} BOM rows. Raw material and service work will be created automatically after saving the order. Vendor or user can be decided later.
                         </Alert>
-                      )}
+                      ) : null}
 
-                      {selectedItemCatalogMap.get(item.Item)?.itemType && (
+                      {selectedItemCatalogMap.get(item.Item)?.itemType ? (
                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                           <TextField
                             label="Item Type"
@@ -1090,7 +1128,7 @@ export default function AddOrder1({ closeModal }) {
                             sx={compactFieldSx}
                           />
                         </Stack>
-                      )}
+                      ) : null}
 
                       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                         <TextField
@@ -1378,20 +1416,6 @@ export default function AddOrder1({ closeModal }) {
                       </Paper>
                     ))}
                   </Stack>
-                ) : null}
-
-                {isTransactionSaved ? (
-                  <Button
-                    type="button"
-                    variant="contained"
-                    size="small"
-                    startIcon={<SendRoundedIcon />}
-                    onClick={() => sendWhatsApp()}
-                    disabled={isSendingWhatsApp}
-                    sx={{ alignSelf: 'flex-start', borderRadius: 2 }}
-                  >
-                    {isSendingWhatsApp ? 'Sending...' : 'Send WhatsApp Receipt'}
-                  </Button>
                 ) : null}
               </Stack>
             </Paper>
