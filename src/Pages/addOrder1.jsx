@@ -781,14 +781,9 @@ export default function AddOrder1({ closeModal }) {
 
   const handleAssignNow = async () => {
     try {
-      const selectedUser = assignableUsers.find(
-        (user) => String(user._id) === String(selectedAssignee)
-      );
-
       await axios.patch(`/order/${savedOrderId}/assign`, {
         assignedTo: selectedAssignee,
         assignedBy: localStorage.getItem('User_name') || 'System',
-        assignedToName: selectedUser?.User_name || '',
       });
 
       toast.success('Design assigned successfully');
@@ -841,7 +836,7 @@ export default function AddOrder1({ closeModal }) {
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             <Typography variant="body2" color="text.secondary">
-              Assign this order now so it appears in that user's pending design queue and attendance popup.
+              Assign this order now so it appears in that user&apos;s pending design queue and attendance popup.
             </Typography>
             <TextField
               select
@@ -858,7 +853,7 @@ export default function AddOrder1({ closeModal }) {
               <MenuItem value="">Select office user</MenuItem>
               {assignableUsers.length ? (
                 assignableUsers.map((user) => (
-                  <MenuItem key={user._id} value={user._id}>
+                  <MenuItem key={user._id} value={user.User_name}>
                     {user.User_name}
                   </MenuItem>
                 ))
