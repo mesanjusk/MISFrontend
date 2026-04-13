@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import axios from "../apiClient";
 import OrderUpdate from "./OrderUpdate";
 import UpdateDelivery from "./updateDelivery";
 import OrderBoard from "../components/orders/OrderBoard";
@@ -13,7 +14,7 @@ import {
 import { useOrderGrouping } from "../hooks/useOrderGrouping";
 import { useOrderDnD } from "../hooks/useOrderDnD";
 
-/* ✅ MUI (UI nly) */
+/* ✅ MUI */
 import {
   AppBar,
   Toolbar,
@@ -53,10 +54,34 @@ const SORT_OPTIONS = [
 
 const normLower = (v) => String(v || "").trim().toLowerCase();
 
-// Enquiry detection should be based on CURRENT stage only
 const isEnquiryTask = (task) => {
   const t = normLower(task);
   return t === "enquiry" || t === "enquiries" || t === "inquiry" || t === "lead";
+};
+
+const getAssignmentGroupsForTask = (task) => {
+  const t = normLower(task);
+
+  if (["design", "approval", "hold", "ready to print"].includes(t)) {
+    return ["Office User"];
+  }
+
+  if (["fitting", "bind-pack", "bind pack"].includes(t)) {
+    return ["Other Office", "Vendor"];
+  }
+
+  if (["ready", "delivered"].includes(t)) {
+    return ["Vendor"];
+  }
+
+  return [];
+};
+
+const getAssignmentLabelForTask = (task) => {
+  const groups = getAssignmentGroupsForTask(task);
+  if (!groups.length) return "";
+  if (groups.length === 1) return groups[0];
+  return groups.join(" / ");
 };
 
 export default function AllOrder() {
@@ -74,6 +99,13 @@ export default function AllOrder() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [statusNotice, setStatusNotice] = useState("");
 
+  const [allUsers, setAllUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [pendingMove, setPendingMove] = useState(null);
+  const [selectedAssignee, setSelectedAssignee] = useState("");
+
   const {
     orderList,
     orderMap,
@@ -85,14 +117,12 @@ export default function AllOrder() {
     patchOrder,
   } = useOrdersData();
 
-  // ✅ Enquiry is CURRENT stage only. Fallback to Type only if highestStatusTask missing.
   const isEnquiry = useCallback((order) => {
     const currentTask = order?.highestStatusTask?.Task;
     if (String(currentTask || "").trim()) return isEnquiryTask(currentTask);
-    return isEnquiryTask(order?.Type); // fallback only
+    return isEnquiryTask(order?.Type);
   }, []);
 
-  // ✅ Counts based on current stage
   const { ordersCount, enquiriesCount } = useMemo(() => {
     let enquiries = 0;
     for (const order of orderList) {
@@ -109,7 +139,26 @@ export default function AllOrder() {
       localStorage.getItem("Role") ||
       localStorage.getItem("role") ||
       localStorage.getItem("User_role");
+
     setIsAdmin(normLower(role) === ROLE_TYPES.ADMIN);
+  }, []);
+
+  useEffect(() => {
+    const loadUsers = async () => {
+      setUsersLoading(true);
+      try {
+        const { data } = await axios.get("/user/GetUserList");
+        const rows = Array.isArray(data?.result) ? data.result : [];
+        setAllUsers(rows);
+      } catch (error) {
+        console.error("Failed to load users", error);
+        toast.error("Failed to load users");
+      } finally {
+        setUsersLoading(false);
+      }
+    };
+
+    loadUsers();
   }, []);
 
   const isTouchDevice = useMemo(() => {
@@ -121,13 +170,11 @@ export default function AllOrder() {
     );
   }, []);
 
-  // ✅ Filter lists per tab
   const filteredOrderList = useMemo(() => {
     if (viewTab === "enquiries") return orderList.filter((o) => isEnquiry(o));
     return orderList.filter((o) => !isEnquiry(o));
   }, [orderList, viewTab, isEnquiry]);
 
-  // ✅ Enquiries tab: only ONE column
   const { columnOrder, groupedOrders } = useOrderGrouping(
     filteredOrderList,
     tasksMeta,
@@ -139,7 +186,7 @@ export default function AllOrder() {
       : { includeCancelColumn: false }
   );
 
-  const handleMove = useCallback(
+  const performMove = useCallback(
     async (orderId, targetTask, setStatusMessage) => {
       const order = orderMap[orderId];
       if (!order) return;
@@ -147,6 +194,7 @@ export default function AllOrder() {
       const normalizedTask = String(targetTask || TASK_TYPES.OTHER).trim();
       const lower = normalizedTask.toLowerCase();
       const currentTask = normLower(order?.highestStatusTask?.Task);
+
       if (currentTask === lower) return;
 
       if (lower === TASK_TYPES.CANCEL.toLowerCase()) {
@@ -154,12 +202,14 @@ export default function AllOrder() {
           toast.error("Cancel is Admin only");
           return;
         }
+
         const first = window.confirm("Move this order to Cancel?");
         const second =
           first &&
           window.confirm(
             "This will mark the order as Cancel. Confirm again to continue."
           );
+
         if (!second) return;
       }
 
@@ -217,6 +267,39 @@ export default function AllOrder() {
     [orderMap, isAdmin, patchOrder, replaceOrder]
   );
 
+  const handleMove = useCallback(
+    async (orderId, targetTask, setStatusMessage) => {
+      const requiredGroups = getAssignmentGroupsForTask(targetTask);
+
+      if (!requiredGroups.length) {
+        await performMove(orderId, targetTask, setStatusMessage);
+        return;
+      }
+
+      const order = orderMap[orderId];
+      if (!order) return;
+
+      const matchingUsers = allUsers.filter((user) =>
+        requiredGroups.includes(String(user?.User_group || "").trim())
+      );
+
+      if (!matchingUsers.length) {
+        toast.error(`No ${getAssignmentLabelForTask(targetTask)} user found`);
+        return;
+      }
+
+      setPendingMove({
+        orderId,
+        targetTask,
+        setStatusMessage,
+        requiredGroups,
+      });
+      setSelectedAssignee("");
+      setShowAssignDialog(true);
+    },
+    [allUsers, orderMap, performMove]
+  );
+
   const {
     dragHandlers,
     mobileSelection,
@@ -268,9 +351,48 @@ export default function AllOrder() {
     setMobileMoveTarget("");
   };
 
+  const assignableUsersForDialog = useMemo(() => {
+    const groups = pendingMove?.requiredGroups || [];
+    if (!groups.length) return [];
+    return allUsers.filter((user) =>
+      groups.includes(String(user?.User_group || "").trim())
+    );
+  }, [allUsers, pendingMove]);
+
+  const handleCloseAssignDialog = () => {
+    setShowAssignDialog(false);
+    setPendingMove(null);
+    setSelectedAssignee("");
+  };
+
+  const handleConfirmAssignAndMove = async () => {
+    if (!pendingMove?.orderId || !pendingMove?.targetTask || !selectedAssignee) return;
+
+    try {
+      await axios.patch(`/order/${pendingMove.orderId}/assign`, {
+        assignedTo: selectedAssignee,
+        assignedBy: localStorage.getItem("User_name") || "System",
+      });
+
+      toast.success("Assignee updated");
+      setShowAssignDialog(false);
+
+      await performMove(
+        pendingMove.orderId,
+        pendingMove.targetTask,
+        pendingMove.setStatusMessage
+      );
+
+      setPendingMove(null);
+      setSelectedAssignee("");
+    } catch (error) {
+      console.error("Assignment failed", error);
+      toast.error(error?.response?.data?.message || "Failed to assign user");
+    }
+  };
+
   return (
     <>
-      {/* ✅ Top loading indicator (replaces Tailwind bar) */}
       {isOrdersLoading && (
         <Box sx={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 2000 }}>
           <LinearProgress />
@@ -278,7 +400,6 @@ export default function AllOrder() {
       )}
 
       <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
-        {/* ✅ Mobile-app style header */}
         <AppBar position="sticky" elevation={0}>
           <Toolbar>
             <Typography variant="h6" sx={{ flex: 1 }}>
@@ -291,7 +412,6 @@ export default function AllOrder() {
         </AppBar>
 
         <Container maxWidth={false} sx={{ maxWidth: 2200, py: 2 }}>
-          {/* ✅ Tabs + Controls card */}
           <Paper
             variant="outlined"
             sx={{
@@ -351,7 +471,6 @@ export default function AllOrder() {
             </Stack>
           </Paper>
 
-          {/* ✅ Error state */}
           {loadError && (
             <Alert
               severity="error"
@@ -372,7 +491,6 @@ export default function AllOrder() {
             </Alert>
           )}
 
-          {/* ✅ Main content */}
           <Paper
             variant="outlined"
             sx={{
@@ -442,7 +560,6 @@ export default function AllOrder() {
         </Container>
       </Box>
 
-      {/* ✅ Order Details (MUI Dialog replaces Tailwind Modal usage in THIS file) */}
       <Dialog open={showOrderModal} onClose={closeOrderModal} fullWidth maxWidth="md">
         <DialogTitle>Order Details</DialogTitle>
         <DialogContent dividers>
@@ -458,7 +575,6 @@ export default function AllOrder() {
         </DialogActions>
       </Dialog>
 
-      {/* ✅ Update Delivery (MUI Dialog) */}
       <Dialog open={showDeliveryModal} onClose={closeDeliveryModal} fullWidth maxWidth="md">
         <DialogTitle>Update Delivery</DialogTitle>
         <DialogContent dividers>
@@ -474,7 +590,6 @@ export default function AllOrder() {
         </DialogActions>
       </Dialog>
 
-      {/* ✅ Mobile Move (MUI Dialog replaces Tailwind Modal usage in THIS file) */}
       <Dialog
         open={Boolean(mobileSelection && mobileMoveOrder)}
         onClose={handleCancelMobileMove}
@@ -530,6 +645,60 @@ export default function AllOrder() {
             disabled={!mobileMoveTarget}
           >
             Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={showAssignDialog}
+        onClose={handleCloseAssignDialog}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Assign before moving</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2}>
+            <Typography variant="body2" color="text.secondary">
+              {pendingMove?.targetTask
+                ? `Moving to "${pendingMove.targetTask}" requires assignee from: ${getAssignmentLabelForTask(
+                    pendingMove.targetTask
+                  )}`
+                : "Select assignee"}
+            </Typography>
+
+            <FormControl fullWidth>
+              <InputLabel id="assign-user-label">Assignee</InputLabel>
+              <Select
+                labelId="assign-user-label"
+                value={selectedAssignee}
+                label="Assignee"
+                onChange={(e) => setSelectedAssignee(e.target.value)}
+              >
+                {assignableUsersForDialog.map((user) => (
+                  <MenuItem key={user._id} value={user.User_name}>
+                    {user.User_name} ({user.User_group})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {usersLoading ? <LinearProgress /> : null}
+
+            {!usersLoading && !assignableUsersForDialog.length ? (
+              <Alert severity="warning" variant="outlined">
+                No matching assignee found for this move.
+              </Alert>
+            ) : null}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseAssignDialog}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleConfirmAssignAndMove}
+            disabled={!selectedAssignee}
+          >
+            Assign & Move
           </Button>
         </DialogActions>
       </Dialog>
