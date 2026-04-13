@@ -63,6 +63,9 @@ export const SIDEBAR_GROUPS = [
     items: [
       { label: 'Orders Report', path: ROUTES.REPORTS_ORDERS, icon: <AnalyticsRoundedIcon fontSize="small" /> },
       { label: 'Transactions Report', path: ROUTES.ALL_TRANSACTION, icon: <AnalyticsRoundedIcon fontSize="small" /> },
+      { label: 'Transactions Report 1', path: '/allTransaction1', icon: <AnalyticsRoundedIcon fontSize="small" /> },
+      { label: 'Transactions Report 2', path: '/allTransaction2', icon: <AnalyticsRoundedIcon fontSize="small" /> },
+      { label: 'Transactions Report 3', path: '/allTransaction3', icon: <AnalyticsRoundedIcon fontSize="small" /> },
       { label: 'Customers Report', path: ROUTES.REPORTS_CUSTOMERS, icon: <AnalyticsRoundedIcon fontSize="small" /> },
       { label: 'Payments Report', path: ROUTES.PAYMENT_REPORT, icon: <AnalyticsRoundedIcon fontSize="small" /> },
       { label: 'Items Report', path: ROUTES.REPORTS_ITEMS, icon: <AnalyticsRoundedIcon fontSize="small" /> },

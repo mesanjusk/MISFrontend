@@ -38,6 +38,9 @@ const WhatsAppCloudDashboard = lazy(() => import('./Pages/WhatsAppCloudDashboard
 const AllOrder = lazy(() => import('./Reports/allOrder'));
 const AllDelivery = lazy(() => import('./Reports/allDelivery'));
 const AllTransaction = lazy(() => import('./Reports/allTransaction'));
+const AllTransaction1 = lazy(() => import('./Reports/allTransaction1'));
+const AllTransaction2 = lazy(() => import('./Reports/allTransaction2'));
+const AllTransaction3 = lazy(() => import('./Reports/allTransaction3'));
 const CustomerReport = lazy(() => import('./Reports/customerReport'));
 const PaymentReport = lazy(() => import('./Reports/paymentReport'));
 const ItemReport = lazy(() => import('./Reports/itemReport'));
@@ -137,6 +140,10 @@ export default function App() {
             <Route path="/reports/delivery" element={withSuspense(<AllDelivery />)} />
             <Route path="/allDelivery" element={withSuspense(<AllDelivery />)} />
             <Route path={ROUTES.ALL_TRANSACTION} element={withSuspense(<AllTransaction />)} />
+            <Route path="/allTransaction" element={withSuspense(<AllTransaction />)} />
+            <Route path="/allTransaction1" element={withSuspense(<AllTransaction1 />)} />
+            <Route path="/allTransaction2" element={withSuspense(<AllTransaction2 />)} />
+            <Route path="/allTransaction3" element={withSuspense(<AllTransaction3 />)} />
             <Route path="/reports/customers" element={withSuspense(<CustomerReport />)} />
             <Route path="/customerReport" element={withSuspense(<CustomerReport />)} />
             <Route path={ROUTES.PAYMENT_REPORT} element={withSuspense(<PaymentReport />)} />
