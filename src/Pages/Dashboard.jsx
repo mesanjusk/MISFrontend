@@ -40,7 +40,6 @@ import {
 import UpiPaymentDialog from '../components/dashboard/UpiPaymentDialog';
 
 const toId = (order) => order?.Order_uuid || order?._id || order?.Order_id;
-const toLower = (value = '') => String(value).trim().toLowerCase();
 const todayDateKey = () => new Date().toISOString().split('T')[0];
 
 const parseAmount = (value) => {
@@ -56,18 +55,6 @@ const normalizeDateValue = (value) => {
   if (Number.isNaN(dt.getTime())) return null;
   return dt;
 };
-
-const normalizeApiRows = (payload) => {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.result)) return payload.result;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.rows)) return payload.rows;
-  if (Array.isArray(payload?.items)) return payload.items;
-  return [];
-};
-
-const normalizeTaskStatus = (task) =>
-  toLower(task?.TaskStatus || task?.Status || task?.status || task?.Task_Status || 'pending');
 
 const isWithinNextDays = (value, days = 3) => {
   const date = normalizeDateValue(value);
@@ -231,8 +218,6 @@ export default function Dashboard() {
   const roleInfo = useUserRole();
   const [summaryApi, setSummaryApi] = useState({});
   const [summaryLoading, setSummaryLoading] = useState(true);
-  const [tasks, setTasks] = useState([]);
-  const [tasksLoading, setTasksLoading] = useState(true);
   const [followups, setFollowups] = useState([]);
   const [followupsLoading, setFollowupsLoading] = useState(true);
   const [showUpiDialog, setShowUpiDialog] = useState(false);
@@ -249,9 +234,15 @@ export default function Dashboard() {
     const fetchSummary = async () => {
       try {
         setSummaryLoading(true);
-        const res = await axios.get('/dashboard/summary');
+        const res = await axios.get('/dashboard/summary', {
+          params: {
+            userName: roleInfo?.userName || '',
+            isAdmin: Boolean(roleInfo?.isAdmin),
+            role: roleInfo?.role || '',
+          },
+        });
         if (!mounted) return;
-        setSummaryApi(res?.data?.result || res?.data?.data || {});
+        setSummaryApi(res?.data?.result || {});
       } catch {
         if (!mounted) return;
         setSummaryApi({});
@@ -260,52 +251,14 @@ export default function Dashboard() {
       }
     };
 
-    fetchSummary();
+    if (roleInfo?.userName || roleInfo?.isAdmin) {
+      fetchSummary();
+    }
+
     return () => {
       mounted = false;
     };
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const endpoints = [
-      '/usertask/GetUsertaskList',
-      '/usertask/getUsertaskList',
-      '/usertask/list',
-      '/usertask/get',
-    ];
-
-    const fetchTasks = async () => {
-      try {
-        setTasksLoading(true);
-        let rows = [];
-
-        for (const endpoint of endpoints) {
-          try {
-            const res = await axios.get(endpoint);
-            rows = normalizeApiRows(res?.data);
-            if (rows.length) break;
-          } catch {
-            // try next
-          }
-        }
-
-        if (!mounted) return;
-        setTasks(rows);
-      } catch (error) {
-        console.error('Error fetching dashboard tasks:', error);
-        if (mounted) setTasks([]);
-      } finally {
-        if (mounted) setTasksLoading(false);
-      }
-    };
-
-    fetchTasks();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  }, [roleInfo?.isAdmin, roleInfo?.role, roleInfo?.userName]);
 
   useEffect(() => {
     let mounted = true;
@@ -329,7 +282,15 @@ export default function Dashboard() {
         for (const endpoint of endpoints) {
           try {
             const res = await axios.get(endpoint);
-            const apiRows = normalizeApiRows(res?.data);
+            const apiRows = Array.isArray(res?.data?.result)
+              ? res.data.result
+              : Array.isArray(res?.data?.data)
+              ? res.data.data
+              : Array.isArray(res?.data?.rows)
+              ? res.data.rows
+              : Array.isArray(res?.data)
+              ? res.data
+              : [];
             if (apiRows.length) {
               rows = apiRows.map(normalizePaymentFollowup);
               break;
@@ -367,22 +328,22 @@ export default function Dashboard() {
   }, [data?.activeOrders]);
 
   const todayDeliveryCount = useMemo(
-    () => summaryApi?.todayDelivery ?? summaryApi?.deliveredToday ?? data?.summary?.deliveredToday ?? 0,
-    [data?.summary?.deliveredToday, summaryApi],
+    () => summaryApi?.todayDelivery ?? 0,
+    [summaryApi],
   );
 
   const todayRevenue = useMemo(
-    () => summaryApi?.revenueToday ?? summaryApi?.todayRevenue ?? 0,
+    () => summaryApi?.todayRevenue ?? 0,
     [summaryApi],
   );
 
   const todayReceivable = useMemo(
-    () => summaryApi?.pendingPayments ?? summaryApi?.paymentReceivableToday ?? summaryApi?.receivableToday ?? 0,
+    () => summaryApi?.pendingPayments ?? 0,
     [summaryApi],
   );
 
   const todayEnquiry = useMemo(
-    () => summaryApi?.todayEnquiry ?? summaryApi?.todayEnquiries ?? summaryApi?.enquiryToday ?? 0,
+    () => summaryApi?.todayEnquiry ?? 0,
     [summaryApi],
   );
 
@@ -390,7 +351,7 @@ export default function Dashboard() {
     () => [
       {
         title: 'New Orders',
-        value: summaryApi?.todayOrders ?? data?.summary?.pendingToday ?? 0,
+        value: summaryApi?.todayOrdersCount ?? 0,
         icon: AssignmentRoundedIcon,
         variant: 'primary',
       },
@@ -425,21 +386,12 @@ export default function Dashboard() {
         variant: 'primary',
       },
     ],
-    [data?.summary?.pendingToday, oldPendingOrders, summaryApi, todayDeliveryCount, todayEnquiry, todayReceivable, todayRevenue],
+    [oldPendingOrders, summaryApi, todayDeliveryCount, todayEnquiry, todayReceivable, todayRevenue],
   );
 
   const assignedTasks = useMemo(() => {
-    const taskRows = (tasks || []).filter((task) => !['completed', 'done'].includes(normalizeTaskStatus(task)));
-    const scopedRows = roleInfo?.isAdmin
-      ? taskRows
-      : taskRows.filter((task) => toLower(task?.User || task?.AssignedTo || task?.Assigned) === toLower(roleInfo?.userName));
-
-    return scopedRows.sort((a, b) => {
-      const dateA = normalizeDateValue(a?.Deadline || a?.CreatedAt || a?.createdAt)?.getTime() || 0;
-      const dateB = normalizeDateValue(b?.Deadline || b?.CreatedAt || b?.createdAt)?.getTime() || 0;
-      return dateA - dateB;
-    });
-  }, [roleInfo?.isAdmin, roleInfo?.userName, tasks]);
+    return Array.isArray(summaryApi?.assignedTasks) ? summaryApi.assignedTasks : [];
+  }, [summaryApi]);
 
   const followupRows = useMemo(() => {
     const rows = (followups || []).filter((item) =>
@@ -454,23 +406,8 @@ export default function Dashboard() {
   }, [followups]);
 
   const userWiseTaskRows = useMemo(() => {
-    const bucket = new Map();
-
-    (tasks || []).forEach((task) => {
-      const status = normalizeTaskStatus(task);
-      if (['completed', 'done'].includes(status)) return;
-      const userName = String(task?.User || task?.AssignedTo || task?.Assigned || 'Unassigned').trim() || 'Unassigned';
-      if (!bucket.has(userName)) {
-        bucket.set(userName, { user: userName, pending: 0, inProgress: 0, total: 0 });
-      }
-      const row = bucket.get(userName);
-      row.total += 1;
-      if (['in_progress', 'progress', 'ongoing', 'working'].includes(status)) row.inProgress += 1;
-      else row.pending += 1;
-    });
-
-    return Array.from(bucket.values()).sort((a, b) => b.total - a.total || a.user.localeCompare(b.user));
-  }, [tasks]);
+    return Array.isArray(summaryApi?.userWiseAssignedTasks) ? summaryApi.userWiseAssignedTasks : [];
+  }, [summaryApi]);
 
   const loading = data?.isOrdersLoading || data?.isTasksLoading;
 
@@ -504,7 +441,7 @@ export default function Dashboard() {
         </Button>
       }
     >
-      {(loading || summaryLoading || tasksLoading || followupsLoading) ? (
+      {(loading || summaryLoading || followupsLoading) ? (
         <LinearProgress sx={{ borderRadius: 1, mb: 0.75 }} />
       ) : null}
 
@@ -538,17 +475,17 @@ export default function Dashboard() {
 
         <Grid item xs={12} lg={7}>
           <SectionCard
-            title="Assigned Tasks"
+            title={roleInfo?.isAdmin ? 'All Assigned Tasks' : 'My Assigned Tasks'}
             contentSx={{ p: 0.8 }}
           >
-            {tasksLoading ? (
+            {summaryLoading ? (
               <LoadingState label="Loading assigned tasks" />
             ) : (
               <SmallScrollableTable
                 columns={[
                   { key: 'task', label: 'Task' },
+                  { key: 'type', label: 'Type' },
                   { key: 'user', label: 'User' },
-                  { key: 'status', label: 'Status' },
                   { key: 'deadline', label: 'Deadline' },
                 ]}
                 rows={assignedTasks}
@@ -564,40 +501,29 @@ export default function Dashboard() {
                     bgcolor: 'background.paper',
                   },
                 }}
-                renderRow={(task) => {
-                  const statusLabel = task?.TaskStatus || task?.Status || task?.status || 'Pending';
-                  const statusKey = normalizeTaskStatus(task);
-
-                  return (
-                    <TableRow key={task?._id || task?.Usertask_Number || `${task?.User}-${task?.Usertask_name}`} hover>
-                      <TableCell sx={{ minWidth: 160 }}>
-                        <Typography variant="body2" fontWeight={600} noWrap>
-                          {task?.Usertask_name || task?.Task_name || task?.Title || 'Untitled Task'}
+                renderRow={(task) => (
+                  <TableRow key={`${task?.source}-${task?.id}`} hover>
+                    <TableCell sx={{ minWidth: 160 }}>
+                      <Typography variant="body2" fontWeight={600} noWrap>
+                        {task?.title || 'Untitled Task'}
+                      </Typography>
+                      {!!task?.subtitle && (
+                        <Typography variant="caption" color="text.secondary" noWrap>
+                          {task.subtitle}
                         </Typography>
-                        {!!(task?.Remark || task?.Description) && (
-                          <Typography variant="caption" color="text.secondary" noWrap>
-                            {task?.Remark || task?.Description}
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                        {task?.User || task?.AssignedTo || task?.Assigned || '—'}
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          size="small"
-                          label={statusLabel}
-                          color={statusKey === 'pending' ? 'warning' : 'primary'}
-                          variant="outlined"
-                          sx={{ height: 22 }}
-                        />
-                      </TableCell>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                        {formatTaskDate(task?.Deadline)}
-                      </TableCell>
-                    </TableRow>
-                  );
-                }}
+                      )}
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap', textTransform: 'capitalize' }}>
+                      {task?.source || '—'}
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                      {task?.assignedTo || '—'}
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                      {formatTaskDate(task?.dueDate)}
+                    </TableCell>
+                  </TableRow>
+                )}
               />
             )}
           </SectionCard>
@@ -696,21 +622,22 @@ export default function Dashboard() {
         <Grid container spacing={0.9}>
           <Grid item xs={12}>
             <SectionCard
-              title="User Tasks"
+              title="User Wise Assigned Tasks"
               contentSx={{ p: 0.8 }}
             >
-              {tasksLoading ? (
-                <LoadingState label="Loading user wise task summary" />
+              {summaryLoading ? (
+                <LoadingState label="Loading user wise assigned task summary" />
               ) : (
                 <SmallScrollableTable
                   columns={[
                     { key: 'user', label: 'User' },
-                    { key: 'pending', label: 'Pending', align: 'right' },
-                    { key: 'inProgress', label: 'In Progress', align: 'right' },
+                    { key: 'group', label: 'Group' },
+                    { key: 'orderTasks', label: 'Order', align: 'right' },
+                    { key: 'userTasks', label: 'Usertask', align: 'right' },
                     { key: 'total', label: 'Total', align: 'right' },
                   ]}
                   rows={userWiseTaskRows}
-                  emptyLabel="No pending user tasks found."
+                  emptyLabel="No pending assigned tasks found."
                   maxHeight={240}
                   tableSx={{
                     '& .MuiTableCell-root': {
@@ -729,8 +656,9 @@ export default function Dashboard() {
                           {row.user}
                         </Typography>
                       </TableCell>
-                      <TableCell align="right">{row.pending}</TableCell>
-                      <TableCell align="right">{row.inProgress}</TableCell>
+                      <TableCell>{row.group || '—'}</TableCell>
+                      <TableCell align="right">{row.orderTasks}</TableCell>
+                      <TableCell align="right">{row.userTasks}</TableCell>
                       <TableCell align="right">
                         <Chip size="small" label={row.total} color="primary" variant="outlined" sx={{ height: 22 }} />
                       </TableCell>

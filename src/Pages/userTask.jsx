@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Stack, Typography } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import axios from '../apiClient';
-import { fetchMyOrderTasks } from '../services/orderService';
 
 export default function UserTask() {
   const { userName } = useAuth();
@@ -17,15 +16,24 @@ export default function UserTask() {
     if (!userName) return;
     try {
       setError('');
-      const [taskRes, attendanceRes] = await Promise.all([
-        fetchMyOrderTasks(userName),
+
+      const [summaryRes, attendanceRes] = await Promise.all([
+        axios.get('/dashboard/summary', {
+          params: {
+            userName,
+            isAdmin: false,
+          },
+        }),
         axios.get(`/attendance/getTodayAttendance/${userName}`),
       ]);
-      const pending = attendanceRes?.data?.pendingAssignments || taskRes?.data?.result?.orders || [];
-      setTasks(taskRes?.data?.result?.orders || []);
+
+      const myTasks = summaryRes?.data?.result?.myAssignedTasks || [];
+      const pending = attendanceRes?.data?.pendingAssignments || [];
+
+      setTasks(myTasks);
       setAttendanceFlow(attendanceRes?.data?.flow || []);
       setPendingAssignments(pending);
-      setMessage(taskRes?.data?.result?.message || '');
+      setMessage(myTasks.length ? `You have ${myTasks.length} assigned pending tasks.` : '');
     } catch (err) {
       console.error(err);
       setError('Failed to load your day view.');
@@ -48,10 +56,12 @@ export default function UserTask() {
         Status: type === 'Out' ? 'Completed' : 'Present',
         Time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       });
+
       if (type === 'In' && Array.isArray(response?.data?.pendingAssignments)) {
         setPendingAssignments(response.data.pendingAssignments);
         setShowAssignmentDialog(response.data.pendingAssignments.length > 0);
       }
+
       await loadPage();
     } catch (err) {
       console.error(err);
@@ -61,30 +71,33 @@ export default function UserTask() {
 
   const summary = useMemo(() => {
     const overdue = tasks.filter((task) => task.overdue).length;
-    return `${tasks.length} order tasks for today${overdue ? ` • ${overdue} overdue` : ''}`;
+    return `${tasks.length} assigned tasks${overdue ? ` • ${overdue} overdue` : ''}`;
   }, [tasks]);
 
   return (
     <Stack spacing={2} sx={{ p: { xs: 1, md: 2 } }}>
       <Box>
         <Typography variant="h5" fontWeight={700}>My day</Typography>
-        <Typography color="text.secondary">Start attendance, then work your assigned order queue till 8:00 PM.</Typography>
+        <Typography color="text.secondary">Start attendance, then work your assigned queue till 8:00 PM.</Typography>
       </Box>
 
       {error && <Alert severity="error">{error}</Alert>}
       {message && <Alert severity="info">{message}</Alert>}
 
       <Dialog open={showAssignmentDialog} onClose={() => setShowAssignmentDialog(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Your design assignments</DialogTitle>
+        <DialogTitle>Your pending assignments</DialogTitle>
         <DialogContent>
           <Stack spacing={1.5} sx={{ pt: 1 }}>
             {pendingAssignments.length ? pendingAssignments.map((task) => (
-              <Box key={task._id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
-                <Typography fontWeight={700}>Order #{task.Order_Number}</Typography>
-                <Typography variant="body2" color="text.secondary">Task: {task?.latestStatusTask?.Task || task.stage || 'Design'}</Typography>
-                <Typography variant="body2" color="text.secondary">Due: {task?.dueDate ? new Date(task.dueDate).toLocaleString() : 'Today 8:00 PM'}</Typography>
+              <Box key={`${task.source}-${task.id}`} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
+                <Typography fontWeight={700}>{task.title}</Typography>
+                <Typography variant="body2" color="text.secondary">Type: {task.source}</Typography>
+                <Typography variant="body2" color="text.secondary">Task: {task.taskName}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Due: {task?.dueDate ? new Date(task.dueDate).toLocaleString() : 'Today 8:00 PM'}
+                </Typography>
               </Box>
-            )) : <Typography variant="body2" color="text.secondary">No pending design assignments right now.</Typography>}
+            )) : <Typography variant="body2" color="text.secondary">No pending assignments right now.</Typography>}
           </Stack>
         </DialogContent>
         <DialogActions>
@@ -111,7 +124,7 @@ export default function UserTask() {
         <CardContent>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Box>
-              <Typography variant="subtitle1" fontWeight={700}>Assigned order tasks</Typography>
+              <Typography variant="subtitle1" fontWeight={700}>Assigned tasks</Typography>
               <Typography variant="body2" color="text.secondary">{summary}</Typography>
             </Box>
             <Chip label={tasks.length ? 'Working queue' : 'No tasks'} color={tasks.length ? 'primary' : 'default'} />
@@ -121,14 +134,17 @@ export default function UserTask() {
 
           <Stack spacing={1.5}>
             {tasks.map((task) => (
-              <Box key={task._id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
-                <Typography fontWeight={700}>Order #{task.Order_Number}</Typography>
-                <Typography variant="body2" color="text.secondary">Task: {task?.latestStatusTask?.Task || task.stage || 'Design'}</Typography>
-                <Typography variant="body2" color="text.secondary">Due: {task?.dueDate ? new Date(task.dueDate).toLocaleString() : 'Today 8:00 PM'}</Typography>
+              <Box key={`${task.source}-${task.id}`} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 1.5 }}>
+                <Typography fontWeight={700}>{task.title}</Typography>
+                <Typography variant="body2" color="text.secondary">Type: {task.source}</Typography>
+                <Typography variant="body2" color="text.secondary">Task: {task.taskName}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Due: {task?.dueDate ? new Date(task.dueDate).toLocaleString() : 'Today 8:00 PM'}
+                </Typography>
                 {task.overdue && <Chip size="small" color="error" label="Pending from previous day" sx={{ mt: 1 }} />}
               </Box>
             ))}
-            {!tasks.length && <Typography variant="body2" color="text.secondary">No order tasks are assigned yet.</Typography>}
+            {!tasks.length && <Typography variant="body2" color="text.secondary">No assigned tasks yet.</Typography>}
           </Stack>
         </CardContent>
       </Card>
