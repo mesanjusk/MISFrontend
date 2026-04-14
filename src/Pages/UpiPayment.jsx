@@ -9,6 +9,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  MenuItem,
   Paper,
   Stack,
   Tab,
@@ -517,10 +518,7 @@ export default function UpiPayment({ onClose }) {
 
             {mode === 'scan_qr' ? (
               <Box>
-                <Alert severity="info" sx={{ borderRadius: 2 }}>
-                  This opens a UPI app. If scanner does not open directly, tap <strong>Scan QR</strong>{' '}
-                  inside the app, complete payment, then come back here.
-                </Alert>
+                
               </Box>
             ) : (
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
@@ -545,10 +543,6 @@ export default function UpiPayment({ onClose }) {
               </Stack>
             )}
 
-            <Typography variant="caption" color="text.secondary">
-              After payment, return to this page and confirm successful payment to save the
-              transaction in your existing dashboard ledger.
-            </Typography>
           </Stack>
         </Paper>
       </FullscreenAddFormLayout>
