@@ -29,6 +29,7 @@ const OrderUpdate = lazy(() => import('./Pages/OrderUpdate'));
 const UpdateDelivery = lazy(() => import('./Pages/updateDelivery'));
 const AddTransaction = lazy(() => import('./Pages/AddTransaction'));
 const AddTransaction1 = lazy(() => import('./Pages/addTransaction1'));
+const UpiPayment = lazy(() => import('./Pages/UpiPayment'));
 const CashLedger = lazy(() => import('./Pages/CashLedger'));
 const PaymentFollowup = lazy(() => import('./Pages/PaymentFollowup'));
 const Vendor = lazy(() => import('./Pages/vendor'));
@@ -115,6 +116,7 @@ export default function App() {
             <Route path={ROUTES.RECEIPT} element={withSuspense(<AddTransaction />)} />
             <Route path="/addTransaction" element={<Navigate to={ROUTES.RECEIPT} replace />} />
             <Route path={ROUTES.PAYMENT} element={withSuspense(<AddTransaction1 />)} />
+            <Route path={ROUTES.UPI_PAYMENT} element={withSuspense(<UpiPayment />)} />
             <Route path="/addTransaction1" element={<Navigate to={ROUTES.PAYMENT} replace />} />
             <Route path={ROUTES.CASH_LEDGER} element={withSuspense(<CashLedger />)} />
             <Route path={ROUTES.FOLLOWUPS} element={withSuspense(<PaymentFollowup />)} />
