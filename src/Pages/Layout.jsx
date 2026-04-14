@@ -28,6 +28,7 @@ export default function Layout() {
       { onClick: () => navigate(ROUTES.ORDERS_NEW), label: 'Order' },
       { onClick: () => navigate(ROUTES.RECEIPT), label: 'Receipt' },
       { onClick: () => navigate(ROUTES.PAYMENT), label: 'Payment' },
+      { onClick: () => navigate(ROUTES.UPI_PAYMENT), label: 'UPI Pay' },
       { onClick: () => navigate(ROUTES.FOLLOWUPS), label: 'Followups' },
       { onClick: () => navigate(ROUTES.TASKS_NEW), label: 'Task' },
     ],
