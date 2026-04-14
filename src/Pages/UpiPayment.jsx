@@ -23,7 +23,7 @@ import QrCodeScannerRoundedIcon from '@mui/icons-material/QrCodeScannerRounded';
 import AccountBalanceWalletRoundedIcon from '@mui/icons-material/AccountBalanceWalletRounded';
 import PropTypes from 'prop-types';
 import toast, { Toaster } from 'react-hot-toast';
-import { FullscreenAddFormLayout, compactCardSx, compactFieldSx } from '../Components/ui';
+import { FullscreenAddFormLayout, compactCardSx, compactFieldSx } from '../components/ui';
 import { fetchCustomers } from '../services/customerService';
 import { addTransaction } from '../services/transactionService';
 
@@ -417,10 +417,7 @@ export default function UpiPayment({ onClose }) {
       >
         <Paper sx={compactCardSx}>
           <Stack spacing={1.25}>
-            <Alert severity="success" sx={{ borderRadius: 2 }}>
-              Default flow is <strong>Scan QR</strong>. Choose customer, amount, and payment account.
-              Then open UPI app, scan and pay, return here, and save in dashboard.
-            </Alert>
+         
 
             <Tabs
               value={mode}
