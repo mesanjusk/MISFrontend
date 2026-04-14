@@ -5,14 +5,10 @@ import {
   Autocomplete,
   Box,
   Button,
-  Checkbox,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControlLabel,
-  MenuItem,
   Paper,
   Stack,
   Tab,
@@ -34,8 +30,6 @@ const PENDING_PAYMENT_KEY = 'mis_pending_upi_payment';
 const PAYEE_VPA_KEY = 'mis_upi_payee_vpa';
 const PAYEE_NAME_KEY = 'mis_upi_payee_name';
 
-const APP_OPTIONS = ['Google Pay', 'PhonePe', 'Paytm', 'BHIM', 'Other'];
-
 function buildUpiLink({ pa, pn, am, tn, tr }) {
   const params = new URLSearchParams({
     pa: String(pa || '').trim(),
@@ -53,21 +47,6 @@ function createReference() {
   return `MISUPI${Date.now()}`;
 }
 
-function getAppLaunchUrl(appName) {
-  switch (appName) {
-    case 'Google Pay':
-      return 'tez://';
-    case 'PhonePe':
-      return 'phonepe://';
-    case 'Paytm':
-      return 'paytmmp://';
-    case 'BHIM':
-      return 'bhim://';
-    default:
-      return 'upi://pay';
-  }
-}
-
 export default function UpiPayment({ onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -76,10 +55,6 @@ export default function UpiPayment({ onClose }) {
 
   const [mode, setMode] = useState('scan_qr');
   const [loggedInUser, setLoggedInUser] = useState('');
-  const [isAdminUser, setIsAdminUser] = useState(false);
-  const [isDateChecked, setIsDateChecked] = useState(false);
-  const [transactionDate, setTransactionDate] = useState('');
-
   const [optionsLoading, setOptionsLoading] = useState(true);
   const [allCustomerOptions, setAllCustomerOptions] = useState([]);
   const [accountCustomerOptions, setAccountCustomerOptions] = useState([]);
@@ -101,13 +76,11 @@ export default function UpiPayment({ onClose }) {
   const [saving, setSaving] = useState(false);
   const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
   const [pendingPayment, setPendingPayment] = useState(null);
-  const [upiApp, setUpiApp] = useState('');
 
   useEffect(() => {
     const userNameFromState = location.state?.id || localStorage.getItem('User_name');
     if (userNameFromState) setLoggedInUser(userNameFromState);
     else navigate('/login');
-    setIsAdminUser(localStorage.getItem('User_group') === 'Admin User');
   }, [location.state, navigate]);
 
   useEffect(() => {
@@ -181,13 +154,8 @@ export default function UpiPayment({ onClose }) {
       }
     }
 
-    if (mode === 'scan_qr' && !upiApp) {
-      toast.error('Select UPI app.');
-      return false;
-    }
-
     return true;
-  }, [mode, payeeName, payeeVpa, upiApp, validateCommonForm]);
+  }, [mode, payeeName, payeeVpa, validateCommonForm]);
 
   const clearPending = useCallback(() => {
     sessionStorage.removeItem(PENDING_PAYMENT_KEY);
@@ -234,15 +202,12 @@ export default function UpiPayment({ onClose }) {
       formData.append('Total_Debit', Number(paymentData.amount));
       formData.append('Payment_mode', paymentModeAccount.Customer_name);
       formData.append('Created_by', loggedInUser);
-      formData.append(
-        'Transaction_date',
-        isAdminUser && isDateChecked ? transactionDate || todayDate : todayDate,
-      );
+      formData.append('Transaction_date', todayDate);
       formData.append('Journal_entry', JSON.stringify(journal));
       formData.append('Customer_uuid', customer.Customer_uuid);
       formData.append('Upi_reference', paymentData.reference || '');
       formData.append('Upi_status', 'SUCCESS');
-      formData.append('Upi_app', paymentData.upiApp || '');
+      formData.append('Upi_app', '');
       formData.append('Upi_payee_vpa', paymentData.payeeVpa || '');
       formData.append('Source', paymentData.source || 'UPI_QR_SCAN');
 
@@ -250,14 +215,7 @@ export default function UpiPayment({ onClose }) {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
     },
-    [
-      accountCustomerOptions,
-      allCustomerOptions,
-      isAdminUser,
-      isDateChecked,
-      loggedInUser,
-      transactionDate,
-    ],
+    [accountCustomerOptions, allCustomerOptions, loggedInUser],
   );
 
   const handleResumeConfirm = async () => {
@@ -265,10 +223,7 @@ export default function UpiPayment({ onClose }) {
 
     try {
       setSaving(true);
-      await persistTransaction({
-        ...pendingPayment,
-        upiApp: upiApp || pendingPayment.upiApp || '',
-      });
+      await persistTransaction(pendingPayment);
       toast.success('UPI payment saved in dashboard.');
       clearPending();
       closeModal();
@@ -296,7 +251,6 @@ export default function UpiPayment({ onClose }) {
       setDebitCustomer(parsed.debitCustomer || '');
       setPayeeVpa(parsed.payeeVpa || '');
       setPayeeName(parsed.payeeName || '');
-      setUpiApp(parsed.upiApp || '');
       setResumeDialogOpen(true);
       setLaunching(false);
     } catch {
@@ -342,7 +296,6 @@ export default function UpiPayment({ onClose }) {
         `UPI payment - ${customerName || selectedCustomer?.Customer_name || 'Customer'}`,
       payeeVpa: payeeVpa.trim(),
       payeeName: payeeName.trim(),
-      upiApp,
       source: 'UPI_INTENT',
       reference,
       launchedAt: Date.now(),
@@ -377,7 +330,6 @@ export default function UpiPayment({ onClose }) {
         `UPI QR payment - ${customerName || selectedCustomer?.Customer_name || 'Customer'}`,
       payeeVpa: '',
       payeeName: '',
-      upiApp,
       source: 'UPI_QR_SCAN',
       reference,
       launchedAt: Date.now(),
@@ -387,8 +339,7 @@ export default function UpiPayment({ onClose }) {
     setPendingPayment(nextPendingPayment);
     setLaunching(true);
 
-    const appUrl = getAppLaunchUrl(upiApp);
-    window.location.href = appUrl;
+    window.location.href = 'upi://pay';
   };
 
   const handlePrimaryAction = () => {
@@ -423,11 +374,6 @@ export default function UpiPayment({ onClose }) {
                 <Typography variant="body2">
                   <strong>Reference:</strong> {pendingPayment.reference}
                 </Typography>
-                {pendingPayment.upiApp ? (
-                  <Typography variant="body2">
-                    <strong>UPI App:</strong> {pendingPayment.upiApp}
-                  </Typography>
-                ) : null}
                 {pendingPayment.payeeVpa ? (
                   <Typography variant="body2">
                     <strong>Receiver UPI ID:</strong> {pendingPayment.payeeVpa}
@@ -435,21 +381,6 @@ export default function UpiPayment({ onClose }) {
                 ) : null}
               </Paper>
             ) : null}
-
-            <TextField
-              select
-              label="UPI App Used"
-              value={upiApp}
-              onChange={(e) => setUpiApp(e.target.value)}
-              size="small"
-            >
-              <MenuItem value="">Select app</MenuItem>
-              {APP_OPTIONS.map((item) => (
-                <MenuItem key={item} value={item}>
-                  {item}
-                </MenuItem>
-              ))}
-            </TextField>
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -477,7 +408,7 @@ export default function UpiPayment({ onClose }) {
           launching
             ? 'Waiting for return...'
             : mode === 'scan_qr'
-              ? 'Open App for QR Scan'
+              ? 'Open UPI App'
               : 'Open UPI Apps'
         }
         busy={launching}
@@ -486,8 +417,8 @@ export default function UpiPayment({ onClose }) {
         <Paper sx={compactCardSx}>
           <Stack spacing={1.25}>
             <Alert severity="success" sx={{ borderRadius: 2 }}>
-              Default flow is <strong>Scan QR</strong>. Choose customer, amount, payment account,
-              and UPI app. Then open the app, scan and pay, return here, and save in dashboard.
+              Default flow is <strong>Scan QR</strong>. Choose customer, amount, and payment account.
+              Then open UPI app, scan and pay, return here, and save in dashboard.
             </Alert>
 
             <Tabs
@@ -585,42 +516,12 @@ export default function UpiPayment({ onClose }) {
             />
 
             {mode === 'scan_qr' ? (
-              <Stack spacing={1}>
-                <TextField
-                  select
-                  label="Choose UPI App"
-                  value={upiApp}
-                  onChange={(e) => setUpiApp(e.target.value)}
-                  size="small"
-                  sx={compactFieldSx}
-                  MenuProps={selectMenuProps}
-                >
-                  <MenuItem value="">Select app</MenuItem>
-                  {APP_OPTIONS.map((item) => (
-                    <MenuItem key={item} value={item}>
-                      {item}
-                    </MenuItem>
-                  ))}
-                </TextField>
-
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {APP_OPTIONS.map((item) => (
-                    <Chip
-                      key={item}
-                      label={item}
-                      color={upiApp === item ? 'primary' : 'default'}
-                      variant={upiApp === item ? 'filled' : 'outlined'}
-                      onClick={() => setUpiApp(item)}
-                    />
-                  ))}
-                </Box>
-
+              <Box>
                 <Alert severity="info" sx={{ borderRadius: 2 }}>
-                  This opens the selected UPI app. If the scanner does not open directly in your
-                  phone, tap <strong>Scan QR / Scan & Pay</strong> inside that app, complete the
-                  payment, then come back here.
+                  This opens a UPI app. If scanner does not open directly, tap <strong>Scan QR</strong>{' '}
+                  inside the app, complete payment, then come back here.
                 </Alert>
-              </Stack>
+              </Box>
             ) : (
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                 <TextField
@@ -643,35 +544,6 @@ export default function UpiPayment({ onClose }) {
                 />
               </Stack>
             )}
-
-            {isAdminUser ? (
-              <>
-                <FormControlLabel
-                  sx={{ m: 0 }}
-                  control={
-                    <Checkbox
-                      checked={isDateChecked}
-                      onChange={() => {
-                        setIsDateChecked((prev) => !prev);
-                        setTransactionDate('');
-                      }}
-                    />
-                  }
-                  label="Save custom date"
-                />
-                {isDateChecked ? (
-                  <TextField
-                    label="Transaction Date"
-                    type="date"
-                    value={transactionDate}
-                    onChange={(e) => setTransactionDate(e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    size="small"
-                    sx={compactFieldSx}
-                  />
-                ) : null}
-              </>
-            ) : null}
 
             <Typography variant="caption" color="text.secondary">
               After payment, return to this page and confirm successful payment to save the
