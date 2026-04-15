@@ -32,7 +32,7 @@ export const ROUTES = {
 
   RECEIPT: '/accounts/receipt',
   PAYMENT: '/accounts/payment',
-  UPI_PAYMENT: '/accounts/upi-payment',
+  UPI_COLLECT_PUBLIC: '/upi/collect/:transactionRef',
   CASH_LEDGER: '/accounts/cash-ledger',
   FOLLOWUPS: '/accounts/followups',
   ADD_PAYABLE: '/addPayable',

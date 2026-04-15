@@ -21,7 +21,6 @@ import LocalShippingRoundedIcon from '@mui/icons-material/LocalShippingRounded';
 import CurrencyRupeeRoundedIcon from '@mui/icons-material/CurrencyRupeeRounded';
 import CreditCardRoundedIcon from '@mui/icons-material/CreditCardRounded';
 import SupportAgentRoundedIcon from '@mui/icons-material/SupportAgentRounded';
-import QrCode2RoundedIcon from '@mui/icons-material/QrCode2Rounded';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import axios from '../apiClient';
 import SummaryCard from '../components/dashboard/SummaryCard';
@@ -37,7 +36,7 @@ import {
   PageContainer,
   SectionCard,
 } from '../components/ui';
-import UpiPaymentDialog from '../components/dashboard/UpiPaymentDialog';
+import UpiCollectionSection from '../components/dashboard/UpiCollectionSection';
 
 const toId = (order) => order?.Order_uuid || order?._id || order?.Order_id;
 const todayDateKey = () => new Date().toISOString().split('T')[0];
@@ -220,7 +219,6 @@ export default function Dashboard() {
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [followups, setFollowups] = useState([]);
   const [followupsLoading, setFollowupsLoading] = useState(true);
-  const [showUpiDialog, setShowUpiDialog] = useState(false);
 
   const data = useDashboardData({
     role: roleInfo?.role,
@@ -424,22 +422,6 @@ export default function Dashboard() {
         px: { xs: 0.75, sm: 1, md: 1.25 },
         py: 0.75,
       }}
-      actions={
-        <Button
-          size="small"
-          variant="contained"
-          startIcon={<QrCode2RoundedIcon fontSize="small" />}
-          onClick={() => setShowUpiDialog(true)}
-          sx={{
-            minHeight: 32,
-            px: 1.25,
-            borderRadius: 1.75,
-            boxShadow: 'none',
-          }}
-        >
-          UPI Payment
-        </Button>
-      }
     >
       {(loading || summaryLoading || followupsLoading) ? (
         <LinearProgress sx={{ borderRadius: 1, mb: 0.75 }} />
@@ -461,6 +443,15 @@ export default function Dashboard() {
             />
           </Grid>
         ))}
+      </Grid>
+
+
+      <Grid container spacing={0.9} sx={{ mb: 0.9 }}>
+        <Grid item xs={12}>
+          <SectionCard title="UPI Collections" subtitle="Generate link or QR, save pending requests instantly, and let accounts confirm later from bank entries." contentSx={{ p: 0.9 }}>
+            <UpiCollectionSection />
+          </SectionCard>
+        </Grid>
       </Grid>
 
       <Grid container spacing={0.9} sx={{ mb: 0.9 }}>
@@ -671,7 +662,6 @@ export default function Dashboard() {
         </Grid>
       ) : null}
 
-      <UpiPaymentDialog open={showUpiDialog} onClose={() => setShowUpiDialog(false)} />
     </PageContainer>
   );
 }

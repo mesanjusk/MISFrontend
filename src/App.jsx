@@ -29,7 +29,6 @@ const OrderUpdate = lazy(() => import('./Pages/OrderUpdate'));
 const UpdateDelivery = lazy(() => import('./Pages/updateDelivery'));
 const AddTransaction = lazy(() => import('./Pages/AddTransaction'));
 const AddTransaction1 = lazy(() => import('./Pages/addTransaction1'));
-const UpiPayment = lazy(() => import('./Pages/UpiPayment'));
 const CashLedger = lazy(() => import('./Pages/CashLedger'));
 const PaymentFollowup = lazy(() => import('./Pages/PaymentFollowup'));
 const Vendor = lazy(() => import('./Pages/vendor'));
@@ -55,6 +54,7 @@ const AddNote = lazy(() => import('./Pages/addNote'));
 const AddPayment = lazy(() => import('./Pages/addPayment'));
 const CallLogs = lazy(() => import('./Pages/callLogs'));
 const FlowBuilderPage = lazy(() => import('./Pages/FlowBuilderPage'));
+const UpiCollectPublic = lazy(() => import('./Pages/UpiCollectPublic'));
 
 function RouteLoader() {
   return (
@@ -85,6 +85,7 @@ export default function App() {
           <Route path={ROUTES.ROOT} element={withSuspense(<Login />)} />
           <Route path={ROUTES.LOGIN} element={withSuspense(<Login />)} />
           <Route path={ROUTES.REGISTER} element={withSuspense(<Register />)} />
+          <Route path={ROUTES.UPI_COLLECT_PUBLIC} element={withSuspense(<UpiCollectPublic />)} />
 
           <Route element={<Layout />}>
             <Route path={ROUTES.HOME} element={withSuspense(<Dashboard />)} />
@@ -116,7 +117,6 @@ export default function App() {
             <Route path={ROUTES.RECEIPT} element={withSuspense(<AddTransaction />)} />
             <Route path="/addTransaction" element={<Navigate to={ROUTES.RECEIPT} replace />} />
             <Route path={ROUTES.PAYMENT} element={withSuspense(<AddTransaction1 />)} />
-            <Route path={ROUTES.UPI_PAYMENT} element={withSuspense(<UpiPayment />)} />
             <Route path="/addTransaction1" element={<Navigate to={ROUTES.PAYMENT} replace />} />
             <Route path={ROUTES.CASH_LEDGER} element={withSuspense(<CashLedger />)} />
             <Route path={ROUTES.FOLLOWUPS} element={withSuspense(<PaymentFollowup />)} />
