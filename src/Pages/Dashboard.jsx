@@ -36,7 +36,7 @@ import {
   PageContainer,
   SectionCard,
 } from '../components/ui';
-import UpiCollectionSection from '../components/dashboard/UpiCollectionSection';
+import UpiCollectionSection from '../Components/dashboard/UpiCollectionSection';
 
 const toId = (order) => order?.Order_uuid || order?._id || order?.Order_id;
 const todayDateKey = () => new Date().toISOString().split('T')[0];
