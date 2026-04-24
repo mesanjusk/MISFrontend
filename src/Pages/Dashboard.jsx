@@ -4,6 +4,10 @@ import {
   Box,
   Button,
   Chip,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Fab,
   Grid,
   LinearProgress,
   Stack,
@@ -22,6 +26,7 @@ import CurrencyRupeeRoundedIcon from '@mui/icons-material/CurrencyRupeeRounded';
 import CreditCardRoundedIcon from '@mui/icons-material/CreditCardRounded';
 import SupportAgentRoundedIcon from '@mui/icons-material/SupportAgentRounded';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
+import AddCardRoundedIcon from '@mui/icons-material/AddCardRounded';
 import axios from '../apiClient';
 import SummaryCard from '../components/dashboard/SummaryCard';
 import AllAttandance from './AllAttandance';
@@ -219,6 +224,7 @@ export default function Dashboard() {
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [followups, setFollowups] = useState([]);
   const [followupsLoading, setFollowupsLoading] = useState(true);
+  const [upiDialogOpen, setUpiDialogOpen] = useState(false);
 
   const data = useDashboardData({
     role: roleInfo?.role,
@@ -447,14 +453,6 @@ export default function Dashboard() {
 
 
       <Grid container spacing={0.9} sx={{ mb: 0.9 }}>
-        <Grid item xs={12}>
-          <SectionCard title="UPI Collections" subtitle="Generate link or QR, save pending requests instantly, and let accounts confirm later from bank entries." contentSx={{ p: 0.9 }}>
-            <UpiCollectionSection />
-          </SectionCard>
-        </Grid>
-      </Grid>
-
-      <Grid container spacing={0.9} sx={{ mb: 0.9 }}>
         <Grid item xs={12} lg={5}>
           <SectionCard
             title={roleInfo?.isAdmin ? 'Attendance' : 'My Attendance'}
@@ -662,6 +660,30 @@ export default function Dashboard() {
         </Grid>
       ) : null}
 
+      <Fab
+        color="primary"
+        variant="extended"
+        onClick={() => setUpiDialogOpen(true)}
+        sx={{
+          position: 'fixed',
+          right: { xs: 16, md: 78 },
+          bottom: { xs: 92, md: 28 },
+          zIndex: 1250,
+          borderRadius: 999,
+          px: 1.6,
+          gap: 0.7,
+        }}
+      >
+        <AddCardRoundedIcon fontSize="small" />
+        Add UPI
+      </Fab>
+
+      <Dialog open={upiDialogOpen} onClose={() => setUpiDialogOpen(false)} fullWidth maxWidth="lg">
+        <DialogTitle sx={{ py: 1.2 }}>UPI Collections</DialogTitle>
+        <DialogContent dividers sx={{ p: { xs: 1, md: 1.5 } }}>
+          <UpiCollectionSection />
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }

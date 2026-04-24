@@ -21,11 +21,12 @@ import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import { useAuth } from '../context/AuthContext';
 import { SIDEBAR_GROUPS } from '../constants/sidebarMenu.jsx';
+import { ROUTES } from '../constants/routes';
 
 const DRAWER_WIDTH = 286;
 const DRAWER_COLLAPSED = 72;
 
-export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile }) {
+export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, onNewOrderClick }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { clearAuth } = useAuth();
@@ -34,6 +35,12 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile })
   const groups = useMemo(() => SIDEBAR_GROUPS, []);
 
   const handleNavigate = (path) => {
+    if (path === ROUTES.ORDERS_NEW && typeof onNewOrderClick === 'function') {
+      onNewOrderClick();
+      onCloseMobile();
+      return;
+    }
+
     navigate(path);
     onCloseMobile();
   };
@@ -154,10 +161,12 @@ Sidebar.propTypes = {
   desktopCollapsed: PropTypes.bool,
   mobileOpen: PropTypes.bool,
   onCloseMobile: PropTypes.func,
+  onNewOrderClick: PropTypes.func,
 };
 
 Sidebar.defaultProps = {
   desktopCollapsed: false,
   mobileOpen: false,
   onCloseMobile: () => {},
+  onNewOrderClick: null,
 };
