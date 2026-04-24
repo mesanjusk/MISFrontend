@@ -15,12 +15,12 @@ import {
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
 import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
-import axios from '../apiClient.js';
+import axios, { getApiBase } from '../apiClient.js';
 import { MobileContainer, toast } from '../Components';
 import { useAuth } from '../context/AuthContext';
 import { setStoredToken } from '../utils/authStorage';
 
-const BACKEND_BASE = import.meta.env.VITE_API_SERVER || 'https://misbackend-e078.onrender.com';
+const BACKEND_BASE = getApiBase() || import.meta.env.VITE_API_SERVER || 'https://misbackend-e078.onrender.com';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -39,13 +39,14 @@ export default function Login() {
 
  async function checkGoogleDriveAndRedirect(userGroupValue) {
   try {
-    const statusRes = await axios.get('/api/google-drive/status');
+    const statusRes = await axios.get('/api/google-drive/status', { params: { check: 1 } });
     const connected = !!statusRes?.data?.connected;
+    const reconnectRequired = !!statusRes?.data?.reconnectRequired;
     const automationEnabled = !!statusRes?.data?.automationEnabled;
 
     const target = userGroupValue === 'Vendor' ? '/vendorHome' : '/home';
 
-    if (automationEnabled && !connected) {
+    if (automationEnabled && (!connected || reconnectRequired)) {
       const returnTo =
         userGroupValue === 'Vendor'
           ? `${window.location.origin}/vendorHome`

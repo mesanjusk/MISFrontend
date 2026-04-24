@@ -36,6 +36,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import { FullscreenAddFormLayout } from '../components/ui';
 import { compactCardSx, compactFieldSx } from '../components/ui/addFormStyles';
+import { fetchVendorMasters } from '../services/vendorService.js';
 
 const createEmptyItem = () => ({
   Item: '',
@@ -50,11 +51,17 @@ const createEmptyItem = () => ({
 
 const createEmptyVendorAssignment = () => ({
   vendorCustomerUuid: '',
+  vendorUuid: '',
   vendorName: '',
   workType: '',
+  sequence: 1,
+  inputItem: '',
+  outputItem: '',
+  jobMode: 'jobwork_only',
   note: '',
   qty: '',
   amount: '',
+  advanceAmount: '',
   dueDate: '',
 });
 
@@ -169,6 +176,7 @@ export default function AddOrder1({ closeModal }) {
   const [customerSearchInput, setCustomerSearchInput] = useState('');
   const [Remark, setRemark] = useState('');
   const [customerOptions, setCustomerOptions] = useState([]);
+  const [vendorMasterOptions, setVendorMasterOptions] = useState([]);
   const [accountCustomerOptions, setAccountCustomerOptions] = useState([]);
   const [itemOptions, setItemOptions] = useState([]);
   const [itemGroupOptions, setItemGroupOptions] = useState([]);
@@ -218,13 +226,14 @@ export default function AddOrder1({ closeModal }) {
   const fetchData = async () => {
     setOptionsLoading(true);
     try {
-      const [customerRes, taskRes, itemRes, itemResPaged, itemGroupRes, usersRes] = await Promise.allSettled([
+      const [customerRes, taskRes, itemRes, itemResPaged, itemGroupRes, usersRes, vendorRes] = await Promise.allSettled([
         axios.get('/customer/GetCustomersList'),
         axios.get('/taskgroup/GetTaskgroupList'),
         axios.get('/item/GetItemList'),
         axios.get('/item/GetItemList?page=1&limit=1000'),
         axios.get('/itemgroup/GetItemgroupList'),
         axios.get('/user/GetUserList'),
+        fetchVendorMasters(),
       ]);
 
       const customers = getSuccessfulResultArray(customerRes);
@@ -234,8 +243,10 @@ export default function AddOrder1({ closeModal }) {
         : getSuccessfulResultArray(itemResPaged);
       const itemGroups = getSuccessfulResultArray(itemGroupRes);
       const users = getSuccessfulResultArray(usersRes);
+      const vendors = vendorRes?.status === 'fulfilled' && Array.isArray(vendorRes.value) ? vendorRes.value : [];
 
       setCustomerOptions(sortByName(customers, 'Customer_name'));
+      setVendorMasterOptions(sortByName(vendors.filter((vendor) => vendor?.Active !== false), 'Vendor_name'));
 
       setAssignableUsers(
         sortByName(
@@ -320,12 +331,18 @@ export default function AddOrder1({ closeModal }) {
         setVendorAssignments(
           Array.isArray(order?.vendorAssignments) && order.vendorAssignments.length
             ? order.vendorAssignments.map((row) => ({
-                vendorCustomerUuid: row?.vendorCustomerUuid || '',
+                vendorCustomerUuid: row?.vendorUuid || row?.vendorCustomerUuid || '',
+                vendorUuid: row?.vendorUuid || row?.vendorCustomerUuid || '',
                 vendorName: row?.vendorName || '',
                 workType: row?.workType || '',
+                sequence: row?.sequence || 1,
+                inputItem: row?.inputItem || '',
+                outputItem: row?.outputItem || '',
+                jobMode: row?.jobMode || 'jobwork_only',
                 note: row?.note || '',
                 qty: row?.qty || '',
                 amount: row?.amount || '',
+                advanceAmount: row?.advanceAmount || '',
                 dueDate: row?.dueDate ? String(row.dueDate).split('T')[0] : '',
               }))
             : [createEmptyVendorAssignment()]
@@ -394,12 +411,8 @@ export default function AddOrder1({ closeModal }) {
   );
 
   const vendorOptions = useMemo(
-    () =>
-      sortByName(
-        customerOptions.filter((customer) => (customer?.Status || 'active') !== 'inactive'),
-        'Customer_name'
-      ),
-    [customerOptions]
+    () => sortByName(vendorMasterOptions.filter((vendor) => vendor?.Active !== false), 'Vendor_name'),
+    [vendorMasterOptions]
   );
 
   const itemNameOptions = useMemo(
@@ -451,13 +464,24 @@ export default function AddOrder1({ closeModal }) {
   const normalizedVendorAssignments = useMemo(
     () =>
       vendorAssignments
-        .map((row) => ({
-          ...row,
-          workType: String(row.workType || '').trim(),
-          note: String(row.note || '').trim(),
-          qty: Number(row.qty || 0),
-          amount: Number(row.amount || 0),
-        }))
+        .map((row, index) => {
+          const vendorUuid = String(row.vendorUuid || row.vendorCustomerUuid || '').trim();
+          return {
+            ...row,
+            vendorCustomerUuid: vendorUuid,
+            vendorUuid,
+            vendorName: String(row.vendorName || '').trim(),
+            workType: String(row.workType || '').trim(),
+            sequence: Number(row.sequence || index + 1),
+            inputItem: String(row.inputItem || '').trim(),
+            outputItem: String(row.outputItem || '').trim(),
+            jobMode: row.jobMode || 'jobwork_only',
+            note: String(row.note || '').trim(),
+            qty: Number(row.qty || 0),
+            amount: Number(row.amount || 0),
+            advanceAmount: Number(row.advanceAmount || 0),
+          };
+        })
         .filter((row) => row.vendorCustomerUuid && row.vendorName),
     [vendorAssignments]
   );
@@ -530,7 +554,10 @@ export default function AddOrder1({ closeModal }) {
   };
 
   const addVendorRow = () => {
-    setVendorAssignments((prev) => [...prev, createEmptyVendorAssignment()]);
+    setVendorAssignments((prev) => [
+      ...prev,
+      { ...createEmptyVendorAssignment(), sequence: prev.length + 1 },
+    ]);
   };
 
   const removeVendorRow = (index) => {
@@ -939,7 +966,7 @@ export default function AddOrder1({ closeModal }) {
                     setSelectedCustomerUuid(value?.Customer_uuid || '');
                     setCustomerSearchInput(value?.Customer_name || '');
                   }}
-                  getOptionLabel={(option) => option?.Customer_name || ''}
+                  getOptionLabel={(option) => option?.Vendor_name || ''}
                   isOptionEqualToValue={(option, value) =>
                     option?.Customer_uuid === value?.Customer_uuid
                   }
@@ -1360,23 +1387,24 @@ export default function AddOrder1({ closeModal }) {
                             slotProps={autocompleteSlotProps}
                             value={
                               vendorOptions.find(
-                                (item) => item.Customer_uuid === row.vendorCustomerUuid
+                                (item) => item.Vendor_uuid === (row.vendorUuid || row.vendorCustomerUuid)
                               ) || null
                             }
                             onChange={(_, value) =>
                               updateVendorRow(index, {
-                                vendorCustomerUuid: value?.Customer_uuid || '',
-                                vendorName: value?.Customer_name || '',
+                                vendorCustomerUuid: value?.Vendor_uuid || '',
+                                vendorUuid: value?.Vendor_uuid || '',
+                                vendorName: value?.Vendor_name || '',
                               })
                             }
-                            getOptionLabel={(option) => option?.Customer_name || ''}
+                            getOptionLabel={(option) => option?.Vendor_name || ''}
                             isOptionEqualToValue={(option, value) =>
-                              option?.Customer_uuid === value?.Customer_uuid
+                              option?.Vendor_uuid === value?.Vendor_uuid
                             }
                             renderInput={(params) => (
                               <TextField
                                 {...params}
-                                label="Vendor / Party"
+                                label="Vendor / Job Worker"
                                 size="small"
                                 sx={compactFieldSx}
                               />
@@ -1394,6 +1422,51 @@ export default function AddOrder1({ closeModal }) {
 
                           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                             <TextField
+                              label="Stage No."
+                              type="number"
+                              value={row.sequence || index + 1}
+                              onChange={(e) => updateVendorRow(index, { sequence: e.target.value })}
+                              size="small"
+                              fullWidth
+                              sx={compactFieldSx}
+                            />
+                            <TextField
+                              select
+                              label="Vendor Mode"
+                              value={row.jobMode || 'jobwork_only'}
+                              onChange={(e) => updateVendorRow(index, { jobMode: e.target.value })}
+                              size="small"
+                              fullWidth
+                              sx={compactFieldSx}
+                            >
+                              <MenuItem value="jobwork_only">Jobwork only</MenuItem>
+                              <MenuItem value="own_material_sent">Own material sent</MenuItem>
+                              <MenuItem value="vendor_with_material">Vendor with material</MenuItem>
+                              <MenuItem value="mixed">Mixed</MenuItem>
+                            </TextField>
+                          </Stack>
+
+                          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                            <TextField
+                              label="Input Item"
+                              value={row.inputItem || ''}
+                              onChange={(e) => updateVendorRow(index, { inputItem: e.target.value })}
+                              size="small"
+                              fullWidth
+                              sx={compactFieldSx}
+                            />
+                            <TextField
+                              label="Output Item"
+                              value={row.outputItem || ''}
+                              onChange={(e) => updateVendorRow(index, { outputItem: e.target.value })}
+                              size="small"
+                              fullWidth
+                              sx={compactFieldSx}
+                            />
+                          </Stack>
+
+                          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                            <TextField
                               label="Qty"
                               type="number"
                               value={row.qty}
@@ -1403,10 +1476,19 @@ export default function AddOrder1({ closeModal }) {
                               sx={compactFieldSx}
                             />
                             <TextField
-                              label="Cost"
+                              label="Cost / Bill"
                               type="number"
                               value={row.amount}
                               onChange={(e) => updateVendorRow(index, { amount: e.target.value })}
+                              size="small"
+                              fullWidth
+                              sx={compactFieldSx}
+                            />
+                            <TextField
+                              label="Advance Paid"
+                              type="number"
+                              value={row.advanceAmount || ''}
+                              onChange={(e) => updateVendorRow(index, { advanceAmount: e.target.value })}
                               size="small"
                               fullWidth
                               sx={compactFieldSx}
