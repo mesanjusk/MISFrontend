@@ -1,222 +1,110 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Button,
+  Card,
+  CardContent,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  IconButton,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+} from '@mui/material';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import LockRoundedIcon from '@mui/icons-material/LockRounded';
+import PrintRoundedIcon from '@mui/icons-material/PrintRounded';
 import { deleteUser, fetchUsers } from '../services/userService.js';
 import EditUser from './editUser';
 import AddUser from '../Pages/addUser';
-import { Button, Card, Modal, Table, ToastContainer, toast, SearchBar, EmptyState } from '../Components';
-import { FiPlus, FiTrash2, FiLock, FiPrinter } from 'react-icons/fi';
+import { ReportCardGrid, ReportFilterBar, ReportPageShell, ReportTableCard } from '../components/reports/ReportShell';
+import { EmptyState, LoadingState } from '../components/ui';
 
-const UserReport = () => {
-    const [users, setUsers] = useState({});
-    const [searchTerm, setSearchTerm] = useState('');
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [selectedUserId, setSelectedUserId] = useState(null);
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [selectedUser, setSelectedUser] = useState(null);
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [userGroup, setUserGroup] = useState('');
-    const [deleteErrorMessage, setDeleteErrorMessage] = useState('');
+export default function UserReport() {
+  const [users, setUsers] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [userGroup, setUserGroup] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('table');
 
-    useEffect(() => {
-        const fetchUserGroup = async () => {
-            const group = localStorage.getItem("User_group");
-            setUserGroup(group);
-        };
+  const loadUsers = async () => {
+    setLoading(true);
+    try {
+      setUserGroup(localStorage.getItem('User_group') || '');
+      const res = await fetchUsers();
+      const rows = res?.data?.success ? res.data.result || [] : [];
+      setUsers(rows.sort((a, b) => String(a.User_name || '').localeCompare(String(b.User_name || ''))));
+    } catch (error) {
+      console.error('Error fetching users list:', error);
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        fetchUserGroup();
+  useEffect(() => { loadUsers(); }, []);
 
-        fetchUsers()
-            .then(res => {
-                if (res.data.success) {
-                    const userMap = res.data.result.reduce((acc, user) => {
-                        if (user.User_uuid && user.User_name && user.Mobile_number) {
-                            acc[user._id] = {
-                                name: user.User_name,
-                                mobile: user.Mobile_number,
-                                group: user.User_group,
-                                taskGroups: user.Allowed_Task_Groups || [],
-                                userUuid: user.User_uuid,
-                                isUsed: user.isUsed || false,
-                            };
-                        }
-                        return acc;
-                    }, {});
+  const filtered = useMemo(
+    () => users.filter((user) => [user.User_name, user.Mobile_number, user.User_group].filter(Boolean).some((value) => String(value).toLowerCase().includes(searchTerm.toLowerCase()))),
+    [users, searchTerm],
+  );
 
-                    setUsers(userMap);
-                } else {
-                    setUsers({});
-                }
-            })
-            .catch(err => {
-                toast.error("Error fetching users list");
-                console.log(err);
-            });
-    }, []);
+  const handleDeleteConfirm = async () => {
+    if (!selectedUser?.User_uuid) return;
+    try {
+      const res = await deleteUser(selectedUser.User_uuid);
+      if (res?.data?.success) setUsers((prev) => prev.filter((user) => user.User_uuid !== selectedUser.User_uuid));
+    } catch (error) {
+      console.error('Error deleting user:', error);
+    } finally {
+      setShowDeleteModal(false);
+    }
+  };
 
-    const handleEdit = (userId) => {
-        setSelectedUserId(userId);
-        setShowEditModal(true);
-    };
+  return (
+    <ReportPageShell
+      title="Users Report"
+      subtitle="Open user records quickly and switch between table and card view."
+      count={filtered.length}
+      viewMode={viewMode}
+      onViewModeChange={setViewMode}
+      actions={<Stack direction="row" spacing={1}><Button variant="outlined" startIcon={<PrintRoundedIcon />} onClick={() => window.print()}>Print</Button><Button variant="contained" startIcon={<AddRoundedIcon />} onClick={() => setShowAddModal(true)}>Add User</Button></Stack>}
+    >
+      <ReportFilterBar><Grid item xs={12}><TextField fullWidth size="small" label="Search user, mobile, or group" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></Grid></ReportFilterBar>
+      {loading ? <LoadingState label="Loading users" /> : null}
+      {!loading && filtered.length === 0 ? <EmptyState title="No users found" /> : null}
+      {!loading && filtered.length > 0 && viewMode === 'table' ? (
+        <ReportTableCard><Table size="small"><TableHead><TableRow><TableCell sx={{ fontWeight: 800 }}>Name</TableCell><TableCell sx={{ fontWeight: 800 }}>Mobile</TableCell><TableCell sx={{ fontWeight: 800 }}>Group</TableCell><TableCell sx={{ fontWeight: 800 }}>Allowed Task Groups</TableCell>{userGroup === 'Admin User' ? <TableCell sx={{ fontWeight: 800 }}>Actions</TableCell> : null}</TableRow></TableHead><TableBody>{filtered.map((user) => (<TableRow hover key={user._id}><TableCell><Button size="small" onClick={() => { setSelectedUserId(user._id); setShowEditModal(true); }}>{user.User_name}</Button></TableCell><TableCell>{user.Mobile_number || '-'}</TableCell><TableCell>{user.User_group || '-'}</TableCell><TableCell>{Array.isArray(user.Allowed_Task_Groups) && user.Allowed_Task_Groups.length ? user.Allowed_Task_Groups.join(', ') : '-'}</TableCell>{userGroup === 'Admin User' ? <TableCell>{user.isUsed ? <LockRoundedIcon fontSize="small" color="disabled" /> : <IconButton size="small" color="error" onClick={() => { setSelectedUser(user); setShowDeleteModal(true); }}><DeleteOutlineRoundedIcon fontSize="small" /></IconButton>}</TableCell> : null}</TableRow>))}</TableBody></Table></ReportTableCard>
+      ) : null}
+      {!loading && filtered.length > 0 && viewMode === 'grid' ? (
+        <ReportCardGrid>{filtered.map((user) => (<Grid item xs={12} sm={6} md={4} key={user._id}><Card elevation={0} sx={{ borderRadius: 3, height: '100%' }}><CardContent><Stack spacing={1.2}><Stack direction="row" justifyContent="space-between" alignItems="center"><Typography variant="subtitle1" fontWeight={800}>{user.User_name}</Typography><IconButton size="small" onClick={() => { setSelectedUserId(user._id); setShowEditModal(true); }}><EditRoundedIcon fontSize="small" /></IconButton></Stack><Typography variant="body2" color="text.secondary">{user.Mobile_number || '-'}</Typography><InfoRow label="Group" value={user.User_group || '-'} /><InfoRow label="Task Groups" value={Array.isArray(user.Allowed_Task_Groups) && user.Allowed_Task_Groups.length ? user.Allowed_Task_Groups.join(', ') : '-'} />{userGroup === 'Admin User' ? (user.isUsed ? <Button variant="outlined" disabled startIcon={<LockRoundedIcon />}>Linked record</Button> : <Button variant="outlined" color="error" startIcon={<DeleteOutlineRoundedIcon />} onClick={() => { setSelectedUser(user); setShowDeleteModal(true); }}>Delete</Button>) : null}</Stack></CardContent></Card></Grid>))}</ReportCardGrid>
+      ) : null}
+      <Dialog open={showEditModal} onClose={() => setShowEditModal(false)} fullWidth maxWidth="md"><DialogContent sx={{ p: 1 }}><EditUser userId={selectedUserId} closeModal={() => { setShowEditModal(false); loadUsers(); }} /></DialogContent></Dialog>
+      <Dialog open={showAddModal} onClose={() => setShowAddModal(false)} fullWidth maxWidth="md"><DialogContent sx={{ p: 1 }}><AddUser closeModal={() => { setShowAddModal(false); loadUsers(); }} /></DialogContent></Dialog>
+      <Dialog open={showDeleteModal} onClose={() => setShowDeleteModal(false)}><DialogTitle>Delete user</DialogTitle><DialogContent><Typography variant="body2">Delete {selectedUser?.User_name || 'this user'}?</Typography></DialogContent><DialogActions><Button onClick={() => setShowDeleteModal(false)}>Cancel</Button><Button variant="contained" color="error" onClick={handleDeleteConfirm}>Delete</Button></DialogActions></Dialog>
+    </ReportPageShell>
+  );
+}
 
-    const handleDeleteClick = (userId) => {
-        const userToDelete = users[userId];
-        if (userToDelete) {
-            setSelectedUser(userToDelete);
-            setSelectedUserId(userId);
-            setShowDeleteModal(true);
-            setDeleteErrorMessage('');
-        } else {
-            toast.error('User not found');
-        }
-    };
-
-    const handleDeleteConfirm = () => {
-        deleteUser(selectedUser?.userUuid)
-            .then(res => {
-                if (res.data.success) {
-                    setUsers(prevUser => {
-                        const newUser = { ...prevUser };
-                        delete newUser[selectedUserId];
-                        return newUser;
-                    });
-                    toast.success("User deleted successfully");
-                } else {
-                    toast.error("Delete failed: " + res.data.message);
-                }
-                setShowDeleteModal(false);
-            })
-            .catch(err => {
-                toast.error("Error deleting user");
-                console.log(err);
-                setShowDeleteModal(false);
-            });
-    };
-
-    const handleDeleteCancel = () => {
-        setShowDeleteModal(false);
-    };
-
-    const handleAddUser = () => {
-        setShowAddModal(true);
-    };
-
-    const handlePrint = () => {
-        window.print();
-    };
-
-    return (
-        <>
-            <ToastContainer position="top-center" />
-            <Card className="pt-12 pb-20 max-w-3xl mx-auto">
-                <div className="flex flex-wrap items-center gap-2 mb-4">
-                    <SearchBar
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Search by user name or group"
-                        className="flex-1"
-                    />
-                    <Button
-                        variant="secondary"
-                        onClick={handlePrint}
-                        leftIcon={FiPrinter}
-                        aria-label="Print"
-                        className="p-2"
-                    />
-                    <Button
-                        onClick={handleAddUser}
-                        leftIcon={FiPlus}
-                        aria-label="Add user"
-                        className="p-2"
-                    />
-                </div>
-                {Object.keys(users).length > 0 ? (
-                    <Table
-                        columns={(() => {
-                            const cols = [
-                                { Header: 'Name', accessor: 'name' },
-                                { Header: 'Mobile', accessor: 'mobile' },
-                                { Header: 'Task Groups', accessor: 'taskGroups' },
-                            ];
-                            if (userGroup === 'Admin User') {
-                                cols.push({ Header: 'Actions', accessor: 'actions' });
-                            }
-                            return cols;
-                        })()}
-                        data={Object.entries(users)
-                            .filter(([, user]) =>
-                                user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                (user.group && user.group.toLowerCase().includes(searchTerm.toLowerCase()))
-                            )
-                            .map(([id, user]) => ({
-                                name: (
-                                    <span onClick={() => handleEdit(id)} className="cursor-pointer text-primary">
-                                        {user.name}
-                                    </span>
-                                ),
-                                mobile: (
-                                    <span onClick={() => handleEdit(id)} className="cursor-pointer text-primary">
-                                        {user.mobile}
-                                    </span>
-                                ),
-                                taskGroups: user.taskGroups?.length ? user.taskGroups.join(', ') : '-',
-                                ...(userGroup === 'Admin User'
-                                    ? {
-                                          actions: user.isUsed ? (
-                                              <FiLock
-                                                  className="text-gray-400"
-                                                  title="Cannot delete - linked to transactions/orders"
-                                              />
-                                          ) : (
-                                              <FiTrash2
-                                                  className="text-red-500 cursor-pointer hover:text-red-600"
-                                                  onClick={() => handleDeleteClick(id)}
-                                              />
-                                          ),
-                                      }
-                                    : {}),
-                            }))}
-                    />
-                ) : (
-                    <EmptyState message="No data available for the selected filters." />
-                )}
-            </Card>
-
-            <Modal
-                isOpen={showEditModal}
-                onClose={() => setShowEditModal(false)}
-                title="Edit User"
-            >
-                <EditUser
-                    userId={selectedUserId}
-                    userData={users[selectedUserId]}
-                    closeModal={() => setShowEditModal(false)}
-                />
-            </Modal>
-
-            <Modal
-                isOpen={showDeleteModal}
-                onClose={handleDeleteCancel}
-                title={`Delete ${selectedUser?.name}?`}
-                actions={[
-                    <Button key="confirm" variant="danger" onClick={handleDeleteConfirm}>
-                        Yes
-                    </Button>,
-                    <Button key="cancel" variant="secondary" onClick={handleDeleteCancel}>
-                        Cancel
-                    </Button>,
-                ]}
-            >
-                {deleteErrorMessage && <p className="text-red-500">{deleteErrorMessage}</p>}
-            </Modal>
-
-            <Modal
-                isOpen={showAddModal}
-                onClose={() => setShowAddModal(false)}
-                title="Add User"
-            >
-                <AddUser closeModal={() => setShowAddModal(false)} />
-            </Modal>
-        </>
-    );
-};
-
-export default UserReport;
+function InfoRow({ label, value }) {
+  return (
+    <Stack direction="row" justifyContent="space-between" spacing={1}>
+      <Typography variant="caption" color="text.secondary">{label}</Typography>
+      <Typography variant="body2" fontWeight={600} textAlign="right">{value}</Typography>
+    </Stack>
+  );
+}

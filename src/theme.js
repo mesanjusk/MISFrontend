@@ -1,71 +1,57 @@
 import { alpha, createTheme } from '@mui/material/styles';
 
-const SKY = '#38bdf8';
-const SKY_DARK = '#0284c7';
-const DEEP = '#0f172a';
-const SLATE = '#475569';
+const PRIMARY = '#128c7e';
+const PRIMARY_DARK = '#0b5f56';
+const SECONDARY = '#475569';
 const PAPER = '#ffffff';
-const BG = '#eef6fb';
-const BORDER = '#d7e6ef';
+const BG = '#f4f7f6';
+const BORDER = '#d8e3e0';
+const TEXT = '#0f172a';
+const TEXT_SECONDARY = '#64748b';
 
 export const lightTheme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: SKY,
-      dark: SKY_DARK,
-      light: '#7dd3fc',
+      main: PRIMARY,
+      dark: PRIMARY_DARK,
+      light: '#32b6a6',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: DEEP,
-      dark: '#020617',
-      light: '#334155',
+      main: SECONDARY,
+      dark: '#334155',
+      light: '#94a3b8',
       contrastText: '#ffffff',
     },
-    success: {
-      main: '#22c55e',
-    },
-    warning: {
-      main: '#f59e0b',
-    },
-    error: {
-      main: '#ef4444',
-    },
+    success: { main: '#16a34a' },
+    warning: { main: '#d97706' },
+    error: { main: '#dc2626' },
+    info: { main: '#0284c7' },
     background: {
       default: BG,
       paper: PAPER,
     },
     text: {
-      primary: DEEP,
-      secondary: SLATE,
+      primary: TEXT,
+      secondary: TEXT_SECONDARY,
     },
     divider: BORDER,
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 14,
   },
   typography: {
     fontFamily: "Inter, Roboto, 'Segoe UI', Arial, sans-serif",
     fontSize: 13,
-    h5: {
-      fontSize: '1.05rem',
-      fontWeight: 700,
-    },
-    subtitle1: {
-      fontSize: '0.95rem',
-      fontWeight: 700,
-    },
-    subtitle2: {
-      fontSize: '0.88rem',
-      fontWeight: 700,
-    },
-    body2: {
-      fontSize: '0.82rem',
-    },
-    caption: {
-      fontSize: '0.74rem',
-    },
+    h4: { fontSize: '1.7rem', fontWeight: 800 },
+    h5: { fontSize: '1.08rem', fontWeight: 800 },
+    h6: { fontSize: '0.98rem', fontWeight: 700 },
+    subtitle1: { fontSize: '0.95rem', fontWeight: 700 },
+    subtitle2: { fontSize: '0.88rem', fontWeight: 700 },
+    body2: { fontSize: '0.83rem' },
+    caption: { fontSize: '0.75rem' },
+    button: { fontWeight: 700 },
   },
   components: {
     MuiCssBaseline: {
@@ -73,6 +59,11 @@ export const lightTheme = createTheme({
         html: { height: '100%' },
         body: { height: '100%' },
         '#root': { height: '100%' },
+        '*::-webkit-scrollbar': { width: 8, height: 8 },
+        '*::-webkit-scrollbar-thumb': {
+          backgroundColor: alpha(PRIMARY, 0.28),
+          borderRadius: 999,
+        },
       },
     },
     MuiAppBar: {
@@ -81,6 +72,7 @@ export const lightTheme = createTheme({
           backgroundColor: alpha('#ffffff', 0.92),
           backdropFilter: 'blur(10px)',
           borderBottom: `1px solid ${BORDER}`,
+          boxShadow: '0 8px 32px rgba(15, 23, 42, 0.04)',
         },
       },
     },
@@ -88,7 +80,7 @@ export const lightTheme = createTheme({
       styleOverrides: {
         root: {
           border: `1px solid ${BORDER}`,
-          boxShadow: '0 10px 24px rgba(15, 23, 42, 0.06)',
+          boxShadow: '0 10px 30px rgba(15, 23, 42, 0.05)',
           backgroundImage: 'none',
         },
       },
@@ -101,23 +93,19 @@ export const lightTheme = createTheme({
       },
     },
     MuiButton: {
-      defaultProps: {
-        disableElevation: true,
-      },
+      defaultProps: { disableElevation: true },
       styleOverrides: {
         root: {
-          borderRadius: 10,
+          borderRadius: 12,
           textTransform: 'none',
           fontWeight: 700,
+          minHeight: 38,
         },
       },
     },
     MuiChip: {
       styleOverrides: {
-        root: {
-          borderRadius: 999,
-          fontWeight: 600,
-        },
+        root: { borderRadius: 999, fontWeight: 600 },
       },
     },
     MuiOutlinedInput: {
@@ -125,6 +113,15 @@ export const lightTheme = createTheme({
         root: {
           borderRadius: 12,
           backgroundColor: '#fff',
+        },
+      },
+    },
+    MuiBottomNavigation: {
+      styleOverrides: {
+        root: {
+          borderTop: `1px solid ${BORDER}`,
+          backgroundColor: alpha('#ffffff', 0.97),
+          backdropFilter: 'blur(10px)',
         },
       },
     },

@@ -5,6 +5,7 @@ import {
   Avatar,
   Box,
   Button,
+  Chip,
   Collapse,
   Divider,
   Drawer,
@@ -16,21 +17,26 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import AddTaskRoundedIcon from '@mui/icons-material/AddTaskRounded';
+import AddShoppingCartRoundedIcon from '@mui/icons-material/AddShoppingCartRounded';
 import { useAuth } from '../context/AuthContext';
 import { SIDEBAR_GROUPS } from '../constants/sidebarMenu.jsx';
 import { ROUTES } from '../constants/routes';
 
 const DRAWER_WIDTH = 286;
-const DRAWER_COLLAPSED = 72;
+const DRAWER_COLLAPSED = 76;
 
 export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, onNewOrderClick }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { clearAuth } = useAuth();
-  const [openGroups, setOpenGroups] = useState(() => Object.fromEntries(SIDEBAR_GROUPS.map((group) => [group.label, true])));
+  const { clearAuth, userName } = useAuth();
+  const [openGroups, setOpenGroups] = useState(() =>
+    Object.fromEntries(SIDEBAR_GROUPS.map((group) => [group.label, true])),
+  );
 
   const groups = useMemo(() => SIDEBAR_GROUPS, []);
 
@@ -40,7 +46,6 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, o
       onCloseMobile();
       return;
     }
-
     navigate(path);
     onCloseMobile();
   };
@@ -59,32 +64,71 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, o
   const isSelected = (path) => pathname === path || pathname.startsWith(`${path}/`);
 
   const drawerContent = (
-    <Stack sx={{ height: '100%', bgcolor: '#0f172a', color: '#e2e8f0' }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 1, py: 1.1 }}>
-        <Stack direction="row" spacing={1} alignItems="center" minWidth={0}>
-          <Avatar sx={{ bgcolor: '#38bdf8', color: '#0f172a', width: 34, height: 34, fontWeight: 800 }}>M</Avatar>
-          {!desktopCollapsed && (
+    <Stack sx={{ height: '100%', bgcolor: '#0f2f2a', color: '#e8f5f3' }}>
+      <Box sx={{ p: desktopCollapsed ? 1 : 1.25 }}>
+        <Stack direction="row" alignItems="center" spacing={1.1}>
+          <Avatar sx={{ bgcolor: '#d4f7f1', color: '#0f2f2a', width: 38, height: 38, fontWeight: 900 }}>S</Avatar>
+          {!desktopCollapsed ? (
             <Box sx={{ minWidth: 0 }}>
-              <Typography variant="subtitle2" fontWeight={700} noWrap color="#f8fafc">MIS Pro</Typography>
-              <Typography variant="caption" color="rgba(226,232,240,0.72)" noWrap>Orders, reports, WhatsApp Cloud</Typography>
+              <Typography variant="subtitle1" fontWeight={800} color="#ffffff" noWrap>
+                SK Digital MIS
+              </Typography>
+              <Typography variant="caption" color="rgba(232,245,243,0.8)" noWrap>
+                Simple operations • clear reports
+              </Typography>
             </Box>
-          )}
+          ) : null}
         </Stack>
-      </Stack>
-      <Divider sx={{ borderColor: 'rgba(148,163,184,0.18)' }} />
+
+        {!desktopCollapsed ? (
+          <Stack direction="row" spacing={0.8} sx={{ mt: 1.2 }}>
+            <Button
+              fullWidth
+              size="small"
+              variant="contained"
+              startIcon={<AddShoppingCartRoundedIcon fontSize="small" />}
+              onClick={() => handleNavigate(ROUTES.ORDERS_NEW)}
+              sx={{ bgcolor: '#128c7e', '&:hover': { bgcolor: '#0e7267' } }}
+            >
+              Order
+            </Button>
+            <Button
+              fullWidth
+              size="small"
+              variant="outlined"
+              color="inherit"
+              startIcon={<AddTaskRoundedIcon fontSize="small" />}
+              onClick={() => handleNavigate(ROUTES.TASKS_NEW)}
+              sx={{ borderColor: 'rgba(232,245,243,0.22)' }}
+            >
+              Task
+            </Button>
+          </Stack>
+        ) : null}
+      </Box>
+
+      <Divider sx={{ borderColor: 'rgba(232,245,243,0.1)' }} />
 
       <List sx={{ py: 0.75, px: 0.75, overflowY: 'auto', flexGrow: 1 }}>
         {groups.map((group) => (
-          <Box key={group.label} sx={{ mb: 0.75 }}>
-            {!desktopCollapsed && (
-              <ListItemButton onClick={() => toggleGroup(group.label)} sx={{ minHeight: 32, borderRadius: 2 }}>
+          <Box key={group.label} sx={{ mb: 0.85 }}>
+            {!desktopCollapsed ? (
+              <ListItemButton onClick={() => toggleGroup(group.label)} sx={{ minHeight: 34, borderRadius: 2.5 }}>
                 <ListItemText
                   primary={group.label}
-                  primaryTypographyProps={{ variant: 'caption', fontWeight: 700, sx: { letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(226,232,240,0.62)' } }}
+                  primaryTypographyProps={{
+                    variant: 'caption',
+                    fontWeight: 800,
+                    sx: {
+                      letterSpacing: 0.45,
+                      textTransform: 'uppercase',
+                      color: 'rgba(232,245,243,0.68)',
+                    },
+                  }}
                 />
                 {openGroups[group.label] ? <ExpandLessRoundedIcon fontSize="small" /> : <ExpandMoreRoundedIcon fontSize="small" />}
               </ListItemButton>
-            )}
+            ) : null}
 
             <Collapse in={desktopCollapsed || openGroups[group.label]} timeout="auto" unmountOnExit={false}>
               {group.items.map((item) => {
@@ -95,20 +139,28 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, o
                       selected={selected}
                       onClick={() => handleNavigate(item.path)}
                       sx={{
-                        minHeight: 36,
-                        ml: desktopCollapsed ? 0 : 1,
-                        mb: 0.45,
-                        borderRadius: 2,
-                        '&.Mui-selected': { bgcolor: 'rgba(56,189,248,0.18)', color: '#f8fafc' },
-                        '&:hover': { bgcolor: 'rgba(56,189,248,0.10)' },
+                        minHeight: 40,
+                        ml: desktopCollapsed ? 0 : 0.5,
+                        mb: 0.55,
+                        borderRadius: 2.5,
+                        color: selected ? '#ffffff' : 'rgba(232,245,243,0.85)',
+                        '&.Mui-selected': {
+                          bgcolor: alpha('#ffffff', 0.14),
+                          color: '#ffffff',
+                          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
+                        },
+                        '&:hover': { bgcolor: alpha('#ffffff', 0.08) },
                       }}
                     >
-                      <ListItemIcon sx={{ minWidth: 30, color: selected ? '#38bdf8' : 'rgba(226,232,240,0.72)' }}>
+                      <ListItemIcon sx={{ minWidth: 32, color: selected ? '#7ff6dd' : 'rgba(232,245,243,0.78)' }}>
                         {item.icon}
                       </ListItemIcon>
-                      {!desktopCollapsed && (
-                        <ListItemText primary={item.label} primaryTypographyProps={{ variant: 'body2', fontWeight: 600, noWrap: true }} />
-                      )}
+                      {!desktopCollapsed ? (
+                        <ListItemText
+                          primary={item.label}
+                          primaryTypographyProps={{ variant: 'body2', fontWeight: 700, noWrap: true }}
+                        />
+                      ) : null}
                     </ListItemButton>
                   </Tooltip>
                 );
@@ -119,7 +171,35 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, o
       </List>
 
       <Box sx={{ p: 1 }}>
-        <Button fullWidth color="inherit" variant="outlined" startIcon={<LogoutRoundedIcon fontSize="small" />} onClick={handleLogout}>
+        {!desktopCollapsed ? (
+          <Stack spacing={1} sx={{ mb: 1 }}>
+            <Box
+              sx={{
+                p: 1,
+                borderRadius: 2.5,
+                bgcolor: alpha('#ffffff', 0.07),
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}
+            >
+              <Typography variant="caption" color="rgba(232,245,243,0.68)">
+                Logged in as
+              </Typography>
+              <Typography variant="body2" fontWeight={700} color="#fff" noWrap>
+                {userName || 'User'}
+              </Typography>
+              <Chip label="Live dashboard" size="small" sx={{ mt: 0.8, bgcolor: alpha('#7ff6dd', 0.16), color: '#d9fffa' }} />
+            </Box>
+          </Stack>
+        ) : null}
+
+        <Button
+          fullWidth
+          color="inherit"
+          variant="outlined"
+          startIcon={<LogoutRoundedIcon fontSize="small" />}
+          onClick={handleLogout}
+          sx={{ borderColor: 'rgba(232,245,243,0.22)' }}
+        >
           {!desktopCollapsed ? 'Logout' : ''}
         </Button>
       </Box>
@@ -134,10 +214,12 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, o
         sx={{
           display: { xs: 'none', md: 'block' },
           width: desktopCollapsed ? DRAWER_COLLAPSED : DRAWER_WIDTH,
+          flexShrink: 0,
           '& .MuiDrawer-paper': {
             width: desktopCollapsed ? DRAWER_COLLAPSED : DRAWER_WIDTH,
             overflowX: 'hidden',
             transition: (theme) => theme.transitions.create('width'),
+            borderRight: 'none',
           },
         }}
       >
@@ -149,7 +231,7 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, o
         open={mobileOpen}
         onClose={onCloseMobile}
         ModalProps={{ keepMounted: true }}
-        sx={{ display: { xs: 'block', md: 'none' }, '& .MuiDrawer-paper': { width: DRAWER_WIDTH } }}
+        sx={{ display: { xs: 'block', md: 'none' }, '& .MuiDrawer-paper': { width: DRAWER_WIDTH, borderRight: 'none' } }}
       >
         {drawerContent}
       </Drawer>

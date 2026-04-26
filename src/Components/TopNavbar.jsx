@@ -6,8 +6,6 @@ import {
   Avatar,
   Badge,
   Box,
-  Button,
-  Breadcrumbs,
   Chip,
   IconButton,
   InputAdornment,
@@ -22,12 +20,12 @@ import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import MenuOpenRoundedIcon from '@mui/icons-material/MenuOpenRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded';
-import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
-import NavigateNextRoundedIcon from '@mui/icons-material/NavigateNextRounded';
+import MoreVertRoundedIcon from '@mui/icons-material/MoreVertRounded';
+import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import ChatRoundedIcon from '@mui/icons-material/ChatRounded';
-import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import AssignmentRoundedIcon from '@mui/icons-material/AssignmentRounded';
+import StoreRoundedIcon from '@mui/icons-material/StoreRounded';
 import { useAuth } from '../context/AuthContext';
 import { ROUTES } from '../constants/routes';
 
@@ -44,10 +42,10 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
 
   const tabs = useMemo(
     () => [
-      { label: 'Home', path: ROUTES.HOME, icon: <HomeRoundedIcon sx={{ fontSize: 15 }} /> },
-      { label: 'Orders', path: '/allOrder', icon: <AssignmentRoundedIcon sx={{ fontSize: 15 }} /> },
-      { label: 'Transactions', path: ROUTES.ALL_TRANSACTION, icon: <ReceiptLongRoundedIcon sx={{ fontSize: 15 }} /> },
-      { label: 'WhatsApp', path: ROUTES.WHATSAPP, icon: <ChatRoundedIcon sx={{ fontSize: 15 }} /> },
+      { label: 'Home', path: ROUTES.HOME, icon: <HomeRoundedIcon sx={{ fontSize: 16 }} /> },
+      { label: 'Orders', path: '/allOrder', icon: <AssignmentRoundedIcon sx={{ fontSize: 16 }} /> },
+      { label: 'Business', path: ROUTES.BUSINESS_CONTROL, icon: <StoreRoundedIcon sx={{ fontSize: 16 }} /> },
+      { label: 'WhatsApp', path: ROUTES.WHATSAPP, icon: <ChatRoundedIcon sx={{ fontSize: 16 }} /> },
     ],
     [],
   );
@@ -61,9 +59,14 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
     navigate(ROUTES.ROOT);
   };
 
+  const todayLabel = new Date().toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+  });
+
   return (
     <AppBar position="static" color="inherit" elevation={0}>
-      <Toolbar sx={{ minHeight: { xs: 54, md: 56 }, px: { xs: 1, md: 1.5 }, gap: 0.75 }}>
+      <Toolbar sx={{ minHeight: { xs: 58, md: 64 }, px: { xs: 1, md: 1.5 }, gap: 1 }}>
         <IconButton onClick={onToggleSidebar} sx={{ display: { md: 'none' } }}>
           <MenuRoundedIcon fontSize="small" />
         </IconButton>
@@ -72,20 +75,23 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
           {desktopCollapsed ? <MenuRoundedIcon fontSize="small" /> : <MenuOpenRoundedIcon fontSize="small" />}
         </IconButton>
 
-        <Stack sx={{ minWidth: 0, pr: 1, maxWidth: { xs: 170, sm: 260, md: 340 } }}>
-          <Typography variant="subtitle1" noWrap>
-            SK 
+        <Stack sx={{ minWidth: 0, mr: { xs: 0.5, md: 1 } }}>
+          <Typography variant="subtitle1" noWrap sx={{ fontWeight: 800 }}>
+            {titleFromPath(pathname)}
           </Typography>
-          <Breadcrumbs separator={<NavigateNextRoundedIcon sx={{ fontSize: 14 }} />} sx={{ '& .MuiBreadcrumbs-ol': { flexWrap: 'nowrap' } }}>
-            <Typography variant="caption" color="text.secondary">Workspace</Typography>
-            <Typography variant="caption" color="text.primary" noWrap>{titleFromPath(pathname)}</Typography>
-          </Breadcrumbs>
+          <Typography variant="caption" color="text.secondary" noWrap>
+            {userGroup || 'Workspace'} • {todayLabel}
+          </Typography>
         </Stack>
 
         <TextField
           size="small"
           placeholder="Search customer, order, payment..."
-          sx={{ display: { xs: 'none', lg: 'flex' }, minWidth: 240, maxWidth: 340, ml: 'auto' }}
+          sx={{
+            display: { xs: 'none', lg: 'flex' },
+            width: { lg: 260, xl: 320 },
+            mr: 'auto',
+          }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -109,25 +115,16 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
           ))}
         </Stack>
 
-        <Button
-          variant="contained"
-          color="primary"
-          size="small"
-          startIcon={<HomeRoundedIcon sx={{ fontSize: 16 }} />}
-          onClick={() => navigate(ROUTES.HOME)}
-          sx={{ ml: { xs: 'auto', lg: 0 }, display: { xs: 'none', sm: 'inline-flex' } }}
-        >
-          Home
-        </Button>
+        <Chip size="small" label="Live" color="success" variant="outlined" sx={{ display: { xs: 'none', sm: 'inline-flex' } }} />
 
-        <IconButton aria-label="notifications" sx={{ ml: { lg: 0.5, xl: 0 } }}>
+        <IconButton aria-label="notifications">
           <Badge color="primary" variant="dot">
             <NotificationsNoneRoundedIcon fontSize="small" />
           </Badge>
         </IconButton>
 
         <IconButton onClick={(event) => setMenuAnchor(event.currentTarget)}>
-          <Avatar sx={{ bgcolor: 'secondary.main', width: 30, height: 30, fontSize: 12 }}>
+          <Avatar sx={{ bgcolor: 'primary.main', width: 34, height: 34, fontSize: 12, fontWeight: 800 }}>
             {userName ? userName.slice(0, 2).toUpperCase() : 'NA'}
           </Avatar>
         </IconButton>
@@ -143,16 +140,20 @@ export default function TopNavbar({ onToggleSidebar, onToggleDesktopCollapse, de
             <Typography variant="subtitle2">{userName || 'Guest'}</Typography>
             <Typography variant="caption" color="text.secondary">{userGroup || 'Unknown role'}</Typography>
           </Box>
-          <MenuItem
-            onClick={() => {
-              setMenuAnchor(null);
-              handleLogout();
-            }}
-          >
-            <LogoutRoundedIcon fontSize="small" sx={{ mr: 1 }} />
-            Logout
+          <MenuItem onClick={() => { setMenuAnchor(null); navigate(ROUTES.HOME); }}>
+            <HomeRoundedIcon fontSize="small" sx={{ mr: 1 }} /> Home
+          </MenuItem>
+          <MenuItem onClick={() => { setMenuAnchor(null); navigate(ROUTES.BUSINESS_CONTROL); }}>
+            <StoreRoundedIcon fontSize="small" sx={{ mr: 1 }} /> Business Control
+          </MenuItem>
+          <MenuItem onClick={() => { setMenuAnchor(null); handleLogout(); }}>
+            <LogoutRoundedIcon fontSize="small" sx={{ mr: 1 }} /> Logout
           </MenuItem>
         </Menu>
+
+        <IconButton sx={{ display: { xs: 'inline-flex', md: 'none' } }}>
+          <MoreVertRoundedIcon fontSize="small" />
+        </IconButton>
       </Toolbar>
     </AppBar>
   );
