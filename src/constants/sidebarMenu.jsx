@@ -29,6 +29,7 @@ export const SIDEBAR_GROUPS = [
     items: [
       { label: 'New Order', path: ROUTES.ORDERS_NEW, icon: <AddShoppingCartRoundedIcon fontSize="small" /> },
       { label: 'Order Board', path: ROUTES.ORDERS_BOARD, icon: <AssignmentRoundedIcon fontSize="small" /> },
+      { label: 'Business Control', path: ROUTES.BUSINESS_CONTROL, icon: <HubRoundedIcon fontSize="small" /> },
       { label: 'New Enquiry', path: ROUTES.ENQUIRIES_NEW, icon: <AddShoppingCartRoundedIcon fontSize="small" /> },
       { label: 'Receipt Entry', path: ROUTES.RECEIPT, icon: <ReceiptLongRoundedIcon fontSize="small" /> },
       { label: 'Payment Entry', path: ROUTES.PAYMENT, icon: <PaymentsRoundedIcon fontSize="small" /> },

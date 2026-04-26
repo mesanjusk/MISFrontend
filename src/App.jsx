@@ -25,6 +25,7 @@ const AddTask = lazy(() => import('./Pages/addTask'));
 const AddTaskgroup = lazy(() => import('./Pages/addTaskgroup'));
 const AddOrder1 = lazy(() => import('./Pages/addOrder1'));
 const OrderKanban = lazy(() => import('./Pages/OrderKanban'));
+const BusinessControl = lazy(() => import('./Pages/BusinessControl'));
 const OrderUpdate = lazy(() => import('./Pages/OrderUpdate'));
 const UpdateDelivery = lazy(() => import('./Pages/updateDelivery'));
 const AddTransaction = lazy(() => import('./Pages/AddTransaction'));
@@ -110,6 +111,7 @@ export default function App() {
             <Route path={ROUTES.ADD_ORDER} element={<Navigate to={ROUTES.ORDERS_NEW} replace />} />
             <Route path={ROUTES.ADD_ORDER_V2} element={<Navigate to={ROUTES.ORDERS_NEW} replace />} />
             <Route path={ROUTES.ORDERS_BOARD} element={withSuspense(<OrderKanban />)} />
+            <Route path={ROUTES.BUSINESS_CONTROL} element={withSuspense(<BusinessControl />)} />
             <Route path="/orderUpdate/:id" element={withSuspense(<OrderUpdate />)} />
             <Route path="/updateDelivery/:id" element={withSuspense(<UpdateDelivery />)} />
             <Route path="/customers/:id" element={withSuspense(<CustomerDetails />)} />

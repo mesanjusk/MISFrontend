@@ -25,6 +25,7 @@ export const ROUTES = {
 
   ORDERS_NEW: '/orders/new',
   ORDERS_BOARD: '/orders/board',
+  BUSINESS_CONTROL: '/business-control',
   ORDER_KANBAN: '/orders/board',
   ORDER_UPDATE: '/orders/:id/update',
   DELIVERY_UPDATE: '/delivery/update/:id',
