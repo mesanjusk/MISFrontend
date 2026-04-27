@@ -55,6 +55,8 @@ export const ROUTES = {
   REPORTS_TASKS: '/reports/tasks',
   REPORTS_USERS: '/reports/users',
   REPORTS_VENDORS: '/reports/vendors',
+  AGING_REPORT: '/reports/aging',
+  PURCHASE_ORDERS: '/purchase-orders',
 
   // legacy aliases still used in old code
   ADD_ORDER: '/addOrder',

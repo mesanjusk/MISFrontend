@@ -25,3 +25,6 @@ export const fetchOrderListForAllocation = async () => unwrap(await axios.get('/
 
 export const fetchWhatsAppAttendanceSettings = async () => unwrap(await axios.get('/vendors/settings/whatsapp-attendance'));
 export const saveWhatsAppAttendanceSettings = async (payload) => unwrap(await axios.put('/vendors/settings/whatsapp-attendance', payload));
+
+export const fetchVendorSummaries = async () => unwrap(await axios.get('/vendors/masters/summary'));
+export const fetchVendorOrderLedger = async (vendorUuid) => unwrap(await axios.get(`/vendors/masters/${vendorUuid}/order-ledger`));

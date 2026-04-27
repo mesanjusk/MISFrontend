@@ -184,7 +184,7 @@ export default function OrderKanban() {
             }}
             onEdit={() => {}}
             onCancel={() => {}}
-            onMove={() => {}}
+            onMove={(order, nextStage) => moveOrderToStage(order?.Order_uuid || order?._id || order?.Order_id, nextStage, null)}
             statusMessage={statusMessage}
           />
         </div>

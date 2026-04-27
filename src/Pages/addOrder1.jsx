@@ -66,6 +66,11 @@ const createEmptyVendorAssignment = () => ({
 });
 
 const inputLabelProps = { shrink: true };
+const dateInputAfterDays = (days = 0) => {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().split('T')[0];
+};
 
 const sortByName = (list = [], key = '') =>
   [...list].sort((a, b) =>
@@ -201,6 +206,9 @@ export default function AddOrder1({ closeModal }) {
   const [assignableUsers, setAssignableUsers] = useState([]);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [selectedAssignee, setSelectedAssignee] = useState('');
+  const [orderDueDate, setOrderDueDate] = useState(dateInputAfterDays(2));
+  const [orderPriority, setOrderPriority] = useState('medium');
+  const [formErrors, setFormErrors] = useState({});
   const [savedOrderId, setSavedOrderId] = useState('');
   const [pendingCloseAfterAssignment, setPendingCloseAfterAssignment] = useState(false);
 
@@ -250,11 +258,7 @@ export default function AddOrder1({ closeModal }) {
 
       setAssignableUsers(
         sortByName(
-          (users || []).filter(
-            (user) =>
-              user?.User_name &&
-              String(user?.User_group || '').trim().toLowerCase() === 'office user'
-          ),
+          (users || []).filter((user) => user?.User_name),
           'User_name'
         )
       );
@@ -310,6 +314,9 @@ export default function AddOrder1({ closeModal }) {
         setLatestOrderNumber(order?.Order_Number || order?.Order_number || '');
         setSelectedCustomerUuid(order?.Customer_uuid || '');
         setRemark(note);
+        setOrderDueDate(order?.dueDate ? String(order.dueDate).split('T')[0] : dateInputAfterDays(2));
+        setOrderPriority(String(order?.priority || 'medium').toLowerCase());
+        setSelectedAssignee(order?.assignedTo?.User_uuid || order?.assignedTo?.User_name || order?.assignedTo || '');
 
         setEntryType(Array.isArray(order?.Items) && order.Items.length ? 'DetailedOrder' : 'Order');
 
@@ -395,6 +402,13 @@ export default function AddOrder1({ closeModal }) {
       setCustomerSearchInput(selectedCustomer.Customer_name);
     }
   }, [selectedCustomer?.Customer_name]);
+
+  const selectedAssigneeName = useMemo(() => {
+    const user = assignableUsers.find((item) =>
+      [item.User_uuid, item._id, item.User_name].some((value) => String(value || '') === String(selectedAssignee || ''))
+    );
+    return user?.User_name || '';
+  }, [assignableUsers, selectedAssignee]);
 
   const stepCandidates = useMemo(
     () =>
@@ -663,7 +677,7 @@ export default function AddOrder1({ closeModal }) {
   };
 
   const completeAfterSave = (savedId) => {
-    const shouldPromptAssignment = !isEnquiryOnly && isAdminUser && !editOrderId;
+    const shouldPromptAssignment = !isEnquiryOnly && isAdminUser && !editOrderId && !selectedAssignee;
     if (shouldPromptAssignment) {
       openAssignmentFlow(savedId);
     } else {
@@ -679,6 +693,14 @@ export default function AddOrder1({ closeModal }) {
 
     try {
       const customer = selectedCustomer;
+      const validationErrors = {};
+      if (!isEnquiryOnly && !selectedAssignee) validationErrors.assignedTo = 'Please assign this order to a team member';
+      if (!isEnquiryOnly && !orderDueDate) validationErrors.dueDate = 'Delivery date is required';
+      setFormErrors(validationErrors);
+      if (Object.keys(validationErrors).length) {
+        toast.error(Object.values(validationErrors)[0]);
+        return;
+      }
 
       if (!customer) {
         toast.error('Invalid customer selection');
@@ -709,6 +731,10 @@ export default function AddOrder1({ closeModal }) {
         Type: isEnquiryOnly ? 'Enquiry' : 'Order',
         isEnquiry: isEnquiryOnly,
         customerName: customer.Customer_name || Customer_name || '',
+        assignedTo: selectedAssignee,
+        assignToUserUuid: selectedAssignee,
+        dueDate: orderDueDate,
+        priority: orderPriority,
         ...drivePayload,
       };
 
@@ -880,7 +906,7 @@ export default function AddOrder1({ closeModal }) {
               <MenuItem value="">Select office user</MenuItem>
               {assignableUsers.length ? (
                 assignableUsers.map((user) => (
-                  <MenuItem key={user._id} value={user.User_name}>
+                  <MenuItem key={user.User_uuid || user._id} value={user.User_uuid || user._id || user.User_name}>
                     {user.User_name}
                   </MenuItem>
                 ))
@@ -1015,6 +1041,77 @@ export default function AddOrder1({ closeModal }) {
               ) : null}
             </Stack>
           </Paper>
+
+
+
+          {!isEnquiryOnly ? (
+            <Paper sx={compactCardSx}>
+              <Stack spacing={1}>
+                <Typography variant="body2" fontWeight={700}>Ownership & Delivery</Typography>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                  <TextField
+                    select
+                    required
+                    label="Assigned To (required)"
+                    value={selectedAssignee}
+                    onChange={(e) => {
+                      setSelectedAssignee(e.target.value);
+                      setFormErrors((prev) => ({ ...prev, assignedTo: '' }));
+                    }}
+                    error={Boolean(formErrors.assignedTo)}
+                    helperText={formErrors.assignedTo || 'Owner responsible for this order'}
+                    size="small"
+                    fullWidth
+                    sx={compactFieldSx}
+                    SelectProps={{ MenuProps: selectMenuProps }}
+                  >
+                    <MenuItem value="">Select team member</MenuItem>
+                    {assignableUsers.map((user) => (
+                      <MenuItem key={user.User_uuid || user._id || user.User_name} value={user.User_uuid || user._id || user.User_name}>
+                        {user.User_name} {user.User_group ? `(${user.User_group})` : ''}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+
+                  <TextField
+                    required
+                    label="Delivery Date"
+                    type="date"
+                    value={orderDueDate}
+                    onChange={(e) => {
+                      setOrderDueDate(e.target.value);
+                      setFormErrors((prev) => ({ ...prev, dueDate: '' }));
+                    }}
+                    error={Boolean(formErrors.dueDate)}
+                    helperText={formErrors.dueDate || 'Cannot select past date'}
+                    inputProps={{ min: dateInputAfterDays(0) }}
+                    size="small"
+                    fullWidth
+                    sx={compactFieldSx}
+                    InputLabelProps={inputLabelProps}
+                  />
+
+                  <TextField
+                    select
+                    label="Priority"
+                    value={orderPriority}
+                    onChange={(e) => setOrderPriority(e.target.value)}
+                    size="small"
+                    fullWidth
+                    sx={compactFieldSx}
+                    SelectProps={{ MenuProps: selectMenuProps }}
+                  >
+                    <MenuItem value="low"><Chip size="small" color="success" label="Low" /></MenuItem>
+                    <MenuItem value="medium"><Chip size="small" color="warning" label="Medium" /></MenuItem>
+                    <MenuItem value="high"><Chip size="small" color="error" label="High" /></MenuItem>
+                  </TextField>
+                </Stack>
+                <Alert severity="info" sx={{ py: 0, borderRadius: 2, '& .MuiAlert-message': { py: 0.75 } }}>
+                  This order will be assigned to {selectedAssigneeName || '—'} | Due: {orderDueDate || '—'} | Priority: {orderPriority}
+                </Alert>
+              </Stack>
+            </Paper>
+          ) : null}
 
           {!isEnquiryOnly ? (
             <Paper sx={compactCardSx}>

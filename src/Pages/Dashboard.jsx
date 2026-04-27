@@ -225,12 +225,39 @@ export default function Dashboard() {
   const [followups, setFollowups] = useState([]);
   const [followupsLoading, setFollowupsLoading] = useState(true);
   const [upiDialogOpen, setUpiDialogOpen] = useState(false);
+  const [opsSummary, setOpsSummary] = useState({ outstanding: {}, stuck: {}, cash: {} });
 
   const data = useDashboardData({
     role: roleInfo?.role,
     userName: roleInfo?.userName,
     isAdmin: roleInfo?.isAdmin,
   });
+
+
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchOperationalSummary = async () => {
+      try {
+        const [outstandingRes, stuckRes, cashRes] = await Promise.all([
+          axios.get('/dashboard/outstanding-summary'),
+          axios.get('/dashboard/stuck-orders'),
+          axios.get('/dashboard/cash-book-summary'),
+        ]);
+        if (!mounted) return;
+        setOpsSummary({
+          outstanding: outstandingRes?.data || {},
+          stuck: stuckRes?.data || {},
+          cash: cashRes?.data || {},
+        });
+      } catch (error) {
+        console.error('Operational dashboard summary failed:', error);
+        if (mounted) setOpsSummary({ outstanding: {}, stuck: {}, cash: {} });
+      }
+    };
+    fetchOperationalSummary();
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -354,6 +381,30 @@ export default function Dashboard() {
   const summaryCards = useMemo(
     () => [
       {
+        title: 'Total Outstanding',
+        value: formatMoney(opsSummary?.outstanding?.totalOutstandingAmount || 0),
+        icon: CurrencyRupeeRoundedIcon,
+        variant: 'danger',
+      },
+      {
+        title: 'Ready Stuck',
+        value: opsSummary?.stuck?.readyNotDelivered?.length || 0,
+        icon: LocalShippingRoundedIcon,
+        variant: 'warning',
+      },
+      {
+        title: 'Delivered Unpaid',
+        value: opsSummary?.stuck?.deliveredNotPaid?.length || 0,
+        icon: CreditCardRoundedIcon,
+        variant: 'warning',
+      },
+      {
+        title: 'Cash Balance',
+        value: formatMoney(opsSummary?.cash?.closingBalance || 0),
+        icon: ReceiptLongRoundedIcon,
+        variant: 'success',
+      },
+      {
         title: 'New Orders',
         value: summaryApi?.todayOrdersCount ?? 0,
         icon: AssignmentRoundedIcon,
@@ -390,7 +441,7 @@ export default function Dashboard() {
         variant: 'primary',
       },
     ],
-    [oldPendingOrders, summaryApi, todayDeliveryCount, todayEnquiry, todayReceivable, todayRevenue],
+    [oldPendingOrders, opsSummary, summaryApi, todayDeliveryCount, todayEnquiry, todayReceivable, todayRevenue],
   );
 
   const assignedTasks = useMemo(() => {

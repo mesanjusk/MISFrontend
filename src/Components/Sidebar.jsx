@@ -30,15 +30,37 @@ import { ROUTES } from '../constants/routes';
 const DRAWER_WIDTH = 286;
 const DRAWER_COLLAPSED = 76;
 
+const normalizeRoleKey = (value = '') => {
+  const text = String(value || '').trim().toLowerCase().replace(/\s+/g, '');
+  if (['admin', 'adminuser', 'superadmin', 'owner'].includes(text)) return 'Admin';
+  if (['designer'].includes(text)) return 'Designer';
+  if (['dataentry', 'dataentryuser'].includes(text)) return 'DataEntry';
+  if (['officestaff', 'officeuser', 'otheroffice'].includes(text)) return 'OfficeStaff';
+  if (['accounts', 'accountant', 'accountsuser'].includes(text)) return 'Accounts';
+  return value || 'User';
+};
+
+const canShowItem = (item, roleKey) => {
+  const roles = item.roles || ['Admin'];
+  return roles.includes('all') || roles.includes(roleKey) || (roleKey === 'Admin' && !item.hideForAdmin);
+};
+
 export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, onNewOrderClick }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { clearAuth, userName } = useAuth();
+  const roleKey = normalizeRoleKey(localStorage.getItem('User_group') || '');
   const [openGroups, setOpenGroups] = useState(() =>
     Object.fromEntries(SIDEBAR_GROUPS.map((group) => [group.label, true])),
   );
 
-  const groups = useMemo(() => SIDEBAR_GROUPS, []);
+  const groups = useMemo(() =>
+    SIDEBAR_GROUPS.map((group) => ({
+      ...group,
+      items: group.items.filter((item) => canShowItem(item, roleKey)),
+    })).filter((group) => group.items.length),
+    [roleKey],
+  );
 
   const handleNavigate = (path) => {
     if (path === ROUTES.ORDERS_NEW && typeof onNewOrderClick === 'function') {
@@ -67,14 +89,14 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, o
     <Stack sx={{ height: '100%', bgcolor: '#0f2f2a', color: '#e8f5f3' }}>
       <Box sx={{ p: desktopCollapsed ? 1 : 1.25 }}>
         <Stack direction="row" alignItems="center" spacing={1.1}>
-          <Avatar sx={{ bgcolor: '#d4f7f1', color: '#0f2f2a', width: 38, height: 38, fontWeight: 900 }}>S</Avatar>
+          <Avatar sx={{ bgcolor: '#d4f7f1', color: '#0f2f2a', width: 38, height: 38, fontWeight: 900 }}>{(userName || 'U').slice(0, 1).toUpperCase()}</Avatar>
           {!desktopCollapsed ? (
             <Box sx={{ minWidth: 0 }}>
               <Typography variant="subtitle1" fontWeight={800} color="#ffffff" noWrap>
                 SK Digital MIS
               </Typography>
               <Typography variant="caption" color="rgba(232,245,243,0.8)" noWrap>
-                Simple operations • clear reports
+                {roleKey} • {new Date().toLocaleDateString('en-IN')}
               </Typography>
             </Box>
           ) : null}
@@ -185,7 +207,7 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, o
                 Logged in as
               </Typography>
               <Typography variant="body2" fontWeight={700} color="#fff" noWrap>
-                {userName || 'User'}
+                {userName || 'User'} ({roleKey})
               </Typography>
               <Chip label="Live dashboard" size="small" sx={{ mt: 0.8, bgcolor: alpha('#7ff6dd', 0.16), color: '#d9fffa' }} />
             </Box>

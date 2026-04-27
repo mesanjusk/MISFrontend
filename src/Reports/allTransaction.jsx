@@ -1,498 +1,146 @@
-// src/Pages/AllTransaction.jsx
-import React, { useEffect, useMemo, useState } from 'react';
-import axios from '../apiClient.js';
+import { useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
-import { ConfirmModal, EmptyState, Loader, ToastContainer, toast } from '../Components';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
+  Tab,
+  Tabs,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  TableRow,
+  TextField,
+  Typography,
+  Paper,
+} from '@mui/material';
+import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
+import axios from '../apiClient';
 
-// NEW: reusable modal
-import TransactionEditModal from '../Components/TransactionEditModal';
+const money = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
+const ymd = (value) => value ? new Date(value).toISOString().slice(0, 10) : '';
+const prettyDate = (value) => value ? new Date(value).toLocaleDateString('en-IN') : '-';
 
-const AllTransaction = () => {
+export default function AllTransaction() {
   const [transactions, setTransactions] = useState([]);
   const [customers, setCustomers] = useState([]);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingTxn, setEditingTxn] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
-  const [userRole, setUserRole] = useState('');
-  const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
-  const [searchQuery, setSearchQuery] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [selectedIds, setSelectedIds] = useState([]);
-  const [confirmState, setConfirmState] = useState({
-    open: false,
-    mode: null,
-    txnId: null,
-    count: 0,
-  });
+  const [tab, setTab] = useState(0);
+  const [page, setPage] = useState(0);
+  const [filters, setFilters] = useState({ fromDate: '', toDate: '', paymentMode: 'All', transactionType: 'All', search: '', account: '' });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoadError(null);
-      try {
-        const [txnRes, custRes] = await Promise.all([
-          axios.get('/transaction'),
-          axios.get('/customer/GetCustomersList'),
-        ]);
-        if (txnRes.data?.success) setTransactions(txnRes.data.result || []);
-        if (custRes.data?.success) setCustomers(custRes.data.result || []);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        const message = 'Unable to load transactions. Please try again.';
-        setLoadError(message);
-        toast.error(message);
-      } finally {
-        setIsLoading(false);
-      }
+  const load = async () => {
+    const [txnRes, custRes] = await Promise.all([axios.get('/transaction'), axios.get('/customer/GetCustomersList')]);
+    setTransactions(Array.isArray(txnRes?.data?.result) ? txnRes.data.result : []);
+    setCustomers(Array.isArray(custRes?.data?.result) ? custRes.data.result : []);
+  };
+
+  useEffect(() => { load().catch((e) => console.error(e)); }, []);
+
+  const customerMap = useMemo(() => Object.fromEntries(customers.map((c) => [c.Customer_uuid, c.Customer_name])), [customers]);
+  const modes = useMemo(() => ['All', ...new Set(transactions.map((t) => t.Payment_mode).filter(Boolean))], [transactions]);
+  const accounts = useMemo(() => [...new Set(transactions.flatMap((t) => (t.Journal_entry || []).map((e) => e.Account_id || e.Account)).filter(Boolean))].sort(), [transactions]);
+
+  const normalized = useMemo(() => transactions.map((txn) => {
+    const debit = (txn.Journal_entry || []).find((e) => String(e.Type).toLowerCase() === 'debit');
+    const credit = (txn.Journal_entry || []).find((e) => String(e.Type).toLowerCase() === 'credit');
+    const inAmount = Number(txn.Total_Debit ?? debit?.Amount ?? 0);
+    const outAmount = Number(txn.Total_Credit ?? credit?.Amount ?? 0);
+    return {
+      ...txn,
+      id: txn.Transaction_uuid || txn._id,
+      customerName: customerMap[txn.Customer_uuid] || customerMap[credit?.Account_id] || customerMap[debit?.Account_id] || '',
+      inAmount,
+      outAmount,
+      transactionKind: inAmount >= outAmount ? 'Receipt' : 'Payment',
     };
-    const userGroup = localStorage.getItem('User_group');
-    if (userGroup) setUserRole(userGroup);
-    fetchData();
-  }, []);
+  }).sort((a, b) => new Date(b.Transaction_date) - new Date(a.Transaction_date)), [transactions, customerMap]);
 
-  const customerMap = useMemo(() => {
-    const map = {};
-    for (const c of customers) map[c.Customer_uuid] = c.Customer_name;
-    return map;
-  }, [customers]);
+  const filtered = useMemo(() => normalized.filter((txn) => {
+    const d = ymd(txn.Transaction_date);
+    if (filters.fromDate && d < filters.fromDate) return false;
+    if (filters.toDate && d > filters.toDate) return false;
+    if (filters.paymentMode !== 'All' && txn.Payment_mode !== filters.paymentMode) return false;
+    if (filters.transactionType !== 'All' && txn.transactionKind !== filters.transactionType) return false;
+    const q = filters.search.toLowerCase();
+    if (q && ![txn.Description, txn.Order_number, txn.Order_Number, txn.customerName].join(' ').toLowerCase().includes(q)) return false;
+    return true;
+  }), [normalized, filters]);
 
-  const formatDate = (date) => {
-    if (!date) return '';
-    const d = new Date(date);
-    return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
-  };
+  const summary = useMemo(() => ({
+    cashIn: filtered.filter((t) => String(t.Payment_mode || '').toLowerCase().includes('cash')).reduce((s, t) => s + Number(t.inAmount || 0), 0),
+    cashOut: filtered.filter((t) => String(t.Payment_mode || '').toLowerCase().includes('cash')).reduce((s, t) => s + Number(t.outAmount || 0), 0),
+    totalIn: filtered.reduce((s, t) => s + Number(t.inAmount || 0), 0),
+    totalOut: filtered.reduce((s, t) => s + Number(t.outAmount || 0), 0),
+    count: filtered.length,
+  }), [filtered]);
 
-  const filteredEntries = useMemo(() => {
-    let grouped = transactions.map((txn) => {
-      const credit = txn.Journal_entry?.find((e) => String(e.Type || '').toLowerCase() === 'credit');
-      const debit  = txn.Journal_entry?.find((e) => String(e.Type || '').toLowerCase() === 'debit');
-
-      const orderNo =
-        txn.Order_number ??
-        txn.Order_Number ??
-        txn.order_number ??
-        txn.orderNo ??
-        '';
-
-      return {
-        Transaction_id: txn.Transaction_id,
-        Transaction_uuid: txn.Transaction_uuid,
-        Transaction_date: txn.Transaction_date,
-        Order_number: orderNo,
-        Description: txn.Description || '',
-        CreditAmount: credit?.Amount || 0,
-        DebitAmount: debit?.Amount || 0,
-        Amount: credit?.Amount || debit?.Amount || 0,
-        Credit_id: credit?.Account_id || '',
-        Debit_id: debit?.Account_id || '',
-      };
-    });
-
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      grouped = grouped.filter((txn) => {
-        const creditName = (customerMap[txn.Credit_id] || '').toLowerCase();
-        const debitName  = (customerMap[txn.Debit_id]  || '').toLowerCase();
-        const orderNo    = String(txn.Order_number || '').toLowerCase();
-        return creditName.includes(q) || debitName.includes(q) || orderNo.includes(q);
+  const ledgerRows = useMemo(() => {
+    if (!filters.account) return [];
+    let balance = 0;
+    return normalized
+      .flatMap((txn) => (txn.Journal_entry || []).filter((e) => (e.Account_id || e.Account) === filters.account).map((entry) => ({ txn, entry })))
+      .sort((a, b) => new Date(a.txn.Transaction_date) - new Date(b.txn.Transaction_date))
+      .map(({ txn, entry }) => {
+        const debit = String(entry.Type).toLowerCase() === 'debit' ? Number(entry.Amount || 0) : 0;
+        const credit = String(entry.Type).toLowerCase() === 'credit' ? Number(entry.Amount || 0) : 0;
+        balance += debit - credit;
+        return { txn, debit, credit, balance };
       });
-    }
+  }, [normalized, filters.account]);
 
-    if (dateFrom && dateTo) {
-      const from = new Date(dateFrom);
-      const to   = new Date(dateTo);
-      to.setHours(23, 59, 59, 999);
-      grouped = grouped.filter((txn) => {
-        const txnDate = new Date(txn.Transaction_date);
-        return txnDate >= from && txnDate <= to;
-      });
-    }
-
-    if (sortConfig.key) {
-      grouped.sort((a, b) => {
-        const aValue = a[sortConfig.key];
-        const bValue = b[sortConfig.key];
-
-        const isNum = (v) => typeof v === 'number' || (!isNaN(v) && v !== null && v !== '');
-        if (isNum(aValue) && isNum(bValue)) {
-          const an = Number(aValue);
-          const bn = Number(bValue);
-          if (an < bn) return sortConfig.direction === 'asc' ? -1 : 1;
-          if (an > bn) return sortConfig.direction === 'asc' ? 1 : -1;
-          return 0;
-        }
-
-        const as = String(aValue || '');
-        const bs = String(bValue || '');
-        if (as < bs) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (as > bs) return sortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-
-    return grouped;
-  }, [transactions, searchQuery, dateFrom, dateTo, sortConfig, customerMap]);
-
-  useEffect(() => {
-    setSelectedIds((prev) => prev.filter((id) => filteredEntries.some((g) => g.Transaction_uuid === id)));
-  }, [filteredEntries]);
-
-  const allVisibleSelected = useMemo(
-    () => filteredEntries.length > 0 && filteredEntries.every((t) => selectedIds.includes(t.Transaction_uuid)),
-    [filteredEntries, selectedIds]
-  );
-
-  const handleSort = (key) => {
-    setSortConfig((prev) => ({
-      key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
+  const exportExcel = () => {
+    const rows = filtered.map((txn) => ({
+      Date: prettyDate(txn.Transaction_date),
+      'Txn #': txn.Transaction_id,
+      Description: txn.Description,
+      'Order #': txn.Order_number || txn.Order_Number || '',
+      Customer: txn.customerName,
+      Mode: txn.Payment_mode,
+      'Debit/In': txn.inAmount,
+      'Credit/Out': txn.outAmount,
+      'Created By': txn.Created_by,
     }));
-  };
-
-  const exportToExcel = () => {
-    const exportRows = filteredEntries.map((txn) => ({
-      No: txn.Transaction_uuid,
-      'Order No': txn.Order_number || '',
-      Date: formatDate(txn.Transaction_date),
-      'Credit Name': customerMap[txn.Credit_id] || '-',
-      Credit: txn.CreditAmount,
-      'Debit Name': customerMap[txn.Debit_id] || '-',
-      Debit: txn.DebitAmount,
-    }));
-    const ws = XLSX.utils.json_to_sheet(exportRows);
+    const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
-    XLSX.writeFile(wb, 'Transactions.xlsx');
+    XLSX.writeFile(wb, 'Transactions_Report.xlsx');
   };
 
-  const exportToPDF = () => {
-    const doc = new jsPDF();
-    doc.autoTable({
-      head: [['No', 'Order No', 'Date', 'Credit Name', 'Credit', 'Debit Name', 'Debit']],
-      body: filteredEntries.map((txn) => [
-        txn.Transaction_uuid,
-        txn.Order_number || '',
-        formatDate(txn.Transaction_date),
-        customerMap[txn.Credit_id] || '-',
-        Number(txn.CreditAmount || 0).toFixed(2),
-        customerMap[txn.Debit_id] || '-',
-        Number(txn.DebitAmount || 0).toFixed(2),
-      ]),
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [46, 125, 50] },
-    });
-    doc.save('Transactions.pdf');
-  };
-
-  const openEdit = (txn) => {
-    setEditingTxn({ ...txn });
-    setShowEditModal(true);
-  };
-
-  // Called by the reusable modal
-  const saveEditedTransaction = async (payload) => {
-    try {
-      const res = await axios.put(
-         `/transaction/${payload.Transaction_uuid}`,
-        {
-          updatedDescription: payload.Description || '',
-          updatedAmount: payload.Amount,
-          updatedDate: payload.Transaction_date,
-          creditAccountId: payload.Credit_id,
-          debitAccountId: payload.Debit_id,
-        }
-      );
-
-      if (res.data?.success) {
-        toast.success('Transaction updated successfully');
-        setShowEditModal(false);
-
-        // Merge changes locally into original transaction structure
-        setTransactions((prev) =>
-          prev.map((txn) =>
-            txn.Transaction_uuid === payload.Transaction_uuid
-              ? {
-                  ...txn,
-                  Transaction_date: payload.Transaction_date,
-                  Description: payload.Description,
-                  Journal_entry: (txn.Journal_entry || []).map((e) => {
-                    if (String(e.Type || '').toLowerCase() === 'credit') {
-                      return { ...e, Account_id: payload.Credit_id, Amount: payload.Amount };
-                    }
-                    if (String(e.Type || '').toLowerCase() === 'debit') {
-                      return { ...e, Account_id: payload.Debit_id, Amount: payload.Amount };
-                    }
-                    return e;
-                  }),
-                }
-              : txn
-          )
-        );
-      } else {
-        toast.error('Unable to update transaction');
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Unable to update transaction');
-    }
-  };
-
-  const deleteTransaction = async (txnId) => {
-    try {
-      const res = await axios.delete(`/transaction/${txnId}`);
-      if (res.data?.success) {
-        toast.success('Transaction deleted successfully');
-        setTransactions((prev) => prev.filter((txn) => txn.Transaction_uuid !== txnId));
-        setSelectedIds((prev) => prev.filter((id) => id !== txnId));
-      } else {
-        toast.error('Unable to delete transaction');
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Unable to delete transaction');
-    }
-  };
-
-  const toggleSelectAllVisible = () => {
-    if (allVisibleSelected) {
-      const visibleIds = new Set(filteredEntries.map((t) => t.Transaction_uuid));
-      setSelectedIds((prev) => prev.filter((id) => !visibleIds.has(id)));
-    } else {
-      const idsToAdd = filteredEntries
-        .map((t) => t.Transaction_uuid)
-        .filter((id) => !selectedIds.includes(id));
-      setSelectedIds((prev) => [...prev, ...idsToAdd]);
-    }
-  };
-
-  const toggleRow = (id) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
-
-  const deleteSelectedTransactions = async () => {
-    if (selectedIds.length === 0) return;
-
-    try {
-      const results = await Promise.allSettled(
-        selectedIds.map((id) => axios.delete(`/transaction/${id}`))
-      );
-
-      const successCount = results.filter((r) => r.status === 'fulfilled' && r.value?.data?.success).length;
-      const failCount = selectedIds.length - successCount;
-
-      if (successCount > 0) {
-        setTransactions((prev) => prev.filter((t) => !selectedIds.includes(t.Transaction_uuid)));
-        setSelectedIds([]);
-        toast.success(`Deleted ${successCount} transaction(s)`);
-      }
-      if (failCount > 0) {
-        toast.error(`${failCount} deletion(s) failed`);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Unable to delete selected transactions');
-    }
-  };
-
-  const requestDelete = (txnId) => {
-    setConfirmState({ open: true, mode: 'single', txnId, count: 1 });
-  };
-
-  const requestBulkDelete = () => {
-    if (selectedIds.length === 0) return;
-    setConfirmState({ open: true, mode: 'bulk', txnId: null, count: selectedIds.length });
-  };
-
-  const closeConfirmModal = () => {
-    setConfirmState({ open: false, mode: null, txnId: null, count: 0 });
-  };
-
-  const handleConfirmDelete = async () => {
-    if (confirmState.mode === 'single' && confirmState.txnId) {
-      await deleteTransaction(confirmState.txnId);
-    }
-    if (confirmState.mode === 'bulk') {
-      await deleteSelectedTransactions();
-    }
-    closeConfirmModal();
-  };
+  const clear = () => setFilters({ fromDate: '', toDate: '', paymentMode: 'All', transactionType: 'All', search: '', account: '' });
+  const pageRows = filtered.slice(page * 50, page * 50 + 50);
 
   return (
-    <div className="p-4">
-      <ToastContainer />
-
-      <div className="mb-4 flex flex-wrap gap-4 justify-between">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="Search customer or order no"
-            className="border p-2 rounded"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="border p-2 rounded"
-          />
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="border p-2 rounded"
-          />
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={exportToExcel}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Export Excel
-          </button>
-          <button
-            onClick={exportToPDF}
-            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-          >
-            Export PDF
-          </button>
-
-          {userRole === 'Admin User' && (
-            <button
-              onClick={requestBulkDelete}
-              disabled={selectedIds.length === 0}
-              className={`px-4 py-2 rounded ${
-                selectedIds.length === 0
-                  ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                  : 'bg-red-700 text-white hover:bg-red-800'
-              }`}
-            >
-              Delete Selected ({selectedIds.length})
-            </button>
-          )}
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="bg-white shadow rounded p-8 flex justify-center">
-          <Loader message="Loading transactions..." />
-        </div>
-      ) : loadError ? (
-        <div className="bg-white shadow rounded p-8">
-          <EmptyState message={loadError} />
-        </div>
+    <Box sx={{ p: { xs: 1, md: 2 } }}>
+      <Typography variant="h5" fontWeight={900} sx={{ mb: 1 }}>Master Transaction Report</Typography>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} sx={{ mb: 1 }}>
+        <TextField size="small" type="date" label="From Date" value={filters.fromDate} onChange={(e) => setFilters((p) => ({ ...p, fromDate: e.target.value }))} InputLabelProps={{ shrink: true }} />
+        <TextField size="small" type="date" label="To Date" value={filters.toDate} onChange={(e) => setFilters((p) => ({ ...p, toDate: e.target.value }))} InputLabelProps={{ shrink: true }} />
+        <TextField select size="small" label="Payment Mode" value={filters.paymentMode} onChange={(e) => setFilters((p) => ({ ...p, paymentMode: e.target.value }))} sx={{ minWidth: 150 }}>{modes.map((m) => <MenuItem key={m} value={m}>{m}</MenuItem>)}</TextField>
+        <TextField select size="small" label="Type" value={filters.transactionType} onChange={(e) => setFilters((p) => ({ ...p, transactionType: e.target.value }))} sx={{ minWidth: 130 }}>{['All', 'Receipt', 'Payment'].map((m) => <MenuItem key={m} value={m}>{m}</MenuItem>)}</TextField>
+        <TextField size="small" label="Search" value={filters.search} onChange={(e) => setFilters((p) => ({ ...p, search: e.target.value }))} />
+        <Button variant="outlined" onClick={clear}>Clear</Button>
+        <Button variant="contained" startIcon={<DownloadRoundedIcon />} onClick={exportExcel}>Excel</Button>
+      </Stack>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mb: 1 }}>
+        {[['Total Cash In', summary.cashIn], ['Total Cash Out', summary.cashOut], ['Net Cash', summary.cashIn - summary.cashOut], ['Transactions', summary.count]].map(([label, value]) => <Card key={label} variant="outlined" sx={{ flex: 1, borderRadius: 3 }}><CardContent sx={{ p: 1.25 }}><Typography variant="caption" color="text.secondary">{label}</Typography><Typography variant="h6" fontWeight={900}>{typeof value === 'number' && label !== 'Transactions' ? money(value) : value}</Typography></CardContent></Card>)}
+      </Stack>
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 1 }}><Tab label="Transactions" /><Tab label="Account Ledger" /></Tabs>
+      {tab === 0 ? (
+        <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+          <TableContainer sx={{ maxHeight: '70vh' }}><Table stickyHeader size="small"><TableHead><TableRow>{['Date', 'Txn #', 'Description', 'Order #', 'Customer', 'Mode', 'Debit (In)', 'Credit (Out)', 'Created By'].map((h) => <TableCell key={h}>{h}</TableCell>)}</TableRow></TableHead><TableBody>{pageRows.map((txn) => <TableRow key={txn.id} hover sx={{ bgcolor: txn.transactionKind === 'Receipt' ? 'rgba(46,125,50,0.05)' : 'rgba(211,47,47,0.05)' }}><TableCell>{prettyDate(txn.Transaction_date)}</TableCell><TableCell>{txn.Transaction_id}</TableCell><TableCell>{txn.Description}</TableCell><TableCell>{txn.Order_number || txn.Order_Number || '-'}</TableCell><TableCell>{txn.customerName || '-'}</TableCell><TableCell><Chip size="small" label={txn.Payment_mode || '-'} /></TableCell><TableCell>{money(txn.inAmount)}</TableCell><TableCell>{money(txn.outAmount)}</TableCell><TableCell>{txn.Created_by || '-'}</TableCell></TableRow>)}</TableBody></Table></TableContainer><TablePagination component="div" count={filtered.length} page={page} onPageChange={(_, next) => setPage(next)} rowsPerPage={50} rowsPerPageOptions={[50]} /></Paper>
       ) : (
-        <div className="overflow-auto bg-white shadow rounded">
-          <table className="min-w-full text-sm">
-            <thead className="bg-blue-100 text-blue-900">
-              <tr>
-                <th className="px-3 py-2 w-10 text-center">
-                  <input
-                    type="checkbox"
-                    checked={allVisibleSelected}
-                    onChange={toggleSelectAllVisible}
-                  />
-                </th>
-                <th onClick={() => handleSort('Transaction_uuid')} className="cursor-pointer px-4 py-2">No</th>
-                <th onClick={() => handleSort('Order_number')} className="cursor-pointer px-4 py-2">Order No</th>
-                <th onClick={() => handleSort('Transaction_date')} className="cursor-pointer px-4 py-2">Date</th>
-                <th onClick={() => handleSort('Credit_id')} className="cursor-pointer px-4 py-2">Credit Name</th>
-                <th onClick={() => handleSort('CreditAmount')} className="cursor-pointer px-4 py-2">Credit</th>
-                <th onClick={() => handleSort('Debit_id')} className="cursor-pointer px-4 py-2">Debit Name</th>
-                <th onClick={() => handleSort('DebitAmount')} className="cursor-pointer px-4 py-2">Debit</th>
-                <th className="px-4 py-2 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredEntries.length === 0 ? (
-                <tr>
-                  <td colSpan="9" className="py-8">
-                    <EmptyState
-                      message={
-                        searchQuery || dateFrom || dateTo
-                          ? 'No transactions match the current filters.'
-                          : 'No transactions found.'
-                      }
-                    />
-                  </td>
-                </tr>
-              ) : (
-                filteredEntries.map((txn) => (
-                  <tr key={txn.Transaction_uuid} className="border-t hover:bg-gray-50">
-                    <td className="px-3 py-2 text-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.includes(txn.Transaction_uuid)}
-                        onChange={() => toggleRow(txn.Transaction_uuid)}
-                      />
-                    </td>
-                    <td className="px-4 py-2">{txn.Transaction_id}</td>
-                    <td className="px-4 py-2">{txn.Order_number || '-'}</td>
-                    <td className="px-4 py-2">{formatDate(txn.Transaction_date)}</td>
-                    <td className="px-4 py-2">{customerMap[txn.Credit_id] || '-'}</td>
-                    <td className="px-4 py-2 text-right text-blue-700">₹{Number(txn.CreditAmount || 0).toFixed(2)}</td>
-                    <td className="px-4 py-2">{customerMap[txn.Debit_id] || '-'}</td>
-                    <td className="px-4 py-2 text-right text-red-600">₹{Number(txn.DebitAmount || 0).toFixed(2)}</td>
-                    <td className="px-4 py-2 text-center">
-                      {userRole === 'Admin User' && (
-                        <>
-                          <button
-                            className="text-blue-600 hover:underline mr-2"
-                            onClick={() => openEdit(txn)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="text-red-600 hover:underline"
-                            onClick={() => requestDelete(txn.Transaction_uuid)}
-                          >
-                            Delete
-                          </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Paper variant="outlined" sx={{ p: 1, borderRadius: 3 }}><FormControl size="small" sx={{ minWidth: 240, mb: 1 }}><InputLabel>Account</InputLabel><Select label="Account" value={filters.account} onChange={(e) => setFilters((p) => ({ ...p, account: e.target.value }))}>{accounts.map((account) => <MenuItem key={account} value={account}>{account}</MenuItem>)}</Select></FormControl><TableContainer><Table size="small"><TableHead><TableRow><TableCell>Date</TableCell><TableCell>Description</TableCell><TableCell align="right">Debit</TableCell><TableCell align="right">Credit</TableCell><TableCell align="right">Running Balance</TableCell></TableRow></TableHead><TableBody>{ledgerRows.map((row, index) => <TableRow key={`${row.txn.id}-${index}`}><TableCell>{prettyDate(row.txn.Transaction_date)}</TableCell><TableCell>{row.txn.Description}</TableCell><TableCell align="right">{money(row.debit)}</TableCell><TableCell align="right">{money(row.credit)}</TableCell><TableCell align="right">{money(row.balance)}</TableCell></TableRow>)}</TableBody></Table></TableContainer></Paper>
       )}
-
-      {/* Reusable Edit Modal */}
-      <TransactionEditModal
-        open={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        onSave={saveEditedTransaction}
-        initialData={editingTxn}
-        customers={customers}
-      />
-
-      <ConfirmModal
-        isOpen={confirmState.open}
-        title={confirmState.mode === 'bulk' ? 'Delete selected transactions' : 'Delete transaction'}
-        message={
-          confirmState.mode === 'bulk'
-            ? `Are you sure you want to delete ${confirmState.count} selected transaction(s)? This action cannot be undone.`
-            : 'Are you sure you want to delete this transaction? This action cannot be undone.'
-        }
-        onConfirm={handleConfirmDelete}
-        onCancel={closeConfirmModal}
-        confirmText="Delete"
-        cancelText="Cancel"
-        confirmButtonClassName="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-        cancelButtonClassName="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
-        overlayClassName="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
-        modalClassName="bg-white rounded-lg shadow-lg p-6 max-w-md w-full"
-        actionsClassName="flex justify-end gap-3 mt-6"
-      />
-    </div>
+    </Box>
   );
-};
-
-export default AllTransaction;
+}
