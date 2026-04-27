@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Button,
   Checkbox,
@@ -23,6 +23,8 @@ import { compactCardSx, compactFieldSx } from '../components/ui/addFormStyles';
 
 export default function AddCustomer({ onClose }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = location.state?.returnTo || location.state?.from || '/home';
 
   const [form, setForm] = useState({
     Customer_name: '',
@@ -123,7 +125,15 @@ export default function AddCustomer({ onClose }) {
       if (res.data.success) {
         alert('Customer added successfully');
         if (onClose) onClose();
-        else navigate('/home');
+        else {
+          navigate(returnTo, {
+            replace: true,
+            state: {
+              ...location.state,
+              refreshCustomers: true,
+            },
+          });
+        }
       } else {
         alert('Failed to add Customer.');
       }
@@ -169,7 +179,7 @@ export default function AddCustomer({ onClose }) {
 
   const handleCancel = () => {
     if (onClose) onClose();
-    else navigate('/home');
+    else navigate(returnTo, { replace: true, state: location.state || {} });
   };
 
   return (

@@ -63,9 +63,10 @@ export default function PaymentReport() {
   );
 
   const handleDeleteConfirm = async () => {
-    if (!selectedPayment?._id) return;
+    if (!selectedPayment?._id && !selectedPayment?.Payment_mode_uuid) return;
     try {
-      const res = await axios.delete(`/payment_mode/Delete/${selectedPayment._id}`);
+      const paymentDeleteId = selectedPayment.Payment_mode_uuid || selectedPayment._id;
+      const res = await axios.delete(`/payment_mode/DeletePayment/${paymentDeleteId}`);
       if (res?.data?.success) {
         setPayments((prev) => prev.filter((item) => item._id !== selectedPayment._id));
       }

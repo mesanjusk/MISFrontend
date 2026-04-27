@@ -54,7 +54,7 @@ const PriorityReport = () => {
     const handleDeleteClick = (priorityId) => {
         const priorityToDelete = prioritys[priorityId];
         if (priorityToDelete) {
-            setSelectedPriority(priorityToDelete);
+            setSelectedPriority({ ...priorityToDelete, id: priorityId });
             setShowDeleteModal(true);
             setDeleteErrorMessage(''); 
         } else {
@@ -63,13 +63,16 @@ const PriorityReport = () => {
     };
     
 
-    const handleDeleteConfirm = (priorityId) => {
+    const handleDeleteConfirm = () => {
+        const priorityId = selectedPriority?.priorityUuid || selectedPriority?.id;
+        if (!priorityId) return setShowDeleteModal(false);
+
         deletePriority(priorityId)
             .then(res => {
             if (res.data.success) {
                 setPrioritys(prePriority => {
                     const newPriority = { ...prePriority };
-                    delete newPriority[priorityId]; 
+                    delete newPriority[selectedPriority?.id];
                     return newPriority;
                 });
             } else {

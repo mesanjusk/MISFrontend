@@ -966,7 +966,7 @@ export default function AddOrder1({ closeModal }) {
                     setSelectedCustomerUuid(value?.Customer_uuid || '');
                     setCustomerSearchInput(value?.Customer_name || '');
                   }}
-                  getOptionLabel={(option) => option?.Vendor_name || ''}
+                  getOptionLabel={(option) => option?.Customer_name || ''}
                   isOptionEqualToValue={(option, value) =>
                     option?.Customer_uuid === value?.Customer_uuid
                   }

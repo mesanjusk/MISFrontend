@@ -44,7 +44,7 @@ export default function TaskReport() {
     setLoading(true);
     try {
       setUserGroup(localStorage.getItem('User_group') || '');
-      const res = await axios.get('task/GetTaskList');
+      const res = await axios.get('/tasks/GetTaskList');
       const rows = res?.data?.success ? res.data.result || [] : [];
       setTasks(rows.sort((a, b) => String(a.Task_name || '').localeCompare(String(b.Task_name || ''))));
     } catch (error) {
@@ -65,7 +65,7 @@ export default function TaskReport() {
   const handleDeleteConfirm = async () => {
     if (!selectedTask?._id) return;
     try {
-      const res = await axios.delete(`/task/Delete/${selectedTask._id}`);
+      const res = await axios.delete(`/tasks/Delete/${selectedTask._id}`);
       if (res?.data?.success) setTasks((prev) => prev.filter((task) => task._id !== selectedTask._id));
     } catch (error) {
       console.error('Error deleting task:', error);

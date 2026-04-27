@@ -12,4 +12,8 @@ export const fetchChatList = () => axios.get('/chatlist');
 export const fetchCustomers = () => axios.get('/customer/GetCustomersList');
 export const fetchMessagesByNumber = (number) => axios.get(`/messages/${number}`);
 export const fetchCustomerByNumber = (number) => axios.get(`/customer/by-number/${number}`);
-export const sendWhatsAppMessage = (payload) => axios.post('/send-message', payload);
+export const sendWhatsAppMessage = (payload) =>
+  axios.post('/api/whatsapp/send-text', {
+    to: payload?.to || payload?.number || payload?.phone || '',
+    text: payload?.text || payload?.message || payload?.body || '',
+  });
