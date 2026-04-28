@@ -12,6 +12,7 @@ import StorefrontRoundedIcon from '@mui/icons-material/StorefrontRounded';
 import AnalyticsRoundedIcon from '@mui/icons-material/AnalyticsRounded';
 import ChatRoundedIcon from '@mui/icons-material/ChatRounded';
 import HubRoundedIcon from '@mui/icons-material/HubRounded';
+import LocalShippingRoundedIcon from '@mui/icons-material/LocalShippingRounded';
 import { ROUTES } from './routes';
 
 export const SIDEBAR_GROUPS = [
@@ -19,6 +20,7 @@ export const SIDEBAR_GROUPS = [
     label: 'Overview',
     items: [
       { label: 'Dashboard', path: ROUTES.HOME, icon: <DashboardRoundedIcon fontSize="small" />, roles: ['all'] },
+      { label: 'Owner Dashboard', path: ROUTES.OWNER_DASHBOARD, icon: <DashboardRoundedIcon fontSize="small" />, roles: ['Admin', 'Owner'] },
       { label: 'Attendance', path: ROUTES.ATTENDANCE, icon: <EventAvailableRoundedIcon fontSize="small" />, roles: ['Admin', 'Owner', 'Designer', 'DataEntry', 'OfficeStaff'] },
       { label: 'Order Tasks', path: ROUTES.PENDING_TASKS, icon: <AssignmentRoundedIcon fontSize="small" />, roles: ['Admin', 'Owner'] },
       { label: 'My Day', path: ROUTES.MY_TASKS, icon: <AssignmentRoundedIcon fontSize="small" />, roles: ['all'] },
@@ -30,6 +32,7 @@ export const SIDEBAR_GROUPS = [
       { label: 'New Order', path: ROUTES.ORDERS_NEW, icon: <AddShoppingCartRoundedIcon fontSize="small" />, roles: ['Admin', 'Owner', 'DataEntry'] },
       { label: 'Order Board', path: ROUTES.ORDERS_BOARD, icon: <AssignmentRoundedIcon fontSize="small" />, roles: ['Admin', 'Owner', 'Designer'] },
       { label: 'Purchase Orders', path: ROUTES.PURCHASE_ORDERS, icon: <RequestQuoteRoundedIcon fontSize="small" />, roles: ['Admin', 'Owner'] },
+      { label: 'Dispatch Queue', path: ROUTES.DISPATCH_QUEUE, icon: <LocalShippingRoundedIcon fontSize="small" />, roles: ['Admin', 'Owner', 'OfficeStaff'] },
       { label: 'Operations Center', path: ROUTES.BUSINESS_CONTROL, icon: <HubRoundedIcon fontSize="small" />, roles: ['Admin', 'Owner'] },
       { label: 'New Enquiry', path: ROUTES.ENQUIRIES_NEW, icon: <AddShoppingCartRoundedIcon fontSize="small" />, roles: ['Admin', 'Owner', 'DataEntry'] },
       { label: 'Deliveries', path: '/allDelivery', icon: <AssignmentRoundedIcon fontSize="small" />, roles: ['Admin', 'Owner', 'OfficeStaff'] },
@@ -67,6 +70,8 @@ export const SIDEBAR_GROUPS = [
       { label: 'Orders Report', path: ROUTES.REPORTS_ORDERS, icon: <AnalyticsRoundedIcon fontSize="small" />, roles: ['Admin', 'Owner'] },
       { label: 'Account Book', path: ROUTES.ALL_TRANSACTION, icon: <AnalyticsRoundedIcon fontSize="small" />, roles: ['Admin', 'Owner', 'Accounts'] },
       { label: 'Cash Ledger', path: ROUTES.CASH_LEDGER, icon: <AnalyticsRoundedIcon fontSize="small" />, roles: ['Admin', 'Owner', 'Accounts'] },
+      { label: 'Bank Book', path: ROUTES.BANK_BOOK, icon: <AnalyticsRoundedIcon fontSize="small" />, roles: ['Admin', 'Owner', 'Accounts'] },
+      { label: 'Trial Balance', path: ROUTES.TRIAL_BALANCE, icon: <AnalyticsRoundedIcon fontSize="small" />, roles: ['Admin', 'Owner', 'Accounts'] },
       { label: 'Aging Report', path: ROUTES.AGING_REPORT, icon: <AnalyticsRoundedIcon fontSize="small" />, roles: ['Admin', 'Owner', 'Accounts'] },
       { label: 'Customers Report', path: ROUTES.REPORTS_CUSTOMERS, icon: <AnalyticsRoundedIcon fontSize="small" />, roles: ['Admin', 'Owner'] },
       { label: 'Payments Report', path: ROUTES.PAYMENT_REPORT, icon: <AnalyticsRoundedIcon fontSize="small" />, roles: ['Admin', 'Owner', 'Accounts'] },

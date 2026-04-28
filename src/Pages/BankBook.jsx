@@ -23,7 +23,7 @@ import axios from '../apiClient';
 const money = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
-export default function CashLedger() {
+export default function BankBook() {
   const [summary, setSummary] = useState({});
   const [transactions, setTransactions] = useState([]);
   const [startDate, setStartDate] = useState(todayStr());
@@ -31,8 +31,8 @@ export default function CashLedger() {
 
   const load = async () => {
     const [summaryRes, txnRes] = await Promise.all([
-      axios.get('/dashboard/cash-book-summary'),
-      axios.get('/transaction', { params: { accountFilter: 'Cash', limit: 500 } }),
+      axios.get('/dashboard/bank-book-summary'),
+      axios.get('/transaction', { params: { accountFilter: 'Bank', limit: 500 } }),
     ]);
     setSummary(summaryRes?.data || {});
     setTransactions(Array.isArray(txnRes?.data?.result) ? txnRes.data.result : []);
@@ -40,10 +40,10 @@ export default function CashLedger() {
 
   useEffect(() => { load().catch((e) => console.error(e)); }, []);
 
-  const cashEntries = useMemo(() => transactions.flatMap((txn) => (txn.Journal_entry || [])
+  const bankEntries = useMemo(() => transactions.flatMap((txn) => (txn.Journal_entry || [])
     .filter((entry) => {
       const acct = String(entry.Account_id || entry.Account || '').trim();
-      return acct.toLowerCase() === 'cash' || acct === 'Cash';
+      return acct.toLowerCase() === 'bank' || acct === 'Bank';
     })
     .map((entry) => ({ ...entry, Transaction_date: txn.Transaction_date, Description: txn.Description, Transaction_id: txn.Transaction_id })))
     .filter((entry) => {
@@ -52,7 +52,7 @@ export default function CashLedger() {
     }), [transactions, startDate, endDate]);
 
   const exportToExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(cashEntries.map((entry) => ({
+    const ws = XLSX.utils.json_to_sheet(bankEntries.map((entry) => ({
       Date: new Date(entry.Transaction_date).toLocaleDateString('en-IN'),
       Description: entry.Description,
       Account: entry.Account_id || entry.Account,
@@ -60,8 +60,8 @@ export default function CashLedger() {
       Credit: String(entry.Type).toLowerCase() === 'credit' ? entry.Amount : '',
     })));
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Cash Ledger');
-    XLSX.writeFile(wb, 'CashLedger.xlsx');
+    XLSX.utils.book_append_sheet(wb, ws, 'Bank Book');
+    XLSX.writeFile(wb, 'BankBook.xlsx');
   };
 
   const cards = [
@@ -75,7 +75,7 @@ export default function CashLedger() {
     <Box sx={{ p: { xs: 1, md: 2 } }}>
       <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={1} sx={{ mb: 1.5 }}>
         <Box>
-          <Typography variant="h5" fontWeight={900}>Cash Ledger</Typography>
+          <Typography variant="h5" fontWeight={900}>Bank Book</Typography>
           <Typography variant="body2" color="text.secondary">
             As of {summary.lastTransactionTime ? new Date(summary.lastTransactionTime).toLocaleString('en-IN') : new Date().toLocaleString('en-IN')}
           </Typography>
@@ -85,7 +85,7 @@ export default function CashLedger() {
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mb: 1.5 }}>
         {cards.map(([label, value]) => (
-          <Card key={label} variant="outlined" sx={{ flex: 1, borderRadius: 3, bgcolor: label === 'Closing Balance' ? (Number(value || 0) >= 0 ? 'success.50' : 'error.50') : 'background.paper' }}>
+          <Card key={label} variant="outlined" sx={{ flex: 1, borderRadius: 3 }}>
             <CardContent sx={{ p: 1.25 }}>
               <Typography variant="caption" color="text.secondary">{label}</Typography>
               <Typography variant="h6" fontWeight={900}>{money(value)}</Typography>
@@ -115,7 +115,7 @@ export default function CashLedger() {
         <Table size="small">
           <TableHead><TableRow><TableCell>Date</TableCell><TableCell>Description</TableCell><TableCell>Account</TableCell><TableCell align="right">Debit</TableCell><TableCell align="right">Credit</TableCell></TableRow></TableHead>
           <TableBody>
-            {cashEntries.map((entry, idx) => (
+            {bankEntries.map((entry, idx) => (
               <TableRow key={entry.Transaction_id || idx} hover>
                 <TableCell>{new Date(entry.Transaction_date).toLocaleDateString('en-IN')}</TableCell>
                 <TableCell>{entry.Description}</TableCell>
@@ -124,7 +124,7 @@ export default function CashLedger() {
                 <TableCell align="right">{String(entry.Type).toLowerCase() === 'credit' ? money(entry.Amount) : ''}</TableCell>
               </TableRow>
             ))}
-            {!cashEntries.length ? <TableRow><TableCell colSpan={5} align="center" sx={{ py: 4 }}>No cash entries found.</TableCell></TableRow> : null}
+            {!bankEntries.length ? <TableRow><TableCell colSpan={5} align="center" sx={{ py: 4 }}>No bank entries found.</TableCell></TableRow> : null}
           </TableBody>
         </Table>
       </TableContainer>

@@ -31,6 +31,10 @@ const UpdateDelivery = lazy(() => import('./Pages/updateDelivery'));
 const AddTransaction = lazy(() => import('./Pages/AddTransaction'));
 const AddTransaction1 = lazy(() => import('./Pages/addTransaction1'));
 const CashLedger = lazy(() => import('./Pages/CashLedger'));
+const BankBook = lazy(() => import('./Pages/BankBook'));
+const TrialBalance = lazy(() => import('./Pages/TrialBalance'));
+const DispatchQueue = lazy(() => import('./Pages/DispatchQueue'));
+const OwnerDashboard = lazy(() => import('./Pages/OwnerDashboard'));
 const PaymentFollowup = lazy(() => import('./Pages/PaymentFollowup'));
 const Vendor = lazy(() => import('./Pages/vendor'));
 const VendorDetails = lazy(() => import('./Pages/vendorDetails'));
@@ -89,6 +93,7 @@ export default function App() {
 
           <Route element={<Layout />}>
             <Route path={ROUTES.HOME} element={withSuspense(<Dashboard />)} />
+            <Route path={ROUTES.OWNER_DASHBOARD} element={withSuspense(<OwnerDashboard />)} />
             <Route path={ROUTES.DASHBOARD} element={<Navigate to={ROUTES.HOME} replace />} />
 
             <Route path={ROUTES.ATTENDANCE} element={withSuspense(<AllAttandance />)} />
@@ -112,6 +117,7 @@ export default function App() {
             <Route path={ROUTES.ORDERS_BOARD} element={withSuspense(<OrderKanban />)} />
             <Route path={ROUTES.BUSINESS_CONTROL} element={withSuspense(<BusinessControl />)} />
             <Route path={ROUTES.PURCHASE_ORDERS} element={withSuspense(<PurchaseOrder />)} />
+            <Route path={ROUTES.DISPATCH_QUEUE} element={withSuspense(<DispatchQueue />)} />
             <Route path="/orderUpdate/:id" element={withSuspense(<OrderUpdate />)} />
             <Route path="/updateDelivery/:id" element={withSuspense(<UpdateDelivery />)} />
             <Route path="/customers/:id" element={withSuspense(<CustomerDetails />)} />
@@ -121,6 +127,8 @@ export default function App() {
             <Route path={ROUTES.PAYMENT} element={withSuspense(<AddTransaction1 />)} />
             <Route path="/addTransaction1" element={<Navigate to={ROUTES.PAYMENT} replace />} />
             <Route path={ROUTES.CASH_LEDGER} element={withSuspense(<CashLedger />)} />
+            <Route path={ROUTES.BANK_BOOK} element={withSuspense(<BankBook />)} />
+            <Route path={ROUTES.TRIAL_BALANCE} element={withSuspense(<TrialBalance />)} />
             <Route path={ROUTES.FOLLOWUPS} element={withSuspense(<PaymentFollowup />)} />
             <Route path={ROUTE_ALIASES.FOLLOWUPS_OLD} element={<Navigate to={ROUTES.FOLLOWUPS} replace />} />
             <Route path={ROUTES.ADD_PAYABLE} element={withSuspense(<AddPayable />)} />

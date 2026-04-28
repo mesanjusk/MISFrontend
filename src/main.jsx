@@ -1,13 +1,12 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
-import { ThemeProvider, CssBaseline } from '@mui/material';
-import theme from './theme.js';
 import './index.css';
 import { toast } from './Components';
 import { initOfflineQueue } from './utils/offlineQueue.js';
 import './apiClient.js';
 import { AuthProvider } from './context/AuthContext.jsx';
+import { AppThemeProvider } from './context/ThemeConfigContext.jsx';
 
 const nativeAlert = window.alert.bind(window);
 
@@ -23,12 +22,11 @@ initOfflineQueue();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <AppThemeProvider>
       <AuthProvider>
         <App />
       </AuthProvider>
-    </ThemeProvider>
+    </AppThemeProvider>
   </StrictMode>,
 );
 
