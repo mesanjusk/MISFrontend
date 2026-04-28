@@ -1361,11 +1361,7 @@ export default function AddOrder1({ closeModal }) {
                   />
                 </Stack>
 
-                {!showOwnershipDelivery ? (
-                  <Alert severity="info" sx={{ py: 0, borderRadius: 2, '& .MuiAlert-message': { py: 0.75 } }}>
-                    Default: Sai (Office User) | Delivery: Today | Priority: Medium. Tick Ownership & Delivery to change.
-                  </Alert>
-                ) : null}
+                
 
                 {!isEnquiryOnly && showOwnershipDelivery ? (
                   <Paper sx={compactCardSx}>
