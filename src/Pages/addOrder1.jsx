@@ -1103,7 +1103,7 @@ export default function AddOrder1({ closeModal }) {
             <Paper sx={compactCardSx}>
               <Stack spacing={1}>
                 <Typography variant="body2" fontWeight={700}>
-                  Production Steps
+                  Steps
                 </Typography>
 
                 {stepCandidates.length ? (
