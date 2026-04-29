@@ -207,6 +207,7 @@ export default function AddOrder1({ closeModal }) {
   const [Amount, setAmount] = useState('');
   const [taskGroups, setTaskGroups] = useState([]);
   const [selectedTaskGroups, setSelectedTaskGroups] = useState([]);
+  const [showProductionSteps, setShowProductionSteps] = useState(false);
   const [mobileToSend, setMobileToSend] = useState('');
   const [sendWhatsAppAfterSave, setSendWhatsAppAfterSave] = useState(false);
   const [isVendorChecked, setIsVendorChecked] = useState(false);
@@ -336,6 +337,7 @@ export default function AddOrder1({ closeModal }) {
         setOrderPriority(String(order?.priority || DEFAULT_ORDER_PRIORITY).toLowerCase());
         setSelectedAssignee(order?.assignedTo?.User_uuid || order?.assignedTo?.User_name || order?.assignedTo || DEFAULT_ORDER_ASSIGNEE_NAME);
         setShowOwnershipDelivery(Boolean(order?.assignedTo || order?.dueDate || order?.priority));
+        setShowProductionSteps(Array.isArray(order?.Steps) && order.Steps.length > 0);
 
         setEntryType(Array.isArray(order?.Items) && order.Items.length ? 'DetailedOrder' : 'Order');
 
@@ -634,6 +636,7 @@ export default function AddOrder1({ closeModal }) {
       setIsAdvanceChecked(false);
       setSendWhatsAppAfterSave(false);
       setIsVendorChecked(false);
+      setShowProductionSteps(false);
       setAmount('');
       setGroup('');
       setSelectedTaskGroups([]);
@@ -754,14 +757,16 @@ export default function AddOrder1({ closeModal }) {
         return;
       }
 
-      const steps = selectedTaskGroups.map((tgUuid) => {
-        const taskGroup = taskGroups.find((t) => t.Task_group_uuid === tgUuid);
-        return {
-          uuid: tgUuid,
-          label: taskGroup?.Task_group_name || taskGroup?.Task_group || 'Unnamed Group',
-          checked: true,
-        };
-      });
+      const steps = showProductionSteps
+        ? selectedTaskGroups.map((tgUuid) => {
+            const taskGroup = taskGroups.find((t) => t.Task_group_uuid === tgUuid);
+            return {
+              uuid: tgUuid,
+              label: taskGroup?.Task_group_name || taskGroup?.Task_group || 'Unnamed Group',
+              checked: true,
+            };
+          })
+        : [];
 
       const payloadItems = isDetailedOrder ? normalizedItems : [];
       const driveMeta = getDriveMetaFromCustomer(customer);
@@ -774,6 +779,7 @@ export default function AddOrder1({ closeModal }) {
         Remark: isDetailedOrder ? '' : String(Remark || '').trim(),
         vendorAssignments: isVendorChecked ? normalizedVendorAssignments : [],
         Steps: steps,
+        productionStepsEnabled: showProductionSteps,
         Items: payloadItems,
         Type: isEnquiryOnly ? 'Enquiry' : 'Order',
         isEnquiry: isEnquiryOnly,
@@ -1093,7 +1099,7 @@ export default function AddOrder1({ closeModal }) {
 
 
 
-          {!isEnquiryOnly ? (
+          {!isEnquiryOnly && showProductionSteps ? (
             <Paper sx={compactCardSx}>
               <Stack spacing={1}>
                 <Typography variant="body2" fontWeight={700}>
@@ -1344,6 +1350,21 @@ export default function AddOrder1({ closeModal }) {
                     sx={{ m: 0 }}
                     control={
                       <Checkbox
+                        checked={showProductionSteps}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setShowProductionSteps(checked);
+                          if (!checked) setSelectedTaskGroups([]);
+                        }}
+                      />
+                    }
+                    label="Production Steps"
+                  />
+
+                  <FormControlLabel
+                    sx={{ m: 0 }}
+                    control={
+                      <Checkbox
                         checked={showOwnershipDelivery}
                         onChange={(e) => {
                           const checked = e.target.checked;
@@ -1361,7 +1382,11 @@ export default function AddOrder1({ closeModal }) {
                   />
                 </Stack>
 
-                
+                {!showOwnershipDelivery ? (
+                  <Alert severity="info" sx={{ py: 0, borderRadius: 2, '& .MuiAlert-message': { py: 0.75 } }}>
+                    Default: Sai (Office User) | Delivery: Today | Priority: Medium. Tick Ownership & Delivery to change.
+                  </Alert>
+                ) : null}
 
                 {!isEnquiryOnly && showOwnershipDelivery ? (
                   <Paper sx={compactCardSx}>
