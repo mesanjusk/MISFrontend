@@ -1099,49 +1099,7 @@ export default function AddOrder1({ closeModal }) {
 
 
 
-          {!isEnquiryOnly && showProductionSteps ? (
-            <Paper sx={compactCardSx}>
-              <Stack spacing={1}>
-                <Typography variant="body2" fontWeight={700}>
-                  Steps
-                </Typography>
-
-                {stepCandidates.length ? (
-                  <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
-                    {stepCandidates.map((tg) => {
-                      const isSelected = selectedTaskGroups.includes(tg.Task_group_uuid);
-                      return (
-                        <Chip
-                          key={tg.Task_group_uuid}
-                          label={tg.Task_group_name || tg.Task_group}
-                          clickable
-                          color={isSelected ? 'primary' : 'default'}
-                          variant={isSelected ? 'filled' : 'outlined'}
-                          onClick={() => toggleTaskGroup(tg.Task_group_uuid)}
-                          icon={
-                            <Checkbox
-                              size="small"
-                              checked={isSelected}
-                              sx={{ p: 0, ml: 0.5 }}
-                            />
-                          }
-                          sx={{
-                            height: 34,
-                            borderRadius: 2,
-                            '& .MuiChip-label': { px: 0.75 },
-                          }}
-                        />
-                      );
-                    })}
-                  </Stack>
-                ) : (
-                  <Typography variant="caption" color="text.secondary">
-                    No production steps available
-                  </Typography>
-                )}
-              </Stack>
-            </Paper>
-          ) : null}
+          
 
           {isDetailedOrder ? (
             <Paper sx={compactCardSx}>
@@ -1304,7 +1262,50 @@ export default function AddOrder1({ closeModal }) {
               </Stack>
             </Paper>
           ) : null}
+{!isEnquiryOnly && showProductionSteps ? (
+            <Paper sx={compactCardSx}>
+              <Stack spacing={1}>
+                <Typography variant="body2" fontWeight={700}>
+                  Steps
+                </Typography>
 
+                {stepCandidates.length ? (
+                  <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
+                    {stepCandidates.map((tg) => {
+                      const isSelected = selectedTaskGroups.includes(tg.Task_group_uuid);
+                      return (
+                        <Chip
+                          key={tg.Task_group_uuid}
+                          label={tg.Task_group_name || tg.Task_group}
+                          clickable
+                          color={isSelected ? 'primary' : 'default'}
+                          variant={isSelected ? 'filled' : 'outlined'}
+                          onClick={() => toggleTaskGroup(tg.Task_group_uuid)}
+                          icon={
+                            <Checkbox
+                              size="small"
+                              checked={isSelected}
+                              sx={{ p: 0, ml: 0.5 }}
+                            />
+                          }
+                          sx={{
+                            height: 34,
+                            borderRadius: 2,
+                            '& .MuiChip-label': { px: 0.75 },
+                          }}
+                        />
+                      );
+                    })}
+                  </Stack>
+                ) : (
+                  <Typography variant="caption" color="text.secondary">
+                    No production steps available
+                  </Typography>
+                )}
+              </Stack>
+            </Paper>
+          ) : null}
+          
           {!isEnquiryOnly ? (
             <Paper sx={compactCardSx}>
               <Stack spacing={1}>
@@ -1382,11 +1383,7 @@ export default function AddOrder1({ closeModal }) {
                   />
                 </Stack>
 
-                {!showOwnershipDelivery ? (
-                  <Alert severity="info" sx={{ py: 0, borderRadius: 2, '& .MuiAlert-message': { py: 0.75 } }}>
-                    Default: Sai (Office User) | Delivery: Today | Priority: Medium. Tick Ownership & Delivery to change.
-                  </Alert>
-                ) : null}
+                
 
                 {!isEnquiryOnly && showOwnershipDelivery ? (
                   <Paper sx={compactCardSx}>
