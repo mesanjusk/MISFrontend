@@ -17,7 +17,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
@@ -48,17 +48,34 @@ const canShowItem = (item, roleKey) => {
 export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, onNewOrderClick }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const theme = useTheme();
   const { clearAuth, userName } = useAuth();
   const roleKey = normalizeRoleKey(localStorage.getItem('User_group') || '');
   const [openGroups, setOpenGroups] = useState(() =>
     Object.fromEntries(SIDEBAR_GROUPS.map((group) => [group.label, true])),
   );
 
-  const groups = useMemo(() =>
-    SIDEBAR_GROUPS.map((group) => ({
-      ...group,
-      items: group.items.filter((item) => canShowItem(item, roleKey)),
-    })).filter((group) => group.items.length),
+  const sidebarColors = useMemo(() => {
+    const text = theme.palette.primary.contrastText || '#ffffff';
+    return {
+      bg: theme.palette.primary.dark || theme.palette.primary.main,
+      accent: theme.palette.primary.light || theme.palette.primary.main,
+      text,
+      textSoft: alpha(text, 0.86),
+      textMuted: alpha(text, 0.68),
+      border: alpha(text, 0.12),
+      surface: alpha(text, 0.08),
+      selected: alpha(text, 0.16),
+      hover: alpha(text, 0.1),
+    };
+  }, [theme]);
+
+  const groups = useMemo(
+    () =>
+      SIDEBAR_GROUPS.map((group) => ({
+        ...group,
+        items: group.items.filter((item) => canShowItem(item, roleKey)),
+      })).filter((group) => group.items.length),
     [roleKey],
   );
 
@@ -83,19 +100,29 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, o
     navigate('/');
   };
 
-  const isSelected = (path) => pathname === path || pathname.startsWith(`${path}/`);
+  const isSelected = (path) => Boolean(path) && (pathname === path || pathname.startsWith(`${path}/`));
 
   const drawerContent = (
-    <Stack sx={{ height: '100%', bgcolor: '#0f2f2a', color: '#e8f5f3' }}>
+    <Stack sx={{ height: '100%', bgcolor: sidebarColors.bg, color: sidebarColors.text, transition: theme.transitions.create(['background-color', 'color']) }}>
       <Box sx={{ p: desktopCollapsed ? 1 : 1.25 }}>
         <Stack direction="row" alignItems="center" spacing={1.1}>
-          <Avatar sx={{ bgcolor: '#d4f7f1', color: '#0f2f2a', width: 38, height: 38, fontWeight: 900 }}>{(userName || 'U').slice(0, 1).toUpperCase()}</Avatar>
+          <Avatar
+            sx={{
+              bgcolor: alpha(sidebarColors.text, 0.94),
+              color: sidebarColors.bg,
+              width: 38,
+              height: 38,
+              fontWeight: 900,
+            }}
+          >
+            {(userName || 'U').slice(0, 1).toUpperCase()}
+          </Avatar>
           {!desktopCollapsed ? (
             <Box sx={{ minWidth: 0 }}>
-              <Typography variant="subtitle1" fontWeight={800} color="#ffffff" noWrap>
+              <Typography variant="subtitle1" fontWeight={800} color={sidebarColors.text} noWrap>
                 SK Digital MIS
               </Typography>
-              <Typography variant="caption" color="rgba(232,245,243,0.8)" noWrap>
+              <Typography variant="caption" color={sidebarColors.textSoft} noWrap>
                 {roleKey} • {new Date().toLocaleDateString('en-IN')}
               </Typography>
             </Box>
@@ -110,7 +137,11 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, o
               variant="contained"
               startIcon={<AddShoppingCartRoundedIcon fontSize="small" />}
               onClick={() => handleNavigate(ROUTES.ORDERS_NEW)}
-              sx={{ bgcolor: '#128c7e', '&:hover': { bgcolor: '#0e7267' } }}
+              sx={{
+                bgcolor: sidebarColors.accent,
+                color: sidebarColors.bg,
+                '&:hover': { bgcolor: alpha(sidebarColors.accent, 0.86) },
+              }}
             >
               Order
             </Button>
@@ -121,7 +152,7 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, o
               color="inherit"
               startIcon={<AddTaskRoundedIcon fontSize="small" />}
               onClick={() => handleNavigate(ROUTES.TASKS_NEW)}
-              sx={{ borderColor: 'rgba(232,245,243,0.22)' }}
+              sx={{ borderColor: sidebarColors.border, color: sidebarColors.text }}
             >
               Task
             </Button>
@@ -129,13 +160,13 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, o
         ) : null}
       </Box>
 
-      <Divider sx={{ borderColor: 'rgba(232,245,243,0.1)' }} />
+      <Divider sx={{ borderColor: sidebarColors.border }} />
 
       <List sx={{ py: 0.75, px: 0.75, overflowY: 'auto', flexGrow: 1 }}>
         {groups.map((group) => (
           <Box key={group.label} sx={{ mb: 0.85 }}>
             {!desktopCollapsed ? (
-              <ListItemButton onClick={() => toggleGroup(group.label)} sx={{ minHeight: 34, borderRadius: 2.5 }}>
+              <ListItemButton onClick={() => toggleGroup(group.label)} sx={{ minHeight: 34, borderRadius: 2.5, '&:hover': { bgcolor: sidebarColors.hover } }}>
                 <ListItemText
                   primary={group.label}
                   primaryTypographyProps={{
@@ -144,7 +175,7 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, o
                     sx: {
                       letterSpacing: 0.45,
                       textTransform: 'uppercase',
-                      color: 'rgba(232,245,243,0.68)',
+                      color: sidebarColors.textMuted,
                     },
                   }}
                 />
@@ -165,16 +196,17 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, o
                         ml: desktopCollapsed ? 0 : 0.5,
                         mb: 0.55,
                         borderRadius: 2.5,
-                        color: selected ? '#ffffff' : 'rgba(232,245,243,0.85)',
+                        color: selected ? sidebarColors.text : sidebarColors.textSoft,
                         '&.Mui-selected': {
-                          bgcolor: alpha('#ffffff', 0.14),
-                          color: '#ffffff',
-                          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
+                          bgcolor: sidebarColors.selected,
+                          color: sidebarColors.text,
+                          boxShadow: `inset 0 0 0 1px ${alpha(sidebarColors.text, 0.1)}`,
                         },
-                        '&:hover': { bgcolor: alpha('#ffffff', 0.08) },
+                        '&.Mui-selected:hover': { bgcolor: alpha(sidebarColors.text, 0.22) },
+                        '&:hover': { bgcolor: sidebarColors.hover },
                       }}
                     >
-                      <ListItemIcon sx={{ minWidth: 32, color: selected ? '#7ff6dd' : 'rgba(232,245,243,0.78)' }}>
+                      <ListItemIcon sx={{ minWidth: 32, color: selected ? sidebarColors.accent : alpha(sidebarColors.text, 0.78) }}>
                         {item.icon}
                       </ListItemIcon>
                       {!desktopCollapsed ? (
@@ -199,17 +231,21 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, o
               sx={{
                 p: 1,
                 borderRadius: 2.5,
-                bgcolor: alpha('#ffffff', 0.07),
-                border: '1px solid rgba(255,255,255,0.08)',
+                bgcolor: sidebarColors.surface,
+                border: `1px solid ${sidebarColors.border}`,
               }}
             >
-              <Typography variant="caption" color="rgba(232,245,243,0.68)">
+              <Typography variant="caption" color={sidebarColors.textMuted}>
                 Logged in as
               </Typography>
-              <Typography variant="body2" fontWeight={700} color="#fff" noWrap>
+              <Typography variant="body2" fontWeight={700} color={sidebarColors.text} noWrap>
                 {userName || 'User'} ({roleKey})
               </Typography>
-              <Chip label="Live dashboard" size="small" sx={{ mt: 0.8, bgcolor: alpha('#7ff6dd', 0.16), color: '#d9fffa' }} />
+              <Chip
+                label="Live dashboard"
+                size="small"
+                sx={{ mt: 0.8, bgcolor: alpha(sidebarColors.accent, 0.22), color: sidebarColors.text }}
+              />
             </Box>
           </Stack>
         ) : null}
@@ -220,7 +256,7 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, o
           variant="outlined"
           startIcon={<LogoutRoundedIcon fontSize="small" />}
           onClick={handleLogout}
-          sx={{ borderColor: 'rgba(232,245,243,0.22)' }}
+          sx={{ borderColor: sidebarColors.border, color: sidebarColors.text }}
         >
           {!desktopCollapsed ? 'Logout' : ''}
         </Button>
