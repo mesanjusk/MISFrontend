@@ -1,31 +1,77 @@
-const TOKEN_KEYS = ["token", "authToken", "access_token", "ACCESS_TOKEN"];
+/**
+ * Auth storage utility
+ * Consolidates to a single token key and single role key.
+ * Includes a one-time migration shim that reads legacy keys on first load.
+ */
+
+const TOKEN_KEY = "mis_token";
+const LEGACY_TOKEN_KEYS = ["token", "authToken", "access_token", "ACCESS_TOKEN"];
 
 export const STORAGE_KEYS = {
-  userName: "User_name",
-  userGroup: "User_group",
-  mobileNumber: "Mobile_number",
-  role: "Role",
-  roleFallback: "role",
-  userRoleLegacy: "User_role",
+  userName: "mis_userName",
+  userGroup: "mis_userGroup",
+  mobileNumber: "mis_mobileNumber",
 };
 
+const LEGACY_STORAGE_KEYS = {
+  userName: ["User_name"],
+  userGroup: ["User_group", "Role", "role", "User_role"],
+  mobileNumber: ["Mobile_number"],
+};
+
+/** Run once on app boot to migrate old keys → new keys and clean up */
+export function migrateAuthStorage() {
+  // Migrate token
+  const existingNew = localStorage.getItem(TOKEN_KEY);
+  if (!existingNew) {
+    for (const key of LEGACY_TOKEN_KEYS) {
+      const val = localStorage.getItem(key);
+      if (val) {
+        localStorage.setItem(TOKEN_KEY, val);
+        break;
+      }
+    }
+  }
+  LEGACY_TOKEN_KEYS.forEach((k) => localStorage.removeItem(k));
+
+  // Migrate auth state fields
+  for (const [field, legacyKeys] of Object.entries(LEGACY_STORAGE_KEYS)) {
+    const newKey = STORAGE_KEYS[field];
+    if (!localStorage.getItem(newKey)) {
+      for (const lk of legacyKeys) {
+        const val = localStorage.getItem(lk);
+        if (val) {
+          localStorage.setItem(newKey, val);
+          break;
+        }
+      }
+    }
+    legacyKeys.forEach((lk) => localStorage.removeItem(lk));
+  }
+}
+
 export function getStoredToken() {
-  return TOKEN_KEYS.map((key) => localStorage.getItem(key)).find(Boolean) || "";
+  return localStorage.getItem(TOKEN_KEY) || "";
 }
 
 export function setStoredToken(token) {
-  TOKEN_KEYS.forEach((key) => {
-    if (key === "token") localStorage.setItem(key, token);
-    else localStorage.removeItem(key);
-  });
+  if (token) localStorage.setItem(TOKEN_KEY, token);
+  else localStorage.removeItem(TOKEN_KEY);
 }
 
 export function clearStoredToken() {
-  TOKEN_KEYS.forEach((key) => localStorage.removeItem(key));
+  localStorage.removeItem(TOKEN_KEY);
 }
 
+/** Backward-compat helper for code that still calls pickFirst([...]) */
 export function pickFirst(keys) {
-  return keys.map((key) => localStorage.getItem(key)).find(Boolean) || "";
+  // Try the new consolidated keys first
+  const allKeys = [...Object.values(STORAGE_KEYS), TOKEN_KEY, ...keys];
+  for (const key of allKeys) {
+    const val = localStorage.getItem(key);
+    if (val) return val;
+  }
+  return "";
 }
 
 export function persistAuthState(nextState = {}) {
@@ -34,17 +80,8 @@ export function persistAuthState(nextState = {}) {
   if (userName) localStorage.setItem(STORAGE_KEYS.userName, userName);
   else localStorage.removeItem(STORAGE_KEYS.userName);
 
-  if (userGroup) {
-    localStorage.setItem(STORAGE_KEYS.userGroup, userGroup);
-    localStorage.setItem(STORAGE_KEYS.role, userGroup);
-    localStorage.setItem(STORAGE_KEYS.roleFallback, userGroup);
-    localStorage.setItem(STORAGE_KEYS.userRoleLegacy, userGroup);
-  } else {
-    localStorage.removeItem(STORAGE_KEYS.userGroup);
-    localStorage.removeItem(STORAGE_KEYS.role);
-    localStorage.removeItem(STORAGE_KEYS.roleFallback);
-    localStorage.removeItem(STORAGE_KEYS.userRoleLegacy);
-  }
+  if (userGroup) localStorage.setItem(STORAGE_KEYS.userGroup, userGroup);
+  else localStorage.removeItem(STORAGE_KEYS.userGroup);
 
   if (mobileNumber) localStorage.setItem(STORAGE_KEYS.mobileNumber, mobileNumber);
   else localStorage.removeItem(STORAGE_KEYS.mobileNumber);

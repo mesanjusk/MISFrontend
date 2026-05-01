@@ -7,9 +7,13 @@ import { initOfflineQueue } from './utils/offlineQueue.js';
 import './apiClient.js';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { AppThemeProvider } from './context/ThemeConfigContext.jsx';
+import { migrateAuthStorage } from './utils/authStorage.js';
 
+// One-time migration: move legacy localStorage keys to new consolidated keys
+migrateAuthStorage();
+
+// Override window.alert to use toast notifications instead
 const nativeAlert = window.alert.bind(window);
-
 window.alert = (msg) => {
   if (typeof msg === 'string' && msg.trim()) {
     toast(msg);
@@ -33,7 +37,7 @@ createRoot(document.getElementById('root')).render(
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {
-      console.warn('Service worker registration failed');
+      // Service worker registration is best-effort; don't crash the app
     });
   });
 }
