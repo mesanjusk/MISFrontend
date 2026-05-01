@@ -35,7 +35,7 @@ export default function DispatchQueue() {
 
   const markDispatched = async (orderId) => {
     try {
-      await axios.post(`/orders/${orderId}/lifecycle`, { action: 'advance_stage', stage: 'delivered' });
+      await axios.post(`/api/orders/${orderId}/lifecycle`, { action: 'advance_stage', stage: 'delivered' });
       setSuccessMsg('Order marked as dispatched!');
       setTimeout(() => setSuccessMsg(''), 3000);
       await load();

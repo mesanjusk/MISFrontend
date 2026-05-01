@@ -98,7 +98,7 @@ export default function AddCustomer({ onClose }) {
     }
 
     try {
-      const duplicateRes = await axios.get(`/customer/checkDuplicateName?name=${encodeURIComponent(form.Customer_name.trim())}`);
+      const duplicateRes = await axios.get(`/api/customers/checkDuplicateName?name=${encodeURIComponent(form.Customer_name.trim())}`);
       if (duplicateRes.data?.exists) {
         setDuplicateNameError('Customer name already exists.');
         return;

@@ -26,7 +26,7 @@ export default function CustomerDetails() {
     const loadTimeline = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`/customer/${id}/timeline`);
+        const res = await axios.get(`/api/customers/${id}/timeline`);
         if (!mounted) return;
         setTimeline(res?.data?.result || res?.data?.data || {});
       } catch (error) {

@@ -44,7 +44,7 @@ export default function ItemReport() {
     setLoading(true);
     try {
       setUserGroup(localStorage.getItem('User_group') || '');
-      const res = await axios.get('/item/GetItemList');
+      const res = await axios.get('/api/items/GetItemList');
       const rows = res?.data?.success ? res.data.result || [] : [];
       setItems(rows.sort((a, b) => String(a.Item_name || '').localeCompare(String(b.Item_name || ''))));
     } catch (error) {

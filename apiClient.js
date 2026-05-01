@@ -1,17 +1,18 @@
 import axios from "axios";
 import { getStoredToken } from "./utils/authStorage";
 
-// Hardcoded production fallback — if env vars are missing from the build,
-// the app still points to the correct backend instead of silently hitting Vercel.
-const PRODUCTION_API = "https://misbackend-e078.onrender.com/api";
+// baseURL = root server URL only — NO /api suffix here.
+// Every axios call in this app already includes /api/... in the path.
+// Adding /api here would produce /api/api/... (double prefix = 503/404).
+const PRODUCTION_SERVER = "https://misbackend-e078.onrender.com";
 
-const LOCAL_API  = import.meta.env.VITE_API_LOCAL  || "http://localhost:5000/api";
-const SERVER_API = import.meta.env.VITE_API_SERVER || PRODUCTION_API;
+const LOCAL_SERVER  = import.meta.env.VITE_API_LOCAL  || "http://localhost:5000";
+const REMOTE_SERVER = import.meta.env.VITE_API_SERVER || PRODUCTION_SERVER;
 
 const hostname    = window.location.hostname;
 const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
 
-const currentBaseURL = isLocalhost ? LOCAL_API : SERVER_API;
+const currentBaseURL = isLocalhost ? LOCAL_SERVER : REMOTE_SERVER;
 
 const client = axios.create({
   baseURL: currentBaseURL,
@@ -38,14 +39,14 @@ client.interceptors.response.use(
     const isNetworkFailure = !error?.response;
     const canRetryRemote =
       isLocalhost &&
-      SERVER_API &&
-      originalConfig.baseURL !== SERVER_API &&
+      REMOTE_SERVER &&
+      originalConfig.baseURL !== REMOTE_SERVER &&
       !originalConfig.__retriedWithServer &&
       isNetworkFailure;
 
     if (canRetryRemote) {
       originalConfig.__retriedWithServer = true;
-      originalConfig.baseURL = SERVER_API;
+      originalConfig.baseURL = REMOTE_SERVER;
       return client(originalConfig);
     }
 

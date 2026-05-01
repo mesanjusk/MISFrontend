@@ -72,7 +72,7 @@ export default function AddItem() {
       try {
         const [groupRes, itemRes] = await Promise.all([
           axios.get('/api/itemgroup/GetItemgroupList'),
-          axios.get('/item/GetItemList'),
+          axios.get('/api/items/GetItemList'),
         ]);
         if (groupRes.data?.success) setGroupOptions(groupRes.data.result || []);
         if (itemRes.data?.success) setCatalogOptions(itemRes.data.result || []);
@@ -116,7 +116,7 @@ export default function AddItem() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const res = await axios.post('/item/addItem', {
+      const res = await axios.post('/api/items/addItem', {
         ...form,
         openingStock: Number(form.openingStock || 0),
         reorderLevel: Number(form.reorderLevel || 0),
