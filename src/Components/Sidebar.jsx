@@ -227,26 +227,7 @@ export default function Sidebar({ desktopCollapsed, mobileOpen, onCloseMobile, o
       <Box sx={{ p: 1 }}>
         {!desktopCollapsed ? (
           <Stack spacing={1} sx={{ mb: 1 }}>
-            <Box
-              sx={{
-                p: 1,
-                borderRadius: 2.5,
-                bgcolor: sidebarColors.surface,
-                border: `1px solid ${sidebarColors.border}`,
-              }}
-            >
-              <Typography variant="caption" color={sidebarColors.textMuted}>
-                Logged in as
-              </Typography>
-              <Typography variant="body2" fontWeight={700} color={sidebarColors.text} noWrap>
-                {userName || 'User'} ({roleKey})
-              </Typography>
-              <Chip
-                label="Live dashboard"
-                size="small"
-                sx={{ mt: 0.8, bgcolor: alpha(sidebarColors.accent, 0.22), color: sidebarColors.text }}
-              />
-            </Box>
+            
           </Stack>
         ) : null}
 
