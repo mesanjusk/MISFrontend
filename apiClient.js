@@ -1,12 +1,12 @@
 import axios from "axios";
 import { getStoredToken } from "./utils/authStorage";
 
-// Hardcoded fallback so the app never silently hits the wrong server
-// when env vars are missing from the build
-const PRODUCTION_API_FALLBACK = "https://misbackend-e078.onrender.com/api";
+// Hardcoded production fallback — if env vars are missing from the build,
+// the app still points to the correct backend instead of silently hitting Vercel.
+const PRODUCTION_API = "https://misbackend-e078.onrender.com/api";
 
 const LOCAL_API  = import.meta.env.VITE_API_LOCAL  || "http://localhost:5000/api";
-const SERVER_API = import.meta.env.VITE_API_SERVER || PRODUCTION_API_FALLBACK;
+const SERVER_API = import.meta.env.VITE_API_SERVER || PRODUCTION_API;
 
 const hostname    = window.location.hostname;
 const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
