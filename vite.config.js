@@ -14,9 +14,9 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // Forward all /api requests to backend
+      // Forward all /api requests to backend (local dev only)
       '/api': {
-        target: 'http://localhost:10000', // your backend p
+        target: 'http://localhost:5000',
         changeOrigin: true,
       },
     },
