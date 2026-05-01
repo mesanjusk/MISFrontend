@@ -15,7 +15,7 @@ export default function AddCategory() {
   const [converting, setConverting] = useState(false);
 
   useEffect(() => {
-    axios.get('/customer/GetCustomersList')
+    axios.get('/api/customers/GetCustomersList')
       .then((res) => {
         if (res.data.success) setCustomerRecords(Array.isArray(res.data.result) ? res.data.result : []);
       })
@@ -39,7 +39,7 @@ export default function AddCategory() {
         return;
       }
       const payload = { Customer_name, Remark };
-      const response = await axios.post('/enquiry/addEnquiry', payload);
+      const response = await axios.post('/api/enquiry/addEnquiry', payload);
       if (response.data.success) {
         alert(response.data.message);
         setSavedEnquiry({
@@ -74,7 +74,7 @@ export default function AddCategory() {
         stage: 'approved',
         convertedFromEnquiry: savedEnquiry._id || savedEnquiry.Enquiry_uuid,
       };
-      const res = await axios.post('/orders/addOrder', orderPayload);
+      const res = await axios.post('/api/orders/addOrder', orderPayload);
       const order = res?.data?.result || res?.data?.order || res?.data;
       const orderNumber = order?.Order_Number || res?.data?.Order_Number;
       alert(`Order #${orderNumber || ''} created successfully!`);

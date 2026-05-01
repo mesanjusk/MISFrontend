@@ -47,7 +47,7 @@ export default function AddUsertask() {
   useEffect(() => {
     setIsAdminUser(localStorage.getItem('User_group') === 'Admin User');
 
-    axios.get('/user/GetUserList')
+    axios.get('/api/users/GetUserList')
       .then((res) => {
         if (res.data.success) {
           setUserOptions(res.data.result.filter((item) => item.User_group === 'Office User'));
@@ -55,7 +55,7 @@ export default function AddUsertask() {
       })
       .catch((err) => console.error('Error fetching user options:', err));
 
-    axios.get('/order/GetOrderList?page=1&limit=200')
+    axios.get('/api/orders/GetOrderList?page=1&limit=200')
       .then((res) => {
         if (res?.data?.success) setOrderOptions(res?.data?.result || []);
       })
@@ -98,7 +98,7 @@ export default function AddUsertask() {
 
     const finalDeadline = isDeadlineChecked && Deadline ? Deadline : new Date().toLocaleDateString('en-CA');
     try {
-      const res = await axios.post('/usertask/addUsertask', { Usertask_name, User, Deadline: finalDeadline, Remark, LinkedOrder, TaskStatus });
+      const res = await axios.post('/api/usertasks/addUsertask', { Usertask_name, User, Deadline: finalDeadline, Remark, LinkedOrder, TaskStatus });
       if (res.data === 'exist') return toast.error('Task already exists');
       if (res.data !== 'notexist') return toast.error('Something went wrong.');
 

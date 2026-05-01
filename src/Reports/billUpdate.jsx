@@ -30,7 +30,7 @@ export default function BillUpdate({ order, onClose }) {
   });
 
   useEffect(() => {
-    axios.get("/taskgroup/GetTaskgroupList")
+    axios.get("/api/taskgroup/GetTaskgroupList")
       .then(res => {
         if (res.data.success) {
           const options = res.data.result.map(item => item.Task_group);
@@ -43,7 +43,7 @@ export default function BillUpdate({ order, onClose }) {
   }, []);
 
   useEffect(() => {
-    axios.get("/user/GetUserList")
+    axios.get("/api/users/GetUserList")
       .then(res => {
         if (res.data.success) {
           const options = res.data.result.map(item => item.User_name);
@@ -56,7 +56,7 @@ export default function BillUpdate({ order, onClose }) {
   }, []);
 
   useEffect(() => {
-    axios.get("/order/GetOrderList")
+    axios.get("/api/orders/GetOrderList")
       .then(res => {
         if (res.data.success) {
           setOrders(res.data.result);
@@ -68,7 +68,7 @@ export default function BillUpdate({ order, onClose }) {
   }, []);
 
   useEffect(() => {
-    axios.get("/customer/GetCustomersList")
+    axios.get("/api/customers/GetCustomersList")
       .then(res => {
         if (res.data.success) {
           const customerMap = res.data.result.reduce((acc, customer) => {
@@ -93,7 +93,7 @@ export default function BillUpdate({ order, onClose }) {
       return;
     }
 
-    axios.post('/vendor/addVendor', {
+    axios.post('/api/vendors/addVendor', {
       orderId: values.id,
       Order_Number: values.Order_Number,
       Order_uuid: values.Order_uuid,

@@ -147,7 +147,7 @@ export default function AllOrder() {
     const loadUsers = async () => {
       setUsersLoading(true);
       try {
-        const { data } = await axios.get("/user/GetUserList");
+        const { data } = await axios.get("/api/users/GetUserList");
         const rows = Array.isArray(data?.result) ? data.result : [];
         setAllUsers(rows);
       } catch (error) {

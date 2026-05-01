@@ -10,7 +10,7 @@ const OrderPrint = ({ order, onClose }) => {
   const componentRef = useRef();
 
   useEffect(() => {
-    axios.get("/customer/GetCustomersList").then((res) => {
+    axios.get("/api/customers/GetCustomersList").then((res) => {
       if (res.data.success) {
         const customerMap = res.data.result.reduce((acc, customer) => {
           acc[customer.Customer_uuid] = {

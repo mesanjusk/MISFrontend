@@ -195,10 +195,10 @@ export default function Dashboard() {
     const fetchOperationalSummary = async () => {
       try {
         const [outstandingRes, stuckRes, cashRes, stockRes] = await Promise.all([
-          axios.get('/dashboard/outstanding-summary').catch(() => ({ data: {} })),
-          axios.get('/dashboard/stuck-orders').catch(() => ({ data: {} })),
-          axios.get('/dashboard/cash-book-summary').catch(() => ({ data: {} })),
-          axios.get('/stock/summary').catch(() => ({ data: { items: [] } })),
+          axios.get('/api/dashboard/outstanding-summary').catch(() => ({ data: {} })),
+          axios.get('/api/dashboard/stuck-orders').catch(() => ({ data: {} })),
+          axios.get('/api/dashboard/cash-book-summary').catch(() => ({ data: {} })),
+          axios.get('/api/stock/summary').catch(() => ({ data: { items: [] } })),
         ]);
         if (!mounted) return;
         setOpsSummary({ outstanding: outstandingRes?.data || {}, stuck: stuckRes?.data || {}, cash: cashRes?.data || {} });
@@ -217,7 +217,7 @@ export default function Dashboard() {
     const fetchSummary = async () => {
       try {
         setSummaryLoading(true);
-        const res = await axios.get('/dashboard/summary', {
+        const res = await axios.get('/api/dashboard/summary', {
           params: { userName: roleInfo?.userName || '', isAdmin: Boolean(roleInfo?.isAdmin), role: roleInfo?.role || '' },
         });
         if (mounted) setSummaryApi(res?.data?.result || {});

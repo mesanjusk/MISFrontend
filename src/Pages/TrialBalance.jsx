@@ -18,7 +18,7 @@ export default function TrialBalance() {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get('/dashboard/trial-balance');
+      const res = await axios.get('/api/dashboard/trial-balance');
       setRows(Array.isArray(res?.data?.accounts) ? res.data.accounts : []);
     } catch (e) {
       setError(`Failed to load trial balance. ${e?.response?.data?.error || e.message}`);

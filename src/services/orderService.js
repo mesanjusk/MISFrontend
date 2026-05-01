@@ -1,6 +1,6 @@
 import axios from "../apiClient.js";
 
-export const fetchOrders = () => axios.get("/order/GetOrderList");
+export const fetchOrders = () => axios.get("/api/orders/GetOrderList");
 export const fetchDeliveredOrders = () => axios.get("/order/GetDeliveredList");
 
 /**
@@ -8,7 +8,7 @@ export const fetchDeliveredOrders = () => axios.get("/order/GetDeliveredList");
  */
 export const updateOrder = (orderId, payload) => axios.put(`/order/updateOrder/${orderId}`, payload);
 
-export const addOrder = (payload) => axios.post("/order/addOrder", payload);
+export const addOrder = (payload) => axios.post("/api/orders/addOrder", payload);
 
 export const fetchBillList = () => axios.get("/order/GetBillList");
 
@@ -54,6 +54,6 @@ export const updateBillStatus = (orderId, billStatus, meta = {}) => {
 };
 
 
-export const fetchMyOrderTasks = (userName) => axios.get('/order/tasks/mine', { params: { userName } });
-export const fetchOrderQueue = () => axios.get('/order/tasks/queue');
+export const fetchMyOrderTasks = (userName) => axios.get('/api/orders/tasks/mine', { params: { userName } });
+export const fetchOrderQueue = () => axios.get('/api/orders/tasks/queue');
 export const assignOrderToUser = (orderId, payload) => axios.patch(`/order/${orderId}/assign`, payload);

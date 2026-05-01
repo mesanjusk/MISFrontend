@@ -71,7 +71,7 @@ export default function AddItem() {
     const load = async () => {
       try {
         const [groupRes, itemRes] = await Promise.all([
-          axios.get('/itemgroup/GetItemgroupList'),
+          axios.get('/api/itemgroup/GetItemgroupList'),
           axios.get('/item/GetItemList'),
         ]);
         if (groupRes.data?.success) setGroupOptions(groupRes.data.result || []);

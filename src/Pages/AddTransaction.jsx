@@ -59,7 +59,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
 
   useEffect(() => {
     setOptionsLoading(true);
-    axios.get('/customer/GetCustomersList')
+    axios.get('/api/customers/GetCustomersList')
       .then((res) => {
         if (res.data.success) {
           setAllCustomerOptions(res.data.result);
@@ -146,7 +146,7 @@ export default function AddTransaction({ editMode, existingData, onClose, onSucc
 
     try {
       setLoading(true);
-      const res = await axios.post('/transaction/addTransaction', formData, {
+      const res = await axios.post('/api/transaction/addTransaction', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 

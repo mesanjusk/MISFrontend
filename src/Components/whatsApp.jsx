@@ -5,7 +5,7 @@ export default function WhatsApp({ order }) {
      const [customers, setCustomers] = useState({});
 
      useEffect(() => {
-    axios.get("/customer/GetCustomersList")
+    axios.get("/api/customers/GetCustomersList")
       .then(res => {
         if (res.data.success) {
           const customerMap = res.data.result.reduce((acc, customer) => {
@@ -59,7 +59,7 @@ export default function WhatsApp({ order }) {
     console.log("Sending payload:", payload); 
   
     try {
-      const { data: result } = await axios.post('/usertask/send-message', payload);
+      const { data: result } = await axios.post('/api/usertasks/send-message', payload);
       console.log("Message sent:", result);
 
       if (result.error) {

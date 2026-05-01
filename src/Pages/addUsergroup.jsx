@@ -10,7 +10,7 @@ export default function AddCustGroup() {
   async function submit(e) {
     e.preventDefault();
     try {
-      const res = await axios.post('/usergroup/addUsergroup', {
+      const res = await axios.post('/api/usergroup/addUsergroup', {
         User_group,
       });
 

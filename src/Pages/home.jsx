@@ -50,7 +50,7 @@ export default function Home() {
 
   const fetchData = async () => {
     try {
-      const [taskRes] = await Promise.all([axios.get('/usertask/GetUsertaskList')]);
+      const [taskRes] = await Promise.all([axios.get('/api/usertasks/GetUsertaskList')]);
       if (taskRes.data.success) {
         setTask(taskRes.data.result);
       } else {
@@ -63,7 +63,7 @@ export default function Home() {
 
   const fetchUserNames = async () => {
     try {
-      const response = await axios.get('/user/GetUserList');
+      const response = await axios.get('/api/users/GetUserList');
       const data = response.data;
 
       if (data.success) {
@@ -83,7 +83,7 @@ export default function Home() {
   const fetchAttendance = async (currentUser) => {
     try {
       const userLookup = await fetchUserNames();
-      const attendanceResponse = await axios.get('/attendance/GetAttendanceList');
+      const attendanceResponse = await axios.get('/api/attendance/GetAttendanceList');
       const attendanceRecords = attendanceResponse.data.result || [];
 
       const attendanceWithUserNames = attendanceRecords.flatMap((record) => {

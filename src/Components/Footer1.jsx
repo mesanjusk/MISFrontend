@@ -21,7 +21,7 @@ export default function UnifiedFooterTabView() {
     // Fetch all required data once
     const fetchData = async () => {
       try {
-        const res = await axios.get('/order/all-data'); // ✅ Replace with your unified API
+        const res = await axios.get('/api/orders/all-data'); // ✅ Replace with your unified API
         setData({
           delivered: res.data.delivered,
           report: res.data.report,

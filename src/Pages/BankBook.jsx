@@ -31,8 +31,8 @@ export default function BankBook() {
 
   const load = async () => {
     const [summaryRes, txnRes] = await Promise.all([
-      axios.get('/dashboard/bank-book-summary'),
-      axios.get('/transaction', { params: { accountFilter: 'Bank', limit: 500 } }),
+      axios.get('/api/dashboard/bank-book-summary'),
+      axios.get('/api/transaction', { params: { accountFilter: 'Bank', limit: 500 } }),
     ]);
     setSummary(summaryRes?.data || {});
     setTransactions(Array.isArray(txnRes?.data?.result) ? txnRes.data.result : []);

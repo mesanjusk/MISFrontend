@@ -82,7 +82,7 @@ export default function PendingTasks() {
       const [mineRes, queueRes, usersRes] = await Promise.all([
         fetchMyOrderTasks(userName),
         isAdmin ? fetchOrderQueue() : Promise.resolve({ data: { result: [] } }),
-        isAdmin ? axios.get('/user/GetUserList') : Promise.resolve({ data: { result: [] } }),
+        isAdmin ? axios.get('/api/users/GetUserList') : Promise.resolve({ data: { result: [] } }),
       ]);
       setAssignedTasks(mineRes?.data?.result?.orders || []);
       setQueueTasks(queueRes?.data?.result || []);

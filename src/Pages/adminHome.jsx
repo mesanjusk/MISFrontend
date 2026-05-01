@@ -44,7 +44,7 @@ export default function AdminHome() {
 
   const fetchUserNames = async () => {
     try {
-      const response = await axios.get('/user/GetUserList');
+      const response = await axios.get('/api/users/GetUserList');
       const data = response.data;
 
       if (data.success) {
@@ -66,8 +66,8 @@ export default function AdminHome() {
  const fetchData = async (user) => {
      try {
          const [ordersRes, customersRes] = await Promise.all([
-             axios.get("/order/GetOrderList"),
-             axios.get("/customer/GetCustomersList"),
+             axios.get("/api/orders/GetOrderList"),
+             axios.get("/api/customers/GetCustomersList"),
          ]);
  
          if (ordersRes.data.success) {
@@ -118,7 +118,7 @@ export default function AdminHome() {
     try {
       const userLookup = await fetchUserNames();
       
-      const attendanceResponse = await axios.get('/attendance/GetAttendanceList');
+      const attendanceResponse = await axios.get('/api/attendance/GetAttendanceList');
       const attendanceRecords = attendanceResponse.data.result || [];
       const formattedData = processAttendanceData(attendanceRecords, userLookup);
       setAttendance(formattedData);

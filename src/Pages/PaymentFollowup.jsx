@@ -97,7 +97,7 @@ export default function PaymentFollowup() {
         Array.from(new Set((arr || []).map((it) => getCustomerName(it)).filter(Boolean)));
 
       try {
-        const r1 = await axios.get('/customer/GetCustomerList');
+        const r1 = await axios.get('/api/customers/GetCustomersList');
         if (r1?.data?.success && Array.isArray(r1.data.result)) {
           setCustomerDetails(r1.data.result);
           setCustomerOptions(normalizeNames(r1.data.result));
@@ -106,7 +106,7 @@ export default function PaymentFollowup() {
         throw new Error('Singular route returned unexpected response');
       } catch {
         try {
-          const r2 = await axios.get('/customer/GetCustomersList');
+          const r2 = await axios.get('/api/customers/GetCustomersList');
           if (r2?.data?.success && Array.isArray(r2.data.result)) {
             setCustomerDetails(r2.data.result);
             setCustomerOptions(normalizeNames(r2.data.result));
@@ -215,7 +215,7 @@ export default function PaymentFollowup() {
       setWhatsAppMessage('');
       setMobileToSend('');
 
-      const res = await axios.post('/paymentfollowup/add', {
+      const res = await axios.post('/api/paymentfollowup/add', {
         Customer,
         Amount: Number(Amount),
         Title: Title?.trim(),

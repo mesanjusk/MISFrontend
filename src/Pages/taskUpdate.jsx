@@ -17,7 +17,7 @@ export default function TaskUpdate({ task, onClose }) {
 
 
   useEffect(() => {
-    axios.get("/usertask/GetUsertaskList")
+    axios.get("/api/usertasks/GetUsertaskList")
       .then(res => {
         if (res.data.success) {
           setTasks(res.data.result);

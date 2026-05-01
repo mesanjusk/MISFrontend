@@ -21,8 +21,8 @@ export default function AllOrder() {
         const fetchData = async () => {
             try {
                 const [ordersRes, customersRes] = await Promise.all([
-                    axios.get("/order/GetOrderList"),
-                    axios.get("/customer/GetCustomersList")
+                    axios.get("/api/orders/GetOrderList"),
+                    axios.get("/api/customers/GetCustomersList")
                 ]);
 
                 setOrders(ordersRes.data.success ? ordersRes.data.result : []);
@@ -51,7 +51,7 @@ export default function AllOrder() {
     useEffect(() => {
         const fetchTasks = async () => {
             try {
-                const res = await axios.get("/taskgroup/GetTaskgroupList");
+                const res = await axios.get("/api/taskgroup/GetTaskgroupList");
                 if (res.data.success) {
                     const filteredTasks = res.data.result.filter(task =>
                         !["delivered", "cancel"].includes(task.Task_group.trim().toLowerCase())

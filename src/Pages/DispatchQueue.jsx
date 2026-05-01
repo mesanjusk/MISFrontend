@@ -19,7 +19,7 @@ export default function DispatchQueue() {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get('/orders', { params: { stage: 'ready', limit: 100 } });
+      const res = await axios.get('/api/orders', { params: { stage: 'ready', limit: 100 } });
       const all = Array.isArray(res?.data?.result) ? res.data.result : Array.isArray(res?.data) ? res.data : [];
       const ready = all.filter((o) => {
         const stage = String(o.stage || (o.Status && o.Status.length ? o.Status[o.Status.length - 1]?.Task : '') || '').toLowerCase();

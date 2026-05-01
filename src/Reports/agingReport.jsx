@@ -32,7 +32,7 @@ export default function AgingReport() {
   const loadRows = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('/dashboard/customer-aging', { params: { fromDate, toDate } });
+      const res = await axios.get('/api/dashboard/customer-aging', { params: { fromDate, toDate } });
       setRows(Array.isArray(res?.data?.result) ? res.data.result : []);
     } catch (error) {
       console.error('Aging report failed:', error);

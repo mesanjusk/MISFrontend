@@ -44,7 +44,7 @@ export default function TaskReport() {
     setLoading(true);
     try {
       setUserGroup(localStorage.getItem('User_group') || '');
-      const res = await axios.get('/tasks/GetTaskList');
+      const res = await axios.get('/api/tasks/GetTaskList');
       const rows = res?.data?.success ? res.data.result || [] : [];
       setTasks(rows.sort((a, b) => String(a.Task_name || '').localeCompare(String(b.Task_name || ''))));
     } catch (error) {

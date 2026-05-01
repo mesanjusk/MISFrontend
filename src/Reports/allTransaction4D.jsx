@@ -23,7 +23,7 @@ const AllTransaction = () => {
     useEffect(() => {
         const fetchTransactions = async () => {
             try {
-                const response = await axios.get('/transaction');
+                const response = await axios.get('/api/transaction');
                 if (response.data.success) {
                     setTransactions(response.data.result);
                 }
@@ -34,7 +34,7 @@ const AllTransaction = () => {
 
         const fetchCustomers = async () => {
             try {
-                const response = await axios.get('/customer/GetCustomersList');
+                const response = await axios.get('/api/customers/GetCustomersList');
                 if (response.data.success) {
                     setCustomers(response.data.result);
                 }
@@ -387,7 +387,7 @@ const AllTransaction = () => {
                 <button
                     onClick={async () => {
                         try {
-                            await axios.delete(`/transaction/deleteEntry/${entryToDelete.Transaction_id}/${entryToDelete.Account_id}`);
+                            await axios.delete(`/api/transaction/${entryToDelete.Transaction_id}`);
                             // Re-fetch transactions or manually remove the entry from state
                             setFilteredEntries(prev =>
                                 prev.filter(e =>

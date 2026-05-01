@@ -13,7 +13,7 @@ export default function EditUser({ userId, closeModal }) {
     });
 
     useEffect(() => {
-        axios.get("/usergroup/GetUsergroupList")
+        axios.get("/api/usergroup/GetUsergroupList")
             .then(res => {
                 if (res.data.success) {
                     const options = res.data.result.map(item => item.User_group);
@@ -24,7 +24,7 @@ export default function EditUser({ userId, closeModal }) {
                 toast.error("Failed to load user groups");
             });
 
-        axios.get("/taskgroup/GetTaskgroupList")
+        axios.get("/api/taskgroup/GetTaskgroupList")
             .then(res => {
                 if (res.data.success) {
                     const taskOptions = res.data.result.map(t => t.Task_group);

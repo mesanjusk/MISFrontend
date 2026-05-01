@@ -10,7 +10,7 @@ export default function AddPriority() {
   async function submit(e) {
     e.preventDefault();
     try {
-      const res = await axios.post('/priority/addPriority', {
+      const res = await axios.post('/api/priority/addPriority', {
         Priority_name,
       });
 

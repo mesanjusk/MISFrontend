@@ -10,7 +10,7 @@ export default function Print({ order }) {
      const [customers, setCustomers] = useState({});
 
       useEffect(() => {
-    axios.get("/customer/GetCustomersList")
+    axios.get("/api/customers/GetCustomersList")
       .then(res => {
         if (res.data.success) {
           const customerMap = res.data.result.reduce((acc, customer) => {

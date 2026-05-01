@@ -31,8 +31,8 @@ export default function CashLedger() {
 
   const load = async () => {
     const [summaryRes, txnRes] = await Promise.all([
-      axios.get('/dashboard/cash-book-summary'),
-      axios.get('/transaction', { params: { accountFilter: 'Cash', limit: 500 } }),
+      axios.get('/api/dashboard/cash-book-summary'),
+      axios.get('/api/transaction', { params: { accountFilter: 'Cash', limit: 500 } }),
     ]);
     setSummary(summaryRes?.data || {});
     setTransactions(Array.isArray(txnRes?.data?.result) ? txnRes.data.result : []);

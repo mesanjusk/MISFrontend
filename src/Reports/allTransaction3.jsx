@@ -51,8 +51,8 @@ const AllTransaction3 = () => {
       try {
         setLoading(true);
         const [transRes, custRes] = await Promise.all([
-          axios.get('/transaction'),
-          axios.get('/customer/GetCustomersList')
+          axios.get('/api/transaction'),
+          axios.get('/api/customers/GetCustomersList')
         ]);
         if (transRes.data?.success) setTransactions(transRes.data.result || []);
         if (custRes.data?.success) setCustomers(custRes.data.result || []);
@@ -225,7 +225,7 @@ const AllTransaction3 = () => {
   const saveEditedTransaction = async (payload) => {
     try {
       const res = await axios.put(
-        `/transaction/updateByTransactionId/${payload.Transaction_id}`,
+        `/api/transaction/${payload.Transaction_uuid}`,
         {
           updatedDescription: payload.Description || '',
           updatedAmount: payload.Amount,
@@ -271,7 +271,7 @@ const AllTransaction3 = () => {
   const handleDelete = async (txnId) => {
     if (!window.confirm('Are you sure you want to delete this transaction?')) return;
     try {
-      const res = await axios.delete(`/transaction/deleteByTransactionId/${txnId}`);
+      const res = await axios.delete(`/api/transaction/${txnId}`);
       if (res.data?.success) {
         setTransactions(prev => prev.filter(t => t.Transaction_id !== txnId));
       } else {

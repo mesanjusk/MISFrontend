@@ -69,7 +69,7 @@ export default function Login() {
     setErrorText('');
 
     try {
-      const response = await axios.post('/user/login', {
+      const response = await axios.post('/api/users/login', {
         User_name,
         Password,
       });

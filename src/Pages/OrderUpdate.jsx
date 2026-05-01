@@ -78,7 +78,7 @@ export default function OrderUpdate({
   useEffect(() => {
     let mounted = true;
     axios
-      .get("/taskgroup/GetTaskgroupList")
+      .get("/api/taskgroup/GetTaskgroupList")
       .then((res) => {
         if (!mounted) return;
         if (!res.data?.success) {

@@ -39,7 +39,7 @@ export default function AllTransaction() {
   const [filters, setFilters] = useState({ fromDate: '', toDate: '', paymentMode: 'All', transactionType: 'All', search: '', account: '' });
 
   const load = async () => {
-    const [txnRes, custRes] = await Promise.all([axios.get('/transaction'), axios.get('/customer/GetCustomersList')]);
+    const [txnRes, custRes] = await Promise.all([axios.get('/api/transaction'), axios.get('/api/customers/GetCustomersList')]);
     setTransactions(Array.isArray(txnRes?.data?.result) ? txnRes.data.result : []);
     setCustomers(Array.isArray(custRes?.data?.result) ? custRes.data.result : []);
   };

@@ -10,7 +10,7 @@ export default function AddPayment() {
   async function submit(e) {
     e.preventDefault();
     try {
-      const res = await axios.post('/payment_mode/addPayment', {
+      const res = await axios.post('/api/payment_mode/addPayment', {
         Payment_name,
       });
 

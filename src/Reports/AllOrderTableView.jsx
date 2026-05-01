@@ -22,8 +22,8 @@ export default function AllBills() {
     const [sortDir, setSortDir] = useState("desc");
 
     useEffect(() => {
-        const fetchOrders = axios.get("/order/GetOrderList");
-        const fetchCustomers = axios.get("/customer/GetCustomersList");
+        const fetchOrders = axios.get("/api/orders/GetOrderList");
+        const fetchCustomers = axios.get("/api/customers/GetCustomersList");
 
         Promise.all([fetchOrders, fetchCustomers])
             .then(([ordersRes, customersRes]) => {

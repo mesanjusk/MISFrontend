@@ -254,12 +254,12 @@ export default function AddOrder1({ closeModal }) {
     setOptionsLoading(true);
     try {
       const [customerRes, taskRes, itemRes, itemResPaged, itemGroupRes, usersRes, vendorRes] = await Promise.allSettled([
-        axios.get('/customer/GetCustomersList'),
-        axios.get('/taskgroup/GetTaskgroupList'),
+        axios.get('/api/customers/GetCustomersList'),
+        axios.get('/api/taskgroup/GetTaskgroupList'),
         axios.get('/item/GetItemList'),
         axios.get('/item/GetItemList?page=1&limit=1000'),
-        axios.get('/itemgroup/GetItemgroupList'),
-        axios.get('/user/GetUserList'),
+        axios.get('/api/itemgroup/GetItemgroupList'),
+        axios.get('/api/users/GetUserList'),
         fetchVendorMasters(),
       ]);
 
@@ -793,7 +793,7 @@ export default function AddOrder1({ closeModal }) {
 
       const orderRes = editOrderId
         ? await axios.put(`/order/updateOrder/${editOrderId}`, orderPayload)
-        : await axios.post('/order/addOrder', orderPayload);
+        : await axios.post('/api/orders/addOrder', orderPayload);
 
       if (!orderRes.data?.success) {
         toast.error(editOrderId ? 'Failed to update order' : 'Failed to add order');
@@ -846,7 +846,7 @@ export default function AddOrder1({ closeModal }) {
         ];
 
         try {
-          const txnRes = await axios.post('/transaction/addTransaction', {
+          const txnRes = await axios.post('/api/transaction/addTransaction', {
             Description: Remark || 'Advance received',
             Transaction_date:
               isAdminUser && isDateChecked

@@ -19,9 +19,9 @@ export default function PurchaseOrder() {
 
   const load = async () => {
     const [poRes, vendorRows, orderRes] = await Promise.all([
-      axios.get('/purchaseorder/list', { params: filters }),
+      axios.get('/api/purchaseorder/list', { params: filters }),
       fetchVendorMasters(),
-      axios.get('/vendors/orders/list').catch(() => ({ data: { result: [] } })),
+      axios.get('/api/vendors/orders/list').catch(() => ({ data: { result: [] } })),
     ]);
     setRows(Array.isArray(poRes?.data?.result) ? poRes.data.result : []);
     setVendors(Array.isArray(vendorRows) ? vendorRows : []);
@@ -40,7 +40,7 @@ export default function PurchaseOrder() {
 
   const save = async (status = 'draft') => {
     if (!form.Vendor_uuid) return;
-    await axios.post('/purchaseorder/create', { ...form, status, createdBy: localStorage.getItem('User_name') || 'System' });
+    await axios.post('/api/purchaseorder/create', { ...form, status, createdBy: localStorage.getItem('User_name') || 'System' });
     setForm({ Vendor_uuid: '', Order_uuid: '', expectedDelivery: '', notes: '', Items: [emptyItem()] });
     setTab(0);
     await load();

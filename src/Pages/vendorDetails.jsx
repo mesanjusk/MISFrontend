@@ -13,7 +13,7 @@ export default function VendorDetails({ onClose, order }) {
     const loggedInUser = "Admin"; 
 
     useEffect(() => {
-        axios.get("/taskgroup/GetTaskgroupList")
+        axios.get("/api/taskgroup/GetTaskgroupList")
             .then((res) => {
                 if (res.data.success) {
                     const filteredTasks = res.data.result.filter(
@@ -32,7 +32,7 @@ export default function VendorDetails({ onClose, order }) {
     const taskOptions = [...new Set(tasks.map((task) => task.Task_group.trim()))];
 
     useEffect(() => {
-        axios.get("/user/GetUserList")
+        axios.get("/api/users/GetUserList")
             .then(res => {
                 if (res.data.success) {
                     const options = res.data.result.map(item => item.User_name);
@@ -69,7 +69,7 @@ export default function VendorDetails({ onClose, order }) {
                     }
                 ];
 
-                const transactionResponse = await axios.post("/transaction/addTransaction", {
+                const transactionResponse = await axios.post("/api/transaction/addTransaction", {
                     Description: Description,
                     Total_Credit: Number(Amount),
                     Total_Debit: Number(Amount),

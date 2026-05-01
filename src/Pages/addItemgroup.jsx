@@ -20,7 +20,7 @@ export default function AddItemGroup() {
   async function submit(e) {
     e.preventDefault();
     try {
-      const res = await axios.post('/itemgroup/addItemgroup', form);
+      const res = await axios.post('/api/itemgroup/addItemgroup', form);
       if (res.data === 'exist') {
         alert('Group already exists');
       } else if (res.data === 'notexist') {

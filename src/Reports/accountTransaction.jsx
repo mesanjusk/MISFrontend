@@ -17,7 +17,7 @@ const AccountTransaction = () => {
     useEffect(() => {
         const fetchTransactions = async () => {
             try {
-                const response = await axios.get('/transaction');
+                const response = await axios.get('/api/transaction');
                 if (response.data.success) {
                     setTransactions(response.data.result);
                 }
@@ -28,7 +28,7 @@ const AccountTransaction = () => {
 
         const fetchCustomers = async () => {
             try {
-                const response = await axios.get('/customer/GetCustomersList');
+                const response = await axios.get('/api/customers/GetCustomersList');
                 if (response.data.success) {
                     setCustomers(response.data.result);
                 }

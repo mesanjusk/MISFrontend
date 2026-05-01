@@ -18,7 +18,7 @@ export default function UserTask() {
       setError('');
 
       const [summaryRes, attendanceRes] = await Promise.all([
-        axios.get('/dashboard/summary', {
+        axios.get('/api/dashboard/summary', {
           params: {
             userName,
             isAdmin: false,
@@ -50,7 +50,7 @@ export default function UserTask() {
   const saveAttendance = async (type) => {
     try {
       setError('');
-      const response = await axios.post('/attendance/addAttendance', {
+      const response = await axios.post('/api/attendance/addAttendance', {
         User_name: userName,
         Type: type,
         Status: type === 'Out' ? 'Completed' : 'Present',

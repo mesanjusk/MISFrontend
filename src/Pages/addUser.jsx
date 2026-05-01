@@ -19,7 +19,7 @@ export default function AddUser({ closeModal }) {
   const [passwordStrength, setPasswordStrength] = useState('');
 
   useEffect(() => {
-    axios.get('/usergroup/GetUsergroupList')
+    axios.get('/api/usergroup/GetUsergroupList')
       .then((res) => {
         if (res.data.success) {
           const options = res.data.result.map((item) => item.User_group);
@@ -27,7 +27,7 @@ export default function AddUser({ closeModal }) {
         }
       });
 
-    axios.get('/taskgroup/GetTaskgroupList')
+    axios.get('/api/taskgroup/GetTaskgroupList')
       .then((res) => {
         if (res.data.success) {
           const taskOptions = res.data.result.map((item) => item.Task_group);
@@ -69,7 +69,7 @@ export default function AddUser({ closeModal }) {
     }
 
     try {
-      const response = await axios.post('/user/addUser', {
+      const response = await axios.post('/api/users/addUser', {
         User_name,
         Password,
         Mobile_number,

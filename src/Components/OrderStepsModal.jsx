@@ -18,9 +18,9 @@ export default function OrderStepsModal({ order, onClose }) {
     async function fetchData() {
       try {
         const [taskRes, userRes, customerRes, stepRes] = await Promise.all([
-  axios.get("/taskgroup/GetTaskgroupList"),
-  axios.get("/user/GetUserList"),
-  axios.get("/customer/GetCustomersList"),
+  axios.get("/api/taskgroup/GetTaskgroupList"),
+  axios.get("/api/users/GetUserList"),
+  axios.get("/api/customers/GetCustomersList"),
   order?.Steps?.length
     ? Promise.resolve({ data: { steps: order.Steps } })
     : order?.Order_Id

@@ -26,11 +26,11 @@ export default function OwnerDashboard() {
     setLoading(true);
     try {
       const [stuckRes, outstandingRes, ordersRes, cashRes, stockRes] = await Promise.all([
-        axios.get('/dashboard/stuck-orders').catch(() => ({ data: [] })),
-        axios.get('/dashboard/outstanding-summary').catch(() => ({ data: {} })),
-        axios.get('/orders', { params: { limit: 200 } }).catch(() => ({ data: { result: [] } })),
-        axios.get('/dashboard/cash-book-summary').catch(() => ({ data: {} })),
-        axios.get('/stock/summary').catch(() => ({ data: { items: [] } })),
+        axios.get('/api/dashboard/stuck-orders').catch(() => ({ data: [] })),
+        axios.get('/api/dashboard/outstanding-summary').catch(() => ({ data: {} })),
+        axios.get('/api/orders', { params: { limit: 200 } }).catch(() => ({ data: { result: [] } })),
+        axios.get('/api/dashboard/cash-book-summary').catch(() => ({ data: {} })),
+        axios.get('/api/stock/summary').catch(() => ({ data: { items: [] } })),
       ]);
       setStuckOrders(Array.isArray(stuckRes?.data) ? stuckRes.data : Array.isArray(stuckRes?.data?.result) ? stuckRes.data.result : []);
       setOutstanding(outstandingRes?.data || {});

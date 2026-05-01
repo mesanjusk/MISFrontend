@@ -54,7 +54,7 @@ export default function AllDelivery() {
   // 🔧 Central API base (env -> vite -> CRA -> localhost)
   const API_BASE = useMemo(() => {
     const raw =
-      import.meta.env.VITE_API_BASE || "http://localhost:10000";
+      import.meta.env.VITE_API_BASE || "http://localhost:5000";
     return String(raw).replace(/\/$/, "");
   }, []);
 

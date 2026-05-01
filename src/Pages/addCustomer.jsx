@@ -46,7 +46,7 @@ export default function AddCustomer({ onClose }) {
 
   const fetchCustomerGroups = async () => {
     try {
-      const res = await axios.get('/customergroup/GetCustomergroupList');
+      const res = await axios.get('/api/customergroup/GetCustomergroupList');
       if (res.data.success) {
         const options = (res.data.result || []).map((item) => item.Customer_group).filter(Boolean);
         setGroupOptions([...new Set(options)]);
@@ -120,7 +120,7 @@ export default function AddCustomer({ onClose }) {
       if (!payload.Mobile_number || !payload.Mobile_number.trim()) delete payload.Mobile_number;
       if (!form.LastInteraction) delete payload.LastInteraction;
 
-      const res = await axios.post('/customer/addCustomer', payload);
+      const res = await axios.post('/api/customers/addCustomer', payload);
 
       if (res.data.success) {
         alert('Customer added successfully');
@@ -159,7 +159,7 @@ export default function AddCustomer({ onClose }) {
 
     try {
       setGroupLoading(true);
-      const res = await axios.post('/customergroup/addCustomergroup', { Customer_group: groupName });
+      const res = await axios.post('/api/customergroup/addCustomergroup', { Customer_group: groupName });
       if (res.data.success) {
         setGroupOptions((prev) => [...new Set([...prev, groupName])]);
         handleChange('Customer_group', groupName);

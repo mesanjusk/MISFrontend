@@ -9,7 +9,7 @@ export default function EditItem({ itemId, closeModal }) {
     });
 
     useEffect(() => {
-        axios.get("/itemgroup/GetItemgroupList")
+        axios.get("/api/itemgroup/GetItemgroupList")
             .then(res => {
                 if (res.data.success) {
                     const options = res.data.result.map(item => item.Item_group);

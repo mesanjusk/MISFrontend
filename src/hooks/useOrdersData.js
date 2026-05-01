@@ -24,9 +24,9 @@ const REQUEST_LIMITS = {
 };
 
 const API_ENDPOINTS = {
-  ORDERS: "/order/GetOrderList",
-  CUSTOMERS: "/customer/GetCustomersList",
-  TASK_GROUPS: "/taskgroup/GetTaskgroupList",
+  ORDERS: "/api/orders/GetOrderList",
+  CUSTOMERS: "/api/customers/GetCustomersList",
+  TASK_GROUPS: "/api/taskgroup/GetTaskgroupList",
   UPDATE_STATUS: "/order/updateStatus",
 };
 

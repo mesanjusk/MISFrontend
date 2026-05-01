@@ -11,7 +11,7 @@ const WhatsAppSession = () => {
 
   const checkStatus = async () => {
     try {
-      const res = await axios.get('/whatsapp/status');
+      const res = await axios.get('/api/whatsapp/status');
       setIsConnected(res.data.ready === true);
     } catch (err) {
       console.error("Status check failed:", err);
@@ -36,7 +36,7 @@ const WhatsAppSession = () => {
     setSending(true);
     try {
       const normalized = normalizeWhatsAppNumber(number);
-      const res = await axios.post('/whatsapp/send-test', {
+      const res = await axios.post('/api/whatsapp/send-test', {
         number: normalized,
         message,
       });

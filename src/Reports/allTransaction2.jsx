@@ -17,7 +17,7 @@ const AllTransaction2 = () => {
     useEffect(() => {
         const fetchTransactions = async () => {
             try {
-                const response = await axios.get('/transaction');
+                const response = await axios.get('/api/transaction');
                 if (response.data.success) {
                     setTransactions(response.data.result);
                 }
@@ -28,7 +28,7 @@ const AllTransaction2 = () => {
 
         const fetchCustomers = async () => {
             try {
-                const response = await axios.get('/customer/GetCustomersList');
+                const response = await axios.get('/api/customers/GetCustomersList');
                 if (response.data.success) {
                     setCustomers(response.data.result);
                 }
@@ -105,7 +105,7 @@ const AllTransaction2 = () => {
         };
 
         try {
-            const { data: result } = await axios.post('/usertask/send-message', payload);
+            const { data: result } = await axios.post('/api/usertasks/send-message', payload);
             if (result.error) {
                 alert("Failed to send: " + result.error);
             } else {

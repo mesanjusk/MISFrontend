@@ -44,7 +44,7 @@ export default function PaymentReport() {
     setLoading(true);
     try {
       setUserGroup(localStorage.getItem('User_group') || '');
-      const res = await axios.get('/payment_mode/GetPaymentList');
+      const res = await axios.get('/api/payment_mode/GetPaymentList');
       const rows = res?.data?.success ? res.data.result || [] : [];
       setPayments(rows.sort((a, b) => String(a.Payment_name || '').localeCompare(String(b.Payment_name || ''))));
     } catch (error) {

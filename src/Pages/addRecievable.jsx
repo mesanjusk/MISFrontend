@@ -72,7 +72,7 @@ export default function AddRecievable() {
   };
 
   useEffect(() => {
-    axios.get('/customer/GetCustomersList')
+    axios.get('/api/customers/GetCustomersList')
       .then((res) => {
         if (res.data.success) {
           setAllCustomerOptions(res.data.result);
@@ -171,7 +171,7 @@ export default function AddRecievable() {
         formData.append('image', selectedImage);
       }
 
-      const response = await axios.post('/transaction/addTransaction', formData, {
+      const response = await axios.post('/api/transaction/addTransaction', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

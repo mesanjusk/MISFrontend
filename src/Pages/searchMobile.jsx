@@ -15,7 +15,7 @@ const SearchMobile = () => {
         const fetchCustomers = async () => {
             setIsLoading(true);
             try {
-                const response = await axios.get("/customer/GetCustomersList");
+                const response = await axios.get("/api/customers/GetCustomersList");
                 if (response.data.success) {
                     setCustomers(response.data.result);
                 } else {
