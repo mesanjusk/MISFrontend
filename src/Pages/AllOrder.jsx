@@ -638,7 +638,7 @@ export default function AllOrder() {
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={handleCancelMobileMove}>Cancel</Button>
+          <Button onClick={handleCancelMobileMove}>Cancel.</Button>
           <Button
             variant="contained"
             onClick={handleConfirmMobileMove}
