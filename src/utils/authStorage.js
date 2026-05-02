@@ -1,7 +1,9 @@
 /**
  * Auth storage utility
- * Consolidates to a single token key and single role key.
- * Includes a one-time migration shim that reads legacy keys on first load.
+ *
+ * Strategy: write to BOTH old keys (User_name, User_group) and new keys
+ * (mis_userName, mis_userGroup) so that legacy code across the app that
+ * still reads the old keys keeps working without needing mass refactoring.
  */
 
 const TOKEN_KEY = "mis_token";
@@ -13,15 +15,16 @@ export const STORAGE_KEYS = {
   mobileNumber: "mis_mobileNumber",
 };
 
-const LEGACY_STORAGE_KEYS = {
-  userName: ["User_name"],
-  userGroup: ["User_group", "Role", "role", "User_role"],
-  mobileNumber: ["Mobile_number"],
+// Legacy keys that many pages across the app still read directly
+const LEGACY_WRITE_KEYS = {
+  userName: "User_name",
+  userGroup: "User_group",
+  mobileNumber: "Mobile_number",
 };
 
-/** Run once on app boot to migrate old keys → new keys and clean up */
+/** Run once on app boot — migrate token only, keep old auth keys intact */
 export function migrateAuthStorage() {
-  // Migrate token
+  // Migrate token from old keys to mis_token
   const existingNew = localStorage.getItem(TOKEN_KEY);
   if (!existingNew) {
     for (const key of LEGACY_TOKEN_KEYS) {
@@ -32,21 +35,17 @@ export function migrateAuthStorage() {
       }
     }
   }
+  // Remove old token keys only (not User_name/User_group — still needed by legacy code)
   LEGACY_TOKEN_KEYS.forEach((k) => localStorage.removeItem(k));
 
-  // Migrate auth state fields
-  for (const [field, legacyKeys] of Object.entries(LEGACY_STORAGE_KEYS)) {
-    const newKey = STORAGE_KEYS[field];
-    if (!localStorage.getItem(newKey)) {
-      for (const lk of legacyKeys) {
-        const val = localStorage.getItem(lk);
-        if (val) {
-          localStorage.setItem(newKey, val);
-          break;
-        }
-      }
-    }
-    legacyKeys.forEach((lk) => localStorage.removeItem(lk));
+  // If new keys are empty but old keys have values, copy them over
+  if (!localStorage.getItem(STORAGE_KEYS.userName)) {
+    const v = localStorage.getItem(LEGACY_WRITE_KEYS.userName);
+    if (v) localStorage.setItem(STORAGE_KEYS.userName, v);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.userGroup)) {
+    const v = localStorage.getItem(LEGACY_WRITE_KEYS.userGroup);
+    if (v) localStorage.setItem(STORAGE_KEYS.userGroup, v);
   }
 }
 
@@ -73,20 +72,39 @@ export function pickFirst(keys) {
   return "";
 }
 
+/** Write auth state to BOTH new and legacy keys so all pages work */
 export function persistAuthState(nextState = {}) {
   const { userName = "", userGroup = "", mobileNumber = "" } = nextState;
 
-  if (userName) localStorage.setItem(STORAGE_KEYS.userName, userName);
-  else localStorage.removeItem(STORAGE_KEYS.userName);
+  // New keys (used by AuthContext)
+  if (userName) {
+    localStorage.setItem(STORAGE_KEYS.userName, userName);
+    localStorage.setItem(LEGACY_WRITE_KEYS.userName, userName);   // legacy: User_name
+  } else {
+    localStorage.removeItem(STORAGE_KEYS.userName);
+    localStorage.removeItem(LEGACY_WRITE_KEYS.userName);
+  }
 
-  if (userGroup) localStorage.setItem(STORAGE_KEYS.userGroup, userGroup);
-  else localStorage.removeItem(STORAGE_KEYS.userGroup);
+  if (userGroup) {
+    localStorage.setItem(STORAGE_KEYS.userGroup, userGroup);
+    localStorage.setItem(LEGACY_WRITE_KEYS.userGroup, userGroup); // legacy: User_group
+  } else {
+    localStorage.removeItem(STORAGE_KEYS.userGroup);
+    localStorage.removeItem(LEGACY_WRITE_KEYS.userGroup);
+  }
 
-  if (mobileNumber) localStorage.setItem(STORAGE_KEYS.mobileNumber, mobileNumber);
-  else localStorage.removeItem(STORAGE_KEYS.mobileNumber);
+  if (mobileNumber) {
+    localStorage.setItem(STORAGE_KEYS.mobileNumber, mobileNumber);
+    localStorage.setItem(LEGACY_WRITE_KEYS.mobileNumber, mobileNumber);
+  } else {
+    localStorage.removeItem(STORAGE_KEYS.mobileNumber);
+    localStorage.removeItem(LEGACY_WRITE_KEYS.mobileNumber);
+  }
 }
 
 export function clearStoredSession() {
+  // Clear both new and legacy keys
   Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+  Object.values(LEGACY_WRITE_KEYS).forEach((key) => localStorage.removeItem(key));
   clearStoredToken();
 }
