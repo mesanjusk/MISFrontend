@@ -1,12 +1,14 @@
 import axios from "axios";
 import { getStoredToken } from "./utils/authStorage";
 
-// Hardcoded fallback ensures production always has a baseURL even if
-// VITE_API_SERVER is not baked in at Vercel build time.
+// ─── Base URLs (NO /api suffix — all request paths already include /api/...) ───
+// If VITE_API_SERVER accidentally has /api suffix, strip it to prevent /api/api/... double prefix.
 const PRODUCTION_SERVER = "https://misbackend-e078.onrender.com";
 
-const LOCAL_API  = import.meta.env.VITE_API_LOCAL  || "http://localhost:5000";
-const SERVER_API = import.meta.env.VITE_API_SERVER || PRODUCTION_SERVER;
+const stripApiSuffix = (url) => (url ? String(url).replace(/\/api\/?$/, "") : url);
+
+const LOCAL_API  = stripApiSuffix(import.meta.env.VITE_API_LOCAL)  || "http://localhost:5000";
+const SERVER_API = stripApiSuffix(import.meta.env.VITE_API_SERVER) || PRODUCTION_SERVER;
 
 const hostname    = window.location.hostname;
 const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
@@ -20,14 +22,12 @@ const client = axios.create({
 client.interceptors.request.use(
   (config) => {
     const token = getStoredToken();
-
     if (token) {
       config.headers = {
         ...(config.headers || {}),
         Authorization: `Bearer ${token}`,
       };
     }
-
     return config;
   },
   (error) => Promise.reject(error)

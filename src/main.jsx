@@ -12,6 +12,11 @@ import { migrateAuthStorage } from './utils/authStorage.js';
 // One-time migration: move legacy localStorage keys to new consolidated keys
 migrateAuthStorage();
 
+// Wake the Render backend early — free tier sleeps after 15 min inactivity.
+// This fires a single health-check ping so the server is warm before the
+// dashboard fires its requests. All app data hooks share the same promise.
+import('./utils/backendWake.js').then(({ wakeBackend }) => wakeBackend());
+
 // Override window.alert to use toast notifications instead
 const nativeAlert = window.alert.bind(window);
 window.alert = (msg) => {

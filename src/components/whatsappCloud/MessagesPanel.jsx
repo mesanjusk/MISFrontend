@@ -21,9 +21,11 @@ import EmptyState from './EmptyState';
 import LoadingSkeleton from './LoadingSkeleton';
 import WhatsAppLayout from './WhatsAppLayout';
 
+// Strip /api suffix from socket URL — socket.io connects to the root server, not /api
+const stripApiSuffix = (url) => (url ? String(url).replace(/\/api\/?$/, "") : url);
 const SOCKET_URL =
-  import.meta.env.VITE_SOCKET_URL ||
-  import.meta.env.VITE_API_BASE ||
+  stripApiSuffix(import.meta.env.VITE_SOCKET_URL) ||
+  stripApiSuffix(import.meta.env.VITE_API_BASE) ||
   window.location.origin;
 
 const getMessageText = (message) =>

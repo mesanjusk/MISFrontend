@@ -233,20 +233,25 @@ export default function Dashboard() {
 
   useEffect(() => {
     let mounted = true;
-    const endpoints = ['/paymentfollowup/list', '/paymentfollowup/GetPaymentfollowupList', '/paymentfollowup/getPaymentfollowupList'];
+    // Fixed: use correct /api/ prefix — backend mounts at /api/paymentfollowup
+    // Only one correct endpoint exists: GET /api/paymentfollowup/list
     const fetchFollowups = async () => {
       setFollowupsLoading(true);
-      let rows = [];
-      for (const endpoint of endpoints) {
-        try {
-          const res = await axios.get(endpoint);
-          const apiRows = Array.isArray(res?.data?.result) ? res.data.result : Array.isArray(res?.data?.data) ? res.data.data : Array.isArray(res?.data) ? res.data : [];
-          if (apiRows.length) { rows = apiRows.map(normalizePaymentFollowup); break; }
-        } catch { /* try next */ }
-      }
-      if (mounted) {
-        setFollowups(rows);
-        setFollowupsLoading(false);
+      try {
+        const res = await axios.get('/api/paymentfollowup/list');
+        const apiRows = Array.isArray(res?.data?.result)
+          ? res.data.result
+          : Array.isArray(res?.data?.data)
+          ? res.data.data
+          : Array.isArray(res?.data)
+          ? res.data
+          : [];
+        if (mounted) setFollowups(apiRows.map(normalizePaymentFollowup));
+      } catch {
+        // Silently fail — followups are non-critical, dashboard still loads
+        if (mounted) setFollowups([]);
+      } finally {
+        if (mounted) setFollowupsLoading(false);
       }
     };
     fetchFollowups();

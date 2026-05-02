@@ -1,13 +1,14 @@
 import axios from "axios";
 import { getStoredToken } from "./utils/authStorage";
 
-// baseURL = root server URL only — NO /api suffix here.
-// Every axios call in this app already includes /api/... in the path.
-// Adding /api here would produce /api/api/... (double prefix = 503/404).
+// ─── Base URLs (NO /api suffix — all request paths already include /api/...) ───
+// Strips /api suffix if accidentally set in env vars to prevent /api/api/... double prefix.
 const PRODUCTION_SERVER = "https://misbackend-e078.onrender.com";
 
-const LOCAL_SERVER  = import.meta.env.VITE_API_LOCAL  || "http://localhost:5000";
-const REMOTE_SERVER = import.meta.env.VITE_API_SERVER || PRODUCTION_SERVER;
+const stripApiSuffix = (url) => (url ? String(url).replace(/\/api\/?$/, "") : url);
+
+const LOCAL_SERVER  = stripApiSuffix(import.meta.env.VITE_API_LOCAL)  || "http://localhost:5000";
+const REMOTE_SERVER = stripApiSuffix(import.meta.env.VITE_API_SERVER) || PRODUCTION_SERVER;
 
 const hostname    = window.location.hostname;
 const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";

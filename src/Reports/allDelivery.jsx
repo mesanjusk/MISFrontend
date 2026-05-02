@@ -55,7 +55,8 @@ export default function AllDelivery() {
   const API_BASE = useMemo(() => {
     const raw =
       import.meta.env.VITE_API_BASE || "http://localhost:5000";
-    return String(raw).replace(/\/$/, "");
+    // Strip /api suffix to prevent /api/api/... double prefix
+    return String(raw).replace(/\/api\/?$/, "").replace(/\/$/, "");
   }, []);
 
   const [orders, setOrders] = useState([]);
