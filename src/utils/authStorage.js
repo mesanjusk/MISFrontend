@@ -63,11 +63,10 @@ export function clearStoredToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
-/** Backward-compat helper for code that still calls pickFirst([...]) */
+/** Reads the first key that has a value in localStorage */
 export function pickFirst(keys) {
-  // Try the new consolidated keys first
-  const allKeys = [...Object.values(STORAGE_KEYS), TOKEN_KEY, ...keys];
-  for (const key of allKeys) {
+  for (const key of keys) {
+    if (!key) continue;
     const val = localStorage.getItem(key);
     if (val) return val;
   }

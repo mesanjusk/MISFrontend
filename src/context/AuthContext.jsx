@@ -9,12 +9,7 @@ import {
 
 const initialAuthState = () => ({
   userName: pickFirst([STORAGE_KEYS.userName]),
-  userGroup: pickFirst([
-    STORAGE_KEYS.userGroup,
-    STORAGE_KEYS.role,
-    STORAGE_KEYS.roleFallback,
-    STORAGE_KEYS.userRoleLegacy,
-  ]),
+  userGroup: pickFirst([STORAGE_KEYS.userGroup]),
   mobileNumber: pickFirst([STORAGE_KEYS.mobileNumber]),
 });
 

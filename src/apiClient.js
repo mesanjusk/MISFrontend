@@ -1,10 +1,14 @@
 import axios from "axios";
 import { getStoredToken } from "./utils/authStorage";
 
-const LOCAL_API = import.meta.env.VITE_API_LOCAL;
-const SERVER_API = import.meta.env.VITE_API_SERVER;
+// Hardcoded fallback ensures production always has a baseURL even if
+// VITE_API_SERVER is not baked in at Vercel build time.
+const PRODUCTION_SERVER = "https://misbackend-e078.onrender.com";
 
-const hostname = window.location.hostname;
+const LOCAL_API  = import.meta.env.VITE_API_LOCAL  || "http://localhost:5000";
+const SERVER_API = import.meta.env.VITE_API_SERVER || PRODUCTION_SERVER;
+
+const hostname    = window.location.hostname;
 const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
 
 const currentBaseURL = isLocalhost ? LOCAL_API : SERVER_API;
