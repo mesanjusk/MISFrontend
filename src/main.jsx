@@ -7,10 +7,12 @@ import { initOfflineQueue } from './utils/offlineQueue.js';
 import './apiClient.js';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { AppThemeProvider } from './context/ThemeConfigContext.jsx';
-import { migrateAuthStorage } from './utils/authStorage.js';
+import { repairAuthStorage } from './utils/authStorage.js';
 
-// One-time migration: move legacy localStorage keys to new consolidated keys
-migrateAuthStorage();
+// Repair auth storage on every boot:
+// - Restores User_name/User_group for users whose keys were deleted by the old migration
+// - Syncs new keys (mis_userName) from old keys for fresh sessions
+repairAuthStorage();
 
 // Wake the Render backend early — free tier sleeps after 15 min inactivity.
 // This fires a single health-check ping so the server is warm before the
