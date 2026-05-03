@@ -53,6 +53,7 @@ import {
   SectionCard,
 } from '../components/ui';
 import UpiCollectionSection from '../Components/dashboard/UpiCollectionSection';
+import DesignFilesWidget from '../Components/dashboard/DesignFilesWidget';
 
 const CONFIG_KEY = 'mis_dashboard_design_config_v2';
 const CARD_IDS = ['outstanding', 'readyStuck', 'deliveredUnpaid', 'cash', 'newOrders', 'oldPending', 'delivery', 'revenue', 'receivable', 'enquiry', 'lowStock'];
@@ -318,6 +319,12 @@ export default function Dashboard() {
             <SummaryCard {...card} trend="" sx={{ '& .MuiCard-root, &': { borderRadius: 2 } }} />
           </Grid>
         ))}
+      </Grid>
+
+      <Grid container spacing={0.9} sx={{ mb: 0.9 }}>
+        <Grid item xs={12}>
+          <DesignFilesWidget />
+        </Grid>
       </Grid>
 
       <Grid container spacing={0.9} sx={{ mb: 0.9 }}>
