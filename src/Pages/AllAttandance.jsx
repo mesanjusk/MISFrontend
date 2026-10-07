@@ -7,6 +7,13 @@ import {
   processAttendanceDataForDate,
 } from "../utils/attendanceUtils";
 
+const getLocalDateISO = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export default function AllAttandance() {
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [userName, setUserName] = useState("");
@@ -45,7 +52,7 @@ export default function AllAttandance() {
         fetchUserNames(),
         fetchAttendanceList(),
       ]);
-      const todayISO = new Date().toISOString().split("T")[0];
+      const todayISO = getLocalDateISO();
       const formatted = processAttendanceDataForDate(records, userLookup, todayISO);
       setAttendance(formatted);
     } catch (e) {
@@ -68,7 +75,7 @@ export default function AllAttandance() {
   }, [attendance, search]);
 
   const Badge = ({ value }) => {
-    const has = value && value !== "—";
+    const has = value && value !== "—" && value !== "N/A";
     return (
       <span
         className={[
@@ -102,14 +109,10 @@ export default function AllAttandance() {
 
   return (
     <div className="w-full">
-      {/* Card */}
       <div className="bg-white rounded-2xl shadow-sm ring-1 ring-slate-100">
-        {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-b border-slate-100">
           <div>
-            
             <div className="mt-1 flex items-center gap-2">
-              
               <span className="text-xs px-2 py-0.5 rounded-full bg-slate-50 text-slate-700 border border-slate-200">
                 {todayLabel}
               </span>
@@ -120,13 +123,9 @@ export default function AllAttandance() {
               )}
             </div>
           </div>
-
-         
         </div>
 
-        {/* Content */}
         <div className="px-4 py-4">
-          {/* Mobile cards */}
           <div className="grid gap-3 sm:hidden">
             {loading ? (
               <div className="text-center text-slate-500 py-6">Loading…</div>
@@ -160,7 +159,6 @@ export default function AllAttandance() {
             )}
           </div>
 
-          {/* Desktop table */}
           <div className="hidden sm:block">
             <div className="overflow-auto rounded-xl border border-slate-200">
               <table className="min-w-full text-sm">
@@ -206,7 +204,6 @@ export default function AllAttandance() {
               </table>
             </div>
           </div>
-
         </div>
       </div>
     </div>
