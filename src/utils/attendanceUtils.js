@@ -54,6 +54,13 @@ const formatDateDMY = (iso) => {
   ).padStart(2, "0")}-${d.getFullYear()}`;
 };
 
+const normalizeSource = (value) => {
+  const sourceValue = String(value || "").trim().toLowerCase();
+  if (sourceValue.includes("whatsapp") || sourceValue === "wa") return "WhatsApp";
+  if (sourceValue.includes("dashboard")) return "Dashboard";
+  return "";
+};
+
 export const calculateWorkingHours = (inTime, outTime, breakTime, startTime) => {
   if (!inTime || !outTime || inTime === "N/A" || outTime === "N/A") return 0;
 
@@ -79,16 +86,25 @@ export const processAttendanceDataRange = (
   userLookup,
   startISO,
   endISO,
-  forcedUserName = null // 🔒 hard lock for non-admin
+  forcedUserName = null
 ) => {
   const grouped = new Map();
-  const start = startISO ? new Date(startISO) : null;
-  const end = endISO ? new Date(endISO) : null;
+  const start = startISO ? new Date(`${startISO}T00:00:00.000Z`) : null;
+  const end = endISO ? new Date(`${endISO}T23:59:59.999Z`) : null;
 
-  records.forEach(({ Date: recDate, User, Employee_uuid, Source: recordSource }) => {
+  records.forEach((record = {}) => {
+    const {
+      Date: recDate,
+      User,
+      Employee_uuid,
+      Source,
+      source,
+    } = record;
+
     if (!recDate) return;
 
     const d = new Date(recDate);
+    if (Number.isNaN(d.getTime())) return;
     if (start && d < start) return;
     if (end && d > end) return;
 
@@ -112,32 +128,31 @@ export const processAttendanceDataRange = (
         TotalHours: "0.00",
         Late: false,
         HalfDay: false,
-        Source: (recordSource || "").trim() || "",
+        Source: normalizeSource(Source || source),
       });
     }
 
     const ref = grouped.get(key);
-    const normalizeSource = (value) => {
-      const sourceValue = (value || "").toLowerCase();
-      if (sourceValue.includes("whatsapp") || sourceValue.includes("wa")) return "WhatsApp";
-      if (sourceValue.includes("dashboard")) return "Dashboard";
-      return "";
-    };
 
-    const entryWithSource = (User || []).find((u) => normalizeSource(u?.Source || u?.source));
+    const entryWithSource = (User || []).find((u) =>
+      normalizeSource(u?.Source || u?.source)
+    );
     const resolvedSource = normalizeSource(
       entryWithSource?.Source ||
       entryWithSource?.source ||
-      recordSource ||
+      Source ||
+      source ||
       ref.Source
     );
     if (resolvedSource) ref.Source = resolvedSource;
 
     (User || []).forEach((u) => {
-      if (u.Type === "In") ref.In = u.Time?.trim() || "N/A";
-      if (u.Type === "Break") ref.Break = u.Time?.trim() || "N/A";
-      if (u.Type === "Start") ref.Start = u.Time?.trim() || "N/A";
-      if (u.Type === "Out") ref.Out = u.Time?.trim() || "N/A";
+      const type = String(u?.Type || "").trim().toLowerCase();
+
+      if (type === "in") ref.In = u.Time?.trim() || "N/A";
+      if (type === "break" || type === "lunch out") ref.Break = u.Time?.trim() || "N/A";
+      if (type === "start" || type === "lunch in") ref.Start = u.Time?.trim() || "N/A";
+      if (type === "out") ref.Out = u.Time?.trim() || "N/A";
     });
   });
 
@@ -159,7 +174,7 @@ export const processAttendanceDataRange = (
 };
 
 /* ==================================================
-   COMPAT EXPORT (fixes earlier error)
+   COMPAT EXPORT
 ================================================== */
 
 export const processAttendanceDataForDate = (
